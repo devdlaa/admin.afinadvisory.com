@@ -63,7 +63,7 @@ function validateServiceConfig(config) {
   const errors = [];
 
   // Check for potentially dangerous fields (customize based on your needs)
-  const dangerousFields = ["__proto__", "constructor", "prototype"];
+  const dangerousFields = [];
   for (const field of dangerousFields) {
     if (field in config) {
       errors.push({

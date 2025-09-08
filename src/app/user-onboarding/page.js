@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSearchParams } from "next/navigation";
 import {
@@ -14,7 +14,8 @@ import QRCode from "qrcode";
 
 import "./user-onboarding.scss";
 
-const Page = () => {
+// Create a separate component for the onboarding logic
+const OnboardingContent = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -28,6 +29,7 @@ const Page = () => {
   const [passwordErrors, setPasswordErrors] = useState({});
   const [inviteToken, setInviteToken] = useState(null);
   const searchParams = useSearchParams();
+  
   // Step 2 - Google Authenticator
   const [qrDataUrl, setQrDataUrl] = useState("");
   const [secretKey, setSecretKey] = useState("");
@@ -542,6 +544,32 @@ const Page = () => {
         </div>
       </div>
     </div>
+  );
+};
+
+// Loading fallback component
+const OnboardingFallback = () => (
+  <div className="ob-onboarding-container">
+    <div className="ob-onboarding-card">
+      <div className="ob-step-header">
+        <img src={"/assets/svg/afin_admin_logo.svg"} />
+      </div>
+      <div className="ob-steps-container">
+        <div className="ob-loading-container">
+          <div className="ob-loading-spinner" />
+          <p>Loading...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+// Main component wrapped with Suspense
+const Page = () => {
+  return (
+    <Suspense fallback={<OnboardingFallback />}>
+      <OnboardingContent />
+    </Suspense>
   );
 };
 

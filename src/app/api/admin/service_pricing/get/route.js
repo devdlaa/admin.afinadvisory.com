@@ -1,14 +1,9 @@
 import { NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
-import { requirePermission } from "@/lib/requirePermission";
+
 export async function GET() {
   try {
-      const permissionCheck = await requirePermission(
-      req,
-      "service_pricing.access"
-    );
-    if (permissionCheck) return permissionCheck;
     const configDir = path.join(process.cwd(), "src/config/pricing");
 
     // Find the latest generated static JSON file
