@@ -1,0 +1,12 @@
+.generic-ab {
+  &.services-ab {
+    .generic-ab__header {
+      .generic-ab__header-content {
+       .generic-ab__add-btn {
+           background-color: green;
+           color: white;
+          }
+      }
+    }
+  }
+}

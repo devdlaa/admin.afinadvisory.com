@@ -1,0 +1,614 @@
+// CommissionsManagement.scss
+.commissions-management {
+  background: #f8fafc;
+  max-width: 1280px;
+  margin: 15px auto;
+
+  // Header Section
+  .header {
+    background: white;
+    border-bottom: 1px solid #e2e8f0;
+    padding: 24px;
+
+    .header-content {
+      margin-bottom: 24px;
+
+      .title {
+        font-size: 24px;
+        font-weight: 600;
+        color: #0f172a;
+        margin: 0 0 8px 0;
+      }
+
+      .subtitle {
+        color: #64748b;
+        font-size: 16px;
+        margin: 0;
+      }
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+
+      .stat-card {
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 20px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        transition: all 0.2s;
+box-shadow: rgba(0, 0, 0, 0.02) 0px 1px 3px 0px, rgba(27, 31, 35, 0.15) 0px 0px 0px 1px;
+        &:hover {
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+          transform: translateY(-1px);
+        }
+
+        .stat-icon {
+          width: 44px;
+          height: 44px;
+          border-radius: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: #f1f5f9;
+          color: #64748b;
+
+          &.success {
+            background: #dcfce7;
+            color: #16a34a;
+          }
+
+          &.warning {
+            background: #fef3c7;
+            color: #d97706;
+          }
+        }
+
+        .stat-content {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+
+          .stat-value {
+            font-size: 20px;
+            font-weight: 600;
+            color: #0f172a;
+          }
+
+          .stat-label {
+            font-size: 14px;
+            color: #64748b;
+          }
+        }
+      }
+    }
+  }
+
+  // Controls Section
+  .controls {
+    background: white;
+    border-bottom: 1px solid #e2e8f0;
+    padding: 24px;
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+
+    .search-form {
+      flex: 1;
+      min-width: 300px;
+      max-width: 500px;
+      display: flex;
+      gap: 12px;
+
+      .search-input {
+        flex: 1;
+        position: relative;
+        padding: 0px;
+
+        svg {
+          position: absolute;
+          left: 12px;
+          top: 50%;
+          transform: translateY(-50%);
+          color: #64748b;
+        }
+
+        input {
+          width: 100%;
+          padding: 12px 16px 12px 44px;
+          border: 1px solid #d1d5db;
+          border-radius: 12px;
+          font-size: 14px;
+          background: white;
+          transition: all 0.2s;
+          font-family: "Poppins";
+          &:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+          }
+
+          &::placeholder {
+            color: #9ca3af;
+          }
+        }
+
+        .clear-search {
+          position: absolute;
+          right: 8px;
+          top: 50%;
+          transform: translateY(-50%);
+          padding: 4px;
+          border: none;
+          background: none;
+          color: #64748b;
+          cursor: pointer;
+          border-radius: 4px;
+
+          &:hover {
+            background: #f1f5f9;
+            color: #0f172a;
+          }
+        }
+      }
+    }
+
+    .actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+  }
+
+  // Filter Panel
+  .filter-panel {
+    background: white;
+    border-bottom: 1px solid #e2e8f0;
+    padding: 24px;
+
+    .filter-form {
+      .filter-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+        margin-bottom: 20px;
+      }
+
+      .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+
+        label {
+          font-size: 14px;
+          font-weight: 500;
+          color: #374151;
+        }
+
+        select,
+        input {
+          padding: 10px 12px;
+          border: 1px solid #d1d5db;
+          border-radius: 8px;
+          font-size: 14px;
+          background: white;
+          transition: all 0.2s;
+          font-family: "Poppins";
+          &:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+          }
+        }
+      }
+
+      .filter-actions {
+        display: flex;
+        gap: 12px;
+        justify-content: flex-end;
+      }
+    }
+  }
+
+  // Status Tabs
+  .status-tabs {
+    background: white;
+    padding: 0 24px;
+    display: flex;
+    border-bottom: 1px solid #e2e8f0;
+
+    .status-tab {
+      padding: 16px 20px;
+      border: none;
+      background: none;
+      font-size: 14px;
+      font-weight: 500;
+      color: #64748b;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+      font-family: "Poppins";
+      &:hover {
+        color: #0f172a;
+        background: #f8fafc;
+      }
+
+      &.active {
+        color: #3b82f6;
+        border-bottom-color: #3b82f6;
+      }
+    }
+  }
+
+  // Error & Info Messages
+  .error-message {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #dc2626;
+    padding: 12px 16px;
+    margin: 16px 24px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .close-error {
+      margin-left: auto;
+      padding: 4px;
+      border: none;
+      background: none;
+      color: #dc2626;
+      cursor: pointer;
+      border-radius: 4px;
+
+      &:hover {
+        background: rgba(239, 68, 68, 0.1);
+      }
+    }
+  }
+
+  .active-filters {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    color: #1d4ed8;
+    padding: 12px 16px;
+    margin: 16px 24px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    .clear-all {
+      padding: 4px 8px;
+      border: none;
+      background: rgba(29, 78, 216, 0.1);
+      color: #1d4ed8;
+      cursor: pointer;
+      border-radius: 6px;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+
+      &:hover {
+        background: rgba(29, 78, 216, 0.2);
+      }
+    }
+  }
+
+  // Table Container
+  .table-container {
+    background: white;
+    margin: 24px 0 0 0;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    overflow: hidden;
+
+    // Loading & Empty States
+    .loading-state,
+    .empty-state {
+      padding: 80px 40px;
+      text-align: center;
+      color: #64748b;
+
+      svg {
+        margin-bottom: 16px;
+        color: #9ca3af;
+      }
+
+      h3 {
+        margin: 0 0 8px 0;
+        color: #374151;
+        font-weight: 600;
+      }
+
+      p {
+        margin: 0;
+        font-size: 14px;
+      }
+
+      .spin {
+        animation: spin 1s linear infinite;
+      }
+    }
+
+    // Table
+    .commissions-table {
+      width: 100%;
+      border-collapse: collapse;
+
+      thead {
+        background: #f8fafc;
+        border-bottom: 1px solid #e2e8f0;
+
+        th {
+          padding: 16px;
+          text-align: left;
+          font-size: 12px;
+          font-weight: 600;
+          color: #374151;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+
+          &:first-child {
+            width: 50px;
+          }
+        }
+      }
+
+      tbody {
+        tr {
+          border-bottom: 1px solid #f1f5f9;
+          transition: all 0.2s;
+
+          &:hover {
+            background: #f8fafc;
+          }
+
+          &.selected {
+            background: #eff6ff;
+          }
+
+          td {
+            padding: 16px;
+            vertical-align: middle;
+            font-size: 14px;
+            
+
+            .commission-id,
+            .customer-id,
+            .influencer-id,
+            .coupon-code,
+            .booking-id {
+              font-family: "Courier New", monospace;
+              font-size: 13px;
+              color: #6b6b6b;
+              background: #f1f5f9;
+              padding: 4px 8px;
+              font-weight: 600;
+              border-radius: 4px;
+              display: inline-block;
+            }
+
+            .amount {
+              font-weight: 600;
+              color: #16a34a;
+            }
+
+            .status-badge {
+              display: inline-flex;
+              align-items: center;
+              gap: 4px;
+              padding: 4px 8px;
+              border-radius: 20px;
+              font-size: 12px;
+              font-weight: 500;
+
+              &.status-paid {
+                background: #dcfce7;
+                color: #16a34a;
+              }
+
+              &.status-unpaid {
+                background: #fef3c7;
+                color: #d97706;
+              }
+
+              &.status-pending {
+                background: #f1f5f9;
+                color: #64748b;
+              }
+            }
+          }
+        }
+      }
+
+      .select-all-btn,
+      .select-btn {
+        padding: 4px;
+        border: none;
+        background: none;
+        cursor: pointer;
+        border-radius: 4px;
+        color: #64748b;
+
+        &:hover {
+          background: #f1f5f9;
+          color: #0f172a;
+        }
+      }
+
+      .row-actions {
+        display: flex;
+        gap: 8px;
+
+        .action-btn {
+          padding: 6px 12px;
+          border: 1px solid #d1d5db;
+          background: white;
+          color: #374151;
+          border-radius: 6px;
+          font-size: 12px;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          transition: all 0.2s;
+
+          &:hover {
+            border-color: #3b82f6;
+            color: #3b82f6;
+          }
+
+          &:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+          }
+        }
+      }
+    }
+
+    .load-more {
+      padding: 24px;
+      text-align: center;
+      border-top: 1px solid #f1f5f9;
+    }
+  }
+
+  // Common Button Styles
+  .btn {
+    padding: 10px 16px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s;
+    text-decoration: none;
+    font-family: "Poppins";
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    &.btn-primary {
+      background: #3b82f6;
+      color: white;
+
+      &:hover:not(:disabled) {
+        background: #2563eb;
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+      }
+    }
+
+    &.btn-secondary {
+      background: white;
+      color: #374151;
+      border: 1px solid #d1d5db;
+
+      &:hover:not(:disabled) {
+        background: #f9fafb;
+        border-color: #9ca3af;
+      }
+    }
+
+    &.btn-success {
+      background: #16a34a;
+      color: white;
+
+      &:hover:not(:disabled) {
+        background: #15803d;
+        box-shadow: 0 4px 12px rgba(22, 163, 74, 0.3);
+      }
+    }
+
+    &.btn-warning {
+      background: #d97706;
+      color: white;
+
+      &:hover:not(:disabled) {
+        background: #b45309;
+        box-shadow: 0 4px 12px rgba(217, 119, 6, 0.3);
+      }
+    }
+  }
+
+  // Animations
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  .spin {
+    animation: spin 1s linear infinite;
+  }
+
+  // Mobile Responsiveness
+  @media (max-width: 768px) {
+    .controls {
+      flex-direction: column;
+      align-items: stretch;
+
+      .search-form {
+        max-width: none;
+
+        .search-input input {
+          font-size: 16px; // Prevent zoom on iOS
+        }
+      }
+
+      .actions {
+        justify-content: stretch;
+
+        .btn {
+          flex: 1;
+          justify-content: center;
+        }
+      }
+    }
+
+    .stats-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .filter-panel .filter-form .filter-row {
+      grid-template-columns: 1fr;
+    }
+
+    .status-tabs {
+      overflow-x: auto;
+
+      .status-tab {
+        white-space: nowrap;
+      }
+    }
+
+    .table-container {
+      margin: 16px 8px;
+      overflow-x: auto;
+
+      .commissions-table {
+        min-width: 800px;
+      }
+    }
+  }
+}
+
+.commision_top_wrapper {
+  border-radius: 16px;
+  overflow: hidden;
+  outline: 1px solid #00000008;
+}

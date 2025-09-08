@@ -1,0 +1,473 @@
+// Variables
+$primary-color: #0366d6;
+$secondary-color: #586069;
+$success-color: #28a745;
+$warning-color: #ffc107;
+$danger-color: #dc3545;
+$info-color: #17a2b8;
+
+$bg-primary: #ffffff;
+$bg-secondary: #f6f8fa;
+$bg-tertiary: #fafbfc;
+$border-color: #e1e4e8;
+$text-primary: #24292e;
+$text-secondary: #586069;
+$text-muted: #6a737d;
+
+$border-radius: 6px;
+$box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
+$box-shadow-hover: 0 3px 6px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.12);
+
+// Base styles
+.payments-page {
+  padding: 24px;
+  background: $bg-secondary;
+  min-height: 100vh;
+  font-family: "Poppins";
+  max-width: 1350px;
+  margin: 0 auto;
+  * {
+    box-sizing: border-box;
+  }
+}
+
+// Header
+.payments-header {
+  background: $bg-primary;
+  border: 1px solid $border-color;
+  border-radius: $border-radius;
+  margin-bottom: 20px;
+  box-shadow: $box-shadow;
+
+  .header-content {
+    padding: 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+
+  .header-left {
+    .page-title {
+      margin: 0 0 8px 0;
+      font-size: 24px;
+      font-weight: 600;
+      color: $text-primary;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+
+      .title-icon {
+        color: $primary-color;
+      }
+    }
+
+    .page-subtitle {
+      margin: 0;
+      color: $text-secondary;
+      font-size: 14px;
+    }
+  }
+
+  .header-actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+}
+
+// Buttons
+.btn {
+  padding: 8px 16px;
+  border-radius: $border-radius;
+  border: 1px solid $border-color;
+  background: $bg-primary;
+  color: $text-primary;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  font-family: "Poppins";
+  &:hover:not(:disabled) {
+    background: $bg-secondary;
+    box-shadow: $box-shadow;
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  &.btn-primary {
+    background: $primary-color;
+    color: white;
+    border-color: $primary-color;
+
+    &:hover:not(:disabled) {
+      background: darken($primary-color, 5%);
+      border-color: darken($primary-color, 5%);
+    }
+  }
+
+  &.btn-success {
+    background: $success-color;
+    color: white;
+    border-color: $success-color;
+
+    &:hover:not(:disabled) {
+      background: darken($success-color, 5%);
+      border-color: darken($success-color, 5%);
+    }
+  }
+
+  &.btn-danger {
+    background: $danger-color;
+    color: white;
+    border-color: $danger-color;
+
+    &:hover:not(:disabled) {
+      background: darken($danger-color, 5%);
+      border-color: darken($danger-color, 5%);
+    }
+  }
+
+  &.btn-sm {
+    padding: 4px 8px;
+    font-size: 12px;
+  }
+
+  &.btn-lg {
+    padding: 12px 24px;
+    font-size: 16px;
+  }
+}
+
+// Main Content
+.payments-content {
+  background: $bg-primary;
+  border: 1px solid $border-color;
+  border-radius: $border-radius;
+  box-shadow: $box-shadow;
+  overflow: hidden;
+}
+
+// Tab Navigation
+.tab-navigation {
+  border-bottom: 1px solid $border-color;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 24px;
+
+  .tab-list {
+    display: flex;
+  }
+
+  .tab-item {
+    padding: 16px 20px;
+    border: none;
+    background: transparent;
+    color: $text-secondary;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s ease;
+  font-family: "Poppins";
+    &:hover {
+      color: $text-primary;
+      background: $bg-tertiary;
+    }
+
+    &.active {
+      color: $primary-color;
+      border-bottom-color: $primary-color;
+    }
+  }
+
+  .tab-actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+}
+
+// Search Box
+.search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+
+  .search-icon {
+    position: absolute;
+    left: 12px;
+    color: $text-muted;
+    z-index: 1;
+  }
+
+  .search-input {
+    padding: 8px 12px 8px 36px;
+    border: 1px solid $border-color;
+    border-radius: $border-radius;
+    background: $bg-secondary;
+    font-size: 14px;
+    width: 300px;
+    transition: all 0.2s ease;
+  font-family: "Poppins";
+    &:focus {
+      outline: none;
+      border-color: $primary-color;
+      box-shadow: 0 0 0 3px rgba(3, 102, 214, 0.1);
+    }
+
+    &::placeholder {
+      color: $text-muted;
+    }
+  }
+}
+
+// Tab Content
+.tab-content {
+  min-height: 400px;
+}
+
+// Loading States
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+
+  .loading-spinner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 24px;
+    background: $bg-primary;
+    border-radius: $border-radius;
+    box-shadow: $box-shadow-hover;
+
+    span {
+      font-size: 14px;
+      color: $text-secondary;
+    }
+  }
+}
+
+.spinning {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+// Error Toast
+.error-toast {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  background: $danger-color;
+  color: white;
+  padding: 16px;
+  border-radius: $border-radius;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: $box-shadow-hover;
+  z-index: 9999;
+  max-width: 400px;
+
+  button {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    padding: 0;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+  }
+}
+
+// Card Styles
+.card {
+  background: $bg-primary;
+  border: 1px solid $border-color;
+  border-radius: $border-radius;
+  box-shadow: $box-shadow;
+  overflow: hidden;
+
+  &:hover {
+    box-shadow: $box-shadow-hover;
+  }
+
+  .card-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid $border-color;
+    background: $bg-tertiary;
+
+    h3 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 600;
+      color: $text-primary;
+    }
+  }
+
+  .card-body {
+    padding: 20px;
+  }
+
+  .card-footer {
+    padding: 16px 20px;
+    border-top: 1px solid $border-color;
+    background: $bg-tertiary;
+  }
+}
+
+// Table Styles
+.table-container {
+  overflow-x: auto;
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+
+    th,
+    td {
+      padding: 12px 16px;
+      text-align: left;
+      border-bottom: 1px solid $border-color;
+    }
+
+    th {
+      background: $bg-tertiary;
+      font-weight: 600;
+      color: $text-primary;
+      position: sticky;
+      top: 0;
+    }
+
+    tr {
+      transition: background-color 0.2s ease;
+
+      &:hover {
+        background: $bg-tertiary;
+      }
+    }
+
+    td {
+      color: $text-secondary;
+    }
+  }
+}
+
+// Status badges
+.status-badge {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+
+  &.success {
+    background: lighten($success-color, 40%);
+    color: darken($success-color, 10%);
+  }
+
+  &.warning {
+    background: lighten($warning-color, 30%);
+    color: darken($warning-color, 20%);
+  }
+
+  &.danger {
+    background: lighten($danger-color, 40%);
+    color: darken($danger-color, 10%);
+  }
+
+  &.info {
+    background: lighten($info-color, 40%);
+    color: darken($info-color, 10%);
+  }
+}
+
+// Responsive
+@media (max-width: 768px) {
+  .payments-page {
+    padding: 16px;
+  }
+
+  .payments-header .header-content {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .header-actions {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .tab-navigation {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 0;
+
+    .tab-list {
+      overflow-x: auto;
+      flex-wrap: nowrap;
+    }
+
+    .tab-actions {
+      padding: 16px 24px;
+      border-top: 1px solid $border-color;
+    }
+
+    .search-input {
+      width: 100%;
+    }
+  }
+
+  .table-container {
+    font-size: 12px;
+
+    th,
+    td {
+      padding: 8px 12px;
+    }
+  }
+}

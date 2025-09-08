@@ -1,0 +1,361 @@
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.lg-login-container {
+  height: 100vh;
+  background: linear-gradient(135deg, #a4b3fa 0%, #ebeff1 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    sans-serif;
+}
+
+.lg-login-card {
+  width: 100%;
+  max-width: 500px;
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1),
+    0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+}
+
+.lg-step-header {
+  padding: 15px 10px;
+  padding-top: 25px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.089);
+  background-color: rgb(249, 251, 255);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lg-step-header img {
+  width: 160px;
+  height: auto;
+}
+
+.lg-steps-container {
+  padding: 30px 30px;
+  min-height: 350px;
+}
+
+.lg-step {
+  opacity: 1;
+  transform: translateX(0);
+  transition: all 0.3s ease-in-out;
+}
+
+.lg-step-title {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.lg-step-title h2 {
+  font-size: 28px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 8px 0;
+}
+
+.lg-step-title p {
+  font-size: 16px;
+  color: #6b7280;
+  margin: 0;
+}
+
+.lg-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.lg-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lg-form-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.lg-form-label.inst {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-direction: row;
+}
+
+.lg-form-label.inst div {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.lg-form-input {
+  padding: 12px 16px;
+  border: 2px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 16px;
+  color: #111827;
+  transition: all 0.2s ease;
+  background: white;
+  font-family: "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    sans-serif;
+}
+
+.lg-form-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.lg-form-input::placeholder {
+  color: #9ca3af;
+}
+
+.lg-form-input.lg-error {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+.lg-form-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: #f9fafb;
+}
+
+.lg-password-input {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.lg-password-input input {
+  width: 100%;
+  font-family: "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    sans-serif;
+}
+
+.lg-password-toggle {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.lg-password-toggle:hover:not(:disabled) {
+  color: #374151;
+  background: #f3f4f6;
+}
+
+.lg-password-toggle:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.lg-error-text {
+  font-size: 12px;
+  color: #ef4444;
+  font-weight: 500;
+}
+
+.lg-error-banner {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  text-align: center;
+}
+
+.lg-form-options {
+  text-align: right;
+}
+
+.lg-forgot-password {
+  background: none;
+  border: none;
+  color: #3b82f6;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0;
+}
+
+.lg-forgot-password:hover {
+  text-decoration: underline;
+}
+
+.lg-login-btn,
+.lg-verify-btn {
+  flex: 1;
+  width: 100%;
+  padding: 14px 24px;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-family: "Poppins";
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.lg-login-btn:hover:not(:disabled),
+.lg-verify-btn:hover:not(:disabled) {
+  background: #2563eb;
+  transform: translateY(-1px);
+}
+
+.lg-login-btn:disabled,
+.lg-verify-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.lg-demo-info {
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 10px;
+  padding: 16px;
+  margin-top: 20px;
+}
+
+.lg-demo-info p {
+  margin: 4px 0;
+  font-size: 14px;
+  color: #0369a1;
+}
+
+.lg-demo-info p:first-child {
+  font-weight: 600;
+}
+
+.lg-2fa-verify {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.lg-totp-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.lg-totp-input {
+  text-align: center;
+  font-size: 24px !important;
+  letter-spacing: 8px;
+  font-weight: 600;
+  padding: 16px !important;
+}
+
+.lg-form-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.lg-back-btn {
+  padding: 14px 20px;
+  background: #f3f4f6;
+  color: #6b7280;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+
+  font-family: "Poppins";
+  align-items: center;
+  gap: 8px;
+}
+
+.lg-back-btn:hover:not(:disabled) {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.lg-back-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.lg-loading-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid transparent;
+  border-top: 2px solid currentColor;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.lg-footer {
+  text-align: center;
+  padding: 20px 30px;
+  background: #f8fafc;
+  border-top: 1px solid #e5e7eb;
+}
+
+.lg-footer p {
+  margin: 0;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.lg-footer a {
+  color: #3b82f6;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.lg-footer a:hover {
+  text-decoration: underline;
+}
+
+.lg-loading-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid transparent;
+  border-top: 2px solid currentColor;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}

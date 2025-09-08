@@ -1,0 +1,1186 @@
+// Enhanced Tiny Components Library - Modern Startup-Worthy Design System
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap");
+
+// Enhanced Base Variables
+$primary: #4f46e5;
+$primary-hover: #4338ca;
+$primary-light: rgba(79, 70, 229, 0.08);
+$secondary: #6b7280;
+$text-primary: #111827;
+$text-secondary: #6b7280;
+$text-muted: #9ca3af;
+$bg-primary: #ffffff;
+$bg-secondary: #f9fafb;
+$bg-hover: #f3f4f6;
+$border: #e5e7eb;
+$border-light: #f3f4f6;
+$border-focus: #d1d5db;
+$success: #10b981;
+$error: #ef4444;
+$warning: #f59e0b;
+
+// Enhanced shadows
+$shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+$shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+$shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+  0 2px 4px -1px rgba(0, 0, 0, 0.06);
+$shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
+  0 4px 6px -2px rgba(0, 0, 0, 0.05);
+
+// Global font family
+* {
+  font-family: "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI",
+    "Roboto", sans-serif;
+}
+
+// Enhanced loading animation
+.loading-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+// Enhanced Search Bar Component
+.search-bar {
+  width: 100%;
+
+  .search-input-container {
+    display: flex;
+    border: 1.5px solid $border;
+    border-radius: 16px;
+    background: $bg-primary;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: $shadow-sm;
+
+    &:focus-within {
+      border-color: $primary;
+      box-shadow: 0 0 0 4px $primary-light, $shadow;
+      transform: translateY(-1px);
+    }
+
+    &:hover {
+      border-color: $border-focus;
+      box-shadow: $shadow;
+    }
+  }
+
+  .search-filter-dropdown {
+    position: relative;
+
+    .filter-toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 18px;
+      background: $bg-secondary;
+      border: none;
+      border-right: 1.5px solid $border;
+      font-size: 14px;
+      font-weight: 500;
+      color: $text-secondary;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      white-space: nowrap;
+      font-family: "Poppins", sans-serif;
+
+      &:hover:not(:disabled) {
+        background: $bg-hover;
+        color: $text-primary;
+      }
+
+      &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      svg {
+        transition: transform 0.3s ease;
+      }
+    }
+
+    .filter-dropdown {
+      position: absolute;
+      top: calc(100% + 8px);
+      left: 0;
+      right: 0;
+      background: $bg-primary;
+      border: 1.5px solid $border;
+      border-radius: 12px;
+      box-shadow: $shadow-lg;
+      z-index: 50;
+      overflow: hidden;
+
+      .filter-option {
+        display: block;
+        width: 100%;
+        padding: 12px 16px;
+        background: none;
+        border: none;
+        text-align: left;
+        font-size: 14px;
+        color: $text-primary;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-family: "Poppins", sans-serif;
+        font-weight: 400;
+
+        &:hover {
+          background: $bg-secondary;
+        }
+
+        &.active {
+          background: $primary-light;
+          color: $primary;
+          font-weight: 500;
+        }
+      }
+    }
+  }
+
+  .search-input-wrapper {
+    position: relative;
+    flex: 1;
+    display: flex;
+    align-items: center;
+
+    .search-icon {
+      position: absolute;
+      left: 16px;
+      color: $text-secondary;
+      pointer-events: none;
+      transition: color 0.3s ease;
+    }
+
+    .search-input {
+      flex: 1;
+      padding: 14px 16px 14px 48px;
+      border: none;
+      background: none;
+      font-size: 14px;
+      color: $text-primary;
+      font-family: "Poppins", sans-serif;
+      font-weight: 400;
+
+      &::placeholder {
+        color: $text-muted;
+      }
+
+      &:focus {
+        outline: none;
+      }
+
+      &:focus + .search-icon {
+        color: $primary;
+      }
+
+      &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+    }
+
+    .clear-btn {
+      position: absolute;
+      right: 16px;
+      background: none;
+      border: none;
+      padding: 6px;
+      color: $text-secondary;
+      cursor: pointer;
+      border-radius: 8px;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: rgba(0, 0, 0, 0.06);
+        color: $text-primary;
+      }
+
+      &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+    }
+  }
+}
+
+// Enhanced Input Field Component
+.input-field {
+  width: 100%;
+
+  .input-label {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    color: $text-primary;
+    margin-bottom: 8px;
+    font-family: "Poppins", sans-serif;
+  }
+
+  .input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    border: 1.5px solid $border;
+    border-radius: 16px;
+    background: $bg-primary;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: $shadow-sm;
+
+    &:hover {
+      border-color: $border-focus;
+      box-shadow: $shadow;
+    }
+
+    &:focus-within {
+      border-color: $primary;
+      box-shadow: 0 0 0 4px $primary-light, $shadow;
+      transform: translateY(-1px);
+    }
+
+    &.error {
+      border-color: $error;
+
+      &:focus-within {
+        border-color: $error;
+        box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1), $shadow;
+      }
+    }
+
+    &.loading {
+      .input-icon {
+        color: $primary;
+      }
+    }
+
+    .input-icon {
+      position: absolute;
+      left: 16px;
+      color: $text-secondary;
+      pointer-events: none;
+      transition: color 0.3s ease;
+    }
+
+    .input-control {
+      flex: 1;
+      padding: 14px 16px;
+      padding-left: 48px;
+      border: none;
+      background: none;
+      font-size: 14px;
+      color: $text-primary;
+      font-family: "Poppins", sans-serif;
+      font-weight: 400;
+
+      &::placeholder {
+        color: $text-muted;
+      }
+
+      &:focus {
+        outline: none;
+      }
+
+      &:focus ~ .input-icon {
+        color: $primary;
+      }
+
+      &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+    }
+
+    .password-toggle {
+      position: absolute;
+      right: 16px;
+      background: none;
+      border: none;
+      padding: 6px;
+      color: $text-secondary;
+      cursor: pointer;
+      border-radius: 8px;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: rgba(0, 0, 0, 0.06);
+        color: $text-primary;
+      }
+
+      &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+    }
+  }
+
+  .input-error {
+    display: block;
+    font-size: 13px;
+    color: $error;
+    margin-top: 6px;
+    font-family: "Poppins", sans-serif;
+    font-weight: 400;
+  }
+}
+
+
+
+// Fix for parent containers that might clip the dropdown
+.search-type-select {
+  // Ensure parent doesn't clip dropdown
+  .dropdown-menu {
+    // Force dropdown to appear above parent overflow
+    position: fixed !important;
+    z-index: 10000 !important;
+  }
+}
+
+// Enhanced Button Component
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-weight: 600;
+  border-radius: 16px;
+  border: 1.5px solid transparent;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+  font-family: "Poppins", sans-serif;
+  position: relative;
+  overflow: hidden;
+
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 4px $primary-light;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  &:not(:disabled):hover {
+    transform: translateY(-2px);
+    box-shadow: $shadow-lg;
+  }
+
+  &:not(:disabled):active {
+    transform: translateY(0);
+  }
+
+  // Sizes
+  &.btn-small {
+    padding: 8px 16px;
+    font-size: 13px;
+    gap: 6px;
+    border-radius: 999px;
+  }
+
+  &.btn-medium {
+    padding: 12px 20px;
+    font-size: 14px;
+    border-radius: 999px;
+  }
+
+  &.btn-large {
+    padding: 14px 24px;
+    font-size: 14px;
+    gap: 10px;
+    border-radius: 999px;
+  }
+
+  // Types
+  &.btn-primary {
+    background: linear-gradient(135deg, $primary 0%, $primary-hover 100%);
+    color: white;
+    box-shadow: $shadow;
+
+    &:hover:not(:disabled) {
+      background: linear-gradient(135deg, $primary-hover 0%, #3730a3 100%);
+    }
+  }
+
+  &.btn-secondary {
+    background: $bg-secondary;
+    color: $text-primary;
+    border-color: $border;
+    box-shadow: $shadow-sm;
+
+    &:hover:not(:disabled) {
+      background: $bg-hover;
+      border-color: $border-focus;
+    }
+  }
+
+  &.btn-outline {
+    background: transparent;
+    color: $primary;
+    border-color: $primary;
+
+    &:hover:not(:disabled) {
+      background: $primary-light;
+      border-color: $primary-hover;
+    }
+  }
+
+  &.btn-ghost {
+    background: transparent;
+    color: $text-secondary;
+
+    &:hover:not(:disabled) {
+      background: $bg-secondary;
+      color: $text-primary;
+    }
+  }
+
+  &.btn-danger {
+    background: linear-gradient(135deg, $error 0%, #dc2626 100%);
+    color: white;
+    box-shadow: $shadow;
+
+    &:hover:not(:disabled) {
+      background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+    }
+  }
+
+  &.loading {
+    cursor: not-allowed;
+
+    .btn-loader {
+      color: currentColor;
+    }
+  }
+}
+
+// Enhanced Icon Button Component
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid transparent;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 4px $primary-light;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  &:not(:disabled):hover {
+    transform: translateY(-2px);
+    box-shadow: $shadow-md;
+  }
+
+  &:not(:disabled):active {
+    transform: translateY(0);
+  }
+
+  // Sizes
+  &.icon-btn-small {
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+  }
+
+  &.icon-btn-medium {
+    width: 40px;
+    height: 40px;
+  }
+
+  &.icon-btn-large {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+  }
+
+  // Variants
+  &.icon-btn-default {
+    background: $bg-secondary;
+    color: $text-secondary;
+    border-color: $border;
+    box-shadow: $shadow-sm;
+
+    &:hover:not(:disabled) {
+      background: $bg-hover;
+      color: $text-primary;
+    }
+  }
+
+  &.icon-btn-primary {
+    background: linear-gradient(135deg, $primary 0%, $primary-hover 100%);
+    color: white;
+    box-shadow: $shadow;
+
+    &:hover:not(:disabled) {
+      background: linear-gradient(135deg, $primary-hover 0%, #3730a3 100%);
+    }
+  }
+
+  &.icon-btn-ghost {
+    background: transparent;
+    color: $text-secondary;
+
+    &:hover:not(:disabled) {
+      background: $bg-secondary;
+      color: $text-primary;
+    }
+  }
+
+  &.loading {
+    cursor: not-allowed;
+  }
+}
+
+// Enhanced Date Selector Component
+.date-selector {
+  width: 100%;
+  position: relative;
+  .date-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 16px;
+    background: #ffffff;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+    min-height: 48px;
+  }
+
+  .date-input-wrapper:hover {
+    border-color: #cbd5e1;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+
+  .date-input-wrapper.open,
+  .date-input-wrapper:focus-within {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1), 0 4px 6px rgba(0, 0, 0, 0.1);
+    transform: translateY(-1px);
+  }
+
+  .date-input-wrapper.loading .date-icon {
+    color: #3b82f6;
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  .date-icon {
+    position: absolute;
+    left: 16px;
+    color: #64748b;
+    pointer-events: none;
+    transition: color 0.3s ease;
+  }
+
+  .date-display {
+    flex: 1;
+    padding: 14px 16px 14px 48px;
+    font-size: 14px;
+    color: #1e293b;
+    font-family: inherit;
+    font-weight: 400;
+    user-select: none;
+  }
+
+  .date-input-wrapper:not(:has(.selected)) .date-display {
+    color: #64748b;
+  }
+
+  .date-arrow {
+    position: absolute;
+    right: 16px;
+    color: #64748b;
+    transition: transform 0.3s ease;
+  }
+
+  .arrow-icon.rotated {
+    transform: rotate(90deg);
+  }
+
+  .custom-calendar {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1),
+      0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    z-index: 1000;
+    overflow: hidden;
+    animation: slideDown 0.2s ease;
+  }
+
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .calendar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px;
+    border-bottom: 1px solid #f1f5f9;
+    background: #f8fafc;
+  }
+
+  .nav-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: none;
+    border-radius: 8px;
+    cursor: pointer;
+    color: #64748b;
+    transition: all 0.2s ease;
+  }
+
+  .nav-button:hover {
+    background: #e2e8f0;
+    color: #374151;
+  }
+
+  .month-year {
+    font-weight: 600;
+    font-size: 16px;
+    color: #1e293b;
+  }
+
+  .calendar-grid {
+    padding: 16px;
+  }
+
+  .weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    margin-bottom: 8px;
+  }
+
+  .weekday {
+    padding: 8px 4px;
+    text-align: center;
+    font-size: 12px;
+    font-weight: 600;
+    color: #64748b;
+  }
+
+  .days-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+  }
+
+  .day-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border: none;
+    background: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    color: #374151;
+    transition: all 0.2s ease;
+  }
+
+  .day-button:hover:not(.disabled) {
+    background: #f1f5f9;
+  }
+
+  .day-button.other-month {
+    color: #cbd5e1;
+  }
+
+  .day-button.today {
+    background: #dbeafe;
+    color: #1d4ed8;
+    font-weight: 600;
+  }
+
+  .day-button.selected {
+    background: #3b82f6;
+    color: white;
+    font-weight: 600;
+  }
+
+  .day-button.disabled {
+    color: #cbd5e1;
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  .day-button.selected:hover {
+    background: #2563eb;
+  }
+}
+
+// Enhanced Radio Group Component
+.radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  &.loading {
+    opacity: 0.8;
+  }
+
+  .radio-option {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 12px;
+    transition: all 0.2s ease;
+
+    &:hover:not(.disabled) {
+      background: $bg-secondary;
+    }
+
+    &.disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .radio-input {
+      display: none;
+    }
+
+    .radio-custom {
+      width: 20px;
+      height: 20px;
+      border: 2px solid $border;
+      border-radius: 50%;
+      position: relative;
+      transition: all 0.3s ease;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      &::after {
+        content: "";
+        position: absolute;
+        width: 10px;
+        height: 10px;
+        background: $primary;
+        border-radius: 50%;
+        opacity: 0;
+        transform: scale(0);
+        transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      }
+
+      .radio-loader {
+        color: $primary;
+        position: absolute;
+      }
+    }
+
+    .radio-input:checked + .radio-custom {
+      border-color: $primary;
+      background: $primary-light;
+
+      &::after {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    .radio-label {
+      font-size: 14px;
+      color: $text-primary;
+      font-weight: 400;
+      font-family: "Poppins", sans-serif;
+    }
+
+    &:hover:not(.disabled) .radio-custom {
+      border-color: $primary;
+    }
+  }
+}
+
+// Enhanced Copy Item Component
+.copy-item {
+  &.loading {
+    .copy-btn {
+      cursor: not-allowed;
+    }
+  }
+
+  .copy-label {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    color: $text-primary;
+    margin-bottom: 8px;
+    font-family: "Poppins", sans-serif;
+  }
+
+  .copy-container {
+    display: flex;
+    align-items: center;
+    background: $bg-secondary;
+    max-width: fit-content;
+    border-radius: 16px;
+    padding: 6px 21px;
+    gap: 12px;
+    transition: all 0.3s ease;
+
+    svg {
+      width: 18px;
+    }
+
+    .copy-value {
+      flex: 1;
+      font-size: 14px;
+      color: $text-primary;
+      font-family: "Poppins", sans-serif;
+      font-weight: 400;
+      word-break: break-all;
+    }
+
+    .copy-btn {
+      background: none;
+      border: none;
+      padding: 8px;
+      color: $text-secondary;
+      cursor: pointer;
+      border-radius: 10px;
+      transition: all 0.3s ease;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      &:hover:not(:disabled) {
+        background: rgba(0, 0, 0, 0.06);
+        color: $primary;
+      }
+
+      &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+    }
+  }
+}
+
+// Enhanced focus states for accessibility
+*:focus-visible {
+  outline: 2px solid $primary;
+  outline-offset: 2px;
+}
+
+// Enhanced Responsive Design
+@media (max-width: 768px) {
+  .search-bar {
+    .search-filter-dropdown .filter-toggle {
+      padding: 12px 14px;
+      font-size: 13px;
+    }
+
+    .search-input-wrapper .search-input {
+      padding: 12px 14px 12px 44px;
+      font-size: 14px;
+    }
+  }
+
+  .input-field {
+    .input-wrapper .input-control {
+      padding: 12px 14px;
+      padding-left: 44px;
+      font-size: 14px;
+    }
+  }
+
+  .dropdown {
+    .dropdown-toggle {
+      padding: 12px 16px;
+      font-size: 14px;
+    }
+  }
+
+  .btn {
+    &.btn-small {
+      padding: 8px 14px;
+      font-size: 12px;
+    }
+
+    &.btn-medium {
+      padding: 10px 18px;
+      font-size: 13px;
+    }
+
+    &.btn-large {
+      padding: 14px 22px;
+      font-size: 15px;
+    }
+  }
+
+  .icon-btn {
+    &.icon-btn-small {
+      width: 36px;
+      height: 36px;
+    }
+
+    &.icon-btn-medium {
+      width: 44px;
+      height: 44px;
+    }
+
+    &.icon-btn-large {
+      width: 52px;
+      height: 52px;
+    }
+  }
+
+  .radio-group {
+    gap: 14px;
+  }
+
+  .copy-item .copy-container {
+    padding: 12px 16px;
+  }
+}
+
+// Dark mode support (optional)
+@media (prefers-color-scheme: dark) {
+  :root {
+    --primary: #6366f1;
+    --text-primary: #f9fafb;
+    --text-secondary: #9ca3af;
+    --text-muted: #6b7280;
+    --bg-primary: #111827;
+    --bg-secondary: #1f2937;
+    --bg-hover: #374151;
+    --border: #374151;
+    --border-focus: #4b5563;
+  }
+}
+
+// Performance optimizations
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+// Ensure proper box-sizing
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+// Improve button and input focus
+button,
+input,
+select {
+  font: inherit;
+}
+
+// Smooth scrolling for dropdowns
+.filter-dropdown,
+.dropdown-menu {
+  scroll-behavior: smooth;
+}
+
+
+
+
+// Enhanced Dropdown Component
+// Enhanced Dropdown Component - WORKING VERSION
+.dropdown {
+  position: relative;
+  width: 100%;
+  // Ensure dropdown container doesn't interfere
+  z-index: 1;
+
+  .dropdown-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 14px 18px;
+    background: $bg-primary;
+    border: 1.5px solid $border;
+    border-radius: 12px;
+    font-size: 14px;
+    color: $text-primary;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: $shadow-sm;
+    font-family: "Poppins", sans-serif;
+    font-weight: 400;
+
+    &:hover:not(:disabled) {
+      border-color: $border-focus;
+      box-shadow: $shadow;
+    }
+
+    &:focus {
+      outline: none;
+      border-color: $primary;
+      box-shadow: 0 0 0 4px $primary-light, $shadow;
+    }
+
+    &.open {
+      border-color: $primary;
+      box-shadow: 0 0 0 4px $primary-light, $shadow;
+      transform: translateY(-1px);
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    &.loading {
+      cursor: not-allowed;
+    }
+
+    .dropdown-arrow {
+      color: $text-secondary;
+      transition: transform 0.3s ease;
+      flex-shrink: 0; // Prevent arrow from shrinking
+    }
+
+    &.open .dropdown-arrow:not(.loading-spin) {
+      transform: rotate(180deg);
+    }
+  }
+
+  .dropdown-menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    right: 0;
+    background: $bg-primary;
+    border: 1.5px solid $border;
+    border-radius: 16px;
+    box-shadow: $shadow-lg;
+
+    // HIGH z-index to appear above everything
+    z-index: 9999;
+
+    // Ensure full width
+    width: 100%;
+    min-width: 100%;
+
+    // Scroll support
+    max-height: 240px;
+    overflow-y: auto;
+
+    // Animation
+    animation: dropdownFadeIn 0.2s ease-out;
+
+    // Scrollbar styling
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: $border;
+      border-radius: 4px;
+    }
+
+    &::-webkit-scrollbar-thumb:hover {
+      background: $border-focus;
+    }
+
+    .dropdown-option {
+      display: block;
+      width: 100%;
+      padding: 14px 18px;
+      background: none;
+      border: none;
+      text-align: left;
+      font-size: 14px;
+      color: $text-primary;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-family: "Poppins", sans-serif;
+      font-weight: 400;
+
+      // Prevent text selection issues
+      user-select: none;
+      -webkit-user-select: none;
+
+      &:hover {
+        background: $bg-secondary;
+      }
+
+      &:active {
+        background: $bg-secondary;
+      }
+
+      &.selected {
+        background: $primary-light;
+        color: $primary;
+        font-weight: 500;
+      }
+
+      // Ensure first/last options have proper border radius
+      &:first-child {
+        border-top-left-radius: 14px;
+        border-top-right-radius: 14px;
+      }
+
+      &:last-child {
+        border-bottom-left-radius: 14px;
+        border-bottom-right-radius: 14px;
+      }
+    }
+  }
+}
+
+// Animation for dropdown
+@keyframes dropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

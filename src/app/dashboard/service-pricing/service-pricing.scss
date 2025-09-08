@@ -1,0 +1,445 @@
+// Variables
+$primary-color: #6366f1;
+$primary-dark: #5855eb;
+$secondary-color: #8b5cf6;
+$text-primary: #111827;
+$text-secondary: #6b7280;
+$text-muted: #9ca3af;
+$border-color: #e5e7eb;
+$border-hover: #d1d5db;
+$bg-primary: #fafbfc;
+$bg-white: white;
+$bg-gray: #f3f4f6;
+$bg-gray-light: #f8fafc;
+$error-color: #dc2626;
+$font-family: "Poppins", -apple-system, BlinkMacSystemFont, sans-serif;
+
+// Mixins
+@mixin transition($property: all, $duration: 0.15s, $timing: ease) {
+  transition: $property $duration $timing;
+}
+
+@mixin button-base {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border-radius: 8px;
+  border: none;
+  font-family: $font-family;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+  @include transition();
+
+  &:hover{
+    transform: none;
+    box-shadow: none;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+@mixin card-shadow {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+}
+
+// Base Dashboard Styles
+.dashboard {
+  min-height: 100vh;
+  background-color: $bg-primary;
+  font-family: $font-family;
+
+  &__header {
+    background: $bg-white;
+    border-bottom: 1px solid $border-color;
+    padding: 32px 0;
+
+    &-content {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+  }
+
+  &__title {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+
+    &-icon {
+      width: 32px;
+      height: 32px;
+      color: $primary-color;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 28px;
+      font-weight: 600;
+      color: $text-primary;
+      line-height: 1.2;
+    }
+
+    p {
+      margin: 0;
+      font-size: 14px;
+      color: $text-secondary;
+      font-weight: 400;
+    }
+  }
+
+  &__controls {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 32px;
+    display: flex;
+    gap: 24px;
+    align-items: center;
+  }
+
+  &__footer {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 32px 32px;
+  }
+}
+
+// Button Styles
+.btn {
+  @include button-base;
+
+  &--primary {
+    background-color: $primary-color;
+    color: white;
+
+    &:hover:not(:disabled) {
+      background-color: $primary-dark;
+    
+    }
+  }
+
+  &--outline {
+    background-color: transparent;
+    color: $primary-color;
+    border: 1px solid $border-color;
+
+    &:hover:not(:disabled) {
+      background-color: $bg-gray-light;
+      border-color: $primary-color;
+    }
+  }
+
+  &--secondary {
+    background-color: $bg-gray;
+    color: #374151;
+
+    &:hover:not(:disabled) {
+      background-color: $border-hover;
+    }
+  }
+}
+
+// Search Bar
+.search-bar {
+  position: relative;
+  flex: 1;
+  max-width: 500px;
+
+  &__icon {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 18px;
+    height: 18px;
+    color: $text-muted;
+  }
+
+  &__input {
+    width: 100%;
+    padding: 14px 16px 14px 48px;
+    border: 1px solid $border-color;
+    border-radius: 12px;
+    font-size: 14px;
+    font-family: $font-family;
+    background: $bg-white;
+    @include transition();
+
+    &:focus {
+      outline: none;
+      border-color: $primary-color;
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    }
+
+    &::placeholder {
+      color: $text-muted;
+    }
+  }
+}
+
+// Stats Card
+.stats-card {
+  display: flex;
+  gap: 32px;
+  background: $bg-white;
+  padding: 6px 24px;
+  border-radius: 12px;
+  border: 1px solid $border-color;
+
+  &__item {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+  }
+
+  &__number {
+    font-size: 24px;
+    font-weight: 600;
+    color: $text-primary;
+    margin-bottom: 4px;
+  }
+
+  &__label {
+    font-size: 12px;
+    color: $text-secondary;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+}
+
+// Services Grid
+.services-grid {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 32px 64px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 20px;
+}
+
+// Service Card
+.service-card {
+  background: $bg-white;
+  border: 1px solid $border-color;
+  border-radius: 16px;
+  padding: 24px;
+
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, $primary-color, $secondary-color);
+    opacity: 0;
+    @include transition(opacity);
+  }
+
+  &:hover {
+    border-color: $border-hover;
+
+
+
+    &::before {
+      opacity: 1;
+    }
+  }
+
+  &__header {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  &__info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__name {
+    margin: 0 0 6px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: $text-primary;
+    line-height: 1.4;
+    word-wrap: break-word;
+  }
+
+  &__id {
+    margin: 0;
+    font-size: 13px;
+    color: $text-secondary;
+    font-weight: 400;
+    font-family: "Monaco", "Consolas", monospace;
+  }
+
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+  }
+}
+
+// Service Icon
+.service-icon {
+  width: 20px;
+  height: 20px;
+  color: $primary-color;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+// Loading States
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 20px;
+  color: $text-secondary;
+
+  p {
+    margin: 16px 0 0 0;
+    font-size: 16px;
+  }
+}
+
+.loading-spinner {
+  animation: spin 1s linear infinite;
+
+  &--large {
+    width: 32px;
+    height: 32px;
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+// Error State
+.error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 20px;
+  color: $error-color;
+
+  p {
+    margin: 0 0 16px 0;
+    font-size: 16px;
+  }
+}
+
+// Empty State
+.empty-state {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 20px;
+  color: $text-secondary;
+
+  h3 {
+    margin: 16px 0 8px 0;
+    font-size: 20px;
+    color: #374151;
+  }
+
+  p {
+    margin: 0;
+    font-size: 14px;
+  }
+}
+
+// Overlay
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(2px);
+
+  &__content {
+    background: $bg-white;
+    padding: 40px;
+    border-radius: 16px;
+    text-align: center;
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+
+    p {
+      margin: 16px 0 0 0;
+      font-size: 16px;
+      color: #374151;
+    }
+  }
+}
+
+// Footer Info
+.footer-info {
+  background: $bg-white;
+  border: 1px solid $border-color;
+  border-radius: 16px;
+  padding: 24px;
+
+  h4 {
+    margin: 0 0 12px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: $text-primary;
+  }
+
+  ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  li {
+    margin-bottom: 8px;
+    font-size: 14px;
+    color: $text-secondary;
+    line-height: 1.5;
+    position: relative;
+    padding-left: 16px;
+
+    &::before {
+      content: "•";
+      position: absolute;
+      left: 0;
+      color: $primary-color;
+      font-weight: bold;
+    }
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+}

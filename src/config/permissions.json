@@ -1,0 +1,226 @@
+{
+    "availablePermissions": [
+        {
+            "id": "bookings.access",
+            "label": "Access Bookings",
+            "category": "Bookings"
+        },
+        {
+            "id": "bookings.create_new_link",
+            "label": "Create New Payment Link",
+            "category": "Bookings"
+        },
+        {
+            "id": "bookings.reject_refund",
+            "label": "Reject Booking Refunds",
+            "category": "Bookings"
+        },
+        {
+            "id": "bookings.initiate_refund",
+            "label": "Initiate Booking Refunds",
+            "category": "Bookings"
+        },
+        {
+            "id": "bookings.assign_member",
+            "label": "Assign Members to Bookings",
+            "category": "Bookings"
+        },
+        {
+            "id": "service_pricing.access",
+            "label": "Access Service Pricing ",
+            "category": "Service Pricing"
+        },
+        {
+            "id": "service_pricing.update",
+            "label": "Update Service Pricing",
+            "category": "Service Pricing"
+        },
+        {
+            "id": "payments.access",
+            "label": "Access Payments ",
+            "category": "Payments"
+        },
+        {
+            "id": "influencers.access",
+            "label": "Access Influencers ",
+            "category": "Influencers"
+        },
+        {
+            "id": "influencers.create",
+            "label": "Create Influencers",
+            "category": "Influencers"
+        },
+        {
+            "id": "influencers.update",
+            "label": "Update Influencers",
+            "category": "Influencers"
+        },
+        {
+            "id": "influencers.delete",
+            "label": "Delete Influencers",
+            "category": "Influencers"
+        },
+        {
+            "id": "customers.access",
+            "label": "Access Customers ",
+            "category": "Customers"
+        },
+        {
+            "id": "customers.create",
+            "label": "Create Customers",
+            "category": "Customers"
+        },
+        {
+            "id": "customers.update",
+            "label": "Update Customers",
+            "category": "Customers"
+        },
+        {
+            "id": "commissions.access",
+            "label": "Access Commissions ",
+            "category": "Commissions"
+        },
+        {
+            "id": "commissions.update_paid_status",
+            "label": "Update Paid Status",
+            "category": "Commissions"
+        },
+        {
+            "id": "coupons.access",
+            "label": "Access Coupons ",
+            "category": "Coupons"
+        },
+        {
+            "id": "coupons.create",
+            "label": "Create Coupons",
+            "category": "Coupons"
+        },
+        {
+            "id": "coupons.update",
+            "label": "Update Coupons",
+            "category": "Coupons"
+        },
+        {
+            "id": "coupons.delete",
+            "label": "Delete Coupons",
+            "category": "Coupons"
+        },
+        {
+            "id": "users.access",
+            "label": "Access Users ",
+            "category": "User Management"
+        },
+        {
+            "id": "users.invite",
+            "label": "Invite Users",
+            "category": "User Management"
+        },
+        {
+            "id": "users.delete",
+            "label": "Delete Users",
+            "category": "User Management"
+        },
+        {
+            "id": "users.resend_invite",
+            "label": "Resend User Invites",
+            "category": "User Management"
+        },
+        {
+            "id": "users.reset_password",
+            "label": "Reset User Passwords",
+            "category": "User Management"
+        },
+        {
+            "id": "users.update",
+            "label": "Update User Details",
+            "category": "User Management"
+        },
+        {
+            "id": "users.alter-permissions",
+            "label": "Alter User Permissions",
+            "category": "User Management"
+        }
+    ],
+    "roleDefaults": {
+        "user": [
+            "bookings.access",
+            "users.access",
+            "customers.access",
+            "coupons.access",
+            "service_pricing.access"
+        ],
+        "admin": [
+            "users.access",
+            "bookings.access",
+            "customers.access",
+            "customers.create",
+            "customers.update",
+            "influencers.access",
+            "influencers.create",
+            "influencers.update",
+            "commissions.access",
+            "coupons.access",
+            "coupons.create",
+            "coupons.update",
+            "service_pricing.access",
+            "service_pricing.update",
+            "payments.access"
+        ],
+        "superAdmin": [
+            "users.access",
+            "users.invite",
+            "users.delete",
+            "users.resend_invite",
+            "users.reset_password",
+            "users.update",
+            "users.alter-permissions",
+            "bookings.access",
+            "bookings.create_new_link",
+            "bookings.reject_refund",
+            "bookings.initiate_refund",
+            "bookings.assign_member",
+            "customers.access",
+            "customers.create",
+            "customers.update",
+            "influencers.access",
+            "influencers.create",
+            "influencers.update",
+            "influencers.delete",
+            "commissions.access",
+            "commissions.update_paid_status",
+            "coupons.access",
+            "coupons.create",
+            "coupons.update",
+            "coupons.delete",
+            "service_pricing.access",
+            "service_pricing.update",
+            "payments.access"
+        ]
+    },
+    "roles": [
+        {
+            "id": "user",
+            "label": "User",
+            "description": "Basic access to dashboard only"
+        },
+        {
+            "id": "admin",
+            "label": "Admin",
+            "description": "Manage users, view reports, and analytics"
+        },
+        {
+            "id": "superAdmin",
+            "label": "Super Admin",
+            "description": "Full unrestricted access to the system"
+        }
+    ],
+    "departments": [
+        "Managment",
+        "Admin",
+        "Sales",
+        "IT",
+        "Advisory",
+        "Accounting",
+        "Other"
+    ]
+}

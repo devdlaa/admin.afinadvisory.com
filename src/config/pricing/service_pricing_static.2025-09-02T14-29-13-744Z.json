@@ -1,0 +1,548 @@
+[
+  {
+    "serviceId": "AFINSID06_001",
+    "name": "Private Limited Company Registration",
+    "description": "",
+    "slug": "/service/private-limited-company-registration"
+  },
+  {
+    "serviceId": "AFINSID06_002",
+    "name": "Public Limited Company Registration",
+    "description": "",
+    "slug": "/service/public-limited-company-registration"
+  },
+  {
+    "serviceId": "AFINSID06_003",
+    "name": "Limited Liability Partnership",
+    "description": "",
+    "slug": "/service/limited-liability-partnership-registration"
+  },
+  {
+    "serviceId": "AFINSID06_004",
+    "name": "Hindu Undivided Family (HUF)",
+    "description": "",
+    "slug": "/service/hindu-undivided-family-registration"
+  },
+  {
+    "serviceId": "AFINSID06_005",
+    "name": "Partnership Firm",
+    "description": "",
+    "slug": "/service/partnership-firm-registration"
+  },
+  {
+    "serviceId": "AFINSID06_006",
+    "name": "Sole Proprietorship Registration",
+    "description": "",
+    "slug": "/service/sole-proprietorship-registration"
+  },
+  {
+    "serviceId": "AFINSID06_007",
+    "name": "One Person Company",
+    "description": "",
+    "slug": "/service/one-person-company-registration"
+  },
+  {
+    "serviceId": "AFINSID06_008",
+    "name": "E-Commerce",
+    "description": "",
+    "slug": "/service/e-commerce-business-registration"
+  },
+  {
+    "serviceId": "AFINSID06_009",
+    "name": "Incorporate an Indian Subsidiary",
+    "description": "",
+    "slug": "/service/indian-subsidiary-registration"
+  },
+  {
+    "serviceId": "AFINSID06_010",
+    "name": "Company Registration for Foreigners in India",
+    "description": "",
+    "slug": "/service/company-registration-by-foreigner"
+  },
+  {
+    "serviceId": "AFINSID06_011",
+    "name": "GST Number Registration",
+    "description": "",
+    "slug": "/service/gst-registration-service"
+  },
+  {
+    "serviceId": "AFINSID06_012",
+    "name": "Apply for a PAN Card",
+    "description": "",
+    "slug": "/service/pan-card-application"
+  },
+  {
+    "serviceId": "AFINSID06_013",
+    "name": "startup - DPIT Registration",
+    "description": "",
+    "slug": "/service/startup-registration"
+  },
+  {
+    "serviceId": "AFINSID06_014",
+    "name": "Apply for a TAN Card",
+    "description": "",
+    "slug": "/service/tan-number-application"
+  },
+  {
+    "serviceId": "AFINSID06_015",
+    "name": "IEC Registration",
+    "description": "",
+    "slug": "/service/iec-registration-service"
+  },
+  {
+    "serviceId": "AFINSID06_016",
+    "name": "MSME Registration",
+    "description": "",
+    "slug": "/service/msme-registration-service"
+  },
+  {
+    "serviceId": "AFINSID06_017",
+    "name": "Director Identification Number (DIN)",
+    "description": "",
+    "slug": "/service/din-application-service"
+  },
+  {
+    "serviceId": "AFINSID06_018",
+    "name": "Digital Signature Certificate DSC",
+    "description": "",
+    "slug": "/service/digital-signature-service"
+  },
+  {
+    "serviceId": "AFINSID06_019",
+    "name": "EPF (Employee Provident Fund) Registration",
+    "description": "",
+    "slug": "/service/epf-registration-service"
+  },
+  {
+    "serviceId": "AFINSID06_020",
+    "name": "Trademark Registration",
+    "description": "",
+    "slug": "/service/trademark-registration-service"
+  },
+  {
+    "serviceId": "AFINSID06_021",
+    "name": "ICEGATE Registration",
+    "description": "",
+    "slug": "/service/icegate-registration-service"
+  },
+  {
+    "serviceId": "AFINSID06_022",
+    "name": "Food Licence (FSSAI)",
+    "description": "",
+    "slug": "/service/food-licence-service"
+  },
+  {
+    "serviceId": "AFINSID06_023",
+    "name": "GST Returns",
+    "description": "",
+    "slug": "/service/gst-returns-filing"
+  },
+  {
+    "serviceId": "AFINSID06_024",
+    "name": "TDS Return",
+    "description": "",
+    "slug": "/service/tds-return-filing"
+  },
+  {
+    "serviceId": "AFINSID06_025",
+    "name": "ESIc Return",
+    "description": "",
+    "slug": "/service/esi-return-filing"
+  },
+  {
+    "serviceId": "AFINSID06_026",
+    "name": "Provident Fund Return",
+    "description": "",
+    "slug": "/service/provident-fund-return-filing"
+  },
+  {
+    "serviceId": "AFINSID06_027",
+    "name": "Strike OFF OPC",
+    "description": "",
+    "slug": "/service/opc-strike-off-one-person-company-closure"
+  },
+  {
+    "serviceId": "AFINSID06_028",
+    "name": "ITR filing for Individual",
+    "description": "",
+    "slug": "/service/income-tax-return-individual"
+  },
+  {
+    "serviceId": "AFINSID06_029",
+    "name": "Public Limited Annual Filing",
+    "description": "",
+    "slug": "/service/public-limited-filing"
+  },
+  {
+    "serviceId": "AFINSID06_030",
+    "name": "OPC Annual Filing",
+    "description": "",
+    "slug": "/service/opc-annual-filing"
+  },
+  {
+    "serviceId": "AFINSID06_031",
+    "name": "LLP Annual Filing",
+    "description": "",
+    "slug": "/service/llp-annual-filing"
+  },
+  {
+    "serviceId": "AFINSID06_032",
+    "name": "Private Limited Annual Filing",
+    "description": "",
+    "slug": "/service/pvt-ltd-annual-filing"
+  },
+  {
+    "serviceId": "AFINSID06_033",
+    "name": "Revised/Updated ITR",
+    "description": "",
+    "slug": "/service/revised-tax-return"
+  },
+  {
+    "serviceId": "AFINSID06_034",
+    "name": "PAN Card Modification",
+    "description": "",
+    "slug": "/service/pan-card-modification"
+  },
+  {
+    "serviceId": "AFINSID06_035",
+    "name": "PAN Card Surrender",
+    "description": "",
+    "slug": ""
+  },
+  {
+    "serviceId": "AFINSID06_036",
+    "name": "TAN Modification",
+    "description": "",
+    "slug": "/service/tan-modification-service"
+  },
+  {
+    "serviceId": "AFINSID06_037",
+    "name": "TAN Surrender",
+    "description": "",
+    "slug": ""
+  },
+  {
+    "serviceId": "AFINSID06_038",
+    "name": "Income Tax Notice Reply",
+    "description": "",
+    "slug": "/service/tax-notice-reply"
+  },
+  {
+    "serviceId": "AFINSID06_039",
+    "name": "GST Ammendment (CORE)",
+    "description": "",
+    "slug": "/service/gst-amendments"
+  },
+  {
+    "serviceId": "AFINSID06_040",
+    "name": "GST Registration Cancellation",
+    "description": "",
+    "slug": "/service/gst-cancellation-service"
+  },
+  {
+    "serviceId": "AFINSID06_041",
+    "name": "GST Notices Reply",
+    "description": "",
+    "slug": ""
+  },
+  {
+    "serviceId": "AFINSID06_042",
+    "name": "GST Refund",
+    "description": "",
+    "slug": "/service/gst-refund-service"
+  },
+  {
+    "serviceId": "AFINSID06_043",
+    "name": "Letter of Undertaking under GST",
+    "description": "",
+    "slug": "/service/letter-of-undertaking"
+  },
+  {
+    "serviceId": "AFINSID06_044",
+    "name": "Appointment of Director",
+    "description": "",
+    "slug": "/service/director-appointment-service"
+  },
+  {
+    "serviceId": "AFINSID06_045",
+    "name": "Removal of a Director",
+    "description": "",
+    "slug": "/service/director-removal-service"
+  },
+  {
+    "serviceId": "AFINSID06_046",
+    "name": "Appointment/Resignation of Auditors",
+    "description": "",
+    "slug": "/service/auditor-appointment-service"
+  },
+  {
+    "serviceId": "AFINSID06_047",
+    "name": "Add/Remove Partner in Partnership Firm",
+    "description": "",
+    "slug": "/service/partnership-partner-addition"
+  },
+  {
+    "serviceId": "AFINSID06_048",
+    "name": "Designated Partner under LLP",
+    "description": "",
+    "slug": ""
+  },
+  {
+    "serviceId": "AFINSID06_049",
+    "name": "Change in Director Identification Number",
+    "description": "",
+    "slug": "/service/din-change-service"
+  },
+  {
+    "serviceId": "AFINSID06_050",
+    "name": "Amendment to MOA/AOA",
+    "description": "",
+    "slug": "/service/moa-amendment-service"
+  },
+  {
+    "serviceId": "AFINSID06_051",
+    "name": "Change in Share Capital",
+    "description": "",
+    "slug": ""
+  },
+  {
+    "serviceId": "AFINSID06_052",
+    "name": "Increase Authorized Capital for a Company",
+    "description": "",
+    "slug": "/service/authorized-capital-increase"
+  },
+  {
+    "serviceId": "AFINSID06_053",
+    "name": "Share Transfer and Transmission",
+    "description": "",
+    "slug": ""
+  },
+  {
+    "serviceId": "AFINSID06_054",
+    "name": "TDS return revision",
+    "description": "",
+    "slug": ""
+  },
+  {
+    "serviceId": "AFINSID06_055",
+    "name": "Changing Your Company Name",
+    "description": "",
+    "slug": "/service/company-name-change"
+  },
+  {
+    "serviceId": "AFINSID06_056",
+    "name": "LLP Name Change",
+    "description": "",
+    "slug": "/service/llp-name-change"
+  },
+  {
+    "serviceId": "AFINSID06_057",
+    "name": "Shop Act Registration",
+    "description": "",
+    "slug": "/service/shop-act-registration"
+  },
+  {
+    "serviceId": "AFINSID06_058",
+    "name": "Close Partnership Firm",
+    "description": "",
+    "slug": "/service/close-partnership-firm"
+  },
+  {
+    "serviceId": "AFINSID06_059",
+    "name": "Changing An LLP Agreement",
+    "description": "",
+    "slug": "/service/llp-agreement-change"
+  },
+  {
+    "serviceId": "AFINSID06_060",
+    "name": "Increasing Paid-up Capital",
+    "description": "",
+    "slug": "/service/paid-up-capital"
+  },
+  {
+    "serviceId": "AFINSID06_061",
+    "name": "Surrender Director Identification Number",
+    "description": "",
+    "slug": "/service/din-surrender-service"
+  },
+  {
+    "serviceId": "AFINSID06_062",
+    "name": "DIN KYC",
+    "description": "",
+    "slug": "/service/din-kyc-service"
+  },
+  {
+    "serviceId": "AFINSID06_063",
+    "name": "Project Report",
+    "description": "",
+    "slug": "/service/project-report-preparation"
+  },
+  {
+    "serviceId": "AFINSID06_064",
+    "name": "Credit Monitoring Arrangement Data for Loan Applications",
+    "description": "",
+    "slug": "/service/cma-data-preparation"
+  },
+  {
+    "serviceId": "AFINSID06_065",
+    "name": "IEC Modification",
+    "description": "",
+    "slug": "/service/iec-modification-service"
+  },
+  {
+    "serviceId": "AFINSID06_066",
+    "name": "ESIC Registration",
+    "description": "",
+    "slug": "/service/esic-registration-service"
+  },
+  {
+    "serviceId": "AFINSID06_067",
+    "name": "Food Licence Renewal",
+    "description": "",
+    "slug": ""
+  },
+  {
+    "serviceId": "AFINSID06_068",
+    "name": "Trademark Objection Reply",
+    "description": "",
+    "slug": "/service/trademark-objection-reply"
+  },
+  {
+    "serviceId": "AFINSID06_069",
+    "name": "Strike OFF LLP",
+    "description": "",
+    "slug": "/service/close-llp"
+  },
+  {
+    "serviceId": "AFINSID06_070",
+    "name": "Trademark Renewal",
+    "description": "",
+    "slug": "/service/trademark-renewal-service"
+  },
+  {
+    "serviceId": "AFINSID06_071",
+    "name": "Strike OFF Company",
+    "description": "",
+    "slug": "/service/company-strike-off"
+  },
+  {
+    "serviceId": "AFINSID06_072",
+    "name": "Bookkeeping and Accounting Services",
+    "description": "",
+    "slug": "/service/bookkeeping-accounting-service"
+  },
+  {
+    "serviceId": "AFINSID06_073",
+    "name": "Payroll Setup & Processing",
+    "description": "",
+    "slug": "/service/payroll-setup-service"
+  },
+  {
+    "serviceId": "AFINSID06_074",
+    "name": "Virtual CFO Service",
+    "description": "",
+    "slug": "/service/virtual-cfo-services"
+  },
+  {
+    "serviceId": "AFINSID06_075",
+    "name": "Invoicing Service",
+    "description": "",
+    "slug": "/service/invoicing-system-setup"
+  },
+  {
+    "serviceId": "AFINSID06_076",
+    "name": "ADD/remove partner in LLP",
+    "description": "",
+    "slug": "/service/add-remove-partner-llp"
+  },
+  {
+    "serviceId": "AFINSID06_077",
+    "name": "MOA/AOA Printing",
+    "description": "",
+    "slug": "/service/moa-aoa-printing-services"
+  },
+  {
+    "serviceId": "AFINSID06_078",
+    "name": "Change in Registered Address",
+    "description": "",
+    "slug": ""
+  },
+  {
+    "serviceId": "AFINSID06_079",
+    "name": "MSME Ammendment",
+    "description": "",
+    "slug": "/service/update-msme-udyam-registration"
+  },
+  {
+    "serviceId": "AFINSID06_080",
+    "name": "Trademark Rectification",
+    "description": "",
+    "slug": "/service/trademark-rectification-services"
+  },
+  {
+    "serviceId": "AFINSID06_081",
+    "name": "Section 8 Annual Filings",
+    "description": "",
+    "slug": "/service/section-8-company-annual-filings"
+  },
+  {
+    "serviceId": "AFINSID06_082",
+    "name": "TDS on sale of Property",
+    "description": "",
+    "slug": "/service/tds-on-property-sale"
+  },
+  {
+    "serviceId": "AFINSID06_083",
+    "name": "ITR For Others",
+    "description": "",
+    "slug": "/service/income-tax-return"
+  },
+  {
+    "serviceId": "AFINSID06_084",
+    "name": "ITR For LLP",
+    "description": "",
+    "slug": "/service/income-tax-return-llp"
+  },
+  {
+    "serviceId": "AFINSID06_085",
+    "name": "ITR For Company",
+    "description": "",
+    "slug": "/service/income-tax-return-company"
+  },
+  {
+    "serviceId": "AFINSID06_086",
+    "name": "ITR For Proprietor",
+    "description": "",
+    "slug": "/service/income-tax-return-proprietorship"
+  },
+  {
+    "serviceId": "AFINSID06_087",
+    "name": "GST Revocation",
+    "description": "",
+    "slug": "/service/gst-revocation"
+  },
+  {
+    "serviceId": "AFINSID06_088",
+    "name": "GST Ammendment (NON-CORE)",
+    "description": "",
+    "slug": "/service/gst-amendments"
+  },
+  {
+    "serviceId": "AFINSID06_089",
+    "name": "Society Formation",
+    "description": "",
+    "slug": "/service/society-registration"
+  },
+  {
+    "serviceId": "AFINSID06_090",
+    "name": "Trust Formation",
+    "description": "",
+    "slug": "/service/trust-formation"
+  },
+  {
+    "serviceId": "AFINSID06_091",
+    "name": "LEI Registration",
+    "description": "",
+    "slug": "/service/lei-registration-legal-entity-identifier"
+  }
+]

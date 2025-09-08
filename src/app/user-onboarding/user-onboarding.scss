@@ -1,0 +1,526 @@
+.ob-onboarding-container {
+  height: 100vh;
+  background: linear-gradient(135deg, #a4b3fa 0%, #ebeff1 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: "Poppins";
+}
+
+.ob-onboarding-card {
+  width: 100%;
+  max-width: 500px;
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1),
+    0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+}
+
+// Header
+.ob-header {
+  text-align: center;
+  padding: 40px 30px 20px;
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+
+  .ob-logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 16px;
+
+    svg {
+      color: #3b82f6;
+    }
+
+    h1 {
+      font-size: 24px;
+      font-weight: 700;
+      color: #111827;
+      margin: 0;
+    }
+  }
+
+  .ob-welcome-text {
+    color: #6b7280;
+    font-size: 16px;
+    margin: 0;
+  }
+}
+
+// Progress Indicator
+.ob-progress {
+  position: relative;
+  padding: 30px;
+  background: white;
+
+  .ob-progress-steps {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+    z-index: 2;
+  }
+
+  .ob-progress-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+
+    .ob-step-number {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: #e5e7eb;
+      color: #9ca3af;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 16px;
+      transition: all 0.3s ease;
+    }
+
+    .ob-step-label {
+      font-size: 12px;
+      color: #9ca3af;
+      font-weight: 500;
+      transition: all 0.3s ease;
+    }
+
+    &.ob-active {
+      .ob-step-number {
+        background: #3b82f6;
+        color: white;
+      }
+
+      .ob-step-label {
+        color: #3b82f6;
+      }
+    }
+  }
+
+  .ob-progress-bar {
+    position: absolute;
+    top: 50px;
+    left: 30px;
+    right: 30px;
+    height: 2px;
+    background: #3b82f6;
+    transition: width 0.5s ease;
+    z-index: 1;
+
+    &::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 100%;
+      background: #e5e7eb;
+      z-index: -1;
+    }
+  }
+}
+
+// Steps Container
+.ob-steps-container {
+  padding: 30px 30px;
+  min-height: 400px;
+}
+
+.ob-step {
+}
+.ob-step-header {
+  padding: 15px 10px;
+  padding-top: 25px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.089);
+  background-color: rgb(249, 251, 255);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  img {
+    width: 160px;
+    height: auto;
+  }
+}
+// Form Styles
+.ob-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.ob-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ob-form-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+
+  &.inst {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+        flex-direction: row;
+    div {
+      font-size: 12px;
+      font-weight: 500;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    span {
+      font-size: 14px;
+      font-size: 400;
+    }
+  }
+}
+
+.ob-form-input {
+  padding: 12px 16px;
+  border: 2px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 16px;
+  color: #111827;
+  transition: all 0.2s ease;
+  background: white;
+
+  &:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+
+  &::placeholder {
+    color: #9ca3af;
+  }
+
+  &.ob-error {
+    border-color: #ef4444;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background: #f9fafb;
+  }
+}
+
+.ob-password-input {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  input {
+    width: 100%;
+    font-family: "Poppins";
+  }
+
+  .ob-password-toggle {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: #6b7280;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+
+    &:hover:not(:disabled) {
+      color: #374151;
+      background: #f3f4f6;
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+}
+
+.ob-error-text {
+  font-size: 12px;
+  color: #ef4444;
+  font-weight: 500;
+}
+
+.ob-password-requirements {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 16px;
+
+  h4 {
+    font-size: 14px;
+    font-weight: 600;
+    color: #374151;
+    margin: 0 0 8px 0;
+  }
+
+  ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+
+    li {
+      position: relative;
+      padding: 2px 0 2px 20px;
+      font-size: 12px;
+      color: #6b7280;
+
+      &::before {
+        content: "•";
+        position: absolute;
+        left: 0;
+        color: #9ca3af;
+      }
+    }
+  }
+}
+
+// 2FA Setup Styles
+.ob-2fa-setup {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.ob-qr-section {
+  text-align: center;
+}
+
+.ob-qr-container {
+  display: inline-block;
+  padding: 20px;
+  background: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 16px;
+  margin-bottom: 20px;
+
+  .ob-qr-code {
+    width: 200px;
+    height: 200px;
+    border-radius: 8px;
+  }
+}
+
+.ob-manual-entry {
+  p {
+    font-size: 14px;
+    color: #6b7280;
+    margin: 0 0 12px 0;
+  }
+
+  .ob-secret-key {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: #f3f4f6;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 12px 16px;
+    max-width: 300px;
+    margin: 0 auto;
+
+    code {
+      font-family: "Monaco", "Consolas", monospace;
+      font-size: 14px;
+      color: #374151;
+      letter-spacing: 1px;
+    }
+
+    .ob-copy-btn {
+      background: none;
+      border: none;
+      color: #6b7280;
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 4px;
+      transition: all 0.2s ease;
+
+      &:hover:not(:disabled) {
+        color: #3b82f6;
+        background: #dbeafe;
+      }
+
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+    }
+  }
+}
+
+.ob-totp-input {
+  text-align: center;
+  font-size: 24px !important;
+  letter-spacing: 8px;
+  font-weight: 600;
+  padding: 16px !important;
+}
+
+// Form Actions
+.ob-form-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.ob-continue-btn,
+.ob-verify-btn,
+.ob-login-btn {
+  flex: 1;
+  width: 100%;
+  padding: 14px 24px;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  &:hover:not(:disabled) {
+    background: #2563eb;
+    transform: translateY(-1px);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+}
+
+.ob-back-btn {
+  padding: 14px 20px;
+  background: #f3f4f6;
+  color: #6b7280;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  &:hover:not(:disabled) {
+    background: #e5e7eb;
+    color: #374151;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+// Success Step
+.ob-success-step {
+  text-align: center;
+
+  .ob-success-content {
+    padding: 20px 0;
+
+    .ob-success-icon {
+      font-size: 80px;
+      margin-bottom: 24px;
+      display: block;
+    }
+
+    h2 {
+      font-size: 28px;
+      font-weight: 700;
+      color: #111827;
+      margin: 0 0 16px 0;
+    }
+
+    p {
+      font-size: 16px;
+      color: #6b7280;
+      line-height: 1.6;
+      margin: 0 0 32px 0;
+    }
+  }
+}
+
+.ob-success-details {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 32px;
+
+  .ob-success-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 10px;
+
+    .ob-check-icon {
+      color: #22c55e;
+      flex-shrink: 0;
+    }
+
+    span {
+      font-size: 14px;
+      color: #374151;
+      font-weight: 500;
+    }
+  }
+}
+
+// Loading Spinner
+.ob-loading-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid transparent;
+  border-top: 2px solid currentColor;
+  border-radius: 50%;
+}
+
+// Footer
+.ob-footer {
+  text-align: center;
+  padding: 20px 30px;
+  background: #f8fafc;
+  border-top: 1px solid #e5e7eb;
+
+  p {
+    margin: 0;
+    font-size: 14px;
+    color: #6b7280;
+
+    a {
+      color: #3b82f6;
+      text-decoration: none;
+      font-weight: 500;
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+  }
+}

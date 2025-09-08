@@ -1,0 +1,77 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+// Brand colors based on AFIN Advisory logo
+:root {
+  --primary-green: #22c55e;
+  --primary-blue: #3b82f6;
+  --dark-blue: #1e40af;
+  --light-green: #dcfce7;
+  --light-blue: #dbeafe;
+  --text-primary: #1f2937;
+  --text-secondary: #6b7280;
+  --background: #f8fafc;
+  --white: #ffffff;
+  --border-color: #e5e7eb;
+  --sidebar-width: 280px;
+  --sidebar-closed-width: 80px;
+  --topbar-height: 70px;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif;
+  background-color: var(--background);
+  color: var(--text-primary);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.layout {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  transition: margin-left 0.3s ease;
+  
+  &.sidebar-open {
+    margin-left: var(--sidebar-width);
+  }
+  
+  &.sidebar-closed {
+    margin-left: var(--sidebar-closed-width);
+  }
+}
+
+.content-area {
+  flex: 1;
+
+  overflow-y: auto;
+  background-color: var(--background);
+  
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 3px;
+    
+    &:hover {
+      background: var(--text-secondary);
+    }
+  }
+}
