@@ -230,7 +230,7 @@ export const influencersActionBarConfig = {
     entityNamePlural: "Influencers",
     description: "Manage your influencers and their details",
     icon: Users,
-    className: "",
+    className: "influncer-ab",
     showAddButton: true,
     addButtonText: "Add new Influencer",
     addButtonIcon: UserPlus,

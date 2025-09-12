@@ -1,33 +1,15 @@
-// Variables
-$primary-color: #0366d6;
-$success-color: #28a745;
-$warning-color: #ffc107;
-$danger-color: #dc3545;
-$info-color: #17a2b8;
-$secondary-color: #6c757d;
-$bg-primary: #ffffff;
-$bg-secondary: #f6f8fa;
-$bg-tertiary: #fafbfc;
-$border-color: #e1e4e8;
-$text-primary: #24292e;
-$text-secondary: #586069;
-$text-muted: #6a737d;
-$border-radius: 6px;
-$box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
-$box-shadow-hover: 0 3px 6px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.12);
-
 .settlements-table {
   .table-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 20px 24px 16px;
-    border-bottom: 1px solid $border-color;
+    border-bottom: 1px solid #e1e4e8;
 
     .table-info {
       .total-count {
         font-size: 14px;
-        color: $text-secondary;
+        color: #586069;
         font-weight: 500;
       }
     }
@@ -35,16 +17,16 @@ $box-shadow-hover: 0 3px 6px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.12);
     .table-controls {
       .page-size-select {
         padding: 6px 12px;
-        border: 1px solid $border-color;
-        border-radius: $border-radius;
-        background: $bg-primary;
+        border: 1px solid #e1e4e8;
+        border-radius: 6px;
+        background: #ffffff;
         font-size: 14px;
-        color: $text-secondary;
+        color: #586069;
         cursor: pointer;
 
         &:focus {
           outline: none;
-          border-color: $primary-color;
+          border-color: #0366d6;
           box-shadow: 0 0 0 3px rgba(3, 102, 214, 0.1);
         }
       }
@@ -63,10 +45,10 @@ $box-shadow-hover: 0 3px 6px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.12);
       th {
         padding: 16px 20px;
         text-align: left;
-        border-bottom: 1px solid $border-color;
-        background: $bg-tertiary;
+        border-bottom: 1px solid #e1e4e8;
+        background: #fafbfc;
         font-weight: 600;
-        color: $text-primary;
+        color: #24292e;
         font-size: 12px;
         text-transform: uppercase;
         letter-spacing: 0.5px;
@@ -77,7 +59,7 @@ $box-shadow-hover: 0 3px 6px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.12);
 
       td {
         padding: 16px 20px;
-        border-bottom: 1px solid $border-color;
+        border-bottom: 1px solid #e1e4e8;
         vertical-align: middle;
       }
 
@@ -85,7 +67,7 @@ $box-shadow-hover: 0 3px 6px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.12);
         transition: background-color 0.2s ease;
 
         &:hover {
-          background: $bg-tertiary;
+          background: #fafbfc;
         }
       }
     }
@@ -99,7 +81,7 @@ $box-shadow-hover: 0 3px 6px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.12);
     font-family: "Monaco", "Menlo", monospace;
 
     .id-text {
-      color: $text-primary;
+      color: #24292e;
       font-size: 13px;
     }
 
@@ -108,13 +90,13 @@ $box-shadow-hover: 0 3px 6px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.12);
       border: none;
       padding: 4px;
       cursor: pointer;
-      color: $text-muted;
+      color: #6a737d;
       border-radius: 4px;
       transition: all 0.2s ease;
 
       &:hover {
-        color: $primary-color;
-        background: $bg-secondary;
+        color: #0366d6;
+        background: #f6f8fa;
       }
     }
   }
@@ -122,7 +104,7 @@ $box-shadow-hover: 0 3px 6px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.12);
   .amount-cell {
     .amount {
       display: block;
-      color: $text-primary;
+      color: #24292e;
       font-weight: 700;
       font-size: 16px;
       margin-bottom: 2px;
@@ -130,7 +112,7 @@ $box-shadow-hover: 0 3px 6px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.12);
 
     .net-amount {
       display: block;
-      color: $text-muted;
+      color: #6a737d;
       font-size: 12px;
       font-weight: 500;
     }
@@ -145,42 +127,42 @@ $box-shadow-hover: 0 3px 6px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.12);
     letter-spacing: 0.5px;
 
     &.success {
-      background: lighten($success-color, 45%);
-      color: darken($success-color, 10%);
+      background: #d4edda;
+      color: #155724;
     }
 
     &.warning {
-      background: lighten($warning-color, 35%);
-      color: darken($warning-color, 25%);
+      background: #fff3cd;
+      color: #856404;
     }
 
     &.danger {
-      background: lighten($danger-color, 45%);
-      color: darken($danger-color, 10%);
+      background: #f8d7da;
+      color: #721c24;
     }
 
     &.info {
-      background: lighten($info-color, 45%);
-      color: darken($info-color, 10%);
+      background: #d1ecf1;
+      color: #0c5460;
     }
 
     &.secondary {
-      background: lighten($secondary-color, 45%);
-      color: darken($secondary-color, 10%);
+      background: #e2e3e5;
+      color: #495057;
     }
   }
 
   .fees-cell {
     .fees {
       display: block;
-      color: $text-secondary;
+      color: #586069;
       font-size: 13px;
       margin-bottom: 2px;
     }
 
     .tax {
       display: block;
-      color: $text-muted;
+      color: #6a737d;
       font-size: 12px;
     }
   }
@@ -194,8 +176,8 @@ $box-shadow-hover: 0 3px 6px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.12);
       .utr-text {
         font-family: "Monaco", "Menlo", monospace;
         font-size: 12px;
-        color: $text-primary;
-        background: $bg-secondary;
+        color: #24292e;
+        background: #f6f8fa;
         padding: 2px 6px;
         border-radius: 4px;
       }
@@ -205,26 +187,26 @@ $box-shadow-hover: 0 3px 6px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.12);
         border: none;
         padding: 3px;
         cursor: pointer;
-        color: $text-muted;
+        color: #6a737d;
         border-radius: 3px;
         transition: all 0.2s ease;
 
         &:hover {
-          color: $primary-color;
-          background: $bg-secondary;
+          color: #0366d6;
+          background: #f6f8fa;
         }
       }
     }
 
     .pending-utr {
-      color: $text-muted;
+      color: #6a737d;
       font-style: italic;
       font-size: 13px;
     }
   }
 
   .date {
-    color: $text-secondary;
+    color: #586069;
     font-size: 13px;
   }
 
@@ -239,17 +221,17 @@ $box-shadow-hover: 0 3px 6px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.12);
       border: none;
       padding: 6px;
       cursor: pointer;
-      color: $text-muted;
+      color: #6a737d;
       border-radius: 4px;
       transition: all 0.2s ease;
 
       &:hover {
-        color: $primary-color;
-        background: $bg-secondary;
+        color: #0366d6;
+        background: #f6f8fa;
       }
 
       &.view-btn:hover {
-        color: $info-color;
+        color: #17a2b8;
       }
     }
 
@@ -260,10 +242,10 @@ $box-shadow-hover: 0 3px 6px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.12);
         position: absolute;
         top: 100%;
         right: 0;
-        background: $bg-primary;
-        border: 1px solid $border-color;
-        border-radius: $border-radius;
-        box-shadow: $box-shadow-hover;
+        background: #ffffff;
+        border: 1px solid #e1e4e8;
+        border-radius: 6px;
+        box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.12);
         z-index: 100;
         min-width: 180px;
         margin-top: 4px;
@@ -279,22 +261,22 @@ $box-shadow-hover: 0 3px 6px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.12);
           align-items: center;
           gap: 8px;
           font-size: 14px;
-          color: $text-secondary;
+          color: #586069;
           transition: all 0.2s ease;
 
           &:hover {
-            background: $bg-tertiary;
-            color: $text-primary;
+            background: #fafbfc;
+            color: #24292e;
           }
 
           &:first-child {
-            border-top-left-radius: $border-radius;
-            border-top-right-radius: $border-radius;
+            border-top-left-radius: 6px;
+            border-top-right-radius: 6px;
           }
 
           &:last-child {
-            border-bottom-left-radius: $border-radius;
-            border-bottom-right-radius: $border-radius;
+            border-bottom-left-radius: 6px;
+            border-bottom-right-radius: 6px;
           }
         }
       }
@@ -308,20 +290,20 @@ $box-shadow-hover: 0 3px 6px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.12);
 
     .empty-icon {
       margin-bottom: 20px;
-      color: $text-muted;
+      color: #6a737d;
       opacity: 0.5;
     }
 
     h3 {
       margin: 0 0 8px 0;
-      color: $text-primary;
+      color: #24292e;
       font-size: 18px;
       font-weight: 600;
     }
 
     p {
       margin: 0;
-      color: $text-muted;
+      color: #6a737d;
       font-size: 14px;
     }
   }
@@ -332,12 +314,12 @@ $box-shadow-hover: 0 3px 6px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.12);
     justify-content: space-between;
     align-items: center;
     padding: 16px 24px;
-    border-top: 1px solid $border-color;
-    background: $bg-tertiary;
+    border-top: 1px solid #e1e4e8;
+    background: #fafbfc;
 
     .pagination-info {
       font-size: 14px;
-      color: $text-secondary;
+      color: #586069;
     }
 
     .pagination-controls {
@@ -347,11 +329,11 @@ $box-shadow-hover: 0 3px 6px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.12);
 
       .page-info {
         padding: 8px 12px;
-        background: $bg-primary;
-        border: 1px solid $border-color;
-        border-radius: $border-radius;
+        background: #ffffff;
+        border: 1px solid #e1e4e8;
+        border-radius: 6px;
         font-size: 14px;
-        color: $text-primary;
+        color: #24292e;
         font-weight: 500;
         min-width: 40px;
         text-align: center;
@@ -373,9 +355,9 @@ $box-shadow-hover: 0 3px 6px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.12);
           height: 20px;
           background: linear-gradient(
             90deg,
-            $bg-secondary 25%,
-            lighten($bg-secondary, 5%) 50%,
-            $bg-secondary 75%
+            #f6f8fa 25%,
+            #f8f9fa 50%,
+            #f6f8fa 75%
           );
           background-size: 200% 100%;
           animation: loading 1.5s infinite;

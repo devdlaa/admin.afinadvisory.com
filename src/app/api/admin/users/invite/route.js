@@ -356,7 +356,7 @@ export async function POST(req) {
           purpose: "user_invitation",
         },
         JWT_SECRET,
-        { expiresIn: "24h" }
+        { expiresIn: "15m" }
       );
     } catch (tokenError) {
       console.error("Token generation error:", tokenError);

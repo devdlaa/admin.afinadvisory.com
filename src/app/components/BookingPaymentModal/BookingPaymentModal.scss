@@ -25,9 +25,9 @@
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
   width: 100%;
   max-width: fit-content;
-  height: 80vh;
+  height: fit-content;
   max-height: 800px;
-
+  min-height:700px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -223,7 +223,7 @@
 }
 
 .form-group {
-  margin-bottom: 24px;
+  margin-bottom: 10px;
   &.quantity {
     display: flex;
     align-items: center;

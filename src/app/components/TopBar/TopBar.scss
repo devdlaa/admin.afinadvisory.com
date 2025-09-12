@@ -1,13 +1,14 @@
 .topbar {
   height: 82px;
+  display: none;
   background: var(--white);
   border-bottom: 1px solid var(--border-color);
-  display: flex;
+  display: none;
   align-items: center;
   justify-content: space-between;
   padding: 0 44px;
   position: sticky;
- 
+
   top: 0;
   z-index: 100;
   font-family: "Poppins";
@@ -176,8 +177,8 @@
   align-items: center;
   gap: 12px;
   padding: 8px 12px;
-    background: #e2efff;
-    outline: 1px solid rgba(0, 0, 0, 0.055);
+  background: #e2efff;
+  outline: 1px solid rgba(0, 0, 0, 0.055);
   border-radius: 12px;
   cursor: pointer;
   transition: background-color 0.2s ease;

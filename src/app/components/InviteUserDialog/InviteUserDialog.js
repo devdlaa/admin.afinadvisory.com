@@ -322,7 +322,7 @@ const InviteUserDialog = ({ open, onClose, onInvite }) => {
   // Show loading state while fetching permissions
   if (permissionsLoading) {
     return (
-      <div className="dialog-overlay">
+      <div className="invite_new_user_invite_new_user_dialog-overlay">
         <div className="dialog-container">
           <div className="invite-dialog">
             <div className="loading-content">
@@ -342,7 +342,7 @@ const InviteUserDialog = ({ open, onClose, onInvite }) => {
   // Show error state if permissions failed to load
   if (permissionsError) {
     return (
-      <div className="dialog-overlay">
+      <div className="invite_new_user_dialog-overlay">
         <div className="dialog-container">
           <div className="invite-dialog">
             <div className="error-content">
@@ -362,7 +362,7 @@ const InviteUserDialog = ({ open, onClose, onInvite }) => {
   }
 
   return (
-    <div className="dialog-overlay" onClick={onClose}>
+    <div className="invite_new_user_dialog-overlay" onClick={onClose}>
       <div className="dialog-container" onClick={(e) => e.stopPropagation()}>
         <div className="invite-dialog">
           <div className="dialog-header">

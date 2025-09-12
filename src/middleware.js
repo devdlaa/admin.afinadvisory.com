@@ -290,6 +290,8 @@ export async function middleware(req) {
     method: req.method,
   });
 
+  
+
   try {
     // Check rate limit
     if (!checkRateLimit(ip)) {

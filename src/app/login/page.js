@@ -1,5 +1,6 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { Eye, EyeOff, ArrowRight, ArrowLeft, Info, LogIn } from "lucide-react";
 
@@ -8,6 +9,7 @@ import { signInWithEmailAndPassword } from "firebase/auth";
 import "./login.scss";
 
 const LoginPage = () => {
+  const searchParams = useSearchParams();
   const [currentStep, setCurrentStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -25,6 +27,21 @@ const LoginPage = () => {
 
   // Store Firebase ID token for NextAuth
   const [firebaseIdToken, setFirebaseIdToken] = useState("");
+
+  // Handle URL error parameter on component mount
+  useEffect(() => {
+    const error = searchParams.get("error");
+    if (error === "Configuration") {
+      // User came back from failed TOTP verification
+      setCurrentStep(2);
+      setTotpError("Invalid verification code. Please try again.");
+
+      // Clear the error from URL without page reload
+      if (window.history.replaceState) {
+        window.history.replaceState({}, document.title, "/login");
+      }
+    }
+  }, [searchParams]);
 
   const validateLogin = () => {
     const errors = {};
@@ -103,19 +120,20 @@ const LoginPage = () => {
     setTotpError("");
 
     try {
-      // Use NextAuth signIn with credentials
+      // Use NextAuth signIn with credentials - DON'T redirect on error
       const result = await signIn("credentials", {
         idToken: firebaseIdToken,
         totpCode: totpCode,
-        redirect: true,
+        redirect: false, // ✅ This prevents redirect on error
         callbackUrl: "/dashboard",
       });
 
-    
       if (result?.error) {
+        // Stay on step 2 and show error
         setTotpError("Invalid verification code. Please try again.");
+        setTotpCode(""); // Clear the code for retry
       } else if (result?.ok) {
-        // Redirect to dashboard or home page
+        // Success - redirect to dashboard
         window.location.href = "/dashboard";
       }
     } catch (error) {
@@ -260,12 +278,6 @@ const LoginPage = () => {
               <div className="lg-2fa-verify">
                 <div className="lg-totp-form">
                   <div className="lg-form-group">
-                    <label className="lg-form-label inst">
-                      <Info size={20} />
-                      <div>
-                        Enter the 6-digit code from your authenticator app
-                      </div>
-                    </label>
                     <input
                       type="text"
                       className={`lg-form-input lg-totp-input ${
@@ -320,8 +332,8 @@ const LoginPage = () => {
         <div className="lg-footer">
           <p>
             Need help? Contact{" "}
-            <a href="mailto:support@afinthriveadvisory.com">
-              support@afinthriveadvisory.com
+            <a href="mailto:info@afinadvisory.com">
+              info@afinadvisory.com
             </a>
           </p>
         </div>

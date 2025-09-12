@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Settings,
   Search,
@@ -19,6 +19,50 @@ import {
 } from "@/app/components/toastService";
 import "./service-pricing.scss";
 
+// Cache utilities
+const CACHE_KEY = 'admin_services_cache';
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+const getFromCache = () => {
+  try {
+    const cached = localStorage.getItem(CACHE_KEY);
+    if (!cached) return null;
+    
+    const { data, timestamp } = JSON.parse(cached);
+    const now = Date.now();
+    
+    if (now - timestamp > CACHE_DURATION) {
+      localStorage.removeItem(CACHE_KEY);
+      return null;
+    }
+    
+    return data;
+  } catch (error) {
+    localStorage.removeItem(CACHE_KEY);
+    return null;
+  }
+};
+
+const saveToCache = (data) => {
+  try {
+    const cacheData = {
+      data,
+      timestamp: Date.now()
+    };
+    localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
+  } catch (error) {
+    console.warn('Failed to save to cache:', error);
+  }
+};
+
+const clearCache = () => {
+  try {
+    localStorage.removeItem(CACHE_KEY);
+  } catch (error) {
+    console.warn('Failed to clear cache:', error);
+  }
+};
+
 const AdminDashboard = () => {
   const [services, setServices] = useState([]);
   const [filteredServices, setFilteredServices] = useState([]);
@@ -30,48 +74,95 @@ const AdminDashboard = () => {
   const [error, setError] = useState(null);
   const [revalidateSlug, setRevaidateSlug] = useState("");
   const [isSaving, setSaving] = useState(false);
+  
+  // Track if data has been fetched to prevent refetching
+  const hasFetched = useRef(false);
+  const abortControllerRef = useRef(null);
 
-  // Fetch all services on page load
+  // Fetch services with caching
+  const fetchServices = async (forceRefresh = false) => {
+    // Cancel any ongoing request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Check cache first unless forcing refresh
+      if (!forceRefresh) {
+        const cachedData = getFromCache();
+        if (cachedData) {
+          setServices(cachedData);
+          setFilteredServices(cachedData);
+          setLoading(false);
+          showInfo(`Loaded ${cachedData.length} services from cache`);
+          return;
+        }
+      }
+      
+      // Create new abort controller for this request
+      abortControllerRef.current = new AbortController();
+      
+      const response = await fetch("/api/admin/service_pricing/get", {
+        signal: abortControllerRef.current.signal
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      if (!data.services) {
+        throw new Error(data.error || "Failed to fetch services");
+      }
+
+      const servicesData = data.services || [];
+      setServices(servicesData);
+      setFilteredServices(servicesData);
+      
+      // Save to cache
+      saveToCache(servicesData);
+      
+      // Show success toast only if we have services
+      if (servicesData.length > 0) {
+        showSuccess(`${servicesData.length} services loaded successfully`);
+      }
+      
+    } catch (error) {
+      // Don't show error if request was aborted
+      if (error.name === 'AbortError') {
+        return;
+      }
+      
+      console.error("Error fetching services:", error);
+      const errorMessage = error.message === "Failed to fetch" 
+        ? "Network error. Please check your connection and try again."
+        : error.message || "Failed to load services";
+      
+      setError(errorMessage);
+      showError(`Failed to load services: ${errorMessage}`);
+    } finally {
+      setLoading(false);
+      abortControllerRef.current = null;
+    }
+  };
+
+  // Fetch services only once on mount
   useEffect(() => {
-    const fetchServices = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        const response = await fetch("/api/admin/service_pricing/get");
-        
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-        
-        if (!data.services) {
-          throw new Error(data.error || "Failed to fetch services");
-        }
-
-        setServices(data.services || []);
-        setFilteredServices(data.services || []);
-        
-        // Show success toast only if we have services
-        if (data.services && data.services.length > 0) {
-          showSuccess(`${data.services.length} services loaded successfully`);
-        }
-        
-      } catch (error) {
-        console.error("Error fetching services:", error);
-        const errorMessage = error.message === "Failed to fetch" 
-          ? "Network error. Please check your connection and try again."
-          : error.message || "Failed to load services";
-        
-        setError(errorMessage);
-        showError(`Failed to load services: ${errorMessage}`);
-      } finally {
-        setLoading(false);
+    if (!hasFetched.current) {
+      hasFetched.current = true;
+      fetchServices();
+    }
+    
+    // Cleanup function to abort any pending requests
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
       }
     };
-
-    fetchServices();
   }, []);
 
   // Handle search functionality
@@ -173,6 +264,13 @@ const AdminDashboard = () => {
       setSelectedService(null);
       setSaving(false);
       
+      // Clear cache since data has been updated
+      clearCache();
+      
+      // Optionally refresh the services list
+      hasFetched.current = false;
+      fetchServices(true);
+      
       // Show success message with service name if available
       const serviceName = updatedConfig.name || updatedConfig.serviceId || "Service";
       showSuccess(`${serviceName} configuration updated successfully!`);
@@ -201,42 +299,15 @@ const AdminDashboard = () => {
 
   const handleRetry = async () => {
     setError(null);
-    // Re-run the initial fetch
-    const fetchServices = async () => {
-      try {
-        setLoading(true);
-        showInfo("Retrying to load services...");
-        
-        const response = await fetch("/api/admin/service_pricing/get");
-        
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
+    hasFetched.current = false;
+    await fetchServices(true); // Force refresh on retry
+  };
 
-        const data = await response.json();
-        
-        if (!data.success) {
-          throw new Error(data.error || "Failed to fetch services");
-        }
-
-        setServices(data.services || []);
-        setFilteredServices(data.services || []);
-        showSuccess("Services loaded successfully");
-        
-      } catch (error) {
-        console.error("Error fetching services:", error);
-        const errorMessage = error.message === "Failed to fetch" 
-          ? "Network error. Please check your connection and try again."
-          : error.message || "Failed to load services";
-        
-        setError(errorMessage);
-        showError(`Retry failed: ${errorMessage}`);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    await fetchServices();
+  // Manual refresh function
+  const handleRefresh = async () => {
+    hasFetched.current = false;
+    clearCache();
+    await fetchServices(true);
   };
 
   const getServiceIcon = (serviceName) => {
@@ -273,6 +344,16 @@ const AdminDashboard = () => {
               <p>Configure and manage your business services</p>
             </div>
           </div>
+          {/* Add refresh button */}
+          <button
+            className="btn btn--secondary"
+            onClick={handleRefresh}
+            disabled={loading}
+            title="Refresh services"
+          >
+            {loading ? <Loader size={16} /> : <Plus size={16} />}
+            Refresh
+          </button>
         </div>
       </div>
 

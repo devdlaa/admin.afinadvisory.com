@@ -115,6 +115,7 @@ const ServiceBookingsTable = ({ onQuickView, actionButtons = [] }) => {
               <div className="table-cell booking-cell">Service Details</div>
               <div className="table-cell customer-cell">Customer</div>
               <div className="table-cell plan-cell">Plan</div>
+              <div className="table-cell date-cell">Date</div>
               <div className="table-cell status-cell">Status</div>
 
               <div className="table-cell actions-cell">Actions</div>
@@ -154,7 +155,7 @@ const ServiceBookingsTable = ({ onQuickView, actionButtons = [] }) => {
                           <div className="service-name">
                             {truncateText(
                               booking.service_details.service_name,
-                              30
+                              45
                             )}
                           </div>
                           <div className="booking-details">
@@ -169,7 +170,6 @@ const ServiceBookingsTable = ({ onQuickView, actionButtons = [] }) => {
                       <div className="table-cell customer-cell">
                         <div className="customer-info">
                           <div className="customer-main">
-                            <User size={16} className="customer-icon" />
                             <div>
                               <div className="customer-name">
                                 {booking.user_details.firstName}{" "}
@@ -177,7 +177,7 @@ const ServiceBookingsTable = ({ onQuickView, actionButtons = [] }) => {
                               </div>
                               <div className="customer-contact">
                                 <Phone size={12} />
-                                <span>+{booking.user_details.phone}</span>
+                                <span>{booking.user_details.phone}</span>
                               </div>
                             </div>
                           </div>
@@ -188,7 +188,7 @@ const ServiceBookingsTable = ({ onQuickView, actionButtons = [] }) => {
                         </div>
                       </div>
 
-                      {/* Plan & Ticket */}
+                      {/* Plan */}
                       <div className="table-cell plan-cell">
                         <div className="plan-info">
                           <div className="plan-name">
@@ -196,11 +196,14 @@ const ServiceBookingsTable = ({ onQuickView, actionButtons = [] }) => {
                               {booking.plan_details.plan_name}
                             </span>
                           </div>
+                        </div>
+                      </div>
 
-                          <div className="created-date">
-                            <Calendar size={12} />
-                            <span>{formatDate(booking.created_at)}</span>
-                          </div>
+                      {/*Date */}
+                      <div className="table-cell date-cell">
+                        <div className="created-date">
+                          <Calendar size={16} />
+                          <span>{formatDate(booking.created_at)}</span>
                         </div>
                       </div>
 

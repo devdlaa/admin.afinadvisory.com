@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   fetchCommissions,
@@ -14,6 +14,7 @@ import {
   clearFilters,
   clearError,
   resetPagination,
+  resetCommissionsState,
 } from "@/store/slices/commissionsSlice";
 
 import { exportCommissionsToExcel } from "@/utils/utils";
@@ -51,6 +52,8 @@ const CommissionsManagement = () => {
     isSearchMode,
     isFilterMode,
     stats,
+    hasFetched,
+    isFetching,
   } = useSelector((state) => state.commissions);
 
   // Local state
@@ -63,10 +66,16 @@ const CommissionsManagement = () => {
     extraFilter: { field: "", value: "" },
   });
 
-  // Initialize data
+  // Use ref to track if we've already initialized
+  const hasInitializedRef = useRef(false);
+
+  // Initialize data - only fetch once when component first mounts
   useEffect(() => {
-    dispatch(fetchCommissions({ limit: 20 }));
-  }, [dispatch]);
+    if (!hasInitializedRef.current && !hasFetched && !isFetching) {
+      hasInitializedRef.current = true;
+      dispatch(fetchCommissions({ limit: 20, fresh: true }));
+    }
+  }, [dispatch, hasFetched, isFetching]);
 
   // Clear error on mount
   useEffect(() => {
@@ -116,7 +125,6 @@ const CommissionsManagement = () => {
     }
 
     dispatch(filterCommissions(filterData));
-    
   };
 
   const handleClearFilters = () => {
@@ -135,13 +143,8 @@ const CommissionsManagement = () => {
     dispatch(updateCommissionStatus({ actionType, ids: selectedCommissions }));
   };
 
-  const handleExport = () => {
-    if (commissions.length === 0) return;
-    exportCommissionsToExcel(commissions);
-  };
-
   const handleLoadMore = () => {
-    if (!pagination.hasMore || loading) return;
+    if (!pagination.hasMore || loading || isFetching) return;
     dispatch(
       fetchCommissions({
         limit: 20,
@@ -552,7 +555,6 @@ const CommissionsManagement = () => {
                   <th>Status</th>
                   <th>Amount</th>
                   <th>Influencer</th>
-
                   <th>Created Date</th>
                   <th>Paid Date</th>
                 </tr>
@@ -600,7 +602,6 @@ const CommissionsManagement = () => {
                         {commission.influencerId}
                       </span>
                     </td>
-
                     <td>{formatDate(commission.createdAt)}</td>
                     <td>
                       {commission.paidAt

@@ -128,7 +128,6 @@ const CreatePaymentLinkStepFive = ({ onClose }) => {
     },
   };
 
-  
   const handleCreatePaymentLink = async () => {
     dispatch(createPaymentLink(paymentDetailsObject));
   };
@@ -160,9 +159,6 @@ const CreatePaymentLinkStepFive = ({ onClose }) => {
         </div>
       </div>
 
-  
-      
-
       {/* Show create button only if payment link is not created */}
       {!paymentLinkCreated && (
         <button
@@ -170,10 +166,11 @@ const CreatePaymentLinkStepFive = ({ onClose }) => {
           onClick={handleCreatePaymentLink}
           disabled={loading}
         >
-          <CreditCard size={16} />
+          {loading ?  <CircularProgress color="white" size={18} /> : <CreditCard size={18} />}
+
           {loading ? (
             <>
-              <CircularProgress size={16} />
+             
               Creating Payment Link...
             </>
           ) : (
@@ -199,7 +196,8 @@ const CreatePaymentLinkStepFive = ({ onClose }) => {
                 onClick={() => copyToClipboard(paymentLink?.short_url)}
                 className="copy-btn"
                 style={{
-                  backgroundColor: copiedText === paymentLink?.short_url ? "#10b981" : "",
+                  backgroundColor:
+                    copiedText === paymentLink?.short_url ? "#10b981" : "",
                   color: copiedText === paymentLink?.short_url ? "white" : "",
                 }}
               >

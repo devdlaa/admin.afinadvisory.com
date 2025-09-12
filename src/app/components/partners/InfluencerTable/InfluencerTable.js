@@ -56,7 +56,7 @@ const InfluencerTable = ({ actionButtons = [] }) => {
       text: "Edit & View",
       icon: Edit,
       onClick: (influencer) => {
-        dispatch(selectInfluencer(influencer.id));
+        dispatch(selectInfluencer(influencer?.id));
         dispatch(setInfluencerDrawer());
       },
     },
@@ -85,10 +85,10 @@ const InfluencerTable = ({ actionButtons = [] }) => {
   };
 
   const getDisplayName = (influencer) => {
-    if (influencer.name) {
-      return influencer.name;
+    if (influencer?.name) {
+      return influencer?.name;
     }
-    return influencer.email?.split("@")[0] || "Unknown User";
+    return influencer?.email?.split("@")[0] || "Unknown User";
   };
 
   let renderedInfluencers = [];
@@ -136,12 +136,12 @@ const InfluencerTable = ({ actionButtons = [] }) => {
       {/* Table Body */}
       <div className="table-body">
         {renderedInfluencers.map((influencer) => (
-          <div key={influencer.id} className="table-row">
+          <div key={influencer?.id} className="table-row">
             {/* Influencer Info */}
             <div className="table-cell influencer-info" data-label="Influencer">
               <div className="influencer-avatar">
-                {influencer.avatar ? (
-                  <img src={influencer.avatar} alt={influencer.name} />
+                {influencer?.avatar ? (
+                  <img src={influencer?.avatar} alt={influencer?.name} />
                 ) : (
                   <User size={24} />
                 )}
@@ -151,14 +151,14 @@ const InfluencerTable = ({ actionButtons = [] }) => {
                   {getDisplayName(influencer)}
                 </div>
                 <div className="influencer-uid">
-                  {influencer.uid
-                    ? `UID: ${influencer.uid}`
-                    : influencer.influencerId
-                    ? `ID: ${influencer.influencerId}`
-                    : `ID: ${influencer.id}`}
+                  {influencer?.uid
+                    ? `UID: ${influencer?.uid}`
+                    : influencer?.influencerId
+                    ? `ID: ${influencer?.influencerId}`
+                    : `ID: ${influencer?.id}`}
                 </div>
-                {influencer.email && (
-                  <div className="influencer-email">{influencer.email}</div>
+                {influencer?.email && (
+                  <div className="influencer-email">{influencer?.email}</div>
                 )}
               </div>
             </div>
@@ -166,7 +166,7 @@ const InfluencerTable = ({ actionButtons = [] }) => {
             {/* Phone Number */}
             <div className="table-cell phone-cell" data-label="Phone Number">
               <div className="phone-text">
-                {formatPhoneNumber(influencer.phone || influencer.mobile)}
+                {formatPhoneNumber(influencer?.phone || influencer?.mobile)}
               </div>
             </div>
 
@@ -174,14 +174,14 @@ const InfluencerTable = ({ actionButtons = [] }) => {
             <div className="table-cell category-cell" data-label="Category">
               <div className="category-badge">
                 <span className="category-text">
-                  {getDisplayCategories(influencer.tags || influencer.category)}
+                  {getDisplayCategories(influencer?.tags || influencer?.category)}
                 </span>
               </div>
             </div>
 
             {/* Account Status */}
             <div className="table-cell status-cell" data-label="Status">
-              {getStatusBadge(influencer.status || influencer.accountStatus)}
+              {getStatusBadge(influencer?.status || influencer?.accountStatus)}
             </div>
 
             {/* Social Links */}
@@ -207,7 +207,7 @@ const InfluencerTable = ({ actionButtons = [] }) => {
                 })}
                 {/* Handle socialMedia object format */}
                 {influencer?.socialMedia &&
-                  Object.entries(influencer.socialMedia).map(
+                  Object.entries(influencer?.socialMedia).map(
                     ([platform, handle]) => {
                       if (!handle) return null;
                       const Icon = ICON_MAP[platform.toLowerCase()] || Globe;
@@ -226,9 +226,9 @@ const InfluencerTable = ({ actionButtons = [] }) => {
                     }
                   )}
                 {(!influencer?.socialLinks ||
-                  influencer.socialLinks.length === 0) &&
+                  influencer?.socialLinks.length === 0) &&
                   (!influencer?.socialMedia ||
-                    Object.keys(influencer.socialMedia).length === 0) && (
+                    Object.keys(influencer?.socialMedia).length === 0) && (
                     <span style={{ color: "#94a3b8", fontSize: "12px" }}>
                       —
                     </span>

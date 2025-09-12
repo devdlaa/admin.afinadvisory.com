@@ -370,8 +370,8 @@ const PaymentLinks = () => {
                   <label>Razorpay ID</label>
                   <code>{selectedLink.razorpay_id || "N/A"}</code>
                 </div>
-
-                <div className="detail-item">
+                  <div className="grid_">
+                        <div className="detail-item">
                   <label>Amount</label>
                   <span className="amount-large">
                     {formatAmount(selectedLink.notes?.payment?.finalPayment)}
@@ -382,6 +382,8 @@ const PaymentLinks = () => {
                   <label>Created</label>
                   <span>{toReadableDate(selectedLink.created_at)}</span>
                 </div>
+                  </div>
+            
 
                 {selectedLink.expire_by && (
                   <div className="detail-item">

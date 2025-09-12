@@ -1138,21 +1138,21 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 10px 16px;
+  padding: 8px 14px;
   border-radius: 999px;
   font-weight: 600;
-  font-size: 0.875rem;
+  font-size: 15px;
 
   outline: 1px solid rgba(0, 0, 0, 0.082);
   svg {
-    width: 20px;
-    height: 20px;
+    width: 16px;
+    height: 16px;
   }
   &.assignment_badge {
     font-weight: 600;
 
     span {
-      font-size: 0.75rem;
+      font-size: 15px;
       text-transform: capitalize;
     }
     &.status-completed {
@@ -1194,8 +1194,9 @@
   gap: 12px;
 
   .master_actions_btn {
-    padding: 10px 16px !important;
+    padding: 8px 14px !important;
     box-shadow: none !important;
+    font-size: 15px;
 
     &.download_invoice {
       border: 1px solid rgba(0, 0, 0, 0.103) !important;
@@ -1206,8 +1207,8 @@
       transform: none !important;
     }
     svg {
-      width: 20px !important;
-      height: 20px !important;
+      width: 16px !important;
+      height: 16px !important;
     }
   }
 }

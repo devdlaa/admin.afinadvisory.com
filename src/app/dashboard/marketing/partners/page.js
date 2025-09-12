@@ -1,6 +1,6 @@
 "use client";
-import React, { useEffect, useState } from "react";
-import { useDispatch } from "react-redux";
+import React, { useEffect, useState, useRef } from "react";
+import { useDispatch, useSelector } from "react-redux";
 
 import "./InfluencerDashboard.scss";
 
@@ -15,19 +15,35 @@ import {
   influencersFilterConfig,
 } from "@/config/actionBarConfig";
 
-import { fetchInfluencers } from "@/store/slices/influencersSlice";
-
+import { 
+  fetchInfluencers, 
+  clearError 
+} from "@/store/slices/influencersSlice";
 
 const InfluencerDashboard = () => {
   const dispatch = useDispatch();
+  
+  // Get state from Redux
+  const { hasFetched, isFetching } = useSelector((state) => state.influencers);
 
   const [isAddInfluencerDialogOpen, setAddInfluencerDialog] = useState(false);
   const [showFilterDialog, setShowFilterDialog] = useState(false);
   const [filterMode, setFilterMode] = useState("filter");
 
-  // Load initial influencers on component mount
+  // Use ref to track if we've already initialized
+  const hasInitializedRef = useRef(false);
+
+  // Initialize data - only fetch once when component first mounts
   useEffect(() => {
-    dispatch(fetchInfluencers({ cursor: null }));
+    if (!hasInitializedRef.current && !hasFetched && !isFetching) {
+      hasInitializedRef.current = true;
+      dispatch(fetchInfluencers({ cursor: null, limit: 10, fresh: true }));
+    }
+  }, [dispatch, hasFetched, isFetching]);
+
+  // Clear error on mount
+  useEffect(() => {
+    dispatch(clearError());
   }, [dispatch]);
 
   const handleFilterClick = () => {
@@ -65,7 +81,7 @@ const InfluencerDashboard = () => {
         />
 
         {/* Influencer Table */}
-        <InfluencerTable  />
+        <InfluencerTable />
 
         {/* Generic Filter Dialog */}
         <GenericFilterDialog

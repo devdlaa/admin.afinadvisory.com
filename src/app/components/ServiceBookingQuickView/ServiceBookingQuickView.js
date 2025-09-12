@@ -188,25 +188,24 @@ const ServiceBookingQuickView = ({
                 </div>
               )}
 
-                 {bookingData.payment_details.discountAmount > 1 && (
+              {bookingData.payment_details.discountAmount > 1 && (
                 <div className="sbqv__payment-row">
                   <span>Discount:</span>
                   <span className="sbqv__offer">
-                    (-){formatCurrency(
-                      bookingData.payment_details.discountAmount
-                    )}
+                    (-)
+                    {formatCurrency(bookingData.payment_details.discountAmount)}
                   </span>
                 </div>
               )}
 
-                 <div className="sbqv__payment-row">
-                  <span>Price Before Tax:</span>
-                  <span className="sbqv__offer-price">
-                    {formatCurrency(
-                      bookingData.payment_details.finalAmountAfterDiscount
-                    )}
-                  </span>
-                </div>
+              <div className="sbqv__payment-row">
+                <span>Price Before Tax:</span>
+                <span className="sbqv__offer-price">
+                  {formatCurrency(
+                    bookingData.payment_details.finalAmountAfterDiscount
+                  )}
+                </span>
+              </div>
 
               <div className="sbqv__payment-row">
                 <span>GST ({bookingData.payment_details.gstRate}%):</span>
@@ -288,19 +287,6 @@ const ServiceBookingQuickView = ({
               )}
             </div>
           </div>
-        </div>
-
-        <div className="sbqv__footer">
-          <button className="sbqv__btn sbqv__btn--secondary" onClick={onClose}>
-            Close
-          </button>
-          <button
-            className="sbqv__btn sbqv__btn--primary"
-            onClick={() => onViewFullDetails(bookingData)}
-          >
-            <FileText size={16} />
-            View Full Details
-          </button>
         </div>
       </div>
     </div>

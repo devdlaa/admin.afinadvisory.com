@@ -1,13 +1,27 @@
 // InfluencerDashboard.scss
 
+
+.generic-ab {
+  &.influncer-ab {
+    .generic-ab__header {
+      .generic-ab__header-content {
+       .generic-ab__add-btn {
+           background-color: green;
+           color: white;
+          }
+      }
+    }
+  }
+}
+
 .influencer-dashboard {
-  background: #f8fafc;
+
 
  
 
   .dashboard-content {
     max-width: 1400px;
-    margin: 0 auto;
+    margin: 30px auto;
     padding: 24px 32px;
     display: flex;
     flex-direction: column;

@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap");
 
 // Brand colors based on AFIN Advisory logo
 :root {
@@ -24,7 +24,7 @@
 }
 
 body {
-  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: "Poppins", -apple-system, BlinkMacSystemFont, sans-serif;
   background-color: var(--background);
   color: var(--text-primary);
   font-size: 14px;
@@ -42,11 +42,11 @@ body {
   display: flex;
   flex-direction: column;
   transition: margin-left 0.3s ease;
-  
+
   &.sidebar-open {
     margin-left: var(--sidebar-width);
   }
-  
+
   &.sidebar-closed {
     margin-left: var(--sidebar-closed-width);
   }
@@ -56,20 +56,20 @@ body {
   flex: 1;
 
   overflow-y: auto;
-  background-color: var(--background);
-  
+  background: #f2f3f6;
+
   &::-webkit-scrollbar {
     width: 6px;
   }
-  
+
   &::-webkit-scrollbar-track {
     background: transparent;
   }
-  
+
   &::-webkit-scrollbar-thumb {
     background: var(--border-color);
     border-radius: 3px;
-    
+
     &:hover {
       background: var(--text-secondary);
     }

@@ -35,34 +35,10 @@ const Sidebar = () => {
   const [expandedItems, setExpandedItems] = useState({});
   const router = useRouter();
   const pathname = usePathname();
-  const { data: session } = useSession();
-
-  // Helper function to check if user has a specific permission
-  const hasPermission = (permission) => {
-    if (!session?.user.permissions) return false;
-    return session.user.permissions.includes(permission);
-  };
-
-  // Helper function to filter menu items based on permissions
-  const filterMenuItemsByPermission = (items) => {
-    return items.filter((item) => {
-      // Dashboard is always accessible
-      if (item.id === "dashboard") return true;
-
-      // Check if item has a required permission
-      if (item.requiredPermission) {
-        return hasPermission(item.requiredPermission);
-      }
-
-      // If no specific permission required, show the item
-      return true;
-    });
-  };
 
   useEffect(() => {
     // Enhanced path detection logic
     const pathToItemMap = {
-      "/dashboard": "dashboard",
       "/dashboard/customers": "customers",
       "/dashboard/service-bookings": "services_bookings",
       "/dashboard/payments": "payments",
@@ -96,17 +72,10 @@ const Sidebar = () => {
       }
     }
 
-    // Special handling for dashboard - only match exact path
-    if (pathname === "/dashboard") {
-      matchedItemId = "dashboard";
-    }
-
     // Fallback to dashboard if no match found
     if (!matchedItemId) {
-      matchedItemId = "dashboard";
+      matchedItemId = "customers";
     }
-
-    console.log("Matched item:", matchedItemId);
 
     setActiveItem(matchedItemId);
 
@@ -114,7 +83,7 @@ const Sidebar = () => {
     if (["partners", "coupons", "comissions"].includes(matchedItemId)) {
       setExpandedItems((prev) => ({ ...prev, marketing: true }));
     }
-  }, [pathname, session?.user?.permissions]);
+  }, [pathname]);
 
   function handleSignOut() {
     try {
@@ -125,7 +94,7 @@ const Sidebar = () => {
       });
     } catch (error) {
       setLoggingOut(false);
-      console.error("Logout error:", error);
+      console.error("Logout error:");
     }
   }
 
@@ -170,23 +139,14 @@ const Sidebar = () => {
     return item.children.some((child) => activeItem === child.id);
   };
 
-  // Define menu items with their required permissions
+  // Define menu items
   const menuItems = [
-    {
-      id: "dashboard",
-      label: "Dashboard",
-      icon: Home,
-      path: "/dashboard",
-      badge: null,
-      // Dashboard doesn't need permission check
-    },
     {
       id: "customers",
       label: "Customers",
       icon: Users,
       path: "/dashboard/customers",
       badge: null,
-      requiredPermission: "customers.access",
     },
     {
       id: "services_bookings",
@@ -194,7 +154,6 @@ const Sidebar = () => {
       icon: Calendar,
       path: "/dashboard/service-bookings",
       badge: null,
-      requiredPermission: "bookings.access",
     },
     {
       id: "payments",
@@ -202,7 +161,6 @@ const Sidebar = () => {
       icon: IndianRupee,
       path: "/dashboard/payments",
       badge: null,
-      requiredPermission: "payments.access",
     },
     {
       id: "payments-links",
@@ -210,7 +168,6 @@ const Sidebar = () => {
       icon: Link,
       path: "/dashboard/payment-links",
       badge: null,
-      requiredPermission: "bookings.create_new_link", // Using the specific permission for creating payment links
     },
     {
       id: "pricing",
@@ -218,7 +175,6 @@ const Sidebar = () => {
       icon: Tag,
       path: "/dashboard/service-pricing",
       badge: null,
-      requiredPermission: "service_pricing.access",
     },
   ];
 
@@ -228,21 +184,18 @@ const Sidebar = () => {
       label: "Brand Partners",
       icon: Megaphone,
       path: "/dashboard/marketing/partners",
-      requiredPermission: "influencers.access",
     },
     {
       id: "coupons",
       label: "Coupons",
       icon: TicketPercent,
       path: "/dashboard/marketing/coupons",
-      requiredPermission: "coupons.access",
     },
     {
       id: "comissions",
       label: "Comissions Records",
       icon: WalletCardsIcon,
       path: "/dashboard/marketing/comissions",
-      requiredPermission: "commissions.access",
     },
   ];
 
@@ -252,21 +205,14 @@ const Sidebar = () => {
       label: "Manage Blogs",
       icon: Rss,
       path: "https://cms.afinadvisory.com/",
-      // No permission required for blogs - assuming it's accessible to all
     },
     {
       id: "users",
       label: "Manage Team",
       icon: UsersRound,
       path: "/dashboard/manage-team",
-      requiredPermission: "users.access",
     },
   ];
-
-  // Filter menu items based on permissions
-  const filteredMenuItems = filterMenuItemsByPermission(menuItems);
-  const filteredMarketingItems = filterMenuItemsByPermission(marketingItems);
-  const filteredBottomMenuItems = filterMenuItemsByPermission(bottomMenuItems);
 
   const renderMenuItem = (item, isChild = false) => {
     const IconComponent = item.icon;
@@ -313,26 +259,6 @@ const Sidebar = () => {
     );
   };
 
-  // Don't render anything if session is not loaded or doesn't have permissions
-  if (!session || !session.user.permissions) {
-    return (
-      <div className="sidebar-container">
-        <div className="sidebar_logo">
-          <Image
-            src={"/assets/svg/afin_admin_logo.svg"}
-            alt="afinthrive advisory admin dashboard"
-            width={80}
-            height={60}
-          />
-        </div>
-        <div className="loading-permissions">
-          <p>Loading permissions...</p>
-          {session && <p>Session loaded but no permissions found</p>}
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className={`sidebar-container`}>
       {/* Logo */}
@@ -347,32 +273,26 @@ const Sidebar = () => {
 
       {/* Navigation */}
       <div className="sidebar-navigation">
-        {/* Management Section - Only show if there are items to display */}
-        {filteredMenuItems.length > 0 && (
-          <div className="nav-section">
-            <h4 className="nav-section-title">Management</h4>
-            {filteredMenuItems.map((item) => renderMenuItem(item))}
-          </div>
-        )}
+        {/* Management Section */}
+        <div className="nav-section">
+          <h4 className="nav-section-title">Management</h4>
+          {menuItems.map((item) => renderMenuItem(item))}
+        </div>
 
-        {/* Marketing Section - Only show if there are items to display */}
-        {filteredMarketingItems.length > 0 && (
-          <div className="nav-section">
-            <h4 className="nav-section-title">Marketing</h4>
-            {filteredMarketingItems.map((item) => renderMenuItem(item))}
-          </div>
-        )}
+        {/* Marketing Section */}
+        <div className="nav-section">
+          <h4 className="nav-section-title">Marketing</h4>
+          {marketingItems.map((item) => renderMenuItem(item))}
+        </div>
       </div>
 
       {/* Footer */}
       <div className="sidebar-footer">
-        {/* Account Section - Only show if there are items to display */}
-        {filteredBottomMenuItems.length > 0 && (
-          <div className="nav-section">
-            <h4 className="nav-section-title">Account</h4>
-            {filteredBottomMenuItems.map((item) => renderMenuItem(item))}
-          </div>
-        )}
+        {/* Account Section */}
+        <div className="nav-section">
+          <h4 className="nav-section-title">Account</h4>
+          {bottomMenuItems.map((item) => renderMenuItem(item))}
+        </div>
 
         <div className="logout-section">
           <button

@@ -31,7 +31,7 @@ const statusConfig = {
   suspended: { label: "Suspended", icon: AlertCircle, color: "warning" },
 };
 
-const CustomersTable = ({  actionButtons = [] }) => {
+const CustomersTable = ({ actionButtons = [] }) => {
   const dispatch = useDispatch();
 
   // Redux selectors
@@ -39,7 +39,6 @@ const CustomersTable = ({  actionButtons = [] }) => {
   const searchedCustomers = useSelector(
     (state) => state.customers.searchedCustomers
   );
-
 
   const { loading, searchLoading } = useSelector((state) => state.customers);
   const { isSearchActive, isFilterActive } = useSelector(
@@ -107,6 +106,7 @@ const CustomersTable = ({  actionButtons = [] }) => {
 
               <div className="table-cell status-cell">Status</div>
               <div className="table-cell joined-cell">Joined</div>
+              <div className="table-cell methods-cell">Login Methods</div>
               <div className="table-cell actions-cell">Actions</div>
             </div>
           </div>
@@ -132,10 +132,7 @@ const CustomersTable = ({  actionButtons = [] }) => {
                   statusConfig[customer.accountStatus]?.icon || AlertCircle;
 
                 return (
-                  <div
-                    key={customer.id}
-                    className={`table-row data-row`}
-                  >
+                  <div key={customer.id} className={`table-row data-row`}>
                     {/* Customer Info */}
                     <div className="table-cell customer-cell">
                       <div className="customer-info">
@@ -146,18 +143,8 @@ const CustomersTable = ({  actionButtons = [] }) => {
                           <div className="customer-name">
                             {getDisplayName(customer)}
                           </div>
-                          <div className="customer-id"><span>UID: {customer.uid}</span></div>
-                          <div className="login_mentods">
-                            {customer.loginMethod?.map((loginm, index) => (
-                              <div className="login-method">
-                                <span
-                                  key={index}
-                                  className={`method-badge ${loginm}`}
-                                >
-                                  {loginm}
-                                </span>
-                              </div>
-                            ))}
+                          <div className="customer-id">
+                            <span>UID: {customer.uid}</span>
                           </div>
                         </div>
                       </div>
@@ -174,14 +161,6 @@ const CustomersTable = ({  actionButtons = [] }) => {
                           <div className="contact-item">
                             <Phone size={14} />
                             <span>{customer.phoneNumber}</span>
-                          </div>
-                        )}
-                        {customer.address?.city && (
-                          <div className="contact-item">
-                            <MapPin size={14} />
-                            <span>
-                              {customer.address.city}, {customer.address.state}
-                            </span>
                           </div>
                         )}
                       </div>
@@ -206,6 +185,18 @@ const CustomersTable = ({  actionButtons = [] }) => {
                       </div>
                     </div>
 
+                    <div className="table-cell login_mentods">
+                      {customer.loginMethod?.map((loginm, index) => (
+                        <div className="login-method">
+                          <span
+                            key={index}
+                            className={`method-badge ${loginm}`}
+                          >
+                            {loginm}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
                     {/* Actions */}
                     <div className="table-cell actions-cell">
                       <div className="actions-container">

@@ -18,7 +18,7 @@ import PaymentsTable from "@/app/components/PaymentsTable/PaymentsTable";
 import RefundsTable from "@/app/components/RefundsTable/RefundsTable";
 import SettlementsTable from "@/app/components/SettlementsTable/SettlementsTable";
 import RefundModal from "@/app/components/RefundModal/RefundModal";
-import DowntimeStatus from "@/app/components/DowntimeStatus/DowntimeStatus";
+
 import BalanceSummary from "@/app/components/BalanceSummary/BalanceSummary";
 import FilterPanel from "@/app/components/FilterPanel/FilterPanel";
 

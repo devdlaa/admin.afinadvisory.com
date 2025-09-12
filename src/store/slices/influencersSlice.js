@@ -3,7 +3,14 @@ import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 // Async thunks for API calls
 export const fetchInfluencers = createAsyncThunk(
   "influencers/fetchInfluencers",
-  async ({ cursor = null, limit = 10 }, { rejectWithValue }) => {
+  async ({ cursor = null, limit = 10, fresh = false }, { rejectWithValue, getState }) => {
+    const state = getState().influencers;
+    
+    // Prevent concurrent fetches for fresh requests
+    if (fresh && state.isFetching) {
+      return rejectWithValue("Already fetching");
+    }
+    
     const payload = cursor ? { limit, cursor } : { limit };
     try {
       const response = await fetch("/api/admin/influencers/get", {
@@ -29,6 +36,7 @@ export const fetchInfluencers = createAsyncThunk(
         hasMore: data.hasMore,
         cursor: data.cursor,
         resultsCount: data.resultsCount,
+        fresh,
       };
     } catch (error) {
       return rejectWithValue(error.message);
@@ -273,6 +281,10 @@ const initialState = {
   loading: false,
   loadingNext: false,
   selectedInfluencer: null,
+  
+  // Add fetching state management
+  hasFetched: false,
+  isFetching: false,
 
   // Other states
   filteredInfluencers: [],
@@ -460,7 +472,7 @@ const influencersSlice = createSlice({
       }
     },
 
-    // Reset all states (for refresh)
+    // Reset all states (for refresh) - updated to match commissions pattern
     resetState: (state) => {
       return {
         ...initialState,
@@ -505,18 +517,47 @@ const influencersSlice = createSlice({
   },
 
   extraReducers: (builder) => {
-    // Fetch influencers
+    // Fetch influencers - Updated to match commissions pattern
     builder
-      .addCase(fetchInfluencers.pending, (state) => {
+      .addCase(fetchInfluencers.pending, (state, action) => {
+        const { cursor, fresh } = action.meta.arg || {};
+        
+        // Prevent concurrent fetches
+        if (state.isFetching && !cursor) {
+          return;
+        }
+        
         state.loading = true;
+        state.isFetching = true;
         state.error = null;
+
+        // Reset everything for fresh fetches (no cursor)
+        if (!cursor || fresh) {
+          state.cursor = null;
+          state.hasMore = false;
+          state.allInfluencers = [];
+          state.influencers = [];
+          state.hasFetched = false;
+        }
       })
       .addCase(fetchInfluencers.fulfilled, (state, action) => {
         state.loading = false;
-        const { influencers, hasMore, cursor } = action.payload;
+        state.isFetching = false;
+        state.hasFetched = true;
+        
+        const { influencers, hasMore, cursor, fresh } = action.payload;
+        const isLoadMore = action.meta.arg?.cursor && !fresh;
 
-        // Add new influencers to our cache
-        state.allInfluencers = [...state.allInfluencers, ...influencers];
+        if (isLoadMore) {
+          // For load more: append new data and dedupe
+          const existingIds = new Set(state.allInfluencers.map(i => i.id));
+          const newInfluencers = influencers.filter(i => !existingIds.has(i.id));
+          state.allInfluencers = [...state.allInfluencers, ...newInfluencers];
+        } else {
+          // For fresh fetch: replace all data
+          state.allInfluencers = influencers;
+        }
+
         state.cursor = cursor;
         state.hasMore = hasMore;
 
@@ -529,6 +570,8 @@ const influencersSlice = createSlice({
       })
       .addCase(fetchInfluencers.rejected, (state, action) => {
         state.loading = false;
+        state.isFetching = false;
+        state.hasFetched = true;
         state.error = action.payload || "Failed to fetch influencers";
       });
 

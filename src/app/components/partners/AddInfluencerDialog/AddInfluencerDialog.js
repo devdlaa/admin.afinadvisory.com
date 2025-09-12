@@ -21,6 +21,7 @@ import {
   CheckCircle,
 } from "lucide-react";
 import "./AddInfluencerDialog.scss";
+import { generateInfluencerUsername } from "@/utils/utils";
 
 // Import Redux actions
 import {
@@ -38,9 +39,10 @@ import {
 
 const AddInfluencerDialog = ({ isOpen, onClose }) => {
   const dispatch = useDispatch();
-  
+
   // Get Redux state
-  const { isAddingNewInfluencer, addInfluencerError, newInfluencerData } = useSelector(selectAddInfluencerStates);
+  const { isAddingNewInfluencer, addInfluencerError, newInfluencerData } =
+    useSelector(selectAddInfluencerStates);
   const errorMessage = useSelector(selectAddInfluencerErrorMessage);
 
   const [activeTab, setActiveTab] = useState("primary");
@@ -89,14 +91,16 @@ const AddInfluencerDialog = ({ isOpen, onClose }) => {
   ];
 
   const isMandatoryFieldsFilled = () => {
-    return formData.name.trim() && formData.email.trim() && formData.username.trim();
+    return (
+      formData.name.trim() && formData.email.trim() && formData.username.trim()
+    );
   };
 
   const resetForm = () => {
     setFormData({
       name: "",
       email: "",
-      username: "",
+      username: "", // This will auto-populate when email/phone are entered
       phone: "",
       adminNotes: "",
       status: "active",
@@ -214,35 +218,59 @@ const AddInfluencerDialog = ({ isOpen, onClose }) => {
       ...formData,
       // Remove empty arrays and strings
       tags: formData.tags.length > 0 ? formData.tags : undefined,
-      socialLinks: formData.socialLinks.length > 0 ? formData.socialLinks.filter(link => link.url.trim()) : undefined,
-      additionalInfo: formData.additionalInfo.length > 0 ? formData.additionalInfo.filter(info => info.key.trim() && info.value.trim()) : undefined,
+      socialLinks:
+        formData.socialLinks.length > 0
+          ? formData.socialLinks.filter((link) => link.url.trim())
+          : undefined,
+      additionalInfo:
+        formData.additionalInfo.length > 0
+          ? formData.additionalInfo.filter(
+              (info) => info.key.trim() && info.value.trim()
+            )
+          : undefined,
       phone: formData.phone.trim() || undefined,
       adminNotes: formData.adminNotes.trim() || undefined,
       profileImageUrl: formData.profileImageUrl.trim() || undefined,
       bio: formData.bio.trim() || undefined,
       preferredPayoutMethod: formData.preferredPayoutMethod || undefined,
-      
+
       // Clean nested objects
-      location: (formData.location.city.trim() || formData.location.country.trim()) ? {
-        city: formData.location.city.trim() || undefined,
-        country: formData.location.country.trim() || undefined,
-      } : undefined,
-      
-      address: (formData.address.lane.trim() || formData.address.city.trim() || formData.address.state.trim() || formData.address.pincode.trim() || formData.address.country.trim()) ? {
-        lane: formData.address.lane.trim() || undefined,
-        city: formData.address.city.trim() || undefined,
-        state: formData.address.state.trim() || undefined,
-        pincode: formData.address.pincode.trim() || undefined,
-        country: formData.address.country.trim() || undefined,
-      } : undefined,
-      
-      bankDetails: (Object.values(formData.bankDetails).some(value => value.trim())) ? {
-        accountHolderName: formData.bankDetails.accountHolderName.trim() || undefined,
-        accountNumber: formData.bankDetails.accountNumber.trim() || undefined,
-        ifscCode: formData.bankDetails.ifscCode.trim() || undefined,
-        bankName: formData.bankDetails.bankName.trim() || undefined,
-        upiId: formData.bankDetails.upiId.trim() || undefined,
-      } : undefined,
+      location:
+        formData.location.city.trim() || formData.location.country.trim()
+          ? {
+              city: formData.location.city.trim() || undefined,
+              country: formData.location.country.trim() || undefined,
+            }
+          : undefined,
+
+      address:
+        formData.address.lane.trim() ||
+        formData.address.city.trim() ||
+        formData.address.state.trim() ||
+        formData.address.pincode.trim() ||
+        formData.address.country.trim()
+          ? {
+              lane: formData.address.lane.trim() || undefined,
+              city: formData.address.city.trim() || undefined,
+              state: formData.address.state.trim() || undefined,
+              pincode: formData.address.pincode.trim() || undefined,
+              country: formData.address.country.trim() || undefined,
+            }
+          : undefined,
+
+      bankDetails: Object.values(formData.bankDetails).some((value) =>
+        value.trim()
+      )
+        ? {
+            accountHolderName:
+              formData.bankDetails.accountHolderName.trim() || undefined,
+            accountNumber:
+              formData.bankDetails.accountNumber.trim() || undefined,
+            ifscCode: formData.bankDetails.ifscCode.trim() || undefined,
+            bankName: formData.bankDetails.bankName.trim() || undefined,
+            upiId: formData.bankDetails.upiId.trim() || undefined,
+          }
+        : undefined,
     };
 
     try {
@@ -273,7 +301,13 @@ const AddInfluencerDialog = ({ isOpen, onClose }) => {
         onClose?.();
       }, 1000); // Small delay to show success state
     }
-  }, [newInfluencerData, isAddingNewInfluencer, addInfluencerError, dispatch, onClose]);
+  }, [
+    newInfluencerData,
+    isAddingNewInfluencer,
+    addInfluencerError,
+    dispatch,
+    onClose,
+  ]);
 
   // Effect to handle body scroll
   useEffect(() => {
@@ -294,6 +328,35 @@ const AddInfluencerDialog = ({ isOpen, onClose }) => {
       dispatch(clearError());
     }
   }, [isOpen, dispatch]);
+
+  // Effect to auto-generate username when email or phone changes
+  useEffect(() => {
+    if (formData.email.trim() && formData.phone.trim()) {
+      const generatedUsername = generateInfluencerUsername(
+        formData.email,
+        formData.phone
+      );
+      setFormData((prev) => ({
+        ...prev,
+        username: generatedUsername,
+      }));
+
+      // Clear username error if it exists
+      if (errors.username) {
+        setErrors((prev) => {
+          const newErrors = { ...prev };
+          delete newErrors.username;
+          return newErrors;
+        });
+      }
+    } else if (!formData.email.trim() && !formData.phone.trim()) {
+      // Clear username if both email and phone are empty
+      setFormData((prev) => ({
+        ...prev,
+        username: "",
+      }));
+    }
+  }, [formData.email, formData.phone, errors.username]);
 
   if (!isOpen) return null;
 
@@ -332,7 +395,10 @@ const AddInfluencerDialog = ({ isOpen, onClose }) => {
               <CheckCircle size={16} />
               <div>
                 <strong>Success!</strong>
-                <p>Influencer "{newInfluencerData.name}" has been created successfully.</p>
+                <p>
+                  Influencer "{newInfluencerData.name}" has been created
+                  successfully.
+                </p>
               </div>
             </div>
           )}
@@ -363,24 +429,26 @@ const AddInfluencerDialog = ({ isOpen, onClose }) => {
                   {/* Basic Information */}
                   <div className="form-section basic_info">
                     <div className="form-section-inner">
-                      <div className="form-row thr">
+                      <div className="form-row">
                         <div className="form-group">
                           <label className="form-label required">
-                            <User size={16} />
                             Full Name
                           </label>
-                          <input
-                            type="text"
-                            className={`form-input ${
-                              errors.name ? "error" : ""
-                            }`}
-                            value={formData.name}
-                            onChange={(e) =>
-                              handleInputChange("name", e.target.value)
-                            }
-                            placeholder="Enter full name"
-                            disabled={isAddingNewInfluencer}
-                          />
+                          <div className="input-wrapper">
+                            <input
+                              type="text"
+                              className={`form-input with-icon ${
+                                errors.name ? "error" : ""
+                              }`}
+                              value={formData.name}
+                              onChange={(e) =>
+                                handleInputChange("name", e.target.value)
+                              }
+                              placeholder="Enter full name"
+                              disabled={isAddingNewInfluencer}
+                            />
+                            <User className="input-icon" size={18} />
+                          </div>
                           {errors.name && (
                             <span className="error-text">
                               <AlertCircle size={14} />
@@ -391,21 +459,23 @@ const AddInfluencerDialog = ({ isOpen, onClose }) => {
 
                         <div className="form-group">
                           <label className="form-label required">
-                            <Mail size={16} />
                             Email Address
                           </label>
-                          <input
-                            type="email"
-                            className={`form-input ${
-                              errors.email ? "error" : ""
-                            }`}
-                            value={formData.email}
-                            onChange={(e) =>
-                              handleInputChange("email", e.target.value)
-                            }
-                            placeholder="Enter email address"
-                            disabled={isAddingNewInfluencer}
-                          />
+                          <div className="input-wrapper">
+                            <input
+                              type="email"
+                              className={`form-input with-icon ${
+                                errors.email ? "error" : ""
+                              }`}
+                              value={formData.email}
+                              onChange={(e) =>
+                                handleInputChange("email", e.target.value)
+                              }
+                              placeholder="Enter email address"
+                              disabled={isAddingNewInfluencer}
+                            />
+                            <Mail className="input-icon" size={18} />
+                          </div>
                           {errors.email && (
                             <span className="error-text">
                               <AlertCircle size={14} />
@@ -413,24 +483,29 @@ const AddInfluencerDialog = ({ isOpen, onClose }) => {
                             </span>
                           )}
                         </div>
-
+                      </div>
+                      <div className="form-row">
                         <div className="form-group">
                           <label className="form-label required">
-                            <AtSign size={16} />
                             Username
                           </label>
-                          <input
-                            type="text"
-                            className={`form-input ${
-                              errors.username ? "error" : ""
-                            }`}
-                            value={formData.username}
-                            onChange={(e) =>
-                              handleInputChange("username", e.target.value)
-                            }
-                            placeholder="Enter username"
-                            disabled={isAddingNewInfluencer}
-                          />
+                          <div className="input-wrapper">
+                            <input
+                              type="text"
+                              className={`form-input with-icon ${
+                                errors.username ? "error" : ""
+                              }`}
+                              value={formData.username}
+                              placeholder={
+                                formData.email.trim() && formData.phone.trim()
+                                  ? "Auto-generated from email & phone"
+                                  : "Enter email and phone to generate"
+                              }
+                              disabled={true} // Always disabled/read-only
+                              readOnly
+                            />
+                            <AtSign className="input-icon" size={18} />
+                          </div>
                           {errors.username && (
                             <span className="error-text">
                               <AlertCircle size={14} />
@@ -438,65 +513,64 @@ const AddInfluencerDialog = ({ isOpen, onClose }) => {
                             </span>
                           )}
                         </div>
-                      </div>
-
-                      <div className="form-row">
-                        <div className="form-group">
-                          <label className="form-label">
-                            <Phone size={16} />
-                            Phone Number
-                          </label>
-                          <input
-                            type="tel"
-                            className="form-input"
-                            value={formData.phone}
-                            onChange={(e) =>
-                              handleInputChange("phone", e.target.value)
-                            }
-                            placeholder="Enter phone number"
-                            disabled={isAddingNewInfluencer}
-                          />
-                        </div>
 
                         <div className="form-group">
-                          <label className="form-label">
-                            <Users size={16} />
-                            Status
-                          </label>
-                          <select
-                            className="form-input"
-                            value={formData.status}
-                            onChange={(e) =>
-                              handleInputChange("status", e.target.value)
-                            }
-                            disabled={isAddingNewInfluencer}
-                          >
-                            <option value="active">Active</option>
-                            <option value="inactive">Inactive</option>
-                          </select>
+                          <label className="form-label">Phone Number</label>
+                          <div className="input-wrapper">
+                            <input
+                              type="tel"
+                              className="form-input with-icon"
+                              value={formData.phone}
+                              onChange={(e) =>
+                                handleInputChange("phone", e.target.value)
+                              }
+                              placeholder="Enter phone number"
+                              disabled={isAddingNewInfluencer}
+                            />
+                            <Phone className="input-icon" size={18} />
+                          </div>
                         </div>
                       </div>
 
-                      <div className="form-row">
-                        <div className="form-group">
-                          <label className="form-label">
-                            <CreditCard size={16} />
-                            Default Commission Rate (%)
-                          </label>
-                          <input
-                            type="number"
-                            min="0"
-                            max="100"
-                            step="0.1"
-                            className="form-input"
-                            value={formData.defaultCommissionRate}
-                            onChange={(e) =>
-                              handleInputChange("defaultCommissionRate", parseFloat(e.target.value) || 0)
-                            }
-                            placeholder="5.0"
-                            disabled={isAddingNewInfluencer}
-                          />
-                        </div>
+                      <div className="form-group">
+                        <label className="form-label">
+                          <Users size={16} />
+                          Status
+                        </label>
+                        <select
+                          className="form-input"
+                          value={formData.status}
+                          onChange={(e) =>
+                            handleInputChange("status", e.target.value)
+                          }
+                          disabled={isAddingNewInfluencer}
+                        >
+                          <option value="active">Active</option>
+                          <option value="inactive">Inactive</option>
+                        </select>
+                      </div>
+
+                      <div className="form-group">
+                        <label className="form-label">
+                          <CreditCard size={16} />
+                          Default Commission Rate (%)
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          step="0.1"
+                          className="form-input"
+                          value={formData.defaultCommissionRate}
+                          onChange={(e) =>
+                            handleInputChange(
+                              "defaultCommissionRate",
+                              parseFloat(e.target.value) || 0
+                            )
+                          }
+                          placeholder="5.0"
+                          disabled={isAddingNewInfluencer}
+                        />
                       </div>
                     </div>
                   </div>
@@ -563,7 +637,7 @@ const AddInfluencerDialog = ({ isOpen, onClose }) => {
 
                   <div className="grd_section">
                     {/* Tags */}
-                    <div className="form-section">
+                    <div className="form-section tags_">
                       <div className="section-header">
                         <h3>Tags</h3>
                       </div>
@@ -607,7 +681,7 @@ const AddInfluencerDialog = ({ isOpen, onClose }) => {
                     </div>
 
                     {/* Admin Notes */}
-                    <div className="form-section">
+                    <div className="form-section tags_">
                       <div className="form-group">
                         <label className="form-label">Admin Notes</label>
                         <textarea
@@ -781,22 +855,22 @@ const AddInfluencerDialog = ({ isOpen, onClose }) => {
                   {/* Profile Information */}
                   <div className="form-section">
                     <div className="form-group">
-                      <label className="form-label">
-                        <User size={16} />
-                        Profile Image URL
-                      </label>
-                      <input
-                        type="url"
-                        className={`form-input ${
-                          errors.profileImageUrl ? "error" : ""
-                        }`}
-                        value={formData.profileImageUrl}
-                        onChange={(e) =>
-                          handleInputChange("profileImageUrl", e.target.value)
-                        }
-                        placeholder="https://example.com/profile.jpg"
-                        disabled={isAddingNewInfluencer}
-                      />
+                      <label className="form-label">Profile Image URL</label>
+                      <div className="input-wrapper">
+                        <input
+                          type="url"
+                          className={`form-input with-icon ${
+                            errors.profileImageUrl ? "error" : ""
+                          }`}
+                          value={formData.profileImageUrl}
+                          onChange={(e) =>
+                            handleInputChange("profileImageUrl", e.target.value)
+                          }
+                          placeholder="https://example.com/profile.jpg"
+                          disabled={isAddingNewInfluencer}
+                        />
+                        <User className="input-icon" size={18} />
+                      </div>
                       {errors.profileImageUrl && (
                         <span className="error-text">
                           <AlertCircle size={14} />
@@ -806,10 +880,6 @@ const AddInfluencerDialog = ({ isOpen, onClose }) => {
                     </div>
 
                     <div className="form-group">
-                      <label className="form-label">
-                        <FileText size={16} />
-                        Bio
-                      </label>
                       <textarea
                         className={`form-textarea ${errors.bio ? "error" : ""}`}
                         value={formData.bio}
@@ -840,56 +910,65 @@ const AddInfluencerDialog = ({ isOpen, onClose }) => {
                     <div className="form-row">
                       <div className="form-group">
                         <label className="form-label">City (Location)</label>
-                        <input
-                          type="text"
-                          className="form-input"
-                          value={formData.location.city}
-                          onChange={(e) =>
-                            handleNestedInputChange(
-                              "location",
-                              "city",
-                              e.target.value
-                            )
-                          }
-                          placeholder="Enter city"
-                          disabled={isAddingNewInfluencer}
-                        />
+                        <div className="input-wrapper">
+                          <input
+                            type="text"
+                            className="form-input with-icon"
+                            value={formData.location.city}
+                            onChange={(e) =>
+                              handleNestedInputChange(
+                                "location",
+                                "city",
+                                e.target.value
+                              )
+                            }
+                            placeholder="Enter city"
+                            disabled={isAddingNewInfluencer}
+                          />
+                          <MapPin className="input-icon" size={18} />
+                        </div>
                       </div>
                       <div className="form-group">
                         <label className="form-label">Country (Location)</label>
-                        <input
-                          type="text"
-                          className="form-input"
-                          value={formData.location.country}
-                          onChange={(e) =>
-                            handleNestedInputChange(
-                              "location",
-                              "country",
-                              e.target.value
-                            )
-                          }
-                          placeholder="Enter country"
-                          disabled={isAddingNewInfluencer}
-                        />
+                        <div className="input-wrapper">
+                          <input
+                            type="text"
+                            className="form-input with-icon"
+                            value={formData.location.country}
+                            onChange={(e) =>
+                              handleNestedInputChange(
+                                "location",
+                                "country",
+                                e.target.value
+                              )
+                            }
+                            placeholder="Enter country"
+                            disabled={isAddingNewInfluencer}
+                          />
+                          <Globe className="input-icon" size={18} />
+                        </div>
                       </div>
                     </div>
 
                     <div className="form-group">
                       <label className="form-label">Street Address</label>
-                      <input
-                        type="text"
-                        className="form-input"
-                        value={formData.address.lane}
-                        onChange={(e) =>
-                          handleNestedInputChange(
-                            "address",
-                            "lane",
-                            e.target.value
-                          )
-                        }
-                        placeholder="Enter street address"
-                        disabled={isAddingNewInfluencer}
-                      />
+                      <div className="input-wrapper">
+                        <input
+                          type="text"
+                          className="form-input with-icon"
+                          value={formData.address.lane}
+                          onChange={(e) =>
+                            handleNestedInputChange(
+                              "address",
+                              "lane",
+                              e.target.value
+                            )
+                          }
+                          placeholder="Enter street address"
+                          disabled={isAddingNewInfluencer}
+                        />
+                        <MapPin className="input-icon" size={18} />
+                      </div>
                     </div>
 
                     <div className="form-row">
@@ -929,7 +1008,7 @@ const AddInfluencerDialog = ({ isOpen, onClose }) => {
                       </div>
                     </div>
 
-                                        <div className="form-row ads">
+                    <div className="form-row ads">
                       <div className="form-group">
                         <label className="form-label">Postal Code</label>
                         <input
@@ -979,7 +1058,8 @@ const AddInfluencerDialog = ({ isOpen, onClose }) => {
                         className="add-btn"
                         onClick={addAdditionalInfo}
                         disabled={
-                          isAddingNewInfluencer || formData.additionalInfo.length >= 20
+                          isAddingNewInfluencer ||
+                          formData.additionalInfo.length >= 20
                         }
                       >
                         <Plus size={16} />
@@ -1036,20 +1116,6 @@ const AddInfluencerDialog = ({ isOpen, onClose }) => {
           </div>
 
           <div className="dialog-footer">
-            <div className="form-status">
-              {isMandatoryFieldsFilled() ? (
-                <div className="status-indicator success">
-                  <CheckCircle size={16} />
-                  Ready to submit
-                </div>
-              ) : (
-                <div className="status-indicator warning">
-                  <AlertCircle size={16} />
-                  Fill mandatory fields (Name, Email, Username)
-                </div>
-              )}
-            </div>
-
             <div className="dialog-actions">
               <button
                 className="btn btn-secondary"
@@ -1077,8 +1143,6 @@ const AddInfluencerDialog = ({ isOpen, onClose }) => {
               </button>
             </div>
           </div>
-
-          {isAddingNewInfluencer && <div className="dialog-loading-overlay" />}
         </div>
       </div>
     </>

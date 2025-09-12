@@ -82,23 +82,33 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
     }),
   ],
+  trustedHosts: ["admin.afinadvisory.com"],
 
+  session: {
+    strategy: "jwt",
+    maxAge: 30 * 60,
+  },
+
+  jwt: {
+    maxAge: 30 * 60,
+  },
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        Object.assign(token, user); // push all fields into token
+        Object.assign(token, user); 
       }
       return token;
     },
 
     async session({ session, token }) {
-      session.user = { ...token }; // everything comes through
+      session.user = { ...token };
       return session;
     },
   },
 
   pages: {
     signIn: "/login",
+    error: "/login",
   },
 
   secret: process.env.NEXTAUTH_SECRET,

@@ -452,6 +452,7 @@ const GenericActionBar = ({
             type="button"
             title="Refresh data"
           >
+      
             <RefreshCw
               size={18}
               className={loading ? "generic-ab__spinning" : ""}

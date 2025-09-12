@@ -315,10 +315,11 @@ export function exportCommissionsToExcel(commissionsData) {
   return filename;
 }
 
-
 export function exportInfluencersToExcel(influencersData) {
   if (typeof XLSX === "undefined") {
-    console.error("XLSX library is not loaded. Please include SheetJS library.");
+    console.error(
+      "XLSX library is not loaded. Please include SheetJS library."
+    );
     return;
   }
 
@@ -348,9 +349,11 @@ export function exportInfluencersToExcel(influencersData) {
       bankDetails: i.bankDetails
         ? `${i.bankDetails.bankName || ""} - ${
             i.bankDetails.accountHolderName || ""
-          } (${i.bankDetails.accountNumber
-            ? "****" + i.bankDetails.accountNumber.slice(-4)
-            : ""})`
+          } (${
+            i.bankDetails.accountNumber
+              ? "****" + i.bankDetails.accountNumber.slice(-4)
+              : ""
+          })`
         : "",
       address: i.address
         ? `${i.address.lane || ""}, ${i.address.city || ""}, ${
@@ -360,12 +363,8 @@ export function exportInfluencersToExcel(influencersData) {
       socialLinks: (i.socialLinks || [])
         .map((s) => `${s.platform}: ${s.url}`)
         .join(" | "),
-      createdAt: i.createdAt
-        ? new Date(i.createdAt).toLocaleString()
-        : null,
-      updatedAt: i.updatedAt
-        ? new Date(i.updatedAt).toLocaleString()
-        : null,
+      createdAt: i.createdAt ? new Date(i.createdAt).toLocaleString() : null,
+      updatedAt: i.updatedAt ? new Date(i.updatedAt).toLocaleString() : null,
       lastActiveAt: i.lastActiveAt
         ? new Date(i.lastActiveAt).toLocaleString()
         : null,
@@ -403,4 +402,33 @@ export function exportInfluencersToExcel(influencersData) {
 
   console.log(`Excel file "${filename}" generated successfully.`);
   return filename;
+}
+
+export function generateInfluencerUsername(email, phone) {
+  // 1️⃣  Take the email name part (before @) and clean it
+  const emailName = email
+    .split("@")[0]
+    .replace(/[^a-zA-Z0-9_]/g, "") // keep only allowed chars
+    .slice(0, 20); // limit so we have room
+
+  // 2️⃣  Take last 4 digits of phone
+  const phoneTail = phone.replace(/\D/g, "").slice(-4);
+
+  // 3️⃣  Add a random 3-char suffix to reduce collisions
+  const randomSuffix = Math.random()
+    .toString(36)
+    .replace(/[^a-z0-9]/g, "")
+    .slice(0, 3);
+
+  // 4️⃣  Compose and trim to meet length requirements
+  let username = `${emailName}_${phoneTail}_${randomSuffix}`
+    .replace(/[^a-zA-Z0-9_]/g, "") // final clean
+    .slice(0, 50);
+
+  // 5️⃣  Ensure minimum length (pad if somehow too short)
+  if (username.length < 3) {
+    username = (username + "_user").slice(0, 50);
+  }
+
+  return username;
 }

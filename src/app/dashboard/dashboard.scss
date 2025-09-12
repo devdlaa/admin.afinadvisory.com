@@ -1,0 +1,35 @@
+.dashboard-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%; // fill the route area
+  padding: 2rem;
+
+}
+
+.dashboard-box {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 40px 60px;
+  text-align: center;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+  max-width: 360px;
+
+  h2 {
+    margin-top: 12px;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #374151;
+  }
+
+  p {
+    margin-top: 8px;
+    font-size: 0.9rem;
+    color: #6b7280;
+  }
+
+  .dashboard-icon {
+    color: #3b82f6; // nice blue accent
+  }
+}

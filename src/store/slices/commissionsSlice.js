@@ -4,7 +4,7 @@ import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 // Async thunks
 export const fetchCommissions = createAsyncThunk(
   "commissions/fetchCommissions",
-  async ({ limit = 10, cursor = null }, { rejectWithValue }) => {
+  async ({ limit = 10, cursor = null, fresh = false }, { rejectWithValue }) => {
     const payload = cursor ? { limit, cursor } : { limit };
     try {
       const response = await fetch("/api/admin/commissions/get", {
@@ -21,7 +21,7 @@ export const fetchCommissions = createAsyncThunk(
         return rejectWithValue(data.error || "Failed to fetch commissions");
       }
 
-      return data;
+      return { ...data, fresh };
     } catch (error) {
       console.log("error", error);
       return rejectWithValue(error.message);
@@ -131,6 +131,8 @@ const initialState = {
   isSearchMode: false,
   isFilterMode: false,
   selectAll: false,
+  hasFetched: false,
+  isFetching: false, // Add this to prevent concurrent fetches
   stats: {
     total: 0,
     paid: 0,
@@ -216,6 +218,10 @@ const commissionsSlice = createSlice({
       state.pagination.cursor = null;
       state.pagination.hasMore = false;
     },
+    // Add this action to reset state when navigating away
+    resetCommissionsState: (state) => {
+      return { ...initialState };
+    },
     updateStats: (state) => {
       const commissions = state.allCommissions;
       state.stats.total = commissions.length;
@@ -238,26 +244,49 @@ const commissionsSlice = createSlice({
   extraReducers: (builder) => {
     builder
       // Fetch commissions
-      .addCase(fetchCommissions.pending, (state) => {
+      .addCase(fetchCommissions.pending, (state, action) => {
+        const { cursor, fresh } = action.meta.arg || {};
+        
+        // Prevent concurrent fetches
+        if (state.isFetching && !cursor) {
+          return;
+        }
+        
         state.loading = true;
+        state.isFetching = true;
         state.error = null;
+
+        // Reset everything for fresh fetches (no cursor)
+        if (!cursor || fresh) {
+          state.pagination.cursor = null;
+          state.pagination.hasMore = false;
+          state.allCommissions = [];
+          state.commissions = [];
+          state.hasFetched = false;
+        }
       })
       .addCase(fetchCommissions.fulfilled, (state, action) => {
         state.loading = false;
-        const { commissions, hasMore, cursor } = action.payload;
+        state.isFetching = false;
+        state.hasFetched = true;
+        
+        const { commissions, hasMore, cursor, fresh } = action.payload;
+        const isLoadMore = action.meta.arg?.cursor && !fresh;
 
-        if (state.pagination.cursor) {
-          // Append new data for pagination
-          state.allCommissions = [...state.allCommissions, ...commissions];
+        if (isLoadMore) {
+          // For load more: append new data and dedupe
+          const existingIds = new Set(state.allCommissions.map(c => c.id));
+          const newCommissions = commissions.filter(c => !existingIds.has(c.id));
+          state.allCommissions = [...state.allCommissions, ...newCommissions];
         } else {
-          // Fresh fetch
+          // For fresh fetch: replace all data
           state.allCommissions = commissions;
         }
 
         state.pagination.hasMore = hasMore;
         state.pagination.cursor = cursor;
 
-        // Apply current filters
+        // Apply current status filter
         commissionsSlice.caseReducers.setStatusFilter(state, {
           payload: state.filters.statusFilter,
         });
@@ -265,6 +294,8 @@ const commissionsSlice = createSlice({
       })
       .addCase(fetchCommissions.rejected, (state, action) => {
         state.loading = false;
+        state.isFetching = false;
+        state.hasFetched = true;
         state.error = action.payload;
       })
 
@@ -307,7 +338,8 @@ const commissionsSlice = createSlice({
       })
       .addCase(filterCommissions.rejected, (state, action) => {
         state.loading = false;
-        state.error = action?.payload?.error?.formErrors || "Faild to Filter Results!";
+        state.error =
+          action?.payload?.error?.formErrors || "Failed to Filter Results!";
       })
 
       // Update commission status
@@ -358,6 +390,7 @@ export const {
   toggleSelectAll,
   clearSelections,
   resetPagination,
+  resetCommissionsState,
   updateStats,
 } = commissionsSlice.actions;
 

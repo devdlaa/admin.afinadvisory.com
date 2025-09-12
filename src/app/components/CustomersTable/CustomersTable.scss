@@ -5,12 +5,11 @@
   border-radius: 16px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   overflow: hidden;
-  height: 550px;
+
   display: flex;
   flex-direction: column;
-  border: 1px solid #f1f5f9;
-}
-
+  outline: 1px solid #d8dae0;
+  
 // Table Structure
 .table-container {
   flex: 1;
@@ -28,7 +27,7 @@
 
 .table-head {
   flex-shrink: 0;
-  background: rgb(247, 247, 247);
+  background: rgb(255, 255, 255);
   color: rgb(0, 0, 0);
   position: sticky;
   border-bottom: 1px solid rgba(0, 0, 0, 0.062);
@@ -94,24 +93,35 @@
   &.customer-cell {
     width: 380px;
     flex-shrink: 0;
+        border-right: 1px solid #0000000a;
   }
   &.contact-cell {
     width: 310px;
+        border-right: 1px solid #0000000a;
     flex-shrink: 0;
   }
   &.verification-cell {
     width: 180px;
+        border-right: 1px solid #0000000a;
     flex-shrink: 0;
   }
   &.status-cell {
-    width: 120px;
+        border-right: 1px solid #0000000a;
+    width: 180px;
     flex-shrink: 0;
   }
   &.joined-cell {
+        border-right: 1px solid #0000000a;
+    width: 170px;
+    flex-shrink: 0;
+  }
+   &.login_mentods {
+        border-right: 1px solid #0000000a;
     width: 140px;
     flex-shrink: 0;
   }
   &.actions-cell {
+
     flex: 1;
     justify-content: flex-end;
     padding-right: 24px;
@@ -403,6 +413,7 @@
   font-size: 16px;
   font-weight: 600;
   color: #64748b;
+  border-radius: 0px;
   padding: 48px;
 }
 
@@ -431,6 +442,8 @@
       background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%);
     }
   }
+}
+
 }
 
 // Responsive Design
