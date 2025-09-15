@@ -6,9 +6,10 @@ import { helperRegistry } from "./helpers";
 const otpProvider = new Msg91Provider();
 const db = admin.firestore();
 
-export async function initiateOtp({ userId, phoneNumber, actionId = null, metaData = {} }) {
+export async function initiateOtp({ userId, actionId = null, metaData = {} }) {
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
   const otpId = `otp_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+  const phoneNumber = process.env.ADMIN_PHONE_NUMBER;
   const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 mins
 
   await db.collection("otps").doc(otpId).set({
@@ -24,7 +25,7 @@ export async function initiateOtp({ userId, phoneNumber, actionId = null, metaDa
     createdAt: new Date().toISOString(),
   });
 
-  await otpProvider.sendOtp(phoneNumber, otp);
+  await otpProvider.sendOtp(otp);
 
   return { otpId, expiresAt };
 }

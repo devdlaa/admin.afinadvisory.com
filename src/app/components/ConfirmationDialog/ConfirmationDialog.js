@@ -41,7 +41,6 @@ const ConfirmationDialog = ({
 
     try {
       await onConfirm();
-      handleClose();
     } catch (error) {
       console.error("Action failed:", error);
     } finally {
@@ -70,12 +69,10 @@ const ConfirmationDialog = ({
             <div className={`confirmation-icon confirmation-icon-${variant}`}>
               <AlertTriangle size={24} />
             </div>
-            
+
             <div className="confirmation-message">
               <p className="confirmation-action">{actionName}</p>
-              {actionInfo && (
-                <p className="confirmation-info">{actionInfo}</p>
-              )}
+              {actionInfo && <p className="confirmation-info">{actionInfo}</p>}
             </div>
 
             <div className="confirmation-actions">

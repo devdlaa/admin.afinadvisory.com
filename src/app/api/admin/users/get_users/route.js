@@ -4,7 +4,7 @@ import admin from "@/lib/firebase-admin";
 
 import { requirePermission } from "@/lib/requirePermission";
 
-const DEFAULT_PAGE_SIZE = 10;
+const DEFAULT_PAGE_SIZE = 50;
 const MAX_PAGE_SIZE = 100;
 
 // Zod schema for request validation

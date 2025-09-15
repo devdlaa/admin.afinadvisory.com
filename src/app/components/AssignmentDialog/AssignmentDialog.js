@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useSelector, useDispatch } from "react-redux";
 import {
   X,
   Loader2,
@@ -10,79 +11,21 @@ import {
   AlertCircle,
   ToggleLeft,
   ToggleRight,
+  RefreshCw,
+  Clock,
+  Wifi,
 } from "lucide-react";
 import "./AssignmentDialog.scss";
 import { CircularProgress } from "@mui/material";
-
-// Dummy data for available users
-const dummyAvailableUsers = [
-  {
-    userCode: "U101",
-    name: "Alice Johnson",
-    email: "alice@example.com",
-    avatar: "AJ",
-  },
-  {
-    userCode: "U102",
-    name: "Bob Smith",
-    email: "bob@example.com",
-    avatar: "BS",
-  },
-  {
-    userCode: "U103",
-    name: "Charlie Brown",
-    email: "charlie@example.com",
-    avatar: "CB",
-  },
-  {
-    userCode: "U104",
-    name: "Diana Prince",
-    email: "diana@example.com",
-    avatar: "DP",
-  },
-  {
-    userCode: "U105",
-    name: "Edward Norton",
-    email: "edward@example.com",
-    avatar: "EN",
-  },
-  {
-    userCode: "U106",
-    name: "Fiona Green",
-    email: "fiona@example.com",
-    avatar: "FG",
-  },
-  {
-    userCode: "U107",
-    name: "George Wilson",
-    email: "george@example.com",
-    avatar: "GW",
-  },
-  {
-    userCode: "U108",
-    name: "Helen Davis",
-    email: "helen@example.com",
-    avatar: "HD",
-  },
-];
-
-// Dummy data for initially assigned users (from Redux)
-const dummyAssignedUsers = [
-  {
-    userCode: "U001",
-    name: "John Doe",
-    email: "john@example.com",
-    avatar: "JD",
-  },
-  {
-    userCode: "U002",
-    name: "Jane Smith",
-    email: "jane@example.com",
-    avatar: "JS",
-  },
-];
+import { updateAssignmentManagement } from "@/store/slices/servicesSlice";
 
 const AssignmentDialog = ({ isOpen, onClose }) => {
+  const dispatch = useDispatch();
+
+  // Redux state
+  const { selectedBookings } = useSelector((state) => state.services);
+
+  // Local state
   const [availableUsers, setAvailableUsers] = useState([]);
   const [assignedUsers, setAssignedUsers] = useState([]);
   const [isAssignToAll, setIsAssignToAll] = useState(false);
@@ -96,8 +39,70 @@ const AssignmentDialog = ({ isOpen, onClose }) => {
   const [loading, setLoading] = useState(false);
   const [draggedUser, setDraggedUser] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
+
+  // Cache-related state
+  const [isFromCache, setIsFromCache] = useState(false);
+  const [cacheTimestamp, setCacheTimestamp] = useState(null);
+  const [refreshingUsers, setRefreshingUsers] = useState(false);
 
   const MAX_ASSIGNED_USERS = 10;
+  const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes in milliseconds
+  const CACHE_KEY = "available_users_cache";
+
+  // Helper function to check if cache is valid
+  const isCacheValid = (timestamp) => {
+    return Date.now() - timestamp < CACHE_DURATION;
+  };
+
+  // Helper function to get cached users
+  const getCachedUsers = () => {
+    try {
+      const cached = localStorage.getItem(CACHE_KEY);
+      if (cached) {
+        const { users, timestamp } = JSON.parse(cached);
+        if (isCacheValid(timestamp)) {
+          return { users, timestamp };
+        } else {
+          // Cache expired, remove it
+          localStorage.removeItem(CACHE_KEY);
+        }
+      }
+    } catch (error) {
+      console.error("Error reading cache:", error);
+      localStorage.removeItem(CACHE_KEY);
+    }
+    return null;
+  };
+
+  // Helper function to cache users
+  const cacheUsers = (users) => {
+    try {
+      const timestamp = Date.now();
+      localStorage.setItem(
+        CACHE_KEY,
+        JSON.stringify({ users, timestamp })
+      );
+      setCacheTimestamp(timestamp);
+    } catch (error) {
+      console.error("Error caching users:", error);
+    }
+  };
+
+  // Helper function to format cache age
+  const formatCacheAge = (timestamp) => {
+    if (!timestamp) return "";
+    
+    const ageInMinutes = Math.floor((Date.now() - timestamp) / (1000 * 60));
+    if (ageInMinutes < 1) {
+      return "Just now";
+    } else if (ageInMinutes < 60) {
+      return `${ageInMinutes} min ago`;
+    } else {
+      const ageInHours = Math.floor(ageInMinutes / 60);
+      return `${ageInHours}h ${ageInMinutes % 60}m ago`;
+    }
+  };
 
   // Helper function to check if there are actual changes
   const checkForChanges = (currentAssigned, currentToggle) => {
@@ -119,24 +124,106 @@ const AssignmentDialog = ({ isOpen, onClose }) => {
   // Computed value for hasChanges
   const hasChanges = checkForChanges(assignedUsers, isAssignToAll);
 
-  // Simulate API calls
-  useEffect(() => {
-    if (isOpen) {
-      setLoading(true);
-      // Simulate server fetch for available users
-      setTimeout(() => {
-        setAvailableUsers(dummyAvailableUsers);
-        setAssignedUsers(dummyAssignedUsers);
-        setIsAssignToAll(false);
+  // Fetch users from API
+  const fetchUsersFromAPI = async () => {
+    const response = await fetch("/api/admin/users/get_users", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        pageSize: 100, // Get more users for assignment dialog
+      }),
+    });
 
-        // Store original state for comparison
-        setOriginalAssignedUsers([...dummyAssignedUsers]);
-        setOriginalIsAssignToAll(false);
-
-        setLoading(false);
-      }, 800);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch users: ${response.status}`);
     }
-  }, [isOpen]);
+
+    const data = await response.json();
+
+    if (!data.success) {
+      throw new Error(data.error || "Failed to fetch available users");
+    }
+
+    return data?.data?.users || [];
+  };
+
+  // Fetch data when dialog opens
+  useEffect(() => {
+    if (isOpen && selectedBookings) {
+      fetchData();
+    }
+  }, [isOpen, selectedBookings?.id]);
+
+  const fetchData = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      let users = [];
+      let fromCache = false;
+      let timestamp = null;
+
+      // Try to get from cache first
+      const cached = getCachedUsers();
+      if (cached) {
+        users = cached.users;
+        timestamp = cached.timestamp;
+        fromCache = true;
+        setIsFromCache(true);
+        setCacheTimestamp(timestamp);
+      } else {
+        // Fetch from API if no valid cache
+        users = await fetchUsersFromAPI();
+        cacheUsers(users);
+        fromCache = false;
+        setIsFromCache(false);
+      }
+
+      setAvailableUsers(users);
+
+      // Get current assignment from selectedBookings
+      const currentAssignment = selectedBookings?.assignmentManagement || {
+        assignToAll: false,
+        members: [],
+      };
+
+      // Set initial state from current booking
+      const currentAssignedUsers = currentAssignment.members || [];
+      const currentAssignToAll = currentAssignment.assignToAll || false;
+
+      setAssignedUsers(currentAssignedUsers);
+      setIsAssignToAll(currentAssignToAll);
+
+      // Store original state for comparison
+      setOriginalAssignedUsers([...currentAssignedUsers]);
+      setOriginalIsAssignToAll(currentAssignToAll);
+    } catch (err) {
+      console.error("Error fetching data:", err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Function to refresh users from API
+  const refreshUsers = async () => {
+    setRefreshingUsers(true);
+    setError(null);
+
+    try {
+      const users = await fetchUsersFromAPI();
+      cacheUsers(users);
+      setAvailableUsers(users);
+      setIsFromCache(false);
+    } catch (err) {
+      console.error("Error refreshing users:", err);
+      setError(err.message);
+    } finally {
+      setRefreshingUsers(false);
+    }
+  };
 
   const filteredAvailableUsers = availableUsers.filter(
     (user) =>
@@ -174,7 +261,7 @@ const AssignmentDialog = ({ isOpen, onClose }) => {
         box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
         font-family: inherit;
         min-width: 200px;
-        pointor : 
+        pointer-events: none;
       ">
         <div style="
           width: 32px;
@@ -187,7 +274,9 @@ const AssignmentDialog = ({ isOpen, onClose }) => {
           justify-content: center;
           font-size: 12px;
           font-weight: 600;
-        ">${user.avatar}</div>
+        ">${
+          user.avatar || user.name?.substring(0, 2).toUpperCase() || "?"
+        }</div>
         <div>
           <div style="font-size: 13px; font-weight: 500; color: #0f172a; margin-bottom: 2px;">
             ${user.name}
@@ -238,7 +327,7 @@ const AssignmentDialog = ({ isOpen, onClose }) => {
       // Add to assigned users
       setAssignedUsers((prev) => [...prev, draggedUser]);
     } else if (source === "assigned" && targetList === "available") {
-      // Remove from assigned users - this should always work regardless of limit
+      // Remove from assigned users
       setAssignedUsers((prev) =>
         prev.filter((u) => u.userCode !== draggedUser.userCode)
       );
@@ -252,31 +341,75 @@ const AssignmentDialog = ({ isOpen, onClose }) => {
   };
 
   const handleAssignUsers = async () => {
+    if (!selectedBookings?.id) {
+      setError("No booking selected");
+      return;
+    }
+
     setSaving(true);
+    setError(null);
 
-    const config = {
-      assignedUsers: {
-        isAssignToAll: isAssignToAll,
-        dummyAssignedUsersArray: isAssignToAll ? [] : assignedUsers,
-      },
-    };
+    try {
+      const payload = {
+        serviceId: selectedBookings.id,
+        assignmentManagement: {
+          assignToAll: isAssignToAll,
+          members: isAssignToAll
+            ? []
+            : assignedUsers.map((u) => ({
+                userCode: u.userCode,
+                name: u.name,
+                email: u.email,
+                sendEmail: false,
+              })),
+        },
+      };
+      const response = await fetch(
+        "/api/admin/services/assigmnets/assign_members",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        }
+      );
 
-    // Mock API call
-    setTimeout(() => {
-      console.log("Assignment config updated:", config);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (!data.success) {
+        throw new Error(data.error || "Failed to update assignment");
+      }
+
+      // Dispatch action to update Redux store
+      dispatch(
+        updateAssignmentManagement({
+          serviceId: selectedBookings.id,
+          assignmentManagement: data.assignmentManagement,
+        })
+      );
 
       // Update original state after successful save
       setOriginalAssignedUsers([...assignedUsers]);
       setOriginalIsAssignToAll(isAssignToAll);
 
-      setSaving(false);
       onClose();
-    }, 1500);
+    } catch (err) {
+      console.error("Error updating assignment:", err);
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleClose = () => {
     setAvailableSearch("");
     setAssignedSearch("");
+    setError(null);
     onClose();
   };
 
@@ -303,6 +436,13 @@ const AssignmentDialog = ({ isOpen, onClose }) => {
         </div>
 
         <div className="dialog-body">
+          {error && (
+            <div className="error-banner">
+              <AlertCircle size={16} />
+              <span>{error}</span>
+            </div>
+          )}
+
           {loading ? (
             <div className="loading-state">
               <Loader2 className="loader" />
@@ -337,6 +477,32 @@ const AssignmentDialog = ({ isOpen, onClose }) => {
                       </button>
                     </div>
                   </div>
+
+                  {/* Cache Status and Refresh */}
+                  <div className="cache-controls">
+                    <div className="cache-status">
+                      {isFromCache ? (
+                        <div className="cache-info">
+                          <Clock size={12} />
+                          <span>Cached {formatCacheAge(cacheTimestamp)}</span>
+                        </div>
+                      ) : (
+                        <div className="cache-info fresh">
+                          <Wifi size={12} />
+                          <span>Fresh data</span>
+                        </div>
+                      )}
+                    </div>
+                    <button
+                      className="refresh-btn"
+                      onClick={refreshUsers}
+                      disabled={refreshingUsers || saving}
+                      title="Refresh user list"
+                    >
+                      <RefreshCw size={14} className={refreshingUsers ? "spinning" : ""} />
+                    </button>
+                  </div>
+
                   <div className="search-wrapper">
                     <Search size={14} className="search-icon" />
                     <input
@@ -367,12 +533,15 @@ const AssignmentDialog = ({ isOpen, onClose }) => {
                       draggable={!isDisabled}
                       onDragStart={(e) => handleDragStart(e, user, "available")}
                     >
-                      <div className="user-avatar">{user.avatar}</div>
+                      <div className="user-avatar">
+                        {user.avatar ||
+                          user.name?.substring(0, 2).toUpperCase() ||
+                          "?"}
+                      </div>
                       <div className="user-info">
                         <div className="user-name">{user.name}</div>
                         <div className="user-email">{user.email}</div>
                       </div>
-                    
                     </div>
                   ))}
 
@@ -454,13 +623,14 @@ const AssignmentDialog = ({ isOpen, onClose }) => {
                         }
                       >
                         <div className="user-avatar assigned">
-                          {user.avatar}
+                          {user.avatar ||
+                            user.name?.substring(0, 2).toUpperCase() ||
+                            "?"}
                         </div>
                         <div className="user-info">
                           <div className="user-name">{user.name}</div>
                           <div className="user-email">{user.email}</div>
                         </div>
-                    
                       </div>
                     ))}
 

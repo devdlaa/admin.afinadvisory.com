@@ -21,8 +21,7 @@ $box-shadow-hover: 0 3px 6px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.12);
 // Base styles
 .payments-page {
   padding: 24px;
-  background: $bg-secondary;
-  min-height: 100vh;
+
   font-family: "Poppins";
   max-width: 1350px;
   margin: 0 auto;
@@ -184,7 +183,7 @@ $box-shadow-hover: 0 3px 6px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.12);
     gap: 8px;
     border-bottom: 2px solid transparent;
     transition: all 0.2s ease;
-  font-family: "Poppins";
+    font-family: "Poppins";
     &:hover {
       color: $text-primary;
       background: $bg-tertiary;
@@ -224,7 +223,7 @@ $box-shadow-hover: 0 3px 6px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.12);
     font-size: 14px;
     width: 300px;
     transition: all 0.2s ease;
-  font-family: "Poppins";
+    font-family: "Poppins";
     &:focus {
       outline: none;
       border-color: $primary-color;

@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
 import Image from "next/image";
+import Permission from "../Permission";
 import { useRouter, usePathname } from "next/navigation";
 
 const Sidebar = () => {
@@ -147,6 +148,7 @@ const Sidebar = () => {
       icon: Users,
       path: "/dashboard/customers",
       badge: null,
+      permission: "customers.access",
     },
     {
       id: "services_bookings",
@@ -154,6 +156,7 @@ const Sidebar = () => {
       icon: Calendar,
       path: "/dashboard/service-bookings",
       badge: null,
+      permission: "bookings.access",
     },
     {
       id: "payments",
@@ -161,6 +164,7 @@ const Sidebar = () => {
       icon: IndianRupee,
       path: "/dashboard/payments",
       badge: null,
+      permission: "payments.access",
     },
     {
       id: "payments-links",
@@ -168,6 +172,7 @@ const Sidebar = () => {
       icon: Link,
       path: "/dashboard/payment-links",
       badge: null,
+      permission: "payment_link.access",
     },
     {
       id: "pricing",
@@ -175,6 +180,7 @@ const Sidebar = () => {
       icon: Tag,
       path: "/dashboard/service-pricing",
       badge: null,
+      permission: "service_pricing.access",
     },
   ];
 
@@ -184,18 +190,21 @@ const Sidebar = () => {
       label: "Brand Partners",
       icon: Megaphone,
       path: "/dashboard/marketing/partners",
+      permission: "influencers.access",
     },
     {
       id: "coupons",
       label: "Coupons",
       icon: TicketPercent,
       path: "/dashboard/marketing/coupons",
+      permission: "coupons.access",
     },
     {
       id: "comissions",
       label: "Comissions Records",
       icon: WalletCardsIcon,
       path: "/dashboard/marketing/comissions",
+      permission: "commissions.access",
     },
   ];
 
@@ -211,6 +220,7 @@ const Sidebar = () => {
       label: "Manage Team",
       icon: UsersRound,
       path: "/dashboard/manage-team",
+      permission: "users.access",
     },
   ];
 
@@ -276,13 +286,34 @@ const Sidebar = () => {
         {/* Management Section */}
         <div className="nav-section">
           <h4 className="nav-section-title">Management</h4>
-          {menuItems.map((item) => renderMenuItem(item))}
+          {menuItems.map((item) => (
+            <Permission
+              key={item.id}
+              permission={item?.permission}
+              role={item?.role}
+              disable={item.disable}
+              fallback={null}
+            >
+              {renderMenuItem(item)}
+            </Permission>
+          ))}
         </div>
 
         {/* Marketing Section */}
         <div className="nav-section">
           <h4 className="nav-section-title">Marketing</h4>
-          {marketingItems.map((item) => renderMenuItem(item))}
+
+          {marketingItems.map((item) => (
+            <Permission
+              key={item.id}
+              permission={item?.permission}
+              role={item?.role}
+              disable={item.disable}
+              fallback={null}
+            >
+              {renderMenuItem(item)}
+            </Permission>
+          ))}
         </div>
       </div>
 
@@ -291,7 +322,18 @@ const Sidebar = () => {
         {/* Account Section */}
         <div className="nav-section">
           <h4 className="nav-section-title">Account</h4>
-          {bottomMenuItems.map((item) => renderMenuItem(item))}
+
+          {bottomMenuItems.map((item) => (
+            <Permission
+              key={item.id}
+              permission={item?.permission}
+              role={item?.role}
+              disable={item.disable}
+              fallback={null}
+            >
+              {renderMenuItem(item)}
+            </Permission>
+          ))}
         </div>
 
         <div className="logout-section">

@@ -67,7 +67,7 @@
     transition: all 0.2s ease;
 
     &:hover {
-       background-color: rgb(240 240 240);
+      background-color: rgb(240 240 240);
       color: black;
     }
   }
@@ -303,7 +303,7 @@
     .role-name {
       font-size: 14px;
       font-weight: 600;
-      color:black;
+      color: black;
     }
 
     .role-desc {
@@ -372,11 +372,14 @@
     justify-content: center;
     flex-shrink: 0;
     transition: all 0.2s ease;
+    &.checked {
+      background-color: #007bff; // or your primary color
+      border-color: #007bff;
 
-    .check-icon {
-      opacity: 0;
-      color: white;
-      transition: opacity 0.2s ease;
+      .check-icon {
+        color: white;
+        opacity: 1;
+      }
     }
 
     .permission-checkbox:checked + & {

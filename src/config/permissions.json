@@ -11,6 +11,11 @@
             "category": "Bookings"
         },
         {
+            "id": "payment_link.access",
+            "label": "Access to Payment Links",
+            "category": "Bookings"
+        },
+        {
             "id": "bookings.reject_refund",
             "label": "Reject Booking Refunds",
             "category": "Bookings"
@@ -23,6 +28,16 @@
         {
             "id": "bookings.assign_member",
             "label": "Assign Members to Bookings",
+            "category": "Bookings"
+        },
+        {
+            "id": "bookings.mark_fulfilled",
+            "label": "Mark Bookings As Fulfilled",
+            "category": "Bookings"
+        },
+        {
+            "id": "bookings.unmark_fulfilled",
+            "label": "Un-Mark Bookings As Fulfilled",
             "category": "Bookings"
         },
         {
@@ -154,17 +169,14 @@
             "bookings.access",
             "customers.access",
             "customers.create",
-            "customers.update",
             "influencers.access",
             "influencers.create",
-            "influencers.update",
             "commissions.access",
             "coupons.access",
             "coupons.create",
             "coupons.update",
-            "service_pricing.access",
-            "service_pricing.update",
-            "payments.access"
+            "bookings.mark_fulfilled",
+            "bookings.unmark_fulfilled"
         ],
         "superAdmin": [
             "users.access",
@@ -175,6 +187,7 @@
             "users.update",
             "users.alter-permissions",
             "bookings.access",
+            "payment_link.access",
             "bookings.create_new_link",
             "bookings.reject_refund",
             "bookings.initiate_refund",
@@ -194,7 +207,10 @@
             "coupons.delete",
             "service_pricing.access",
             "service_pricing.update",
-            "payments.access"
+            "payments.access",
+            "bookings.mark_fulfilled",
+            "bookings.unmark_fulfilled",
+            "payment_link.access"
         ]
     },
     "roles": [

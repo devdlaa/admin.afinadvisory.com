@@ -8,10 +8,12 @@ import {
   fetchPermissions,
 } from "@/store/slices/userSlice";
 import "./PermissionsDialog.scss";
+import { CircularProgress } from "@mui/material";
 
 const PermissionsDialog = ({ open, onClose, user }) => {
   const dispatch = useDispatch();
   const {
+    users,
     updating,
     updateError,
     permissionsData,
@@ -24,13 +26,22 @@ const PermissionsDialog = ({ open, onClose, user }) => {
   const [selectedPermissions, setSelectedPermissions] = useState([]);
   const [hasChanges, setHasChanges] = useState(false);
 
-  // Initial data setup
+  // Initial data setup - Reset form when dialog opens or user changes
   useEffect(() => {
-    if (user) {
+    if (open && user) {
+   
       setSelectedRole(user.role || "user");
-      setSelectedPermissions(user.permissions || []);
+      setSelectedPermissions([...(user.permissions || [])]);
+      setHasChanges(false);
     }
-  }, [user]);
+  }, [open, user]);
+
+  // Reset form when dialog closes
+  useEffect(() => {
+    if (!open) {
+      setHasChanges(false);
+    }
+  }, [open]);
 
   // Fetch permissions data on component mount
   useEffect(() => {
@@ -59,11 +70,14 @@ const PermissionsDialog = ({ open, onClose, user }) => {
   };
 
   const handlePermissionToggle = (permissionId) => {
-    setSelectedPermissions((prev) =>
-      prev.includes(permissionId)
+
+    setSelectedPermissions((prev) => {
+      const newPermissions = prev.includes(permissionId)
         ? prev.filter((p) => p !== permissionId)
-        : [...prev, permissionId]
-    );
+        : [...prev, permissionId];
+
+      return newPermissions;
+    });
   };
 
   const handleSelectAll = (category) => {
@@ -108,12 +122,23 @@ const PermissionsDialog = ({ open, onClose, user }) => {
         updateData.permissions = selectedPermissions;
       }
 
-      await dispatch(
+   
+
+      const result = await dispatch(
         updateUserPermissions({
           userId: user.id,
           ...updateData,
         })
       ).unwrap();
+
+      
+      // Update local state with the returned data if available
+      if (result && result.user) {
+        setSelectedRole(result.user.role || selectedRole);
+        setSelectedPermissions([
+          ...(result.user.permissions || selectedPermissions),
+        ]);
+      }
 
       onClose();
     } catch (error) {
@@ -137,7 +162,6 @@ const PermissionsDialog = ({ open, onClose, user }) => {
   const getPermissionLevel = (permissionId) => {
     if (!permissionId) return "basic";
 
-
     const criticalKeywords = [
       "delete",
       "update",
@@ -146,7 +170,6 @@ const PermissionsDialog = ({ open, onClose, user }) => {
       "initiate_refund",
     ];
 
- 
     const advancedKeywords = [
       "create",
       "invite",
@@ -165,7 +188,6 @@ const PermissionsDialog = ({ open, onClose, user }) => {
     if (advancedKeywords.some((keyword) => permissionId.includes(keyword))) {
       return "advanced";
     }
-
 
     return "basic";
   };
@@ -345,40 +367,53 @@ const PermissionsDialog = ({ open, onClose, user }) => {
                           </div>
 
                           <div className="pd-permissions-list">
-                            {permissions.map((permission) => (
-                              <label
-                                key={permission.id}
-                                className="pd-permission-item"
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={selectedPermissions.includes(
-                                    permission.id
-                                  )}
-                                  onChange={() =>
-                                    handlePermissionToggle(permission.id)
-                                  }
-                                  className="pd-permission-checkbox"
-                                  disabled={updating}
-                                />
-                                <div className="pd-checkbox-custom">
-                                  <Check size={12} className="pd-check-icon" />
-                                </div>
-                                <div className="pd-permission-details">
-                                  <span className="pd-permission-label">
-                                    {permission.label}
-                                  </span>
-                                  <div className="pd-permission-level">
-                                    {getPermissionIcon(permission.level)}
-                                    <span
-                                      className={`pd-level-text pd-${permission.level}`}
-                                    >
-                                      {permission.level}
-                                    </span>
+                            {permissions.map((permission) => {
+                              const isChecked = selectedPermissions.includes(
+                                permission.id
+                              );
+
+                              return (
+                                <label
+                                  key={permission.id}
+                                  className="pd-permission-item"
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={isChecked}
+                                    onChange={() =>
+                                      handlePermissionToggle(permission.id)
+                                    }
+                                    className="pd-permission-checkbox"
+                                    disabled={updating}
+                                  />
+                                  <div
+                                    className={`pd-checkbox-custom ${
+                                      isChecked ? "checked" : ""
+                                    }`}
+                                  >
+                                    {isChecked && (
+                                      <Check
+                                        size={12}
+                                        className="pd-check-icon"
+                                      />
+                                    )}
                                   </div>
-                                </div>
-                              </label>
-                            ))}
+                                  <div className="pd-permission-details">
+                                    <span className="pd-permission-label">
+                                      {permission.label}
+                                    </span>
+                                    <div className="pd-permission-level">
+                                      {getPermissionIcon(permission.level)}
+                                      <span
+                                        className={`pd-level-text pd-${permission.level}`}
+                                      >
+                                        {permission.level}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </label>
+                              );
+                            })}
                           </div>
                         </div>
                       );
@@ -471,15 +506,7 @@ const PermissionsDialog = ({ open, onClose, user }) => {
               onClick={handleSubmit}
               disabled={updating || !hasChanges}
             >
-              {updating && (
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                  className="pd-loading-spinner"
-                >
-                  <Loader2 size={16} />
-                </motion.div>
-              )}
+              {updating && <CircularProgress color="white" size={18} />}
               {updating ? "Updating..." : "Update Permissions"}
             </button>
           </div>

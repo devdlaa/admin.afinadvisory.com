@@ -26,7 +26,7 @@ const GenericActionBar = ({
     addButtonText = "Add New",
     addButtonIcon: AddIcon,
   },
-  
+
   // Redux selectors (functions that take state and return data)
   selectors: {
     selectStats,
@@ -34,7 +34,7 @@ const GenericActionBar = ({
     selectActiveStates,
     selectSearchState,
   },
-  
+
   // Redux actions
   actions: {
     fetchData,
@@ -47,11 +47,11 @@ const GenericActionBar = ({
     goToNextPage,
     goToPrevPage,
   },
-  
+
   // Search configuration
   searchOptions = [],
   detectField = null, // function to detect field from input value
-  
+
   // Event handlers
   onFilterClick,
   onExport,
@@ -74,9 +74,11 @@ const GenericActionBar = ({
     currentPageSize,
   } = useSelector(selectStats);
 
-  const { loading, searchLoading, exportLoading } = useSelector(selectLoadingStates);
+  const { loading, searchLoading, exportLoading } =
+    useSelector(selectLoadingStates);
   const { isSearchActive, isFilterActive } = useSelector(selectActiveStates);
-  const { query: currentSearchQuery, field: currentSearchField } = useSelector(selectSearchState);
+  const { query: currentSearchQuery, field: currentSearchField } =
+    useSelector(selectSearchState);
 
   // Sync local search query with Redux state
   useEffect(() => {
@@ -146,7 +148,9 @@ const GenericActionBar = ({
       const detectedField = detectField(query);
       if (!detectedField) {
         alert(
-          `❌ Invalid input format. Please enter a valid ${searchOptions.map(opt => opt.label).join(', ')}.`
+          `❌ Invalid input format. Please enter a valid ${searchOptions
+            .map((opt) => opt.label)
+            .join(", ")}.`
         );
         return;
       }
@@ -195,6 +199,7 @@ const GenericActionBar = ({
 
   const handleNextPage = () => {
     if (canGoNext && !loading) {
+      console.log("needsMoreData",needsMoreData);
       dispatch(goToNextPage());
 
       // Only fetch more data if we're in regular pagination mode and need more data
@@ -303,7 +308,7 @@ const GenericActionBar = ({
   };
 
   // Always use generic-ab as base class, add custom className if provided
-  const baseClass = `generic-ab${className ? ` ${className}` : ''}`;
+  const baseClass = `generic-ab${className ? ` ${className}` : ""}`;
 
   return (
     <div className={baseClass}>
@@ -452,7 +457,6 @@ const GenericActionBar = ({
             type="button"
             title="Refresh data"
           >
-      
             <RefreshCw
               size={18}
               className={loading ? "generic-ab__spinning" : ""}

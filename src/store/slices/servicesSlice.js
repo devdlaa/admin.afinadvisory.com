@@ -1,4 +1,4 @@
-import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import { createSlice, createAsyncThunk, current } from "@reduxjs/toolkit";
 
 // Async thunks for API calls
 export const fetchBookings = createAsyncThunk(
@@ -129,17 +129,138 @@ export const filterBookings = createAsyncThunk(
   }
 );
 
+export const markServiceFulfilled = createAsyncThunk(
+  "services/markServiceFulfilled",
+  async (service_booking_ids, { rejectWithValue }) => {
+    try {
+      const response = await fetch("/api/admin/services/mark-fulfilled", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ service_booking_ids }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      if (!data.success) {
+        throw new Error(data.error || "Failed to mark fulfilled");
+      }
+
+      // API returns only the last updated_service
+      return {
+        updatedService: data.updated_services,
+        message: data.message,
+      };
+    } catch (err) {
+      return rejectWithValue(err.message);
+    }
+  }
+);
+export const unmarkServiceFulfilled = createAsyncThunk(
+  "services/unmarkServiceFulfilled",
+  async (service_booking_ids, { rejectWithValue }) => {
+    try {
+      const response = await fetch("/api/admin/services/unmark-fulfilled", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ service_booking_ids }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      if (!data.success) {
+        throw new Error(data.error || "Failed to unmark fulfilled");
+      }
+
+      return {
+        updatedService: data.updated_services,
+        message: data.message,
+      };
+    } catch (err) {
+      return rejectWithValue(err.message);
+    }
+  }
+);
+
+// Async thunk with retry
+export const fetchBookingData = createAsyncThunk(
+  "bookings/fetchBookingData",
+  async ({ serviceBookingId }, { rejectWithValue }) => {
+    const maxRetries = 2;
+    let attempt = 0;
+
+    while (attempt <= maxRetries) {
+      try {
+        const res = await fetch("/api/admin/services/get_service", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ service_booking_id: serviceBookingId }),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok || !data.success) {
+          throw new Error(data.error || "Failed to fetch booking data");
+        }
+
+        return data.booking;
+      } catch (err) {
+        if (
+          attempt < maxRetries &&
+          (err.name === "TypeError" || err.message.includes("fetch"))
+        ) {
+          attempt++;
+          await new Promise((r) => setTimeout(r, 1000));
+          continue;
+        }
+        return rejectWithValue(err.message || "Failed to load booking data");
+      }
+    }
+  }
+);
+
+export const rejectRefund = createAsyncThunk(
+  "refund/rejectRefund",
+  async ({ service_booking_id, adminNote }, { rejectWithValue }) => {
+    try {
+      const res = await fetch("/api/admin/services/refund-reject", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ service_booking_id, adminNote }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || data.reason || "Refund reject failed");
+      }
+
+      return {
+        service_booking_id,
+        success: data.updatedService?.success,
+        updated_service: data?.updatedService.updatedService,
+      };
+    } catch (err) {
+      return rejectWithValue(err.message);
+    }
+  }
+);
+
 // Initial state
 const initialState = {
-  bookings: [], // Current page bookings to display
-  allBookings: [], // All fetched bookings cache
+  bookings: [],
+  allBookings: [],
 
   // Pagination
   currentPage: 1,
   itemsPerPage: 10,
   hasMore: false,
   cursor: null,
-
+  initialized: false,
   // Loading
   loading: false,
   loadingNext: false,
@@ -162,6 +283,10 @@ const initialState = {
   searchLoading: false,
   filterLoading: false,
   exportLoading: false,
+  service_action: false,
+  bookingLoading: false,
+  bookingError: null,
+  successMessage: null,
 };
 
 const servicesSlice = createSlice({
@@ -265,6 +390,49 @@ const servicesSlice = createSlice({
       state.quickViewData = null;
     },
 
+    updateAssignmentManagement: (state, action) => {
+      const { serviceId, assignmentManagement } = action.payload;
+
+      // Helper function to update assignment in an array
+      const updateAssignmentInArray = (bookingsArray) => {
+        return bookingsArray.map((booking) => {
+          if (booking.id === serviceId) {
+            return {
+              ...booking,
+              assignmentManagement: assignmentManagement,
+            };
+          }
+          return booking;
+        });
+      };
+
+      // Update in all relevant arrays
+      state.bookings = updateAssignmentInArray(state.bookings);
+      state.allBookings = updateAssignmentInArray(state.allBookings);
+
+      // Update in search results if active
+      if (state.isSearchActive && state.searchedBookings.length > 0) {
+        state.searchedBookings = updateAssignmentInArray(
+          state.searchedBookings
+        );
+      }
+
+      // Update in filtered results if active
+      if (state.isFilterActive && state.filteredBookings.length > 0) {
+        state.filteredBookings = updateAssignmentInArray(
+          state.filteredBookings
+        );
+      }
+
+      // Update selected booking if it's the same service
+      if (state.selectedBookings?.id === serviceId) {
+        state.selectedBookings = {
+          ...state.selectedBookings,
+          assignmentManagement: assignmentManagement,
+        };
+      }
+    },
+
     // Search actions
     clearSearch: (state) => {
       state.searchedBookings = [];
@@ -338,8 +506,19 @@ const servicesSlice = createSlice({
         state.loading = false;
         const { bookings, hasMore, cursor } = action.payload;
 
-        // Add new bookings to our cache
-        state.allBookings = [...state.allBookings, ...bookings];
+        // Get the original payload to check if cursor was null
+        const originalPayload = action.meta.arg;
+        const isInitialFetch = !originalPayload.cursor;
+
+        if (isInitialFetch) {
+          // Fresh fetch - replace all data
+          state.allBookings = bookings;
+          state.initialized = true; // Mark as initialized
+        } else {
+          // Load more - append to existing data
+          state.allBookings = [...state.allBookings, ...bookings];
+        }
+
         state.cursor = cursor;
         state.hasMore = hasMore;
 
@@ -353,6 +532,169 @@ const servicesSlice = createSlice({
       .addCase(fetchBookings.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload || "Failed to fetch bookings";
+      });
+
+    builder
+
+      .addCase(fetchBookingData.pending, (state) => {
+        state.bookingLoading = true;
+        state.selectedBookings = null;
+      })
+      .addCase(fetchBookingData.fulfilled, (state, action) => {
+        state.bookingLoading = false;
+        state.selectedBookings = action.payload;
+      })
+      .addCase(fetchBookingData.rejected, (state, action) => {
+        state.bookingLoading = false;
+        state.selectedBookings = null;
+      });
+
+    // refund reject reduncers
+    builder
+      .addCase(rejectRefund.pending, (state) => {
+        state.loading = true;
+        state.successMessage = null;
+        state.error = null;
+      })
+      .addCase(rejectRefund.fulfilled, (state, action) => {
+        state.loading = false;
+        const { service_booking_id, success, updated_service } = action.payload;
+
+        if (success) {
+          const updateServiceInArray = (arr) =>
+            arr.map((b) =>
+              b.service_booking_id === updated_service.service_booking_id
+                ? { ...updated_service }
+                : b
+            );
+
+          state.bookings = updateServiceInArray(state.bookings);
+          state.allBookings = updateServiceInArray(state.allBookings);
+          state.filteredBookings = updateServiceInArray(state.filteredBookings);
+          state.searchedBookings = updateServiceInArray(state.searchedBookings);
+
+          if (
+            state.selectedBookings?.service_booking_id ===
+            updated_service.service_booking_id
+          ) {
+            state.selectedBookings = updated_service;
+          }
+
+          // Update quick view if it's the same
+          if (
+            state.quickViewData?.service_booking_id ===
+            updated_service.service_booking_id
+          ) {
+            state.quickViewData = updated_service;
+          }
+        }
+      })
+      .addCase(rejectRefund.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || "Refund reject failed";
+      });
+
+    // mark_fulfilled
+    builder
+      .addCase(markServiceFulfilled.pending, (state) => {
+        state.service_action = true;
+        state.error = null;
+      })
+      .addCase(markServiceFulfilled.fulfilled, (state, action) => {
+        state.service_action = false;
+        const { updatedService } = action.payload;
+
+        if (Array.isArray(updatedService) && updatedService.length > 0) {
+          updatedService.forEach((item) => {
+            // Only update if the operation succeeded and we have the new service doc
+            if (item.success && item.service) {
+              const updatedService = item.service;
+
+              // 🔁 Helper to update one service inside an array
+              const updateServiceInArray = (arr) =>
+                arr.map((b) =>
+                  b.id === updatedService.id ? { ...updatedService } : b
+                );
+
+              state.bookings = updateServiceInArray(state.bookings);
+              state.allBookings = updateServiceInArray(state.allBookings);
+              state.filteredBookings = updateServiceInArray(
+                state.filteredBookings
+              );
+              state.searchedBookings = updateServiceInArray(
+                state.searchedBookings
+              );
+
+              if (state.selectedBookings?.id === updatedService.id) {
+                state.selectedBookings = updatedService;
+              }
+
+              // Update quick view if it's the same
+              if (state.quickViewData?.id === updatedService.id) {
+                state.quickViewData = updatedService;
+              }
+            }
+          });
+        }
+      })
+      .addCase(markServiceFulfilled.rejected, (state, action) => {
+        state.service_action = false;
+        state.error = action.payload || "Failed to mark service fulfilled";
+      });
+
+    builder
+      .addCase(unmarkServiceFulfilled.pending, (state) => {
+        state.service_action = true;
+        state.error = null;
+      })
+      .addCase(unmarkServiceFulfilled.fulfilled, (state, action) => {
+        state.service_action = false;
+        const { updatedService } = action.payload;
+
+        if (Array.isArray(updatedService) && updatedService.length > 0) {
+          updatedService.forEach((item) => {
+            if (item.success && item.service) {
+              const updatedServiceDoc = item.service;
+
+              const updateServiceInArray = (arr) =>
+                arr.map((b) =>
+                  b.service_booking_id === updatedServiceDoc.service_booking_id
+                    ? { ...updatedServiceDoc }
+                    : b
+                );
+
+              state.bookings = updateServiceInArray(state.bookings);
+              state.allBookings = updateServiceInArray(state.allBookings);
+              state.filteredBookings = updateServiceInArray(
+                state.filteredBookings
+              );
+              state.searchedBookings = updateServiceInArray(
+                state.searchedBookings
+              );
+
+              if (
+                state.selectedBookings?.service_booking_id ==
+                updatedServiceDoc.service_booking_id
+              ) {
+                state.selectedBookings = {
+                  id: updatedServiceDoc.service_booking_id,
+                  ...updatedServiceDoc,
+                };
+              }
+
+              if (
+                state.quickViewData?.service_booking_id ===
+                updatedServiceDoc.service_booking_id
+              ) {
+                state.quickViewData = updatedServiceDoc;
+              }
+            }
+          });
+        }
+      })
+      .addCase(unmarkServiceFulfilled.rejected, (state, action) => {
+        state.service_action = false;
+        state.error = action.payload || "Failed to unmark service fulfilled";
       });
 
     // Search bookings
@@ -381,6 +723,8 @@ const servicesSlice = createSlice({
         state.isSearchActive = true;
         state.error = "No results Found";
       });
+
+    // mark_fulfilled
 
     // Filter bookings
     builder
@@ -431,6 +775,7 @@ export const {
   resetState,
   clearError,
   setCursor,
+  updateAssignmentManagement,
 } = servicesSlice.actions;
 
 // Selectors

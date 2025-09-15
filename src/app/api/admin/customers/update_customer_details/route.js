@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import admin from "@/lib/firebase-admin";
 import { z } from "zod";
 import { requirePermission } from "@/lib/requirePermission";
-
+import { createSuccessResponse,createErrorResponse } from "@/utils/resposeHandlers";
 const db = admin.firestore();
 
 // Define which fields can be updated by admin (whitelist approach)
@@ -106,30 +106,7 @@ const UpdateCustomerSchema = z.object({
     }),
 });
 
-// Standardized response helpers
-const createSuccessResponse = (message, data = null, meta = null) => {
-  return NextResponse.json({
-    success: true,
-    message,
-    data,
-    meta: {
-      ...meta,
-      timestamp: new Date().toISOString()
-    }
-  });
-};
 
-const createErrorResponse = (message, statusCode = 500, errorCode = null, details = null) => {
-  return NextResponse.json({
-    success: false,
-    error: {
-      message,
-      code: errorCode,
-      details,
-      timestamp: new Date().toISOString()
-    }
-  }, { status: statusCode });
-};
 
 // Helper to check for duplicate phone numbers
 const checkPhoneDuplicates = async (userId, phoneNumber, alternatePhone) => {

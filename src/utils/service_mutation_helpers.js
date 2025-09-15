@@ -78,51 +78,51 @@ export async function markRefundRequested(serviceId, reason) {
 export async function markRefundRejected(service_booking_id, adminNote) {
   try {
     validateServiceId(service_booking_id);
+
     if (!adminNote || typeof adminNote !== "string") {
-      return {
-        service_booking_id,
-        success: false,
-        reason: "Admin note is required",
-      };
+      return { success: false, reason: "Admin note is required" };
     }
 
     const serviceRef = db
       .collection("service_bookings")
       .doc(service_booking_id);
 
-    const result = await db.runTransaction(async (transaction) => {
+    await db.runTransaction(async (transaction) => {
       const doc = await transaction.get(serviceRef);
+
       if (!doc.exists) {
-        return {
-          service_booking_id,
-          success: false,
-          reason: "Service not found",
-        };
+        throw new Error("Service not found");
       }
 
       const data = doc.data();
       const steps = data?.progress_steps?.steps || {};
-      const stepKeys = Object.keys(steps);
+      const stepKeys = Object.keys(steps).sort((a, b) => Number(a) - Number(b));
       const lastStep = stepKeys.length > 0 ? steps[stepKeys.length - 1] : null;
 
-      // Check if service is fulfilled
+      // Prevent multiple rejections
+      if (data?.refundDetails?.current_status === "rejected") {
+        throw new Error("Refund has already been rejected");
+      }
+
+      // Prevent rejection if service is fulfilled
       if (data?.progress_steps?.isFulfilled) {
-        return {
-          service_booking_id,
-          success: false,
-          reason: "Service already fulfilled",
-        };
+        throw new Error("Service already fulfilled");
       }
 
       // Only allow rejection if last step is REFUND_REQUESTED
       if (!lastStep || lastStep.step_id !== "REFUND_REQUESTED") {
-        return {
-          service_booking_id,
-          success: false,
-          reason: "Cannot reject refund: last step is not REFUND_REQUESTED",
-        };
+        throw new Error(
+          "Cannot reject refund: last step is not REFUND_REQUESTED"
+        );
       }
 
+      // Mark REFUND_REQUESTED step as completed
+      for (const key of stepKeys) {
+        if (steps[key].step_id === "REFUND_REQUESTED") {
+          steps[key].isCompleted = true;
+          steps[key].completed_at = Timestamp.now();
+        }
+      }
       // Add REFUND_REJECTED step
       const nextIndex = stepKeys.length.toString();
       const newStep = {
@@ -139,27 +139,21 @@ export async function markRefundRejected(service_booking_id, adminNote) {
         "refundDetails.current_status": "rejected",
         "refundDetails.admin_notes": adminNote,
         "refundDetails.rejectedAt": Timestamp.now(),
-
         "progress_steps.steps": updatedSteps,
         "progress_steps.current_step": newStep.step_name,
         "progress_steps.current_step_index": parseInt(nextIndex),
         "progress_steps.isFulfilled": false,
       });
-
-      return { service_booking_id, success: true };
     });
 
-    return result;
+    // Fetch the updated document after transaction
+    const updated_service = await serviceRef.get();
+    return { success: true, updatedService: updated_service.data() };
   } catch (error) {
-    return {
-      service_booking_id,
-      success: false,
-      reason: error.message || "Transaction failed",
-    };
+    return { success: false, reason: error.message || "Transaction failed" };
   }
 }
 
-// Step: Refund Initiated
 // Step: Refund Initiated
 export async function markRefundInitiated(service_booking_id, meta_info) {
   validateServiceId(service_booking_id);
@@ -223,9 +217,8 @@ export async function markRefundInitiated(service_booking_id, meta_info) {
       };
 
       // Null-check meta_info (Razorpay response)
-      const razorpayRefundDetails = meta_info && typeof meta_info === "object"
-        ? meta_info
-        : {};
+      const razorpayRefundDetails =
+        meta_info && typeof meta_info === "object" ? meta_info : {};
 
       transaction.update(serviceRef, {
         "refundDetails.current_status": "initiated",
@@ -251,7 +244,6 @@ export async function markRefundInitiated(service_booking_id, meta_info) {
     };
   }
 }
-
 
 // Step: Refund Credited
 export async function markRefundCredited(service_booking_id, refundInfo) {
@@ -351,87 +343,107 @@ export async function addStepInTransaction(
   });
 }
 
-export async function markServiceFulfilledByAdmin(service_booking_id) {
-  validateServiceId(service_booking_id);
+export async function markServiceFulfilledByAdmin(service_booking_ids) {
+  // ✅ Accept single ID or array
+  const ids = Array.isArray(service_booking_ids)
+    ? service_booking_ids
+    : [service_booking_ids];
 
-  const serviceRef = db.collection("service_bookings").doc(service_booking_id);
+  const results = [];
 
-  try {
-    const result = await db.runTransaction(async (transaction) => {
-      const doc = await transaction.get(serviceRef);
-      if (!doc.exists) {
-        return {
-          service_booking_id,
-          success: false,
-          reason: "Service not found",
-        };
-      }
+  for (const id of ids) {
+    validateServiceId(id);
+    const serviceRef = db.collection("service_bookings").doc(id);
 
-      const data = doc.data();
-      const steps = data?.progress_steps?.steps || {};
-      const stepKeys = Object.keys(steps);
-      const lastStep =
-        stepKeys.length > 0 ? steps[stepKeys[stepKeys.length - 1]] : null;
+    try {
+      const result = await db.runTransaction(async (transaction) => {
+        const doc = await transaction.get(serviceRef);
+        if (!doc.exists) {
+          return { id, success: false, reason: "Service not found" };
+        }
 
-      // Already fulfilled?
-      if (lastStep?.step_id === "SERVICE_FULFILLED") {
-        return {
-          service_booking_id,
-          success: false,
-          reason: "Already fulfilled",
-        };
-      }
+        const data = doc.data();
+        const steps = data?.progress_steps?.steps || {};
+        const stepKeys = Object.keys(steps);
+        const lastStep =
+          stepKeys.length > 0 ? steps[stepKeys.length - 1] : null;
 
-      // Check last refund-related step
-      if (lastStep) {
-        const forbiddenLastSteps = [
-          "REFUND_REQUESTED",
-          "REFUND_INITIATED",
-          "REFUND_COMPLETED",
-        ];
-        if (forbiddenLastSteps.includes(lastStep.step_id)) {
-          return {
-            service_booking_id,
-            success: false,
-            reason: `Cannot fulfill service because last step is ${lastStep.step_id}`,
+        // Already fulfilled?
+        if (lastStep?.step_id === "SERVICE_FULFILLED") {
+          return { id, success: false, reason: "Already fulfilled" };
+        }
+
+        // Check refund-related steps
+        if (lastStep) {
+          const forbiddenLastSteps = [
+            "REFUND_REQUESTED",
+            "REFUND_INITIATED",
+            "REFUND_COMPLETED",
+          ];
+          if (forbiddenLastSteps.includes(lastStep.step_id)) {
+            return {
+              id,
+              success: false,
+              reason: `Cannot fulfill service because last step is ${lastStep.step_id}`,
+            };
+          }
+        }
+
+        // ✅ Mark all previous steps as completed
+        const completedSteps = {};
+        for (const key of stepKeys) {
+          completedSteps[key] = {
+            ...steps[key],
+            isCompleted: true,
           };
         }
-      }
 
-      // Allowed to fulfill (no last step, or last step is REFUND_REJECTED or normal steps)
-      const nextIndex = stepKeys.length.toString();
-      const newStep = {
-        step_id: "SERVICE_FULFILLED",
-        step_name: "Process Fulfilled",
-        step_desc: "Congrats, Your Service Request has Been Completed",
-        isCompleted: true,
-        completed_at: Timestamp.now(),
-      };
+        // Allowed → append new fulfilled step
+        const nextIndex = stepKeys.length.toString();
+        const newStep = {
+          step_id: "SERVICE_FULFILLED",
+          step_name: "Process Fulfilled",
+          step_desc: "Congrats, Your Service Request has Been Completed",
+          isCompleted: true,
+          completed_at: Timestamp.now(),
+        };
 
-      const updatedSteps = {
-        ...steps,
-        [nextIndex]: newStep,
-      };
+        const updatedSteps = {
+          ...completedSteps,
+          [nextIndex]: newStep,
+        };
 
-      transaction.update(serviceRef, {
-        "progress_steps.steps": updatedSteps,
-        "progress_steps.current_step": newStep.step_name,
-        "progress_steps.current_step_index": parseInt(nextIndex),
-        "progress_steps.isFulfilled": true,
-        master_status: "completed",
+        transaction.update(serviceRef, {
+          "progress_steps.steps": updatedSteps,
+          "progress_steps.current_step": newStep.step_name,
+          "progress_steps.current_step_index": parseInt(nextIndex),
+          "progress_steps.isFulfilled": true,
+          master_status: "completed",
+        });
+
+        return { id, success: true };
       });
 
-      return { service_booking_id, success: true };
-    });
-
-    return result;
-  } catch (error) {
-    return {
-      service_booking_id,
-      success: false,
-      reason: error.message || "Transaction failed",
-    };
+      // Fetch the fresh doc to return updated data if fulfilled
+      if (result.success) {
+        const fresh = await serviceRef.get();
+        results.push({
+          success: true,
+          service: { id: fresh.id, ...fresh.data() },
+        });
+      } else {
+        results.push(result);
+      }
+    } catch (error) {
+      results.push({
+        id,
+        success: false,
+        reason: error.message || "Transaction failed",
+      });
+    }
   }
+
+  return results; // ✅ Always returns an array of results
 }
 
 // Helper function to get current refund status
@@ -456,64 +468,80 @@ export async function getRefundStatus(serviceId) {
   }
 }
 
-// utils/service_mutation_helpers.ts
 export async function unmarkServiceFulfilledByAdmin(service_booking_id) {
+  validateServiceId(service_booking_id);
+  log(`Unmarking service fulfilled: ${service_booking_id}`);
+
+  const serviceRef = db.collection("service_bookings").doc(service_booking_id);
+
   try {
-    validateServiceId(service_booking_id);
-    log(
-      `Unmarking service fulfilled by admin for service: ${service_booking_id}`
-    );
-
-    const serviceRef = db
-      .collection("service_bookings")
-      .doc(service_booking_id);
-
     await db.runTransaction(async (transaction) => {
       const doc = await transaction.get(serviceRef);
-
-      if (!doc.exists) {
-        throw new Error("Service not found");
-      }
+      if (!doc.exists) throw new Error("Service not found");
 
       const data = doc.data();
-      if (!data?.progress_steps?.steps) {
-        throw new Error("Progress steps not found");
-      }
-
       const steps = { ...data.progress_steps.steps };
-      const lastIndex = Object.keys(steps).length - 1;
 
-      // only roll back if the last step was SERVICE_FULFILLED
+      // Ensure keys are sorted numerically
+      const stepKeys = Object.keys(steps).sort((a, b) => Number(a) - Number(b));
+      const lastIndex = stepKeys[stepKeys.length - 1];
+
       if (steps[lastIndex]?.step_id !== "SERVICE_FULFILLED") {
-        throw new Error("Last step is not 'SERVICE_FULFILLED', cannot unmark");
+        throw new Error("Last step is not SERVICE_FULFILLED, cannot unmark");
       }
 
-      // remove the last step
+      // Remove the last step
       delete steps[lastIndex];
 
-      const newLastIndex = Object.keys(steps).length - 1;
-      const newCurrentStep =
-        newLastIndex >= 0 ? steps[newLastIndex].step_name : null;
+      // Find the SERVICE_IN_PROGRESS step
+      let currentStepIndex = null;
+      let currentStepName = null;
+
+      for (const key of stepKeys) {
+        if (steps[key]?.step_id === "SERVICE_IN_PROGRESS") {
+          steps[key].isCompleted = false;
+          currentStepIndex = Number(key);
+          currentStepName = steps[key].step_name;
+          break;
+        }
+      }
+
+      // If SERVICE_IN_PROGRESS not found, fallback to new last step
+      if (currentStepIndex === null) {
+        const newStepKeys = Object.keys(steps).sort(
+          (a, b) => Number(a) - Number(b)
+        );
+        const newLastIndex =
+          newStepKeys.length > 0 ? newStepKeys[newStepKeys.length - 1] : null;
+
+        if (newLastIndex !== null) {
+          currentStepIndex = Number(newLastIndex);
+          currentStepName = steps[newLastIndex].step_name;
+        }
+      }
 
       transaction.update(serviceRef, {
         "progress_steps.steps": steps,
-        "progress_steps.current_step": newCurrentStep,
-        "progress_steps.current_step_index":
-          newLastIndex >= 0 ? newLastIndex : null,
+        "progress_steps.current_step": currentStepName,
+        "progress_steps.current_step_index": currentStepIndex,
         "progress_steps.isFulfilled": false,
-        master_status: "in_progress", // roll back
+        master_status: "processing",
       });
     });
 
-    log(
-      `Successfully unmarked service fulfilled for service: ${service_booking_id}`
-    );
+    // ✅ Fetch updated doc AFTER transaction
+    const updatedService = await serviceRef.get();
+
+    return {
+      success: true,
+      service: updatedService.data(),
+    };
   } catch (error) {
-    log(
-      `Error unmarking service fulfilled for service ${service_booking_id}:`,
-      error.message
-    );
-    throw error;
+    return {
+      success: false,
+      id: service_booking_id,
+      reason: error.message || "Transaction failed",
+    };
   }
 }
 

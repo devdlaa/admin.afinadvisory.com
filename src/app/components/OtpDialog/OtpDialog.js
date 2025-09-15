@@ -7,6 +7,9 @@ const OtpDialog = ({
   onClose,
   userId,
   phoneNumber,
+  actionName,
+  actionInfo,
+  confirmText,
   actionId = null,
   metaData = null,
   onSuccess = () => {},
@@ -46,12 +49,11 @@ const OtpDialog = ({
     try {
       const payload = {
         userId,
-        phoneNumber,
         ...(actionId && { actionId }),
         ...(metaData && { metaData }),
       };
 
-      const response = await fetch("/api/otp/initiate", {
+      const response = await fetch("/api/admin/otp/initiate", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -104,7 +106,7 @@ const OtpDialog = ({
     setError("");
 
     try {
-      const response = await fetch("/api/otp/verify", {
+      const response = await fetch("/api/admin/otp/verify", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -181,7 +183,7 @@ const OtpDialog = ({
       <div className="otp-dialog">
         <div className="otp-header">
           <div className="otp-title">
-            {step === 1 && "Phone Verification"}
+            {step === 1 && actionName}
             {step === 3 && !success && "Enter Verification Code"}
             {success && "Verification Complete"}
           </div>
@@ -201,10 +203,7 @@ const OtpDialog = ({
               <div className="otp-icon">
                 <MessageSquare size={24} />
               </div>
-              <p className="otp-description">
-                We'll send a verification code to <strong>{phoneNumber}</strong>{" "}
-                to verify your identity.
-              </p>
+              <p className="otp-description">{actionInfo}</p>
               {error && (
                 <div className="otp-error">
                   <AlertCircle size={16} />
@@ -230,7 +229,7 @@ const OtpDialog = ({
                       Sending...
                     </>
                   ) : (
-                    "Send Code"
+                    "Send OTP"
                   )}
                 </button>
               </div>

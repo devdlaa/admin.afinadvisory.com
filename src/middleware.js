@@ -9,7 +9,6 @@ const CONFIG = {
   // Authentication pages (e.g., login/signup) to redirect authenticated users away from
   AUTH_PAGES: ["/login", "/user-onboarding"],
 
-
   ADMIN_ROUTES: [],
   SUPERADMIN_ROUTES: ["/dashboard/users"],
 
@@ -47,7 +46,7 @@ const CONFIG = {
   DEFAULT_LOGIN_REDIRECT: "/login",
   DEFAULT_AUTH_REDIRECT: "/dashboard",
   DEFAULT_UNAUTHORIZED_REDIRECT: "/dashboard", // Redirect to dashboard instead of login for permission issues
-  DEFAULT_NO_ACCESS_REDIRECT: "/dashboard", // New: specific redirect for no access
+  DEFAULT_NO_ACCESS_REDIRECT: "/dashboard/access-denied",
 
   RATE_LIMIT: {
     windowMs: 15 * 60 * 1000,
@@ -119,7 +118,7 @@ function hasSpecificPermissions(token, requiredPermissions) {
   }
 
   // Check if user has all required permissions
-  return requiredPermissions.every(permission => 
+  return requiredPermissions.every((permission) =>
     token.permissions.includes(permission)
   );
 }
@@ -219,24 +218,23 @@ function addSecurityHeaders(response) {
 }
 
 // New: Create error response for permission issues
-function createPermissionErrorResponse(pathname, isApiRoute = false) {
+function createPermissionErrorResponse(pathname, isApiRoute = false,req) {
   if (isApiRoute) {
     return new NextResponse(
-      JSON.stringify({ 
+      JSON.stringify({
         error: "Insufficient permissions",
         message: `Access denied for ${pathname}. Contact your administrator for required permissions.`,
-        code: "PERMISSION_DENIED"
+        code: "PERMISSION_DENIED",
       }),
-      { 
-        status: 403, 
-        headers: { "Content-Type": "application/json" } 
+      {
+        status: 403,
+        headers: { "Content-Type": "application/json" },
       }
     );
   }
-  
+
   // For web routes, redirect to dashboard with error query parameter
-  const url = new URL(CONFIG.DEFAULT_NO_ACCESS_REDIRECT, `http://localhost:3000`);
-  url.searchParams.set("error", "insufficient_permissions");
+  const url = new URL("/dashboard/access-denied", req.url);
   url.searchParams.set("requested_path", pathname);
   return NextResponse.redirect(url);
 }
@@ -289,8 +287,6 @@ export async function middleware(req) {
     ip,
     method: req.method,
   });
-
-  
 
   try {
     // Check rate limit
@@ -363,7 +359,7 @@ export async function middleware(req) {
           userPermissions: token.permissions || [],
           requiredPermissions: getRequiredPermissionsForRoute(pathname),
         });
-        return createPermissionErrorResponse(pathname, false);
+        return createPermissionErrorResponse(pathname, false,req);
       }
     }
 
@@ -388,7 +384,7 @@ export async function middleware(req) {
       !matchesPath(pathname, CONFIG.PUBLIC_API_ROUTES)
     ) {
       log("debug", "Checking protected API route", { pathname });
-      
+
       if (!token) {
         log("warn", "Unauthenticated API access", { pathname, ip });
         return new NextResponse(
@@ -396,7 +392,7 @@ export async function middleware(req) {
           { status: 401, headers: { "Content-Type": "application/json" } }
         );
       }
-      
+
       if (!hasRequiredPermissions(token, pathname)) {
         log("warn", "Insufficient permissions for API", {
           pathname,

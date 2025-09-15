@@ -141,7 +141,7 @@ const UsersPage = () => {
       await dispatch(searchUsers(searchInput.trim())).unwrap();
       dispatch(setCurrentPage(1));
     } catch (err) {
-      console.error("Search failed:", err);
+      console.error("Search failed:");
     }
   };
 
@@ -161,7 +161,7 @@ const UsersPage = () => {
         fetchUsers({ cursor: nextCursor, pageSize: itemsPerPage })
       ).unwrap();
     } catch (err) {
-      console.error("Failed to load more users:", err);
+      console.error("Failed to load more users:");
     }
   };
 

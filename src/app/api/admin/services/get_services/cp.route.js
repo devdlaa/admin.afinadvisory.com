@@ -6,7 +6,9 @@ import { z } from "zod";
 const db = admin.firestore();
 
 // ── Kill switch from .env ──────────────────────────────
-const FEATURE_ENABLED = process.env.ASSIGNMENT_FEATURE_ENABLED === "true";
+// .env example: ASSIGNMENT_FEATURE_ENABLED=true
+const FEATURE_ENABLED =
+  process.env.ASSIGNMENT_FEATURE_ENABLED === "true";
 
 // Zod schema for pagination
 const PaginationSchema = z.object({
@@ -16,7 +18,7 @@ const PaginationSchema = z.object({
 
 export async function POST(req) {
   const startTime = Date.now();
-  
+
   try {
     const session = await auth();
     if (!session || !session.user?.email) {
@@ -27,11 +29,10 @@ export async function POST(req) {
     }
 
     const userEmail = session.user.email.toLowerCase();
-    const userRole = session.user.role;
-
+    const userRole = session.user.role; 
+ 
     const body = await req.json();
     const parse = PaginationSchema.safeParse(body);
-    
     if (!parse.success) {
       return NextResponse.json(
         { success: false, error: parse.error.flatten() },
@@ -41,31 +42,21 @@ export async function POST(req) {
 
     const { limit, cursor } = parse.data;
 
-    // Helper function to apply cursor to query
-    const applyCursor = async (query, cursorDocId) => {
-      if (cursorDocId) {
-        const lastDocSnap = await db
-          .collection("service_bookings")
-          .doc(cursorDocId)
-          .get();
-        
-        if (lastDocSnap.exists) {
-          return query.startAfter(lastDocSnap);
-        }
+    // Base query with pagination
+    const baseQuery = (l, c) => {
+      let q = db
+        .collection("service_bookings")
+        .orderBy("created_at", "desc")
+        .limit(l + 1); // +1 to check if there is more
+      if (c) {
+        q = q.startAfter(db.collection("service_bookings").doc(c));
       }
-      return query;
+      return q;
     };
 
     // If assignment feature is disabled OR user is SuperAdmin → return *all* bookings
     if (!FEATURE_ENABLED || userRole === "superAdmin") {
-      let query = db
-        .collection("service_bookings")
-        .orderBy("created_at", "desc")
-        .limit(limit + 1);
-
-      query = await applyCursor(query, cursor);
-      
-      const snap = await query.get();
+      const snap = await baseQuery(limit, cursor).get();
       const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
       const hasMore = docs.length > limit;
       const bookings = hasMore ? docs.slice(0, limit) : docs;
@@ -85,71 +76,42 @@ export async function POST(req) {
     }
 
     // ── Assignment feature ENABLED for regular users ──────────────
-    // Strategy: Run separate queries and merge results while maintaining order
-    
-    // We need to fetch more docs from each query to ensure we have enough after merging
-    const queryLimit = limit + 10; // Buffer for merging
-
-    // Build base queries
-    let queryAll = db
-      .collection("service_bookings")
-      .where("assignmentManagement.assignToAll", "==", true)
-      .orderBy("created_at", "desc")
-      .limit(queryLimit);
-
-    let queryUser = db
-      .collection("service_bookings")
-      .where("assignedKeys", "array-contains", `email:${userEmail}`)
-      .orderBy("created_at", "desc")
-      .limit(queryLimit);
-
-    // Apply cursor to both queries
-    queryAll = await applyCursor(queryAll, cursor);
-    queryUser = await applyCursor(queryUser, cursor);
-
-    // Execute queries in parallel
+    // Run both queries in parallel
     const [snapAll, snapUser] = await Promise.all([
-      queryAll.get(),
-      queryUser.get()
+      baseQuery(limit, cursor)
+        .where("assignmentManagement.assignToAll", "==", true)
+        .get(),
+      baseQuery(limit, cursor)
+        .where("assignedKeys", "array-contains", `email:${userEmail}`)
+        .get(),
     ]);
 
     // Merge and deduplicate
     const allDocs = [...snapAll.docs, ...snapUser.docs];
-    const docMap = new Map();
-    
-    for (const doc of allDocs) {
-      if (!docMap.has(doc.id)) {
-        docMap.set(doc.id, { id: doc.id, ...doc.data() });
-      }
-    }
 
-    // Convert to array and sort by created_at DESC
-    const mergedDocs = Array.from(docMap.values());
-    mergedDocs.sort((a, b) => {
-      const aTime = a.created_at?.seconds || 0;
-      const bTime = b.created_at?.seconds || 0;
-      return bTime - aTime;
-    });
+    const map = new Map();
+    for (const d of allDocs) map.set(d.id, { id: d.id, ...d.data() });
+    const mergedDocs = Array.from(map.values());
 
-    // Apply pagination to merged results
+    // Sort by created_at DESC (because we merged)
+    mergedDocs.sort(
+      (a, b) => (b.created_at?.seconds || 0) - (a.created_at?.seconds || 0)
+    );
+
     const hasMore = mergedDocs.length > limit;
-    const bookings = mergedDocs.slice(0, limit);
+    const bookings = hasMore ? mergedDocs.slice(0, limit) : mergedDocs;
 
     return NextResponse.json({
       success: true,
       resultsCount: bookings.length,
       bookings,
-      hasMore: hasMore || snapAll.docs.length >= queryLimit || snapUser.docs.length >= queryLimit,
+      hasMore,
       cursor: bookings.length ? bookings[bookings.length - 1].id : null,
       meta: {
         executionTimeMs: Date.now() - startTime,
         requestedLimit: limit,
-        queryAllResults: snapAll.docs.length,
-        queryUserResults: snapUser.docs.length,
-        mergedResults: mergedDocs.length,
       },
     });
-
   } catch (err) {
     console.error("Get services API error:", err);
     return NextResponse.json(

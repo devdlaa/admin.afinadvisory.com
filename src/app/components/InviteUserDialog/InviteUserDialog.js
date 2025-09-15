@@ -45,6 +45,7 @@ const InviteUserDialog = ({ open, onClose, onInvite }) => {
 
   // Load permissions when dialog opens
   useEffect(() => {
+   
     if (open && !permissionsData) {
       dispatch(fetchPermissions());
     }
@@ -69,6 +70,7 @@ const InviteUserDialog = ({ open, onClose, onInvite }) => {
       setInvitationResult(null);
     }
   }, [open, permissionsData]);
+
 
   // Handle API errors from Redux
   useEffect(() => {
@@ -99,7 +101,7 @@ const InviteUserDialog = ({ open, onClose, onInvite }) => {
           newValue = date.toISOString().split("T")[0];
         }
       } catch (error) {
-        console.warn("Invalid date format:", value);
+        console.warn("Invalid date format:");
       }
     }
 
@@ -258,7 +260,7 @@ const InviteUserDialog = ({ open, onClose, onInvite }) => {
         onClose();
       }, 3000);
     } catch (error) {
-      console.error("Invitation failed:", error);
+      console.error("Invitation failed:");
 
       setInvitationResult({
         type: "error",
@@ -315,6 +317,7 @@ const InviteUserDialog = ({ open, onClose, onInvite }) => {
     return acc;
   }, {});
 
+  
   const isSubmitting = inviting;
 
   if (!open) return null;
@@ -637,29 +640,32 @@ const InviteUserDialog = ({ open, onClose, onInvite }) => {
                           ([category, permissions]) => (
                             <div key={category} className="permission-category">
                               <h4 className="category-title">{category}</h4>
-                              {permissions.map((permission) => (
-                                <label
-                                  key={permission.id}
-                                  className="permission-item"
-                                >
-                                  <input
-                                    type="checkbox"
-                                    checked={formData.permissions.includes(
-                                      permission.id
-                                    )}
-                                    onChange={() =>
-                                      handlePermissionToggle(permission.id)
-                                    }
-                                    className="permission-checkbox"
-                                  />
-                                  <div className="checkbox-custom">
-                                    <Check size={12} className="check-icon" />
-                                  </div>
-                                  <span className="permission-label">
-                                    {permission.label}
-                                  </span>
-                                </label>
-                              ))}
+                              {permissions.map((permission) => {
+                                const isChecked = formData.permissions.includes(permission.id);
+                                return (
+                                  <label
+                                    key={permission.id}
+                                    className="permission-item"
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      checked={isChecked}
+                                      onChange={() =>
+                                        handlePermissionToggle(permission.id)
+                                      }
+                                      className="permission-checkbox"
+                                    />
+                                    <div 
+                                      className={`checkbox-custom ${isChecked ? 'checked' : ''}`}
+                                    >
+                                      {isChecked && <Check size={12} className="check-icon" />}
+                                    </div>
+                                    <span className="permission-label">
+                                      {permission.label}
+                                    </span>
+                                  </label>
+                                );
+                              })}
                             </div>
                           )
                         )}

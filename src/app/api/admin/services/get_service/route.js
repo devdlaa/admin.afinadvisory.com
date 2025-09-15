@@ -1,8 +1,13 @@
 import { NextResponse } from "next/server";
 import admin from "@/lib/firebase-admin";
+import { auth } from "@/utils/auth";
 import { z } from "zod";
 
 const db = admin.firestore();
+const { Filter } = admin.firestore; // ✅ Import Filter
+
+// Kill switch from .env
+const FEATURE_ENABLED = process.env.ASSIGNMENT_FEATURE_ENABLED === "true";
 
 // Zod schema
 const Schema = z.object({
@@ -11,6 +16,17 @@ const Schema = z.object({
 
 export async function POST(req) {
   try {
+    const session = await auth();
+    if (!session || !session.user?.email) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    const userEmail = session.user.email.toLowerCase();
+    const userRole = session.user.role; // Assuming role is available
+
     const body = await req.json();
     const parsed = Schema.safeParse(body);
 
@@ -23,12 +39,21 @@ export async function POST(req) {
 
     const { service_booking_id } = parsed.data;
 
-    // Query Firestore
-    const snapshot = await db
-      .collection("service_bookings")
+    let query = db.collection("service_bookings")
       .where("service_booking_id", "==", service_booking_id)
-      .limit(1)
-      .get();
+      .limit(1); // only fetch one document
+
+    // ── Apply access control for normal users ─────────────────
+    if (FEATURE_ENABLED && userRole !== "superAdmin") {
+      query = query.where(
+        Filter.or(
+          Filter.where("assignmentManagement.assignToAll", "==", true),
+          Filter.where("assignedKeys", "array-contains", `email:${userEmail}`)
+        )
+      );
+    }
+
+    const snapshot = await query.get();
 
     if (snapshot.empty) {
       return NextResponse.json(

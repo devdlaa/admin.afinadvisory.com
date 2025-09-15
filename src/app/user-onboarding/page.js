@@ -48,7 +48,7 @@ const OnboardingContent = () => {
     const token = searchParams.get("token");
     if (token) {
       setInviteToken(token);
-      console.log("Token from URL:", token);
+    
     }
   }, [searchParams]);
 

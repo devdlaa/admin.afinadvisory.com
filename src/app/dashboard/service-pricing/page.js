@@ -352,7 +352,7 @@ const AdminDashboard = () => {
             title="Refresh services"
           >
             {loading ? <Loader size={16} /> : <Plus size={16} />}
-            Refresh
+            Load Services
           </button>
         </div>
       </div>

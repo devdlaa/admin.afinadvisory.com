@@ -8,11 +8,12 @@ import comissionsReducers from "./slices/commissionsSlice";
 import paymentsReducers from "./slices/paymentSlice";
 import paymentLinkReducer from "./slices/createPaymentLink";
 import paymentLinksPageReducer from "./slices/paymentLinksPageSlice";
-
+import sessionReducer from "./slices/sessionSlice";
 import toastMiddleware from "./toastMiddleware";
 
 export const store = configureStore({
   reducer: {
+    session : sessionReducer,
     user: userReducer,
     influencers: partnerReducer,
     services: serviceReducer,

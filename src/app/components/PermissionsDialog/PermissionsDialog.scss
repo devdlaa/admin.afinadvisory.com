@@ -52,7 +52,7 @@
     color: black;
 
     .pd-title-icon {
-    color: black;
+      color: black;
     }
   }
 
@@ -182,7 +182,7 @@
 
       p {
         font-size: 14px;
-         color: rgb(39, 39, 39);
+        color: rgb(39, 39, 39);
         margin: 0 0 8px 0;
       }
 
@@ -394,34 +394,6 @@
     display: none;
   }
 
-  .pd-checkbox-custom {
-    width: 18px;
-    height: 18px;
-    border: 2px solid var(--border-color);
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    margin-top: 2px;
-    transition: all 0.2s ease;
-
-    .pd-check-icon {
-      opacity: 0;
-      color: white;
-      transition: opacity 0.2s ease;
-    }
-
-    .pd-permission-checkbox:checked + & {
-      background-color: var(--primary-blue);
-      border-color: var(--primary-blue);
-
-      .pd-check-icon {
-        opacity: 1;
-      }
-    }
-  }
-
   .pd-permission-details {
     flex: 1;
 
@@ -606,6 +578,44 @@
 
     .pd-select-all-btn {
       align-self: flex-end;
+    }
+  }
+}
+.pd-checkbox-custom {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--border-color);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+  transition: all 0.2s ease;
+  background-color: transparent;
+
+  .pd-check-icon {
+    opacity: 0;
+    color: white;
+    transition: opacity 0.2s ease;
+  }
+
+  &.checked {
+    background-color: var(--primary-blue);
+    border-color: var(--primary-blue);
+
+    .pd-check-icon {
+      opacity: 1;
+    }
+  }
+
+  /* Fallback for :checked selector */
+  .pd-permission-checkbox:checked + & {
+    background-color: var(--primary-blue);
+    border-color: var(--primary-blue);
+
+    .pd-check-icon {
+      opacity: 1;
     }
   }
 }

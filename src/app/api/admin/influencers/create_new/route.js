@@ -3,36 +3,9 @@ import admin from "@/lib/firebase-admin";
 import { z, ZodError } from "zod";
 import { auth } from "@/utils/auth";
 import { v4 as uuidv4 } from "uuid";
+import { createSuccessResponse, createErrorResponse } from "@/utils/resposeHandlers";
 
 import { requirePermission } from "@/lib/requirePermission";
-
-// Standardized response helpers
-const createSuccessResponse = (message, data = null, status = 200) => {
-  return NextResponse.json(
-    {
-      success: true,
-      message,
-      data,
-      timestamp: new Date().toISOString(),
-    },
-    { status }
-  );
-};
-
-const createErrorResponse = (message, errors = null, status = 400) => {
-  const response = {
-    success: false,
-    message,
-    timestamp: new Date().toISOString(),
-  };
-
-  // Only include errors array if provided
-  if (errors) {
-    response.errors = Array.isArray(errors) ? errors : [errors];
-  }
-
-  return NextResponse.json(response, { status });
-};
 
 // Enhanced influencer schema with better validation
 const influencerSchema = z.object({
@@ -230,8 +203,6 @@ async function validateInfluencerData(db, data) {
     });
   }
 
-  
-
   // Validate custom commission logic
   if (data.customCommission) {
     const { kind, amount, maxCommission } = data.customCommission;
@@ -301,7 +272,7 @@ function generateInfluencerIds(name) {
 export async function POST(req) {
   try {
     const session = await auth();
-    // TODO: Add permission check
+
     const permissionCheck = await requirePermission(req, "influencers.create");
     if (permissionCheck) return permissionCheck;
 
@@ -314,8 +285,9 @@ export async function POST(req) {
     } catch (parseError) {
       return createErrorResponse(
         "Invalid request format",
-        [{ field: "body", message: "Request body must be valid JSON" }],
-        400
+        400,
+        "INVALID_JSON",
+        ["Request body must be valid JSON" ]
       );
     }
 
@@ -330,13 +302,19 @@ export async function POST(req) {
           message: error.message,
           receivedValue: error.input,
         }));
-        return createErrorResponse("Validation failed", formattedErrors, 400);
+        return createErrorResponse(
+          "Validation failed",
+          400,
+          "VALIDATION_ERROR",
+          formattedErrors
+        );
       }
 
       return createErrorResponse(
         "Data validation failed",
-        [{ field: "validation", message: validationError.message }],
-        400
+        400,
+        "VALIDATION_ERROR",
+        [{ field: "validation", message: validationError.message }]
       );
     }
 
@@ -345,8 +323,9 @@ export async function POST(req) {
     if (businessErrors.length > 0) {
       return createErrorResponse(
         "Influencer data validation failed",
-        businessErrors,
-        409 // Conflict status for duplicates
+        409,
+        "DUPLICATE_DATA",
+        businessErrors
       );
     }
 
@@ -398,8 +377,7 @@ export async function POST(req) {
 
     return createSuccessResponse(
       `Influencer '${validatedData.name}' created successfully`,
-      responseData,
-      201
+      responseData
     );
   } catch (error) {
     // Log error for monitoring
@@ -413,40 +391,43 @@ export async function POST(req) {
     if (error.code === "permission-denied") {
       return createErrorResponse(
         "Access denied",
+        403,
+        "PERMISSION_DENIED",
         [
           {
             field: "permissions",
             message: "Insufficient permissions to create influencers",
           },
-        ],
-        403
+        ]
       );
     }
 
     if (error.code === "unavailable") {
       return createErrorResponse(
         "Service temporarily unavailable",
+        503,
+        "SERVICE_UNAVAILABLE",
         [
           {
             field: "server",
             message:
               "Database service is currently unavailable. Please try again later.",
           },
-        ],
-        503
+        ]
       );
     }
 
     if (error.code === "deadline-exceeded") {
       return createErrorResponse(
         "Request timeout",
+        408,
+        "TIMEOUT",
         [
           {
             field: "server",
             message: "Operation took too long to complete. Please try again.",
           },
-        ],
-        408
+        ]
       );
     }
 
@@ -458,8 +439,9 @@ export async function POST(req) {
 
     return createErrorResponse(
       "Internal server error",
-      [{ field: "server", message: errorMessage }],
-      500
+      500,
+      "INTERNAL_SERVER_ERROR",
+      [{ field: "server", message: errorMessage }]
     );
   }
 }

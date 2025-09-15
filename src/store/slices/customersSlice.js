@@ -155,7 +155,7 @@ export const updateCustomer = createAsyncThunk(
       const data = await response.json();
 
       if (!data.success) {
-        throw new Error(data.error || "Failed to update customer");
+        throw new Error(data.error?.message || "Failed to update customer");
       }
 
       return {
@@ -555,7 +555,7 @@ const customersSlice = createSlice({
       .addCase(updateCustomer.fulfilled, (state, action) => {
         state.isUpdatingCustomer = false;
         const { id, updatedCustomer } = action.payload;
-        console.log("action.payload", action.payload);
+
         // Helper function to update customer in array
         const updateCustomerInArray = (customers) => {
           const index = customers.findIndex((c) => c.id === id);

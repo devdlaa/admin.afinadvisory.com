@@ -4,7 +4,7 @@ export function truncateText(text, maxLength = 50) {
   return text.length > maxLength ? text.slice(0, maxLength) + "…" : text;
 }
 
-export default function exportServiceBookingsToExcel(serviceBookingsData) {
+export function exportServiceBookingsToExcel(serviceBookingsData) {
   // Check if XLSX library is available
   if (typeof XLSX === "undefined") {
     console.error(

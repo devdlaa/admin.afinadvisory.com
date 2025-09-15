@@ -5,6 +5,7 @@ import {
 } from "@/app/components/toastService";
 
 const toastMiddleware = () => (next) => (action) => {
+
   // Success messages
   if (action.type.endsWith("/fulfilled")) {
     switch (action.type) {
@@ -407,8 +408,9 @@ const toastMiddleware = () => (next) => (action) => {
         break;
 
       case "customers/updateCustomer/rejected":
-        const updateCustomerError =
-          action.error?.message || action.payload?.message;
+                console.log("action.payload->",action.payload);
+        const updateCustomerError = action.payload?.message.details?.errors;
+
         if (updateCustomerError?.includes("not found")) {
           showError("Customer not found. Please refresh the page.");
         } else if (

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { markServiceFulfilledByAdmin } from "@/utils/service_mutation_helpers";
+import { unmarkServiceFulfilledByAdmin } from "@/utils/service_mutation_helpers";
 import { requirePermission } from "@/lib/requirePermission";
 import { z } from "zod";
 
@@ -9,7 +9,6 @@ const bodySchema = z.object({
 
 export async function POST(req) {
   try {
-    // ✅ require all three permissions
     const permissionCheck = await requirePermission(req, [
       "bookings.access",
       "bookings.mark_fulfilled",
@@ -19,7 +18,6 @@ export async function POST(req) {
 
     const body = await req.json();
     const parsed = bodySchema.safeParse(body);
-
     if (!parsed.success) {
       return NextResponse.json(
         { success: false, error: parsed.error.errors },
@@ -29,17 +27,27 @@ export async function POST(req) {
 
     const { service_booking_ids } = parsed.data;
 
-    const updated_services = await markServiceFulfilledByAdmin(
-      service_booking_ids
-    );
+    const updated_services = [];
+    for (const id of service_booking_ids) {
+      try {
+        const result = await unmarkServiceFulfilledByAdmin(id);
+        updated_services.push(result);
+      } catch (err) {
+        updated_services.push({
+          service_booking_id: id,
+          success: false,
+          reason: err.message,
+        });
+      }
+    }
 
     return NextResponse.json({
       success: true,
       updated_services,
-      message: `Marked ${service_booking_ids.length} services fulfilled.`,
+      message: `Unmarked ${service_booking_ids.length} services as fulfilled.`,
     });
   } catch (error) {
-    console.error("Mark Fulfilled API Error:", error);
+    console.error("Unmark Fulfilled API Error:", error);
     return NextResponse.json(
       { success: false, error: error.message },
       { status: 500 }

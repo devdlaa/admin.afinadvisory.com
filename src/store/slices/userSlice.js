@@ -188,7 +188,7 @@ export const inviteUser = createAsyncThunk(
 
       return responseData;
     } catch (error) {
-      console.error("Network or parsing error:", error);
+      console.error("Network or parsing error:");
       return rejectWithValue({
         message: "Network error - please check your connection",
         errors: [
@@ -249,7 +249,7 @@ export const deleteUser = createAsyncThunk(
       const response = await fetch("/api/admin/users/delete", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId : userId,confirmDelete : true}),
+        body: JSON.stringify({ userId: userId, confirmDelete: true }),
       });
 
       const result = await response.json();
@@ -564,17 +564,25 @@ const usersSlice = createSlice({
         const { userId, changes, timestamp } = result.data;
 
         // Build updated user object based on API response
-        const updateUserPermissions = (user) => ({
-          ...user,
-          role: changes.role ? changes.role.to : user.role,
-          permissions: changes.permissions
-            ? changes.permissions.to.map((p) => p.id)
-            : user.permissions,
-          updatedAt: timestamp || new Date().toISOString(),
-        });
+        const updateUserPermissions = (user) => {
+        
+
+          const updatedUser = {
+            ...user,
+            role: changes?.role ? changes.role.to : user.role,
+            permissions: changes?.permissions
+              ? changes.permissions.to.map((p) => p)
+              : user.permissions,
+            updatedAt: timestamp || new Date().toISOString(),
+          };
+
+       
+          return updatedUser;
+        };
 
         // Update in users array
         const userIndex = state.users.findIndex((user) => user.id === userId);
+    
         if (userIndex !== -1) {
           state.users[userIndex] = updateUserPermissions(
             state.users[userIndex]

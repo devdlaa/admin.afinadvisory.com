@@ -137,6 +137,105 @@ function numberToWords(num) {
 }
 
 export async function downloadInvoice(config) {
+  // Show loading state (optional)
+  const originalButtonText = document.querySelector('.download-button')?.textContent;
+  const downloadButton = document.querySelector('.download-button');
+  if (downloadButton) {
+    downloadButton.textContent = 'Generating PDF...';
+    downloadButton.disabled = true;
+  }
+
+  try {
+    const fullName = `${config.user_details.firstName} ${config.user_details.lastName}`;
+    const address = config.user_details.address
+      ? [config.user_details.address.city, config.user_details.address.state, config.user_details.address.country]
+          .filter(Boolean).join(", ")
+      : "Not Available";
+
+    const data = {
+      "client-name": fullName,
+      "invoice-no": config.invoiceNumber,
+      "client-email": config.user_details.email,
+      "client-phone": config.user_details.phone,
+      "invoice-date": new Date(config.created_at).toLocaleDateString("en-IN"),
+      "client-address": address,
+      "place-of-supply": config.user_details.address?.state || "Not Available",
+      "service-description": config.plan_details.plan_name,
+      "amount": config.payment_details.quantityAdjustedAmount,
+      "gst-rate": config.payment_details.gstRate,
+      "gst-amt": config.payment_details.gstAmount,
+      "total-amt": config.payment_details.finalAmountPaid,
+      "taxable-amount": config.payment_details.quantityAdjustedAmount,
+      "cgst": config.payment_details.gstAmount / 2,
+      "sgst": config.payment_details.gstAmount / 2,
+      "igst": 0,
+      "total-summary": config.payment_details.finalAmountPaid,
+      "subtotal": config.payment_details.quantityAdjustedAmount,
+      "total-gst": config.payment_details.gstAmount,
+      "grand-total": config.payment_details.finalAmountPaid,
+      "amount-words": numberToWords(config.payment_details.finalAmountPaid) + " Only"
+    };
+
+    const template = Handlebars.compile(invoiceTemplate);
+    const html = template(data);
+
+    // Create an invisible iframe instead of adding to main document
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'absolute';
+    iframe.style.left = '-9999px';
+    iframe.style.top = '-9999px';
+    iframe.style.width = '210mm';
+    iframe.style.height = '297mm'; // A4 height
+    iframe.style.border = 'none';
+    iframe.style.visibility = 'hidden';
+    
+    document.body.appendChild(iframe);
+
+    // Wait for iframe to load
+    await new Promise((resolve) => {
+      iframe.onload = resolve;
+      iframe.srcdoc = html;
+    });
+
+    // Get the document from iframe
+    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+    const invoiceElement = iframeDoc.body;
+
+    // Generate canvas from iframe content
+    const canvas = await html2canvas(invoiceElement, {
+      scale: 2,
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: '#ffffff'
+    });
+
+    const imgData = canvas.toDataURL("image/png");
+    const pdf = new jsPDF("p", "mm", "a4");
+
+    const imgProps = pdf.getImageProperties(imgData);
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+    pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+    pdf.save(`${config.invoiceNumber}.pdf`);
+
+    // Clean up iframe
+    document.body.removeChild(iframe);
+
+  } catch (error) {
+    console.error('Error generating invoice:', error);
+    alert('Failed to generate invoice. Please try again.');
+  } finally {
+    // Reset button state
+    if (downloadButton) {
+      downloadButton.textContent = originalButtonText || 'Download Invoice';
+      downloadButton.disabled = false;
+    }
+  }
+}
+
+// Alternative approach: Open in new window (if you prefer this method)
+export async function downloadInvoiceInNewWindow(config) {
   const fullName = `${config.user_details.firstName} ${config.user_details.lastName}`;
   const address = config.user_details.address
     ? [config.user_details.address.city, config.user_details.address.state, config.user_details.address.country]
@@ -170,22 +269,37 @@ export async function downloadInvoice(config) {
   const template = Handlebars.compile(invoiceTemplate);
   const html = template(data);
 
-  const element = document.createElement("div");
-  element.innerHTML = html;
-  element.style.position = "absolute";
-  element.style.left = "-9999px";
-  document.body.appendChild(element);
+  // Open in new window
+  const newWindow = window.open('', '_blank', 'width=800,height=600');
+  newWindow.document.write(html);
+  newWindow.document.close();
 
-  const canvas = await html2canvas(element, { scale: 2 });
-  const imgData = canvas.toDataURL("image/png");
-  const pdf = new jsPDF("p", "mm", "a4");
+  // Wait a moment for content to render
+  setTimeout(async () => {
+    try {
+      const canvas = await html2canvas(newWindow.document.body, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff'
+      });
 
-  const imgProps = pdf.getImageProperties(imgData);
-  const pdfWidth = pdf.internal.pageSize.getWidth();
-  const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF("p", "mm", "a4");
 
-  pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
-  pdf.save(`${config.invoiceNumber}.pdf`);
+      const imgProps = pdf.getImageProperties(imgData);
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
 
-  document.body.removeChild(element);
+      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`${config.invoiceNumber}.pdf`);
+
+      // Close the new window after download
+      newWindow.close();
+    } catch (error) {
+      console.error('Error generating invoice:', error);
+      newWindow.close();
+      alert('Failed to generate invoice. Please try again.');
+    }
+  }, 1000);
 }

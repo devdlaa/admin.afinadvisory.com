@@ -1,4 +1,21 @@
 .assignment-dialog-backdrop {
+  .error-banner {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 8px;
+    color: #dc2626;
+    font-size: 14px;
+    margin-bottom: 16px;
+
+    svg {
+      flex-shrink: 0;
+      color: #dc2626;
+    }
+  }
   position: fixed;
   top: 0;
   left: 0;
@@ -187,6 +204,67 @@
     background: #3b82f6;
     color: white;
     border-color: #3b82f6;
+  }
+
+  .cache-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    padding: 0 2px;
+  }
+
+  .cache-status {
+    display: flex;
+    align-items: center;
+  }
+
+  .cache-info {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: #64748b;
+    background: #f1f5f9;
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+
+  .cache-info.fresh {
+    color: #059669;
+    background: #d1fae5;
+  }
+
+  .cache-info svg {
+    flex-shrink: 0;
+  }
+
+  .refresh-btn {
+    background: none;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .refresh-btn:hover:not(:disabled) {
+    border-color: #3b82f6;
+    color: #3b82f6;
+    background: rgba(59, 130, 246, 0.02);
+  }
+
+  .refresh-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .refresh-btn .spinning {
+    animation: spin 1s linear infinite;
   }
 
   .search-wrapper {

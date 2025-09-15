@@ -1,28 +1,36 @@
 import { NextResponse } from "next/server";
 import admin from "@/lib/firebase-admin";
+import { auth } from "@/utils/auth";
 import { z } from "zod";
 
-// Payload validation schema
-const assignTaskSchema = z.object({
-  serviceId: z.string(),
-  assignedMembers: z
-    .array(
-      z.object({
-        userCode: z.string(),
-        sendEmail: z.boolean(),
-        name: z.string(),
-        email: z.string().email()
-      })
-    )
-    .optional(),
-  assignToAll: z.boolean().optional()
+const memberSchema = z.object({
+  userCode: z.string().min(1),
+  name: z.string().min(1),
+  email: z.string().email(),
+  sendEmail: z.boolean().default(false),
+});
+
+const payloadSchema = z.object({
+  serviceId: z.string().min(1, "serviceId is required"),
+  assignmentManagement: z.object({
+    assignToAll: z.boolean().default(false),
+    members: z.array(memberSchema).nullable().optional(),
+  }),
 });
 
 export async function POST(req) {
   try {
-    const body = await req.json();
-    const validation = assignTaskSchema.safeParse(body);
+    const session = await auth();
+    if (!session || !(session.user?.id || session.user?.uid)) {
+      return NextResponse.json(
+        { success: false, message: "Unauthorized: no valid session" },
+        { status: 401 }
+      );
+    }
+    const currentUserId = session.user?.id ?? session.user?.uid;
 
+    const body = await req.json();
+    const validation = payloadSchema.safeParse(body);
     if (!validation.success) {
       return NextResponse.json(
         { success: false, message: "Invalid payload", errors: validation.error.errors },
@@ -30,96 +38,71 @@ export async function POST(req) {
       );
     }
 
-    const { serviceId, assignedMembers = [], assignToAll } = validation.data;
-    const currentUserId = "current_logged_in_user_id"; // Replace with real auth
+    const {
+      serviceId,
+      assignmentManagement: { assignToAll, members },
+    } = validation.data;
+
+    // ✅ If null/undefined → empty array
+    const normalizedMembers = Array.isArray(members) ? members : [];
 
     const firestore = admin.firestore();
     const serviceRef = firestore.collection("service_bookings").doc(serviceId);
 
     const updatedAssignmentManagement = await firestore.runTransaction(async (tx) => {
       const serviceSnap = await tx.get(serviceRef);
+      if (!serviceSnap.exists) throw new Error("Service not found");
 
-      if (!serviceSnap.exists) {
-        throw new Error("Service not found");
-      }
-
-      const serviceData = serviceSnap.data();
-      const assignment = serviceData.assignmentManagement || {
-        assignToAll: false,
-        members: []
+      const now = new Date().toISOString();
+      const assignment = {
+        assignToAll,
+        members: normalizedMembers.map((m) => ({
+          userCode: m.userCode,
+          name: m.name,
+          email: m.email,
+          AssignedAt: now,
+          AssignedBy: currentUserId,
+          isEmailSentAlready: !m.sendEmail,
+        })),
       };
 
-      // Toggle assignToAll if flag is provided
-      if (typeof assignToAll === "boolean") {
-        assignment.assignToAll = assignToAll;
-      }
-
-      // Always update members array
-      const existingMembers = assignment.members || [];
-      const now = new Date().toISOString();
-      const membersMap = new Map();
-
-      // Add existing members to map
-      existingMembers.forEach((m) => membersMap.set(m.userCode, m));
-
-      // Merge/Update members from payload
-      assignedMembers.forEach((member) => {
-        const existing = membersMap.get(member.userCode);
-        if (existing) {
-          // Update existing member
-          membersMap.set(member.userCode, {
-            ...existing,
-            AssignedAt: now,
-            AssignedBy: currentUserId,
-            name: member.name,
-            email: member.email,
-            isEmailSentAlready: existing.isEmailSentAlready ? true : !member.sendEmail
-          });
-        } else {
-          // Add new member
-          membersMap.set(member.userCode, {
-            userCode: member.userCode,
-            AssignedAt: now,
-            AssignedBy: currentUserId,
-            name: member.name,
-            email: member.email,
-            isEmailSentAlready: !member.sendEmail
-          });
-        }
-      });
-
-      const mergedMembers = Array.from(membersMap.values());
-
-      if (mergedMembers.length > 10) {
+      if (assignment.members.length > 10) {
         throw new Error("Maximum of 10 members allowed");
       }
 
-      assignment.members = mergedMembers;
+      // ✅ Build flattened keys for fast querying (used by dashboard API)
+      const assignedKeys = assignToAll
+        ? [] // if everyone can view, no need to list specific users
+        : normalizedMembers.flatMap((m) => [
+            `email:${m.email}`,
+            `userCode:${m.userCode}`,
+          ]);
 
-      // Commit the transaction
-      tx.update(serviceRef, { assignmentManagement: assignment });
+      // ✅ Update both assignmentManagement and assignedKeys atomically
+      tx.update(serviceRef, {
+        assignmentManagement: assignment,
+        assignedKeys, // <-- new field
+      });
 
       return assignment;
     });
 
-    // Optional: Trigger emails
-    updatedAssignmentManagement.members.forEach((member) => {
-      if (!member.isEmailSentAlready && member.sendEmail) {
-        console.log(`Send email to ${member.email} (${member.name})`);
-        // Call your email sending function here
-        // After sending, you would update isEmailSentAlready in Firestore if needed
+    // Send emails if needed (unchanged)
+    updatedAssignmentManagement.members.forEach((m, i) => {
+      const original = normalizedMembers[i];
+      if (original && original.sendEmail && !m.isEmailSentAlready) {
+        console.log(`Send email to ${m.email} (${m.name})`);
       }
     });
 
     return NextResponse.json({
       success: true,
       message: "Task assigned successfully",
-      assignmentManagement: updatedAssignmentManagement
+      assignmentManagement: updatedAssignmentManagement,
     });
-
-  } catch (error) {
-    console.error("Assign Task Error:", error);
-    const status = error.message === "Service not found" ? 404 : 400;
-    return NextResponse.json({ success: false, message: error.message }, { status });
+  } catch (err) {
+    console.error("Assign Task Error:", err);
+    const status = err.message === "Service not found" ? 404 : 400;
+    return NextResponse.json({ success: false, message: err.message }, { status });
   }
 }

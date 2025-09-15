@@ -33,15 +33,22 @@ import {
   DownloadCloudIcon,
   CircleCheckBig,
   Loader2,
+  UserIcon,
 } from "lucide-react";
 import "./ServiceBookingPage.scss";
 import { Button } from "@/app/components/TinyLib/TinyLib";
 import OtpDialog from "@/app/components/OtpDialog/OtpDialog";
 import { useSelector, useDispatch } from "react-redux";
-import { downloadInvoice } from "@/utils/invoiceUtil";
-
+import { downloadInvoiceInNewWindow } from "@/utils/invoiceUtil";
+import Permission from "@/app/components/Permission";
 import AssignmentDialog from "@/app/components/AssignmentDialog/AssignmentDialog";
 import ConfirmationDialog from "@/app/components/ConfirmationDialog/ConfirmationDialog";
+import {
+  markServiceFulfilled,
+  unmarkServiceFulfilled,
+  fetchBookingData,
+  rejectRefund,
+} from "@/store/slices/servicesSlice";
 
 // ===== UTILITY FUNCTIONS =====
 
@@ -84,7 +91,12 @@ const getStatusConfig = (status) => {
   return statusMap[status] || { icon: null, className: "default" };
 };
 
-const generateAdminSteps = (service, main_obj) => {
+const generateAdminSteps = (
+  service,
+  main_obj,
+  handleConfirmation,
+  handleOtpConfirmation
+) => {
   const steps = service?.steps || {};
   const masterStatus = main_obj?.master_status || "";
   const refund = main_obj?.refundDetails || {};
@@ -151,19 +163,25 @@ const generateAdminSteps = (service, main_obj) => {
       status,
     };
 
-    if (stepId === "REFUND_REQUESTED" && !step.isCompleted) {
+    if (stepId === "REFUND_REQUESTED" && step?.isCompleted == false) {
       stepObj.actions = [
         {
           label: "Approve Refund",
           type: "secondary",
           icon: <CheckCircle />,
           action: "APPROVE_REFUND",
+          onClick: () => {
+            handleOtpConfirmation();
+          },
         },
         {
           label: "Reject Refund",
           type: "primary",
           icon: <XCircle />,
           action: "REJECT_REFUND",
+          onClick: () => {
+            handleConfirmation();
+          },
         },
       ];
     }
@@ -265,82 +283,33 @@ const ErrorMessage = ({ error, onRetry }) => (
 
 export default function ServiceBookingPage() {
   const [copiedField, setCopiedField] = useState("");
-  const [showOtp, setShowOtp] = useState(true);
+  const [showOtp, setShowOtp] = useState(false);
+  const [showConfirmationBox, setConfirmationBox] = useState(false);
   const [isAssignmentBoxActive, setAssignmentBox] = useState(false);
   const [invoiceDownloading, setInvoiceDownloading] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+
   const [error, setError] = useState(null);
-  const [fetchedBookingData, setFetchedBookingData] = useState(null);
 
   // Get service booking ID from URL params
   const params = useParams();
   const serviceBookingId = params.service_booking_id;
 
-  const { selectedBookings } = useSelector((state) => state.services);
+  const {
+    selectedBookings: bookingData,
+    service_action,
+    bookingLoading,
+  } = useSelector((state) => state.services);
   const dispatch = useDispatch();
-
-  // Determine which booking data to use
-  const bookingData = selectedBookings || fetchedBookingData;
-
-  // Function to fetch booking data from API
-  const fetchBookingData = async (retryCount = 0) => {
-    if (!serviceBookingId) {
-      setError("Service booking ID not found in URL");
-      return;
-    }
-
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const response = await fetch("/api/admin/services/get_service", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          service_booking_id: serviceBookingId,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to fetch booking data");
-      }
-
-      if (data.success) {
-        setFetchedBookingData(data.booking);
-        
-        // Optionally dispatch to Redux store for future use
-        // dispatch(setSelectedBooking(data.booking));
-      } else {
-        throw new Error(data.error || "Failed to fetch booking data");
-      }
-    } catch (err) {
-      console.error("Error fetching booking data:", err);
-      
-      // Retry logic for network errors
-      if (retryCount < 2 && (err.name === 'TypeError' || err.message.includes('fetch'))) {
-        setTimeout(() => fetchBookingData(retryCount + 1), 1000);
-        return;
-      }
-      
-      setError(err.message || "Failed to load booking data. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   // Fetch booking data if not available in Redux
   useEffect(() => {
-    if (!selectedBookings && serviceBookingId) {
-      fetchBookingData();
+    if (!bookingData && serviceBookingId) {
+      dispatch(fetchBookingData({ serviceBookingId }));
     }
-  }, [selectedBookings, serviceBookingId]);
+  }, [bookingData, serviceBookingId]);
 
   // Show loading spinner
-  if (isLoading) {
+  if (bookingLoading) {
     return <LoadingSpinner />;
   }
 
@@ -352,59 +321,25 @@ export default function ServiceBookingPage() {
   // Show error if no booking data available
   if (!bookingData) {
     return (
-      <ErrorMessage 
-        error="No booking data available" 
-        onRetry={() => fetchBookingData()} 
+      <ErrorMessage
+        error="No booking data available"
+        onRetry={() => fetchBookingData()}
       />
     );
   }
 
-  // Dummy data for initially assigned users (from Redux)
-  const team_assigned = {
-    isAssignedToAll: false,
-    dummyAssignedUsers: [
-      {
-        userCode: "U001",
-        name: "John Doe",
-        email: "john@example.com",
-        avatar: "JD",
-      },
-      {
-        userCode: "U002",
-        name: "Jane Smith",
-        email: "jane@example.com",
-        avatar: "JS",
-      },
-      {
-        userCode: "U001",
-        name: "John Doe",
-        email: "john@example.com",
-        avatar: "JD",
-      },
-      {
-        userCode: "U002",
-        name: "Jane Smith",
-        email: "jane@example.com",
-        avatar: "JS",
-      },
-      {
-        userCode: "U001",
-        name: "John Doe",
-        email: "john@example.com",
-        avatar: "JD",
-      },
-      {
-        userCode: "U002",
-        name: "Jane Smith",
-        email: "jane@example.com",
-        avatar: "JS",
-      },
-    ],
+  const handleConfirmation = () => {
+    setConfirmationBox(true);
   };
 
+  const handleOtpConfirmation = () => {
+    setShowOtp(true);
+  };
   const processedSteps = generateAdminSteps(
     bookingData?.progress_steps,
-    bookingData
+    bookingData,
+    handleConfirmation,
+    handleOtpConfirmation
   );
 
   const copyToClipboard = (text, fieldName) => {
@@ -427,7 +362,7 @@ export default function ServiceBookingPage() {
   const handleDownloadInvoice = () => {
     if (bookingData) {
       setInvoiceDownloading(true);
-      downloadInvoice(bookingData);
+      downloadInvoiceInNewWindow(bookingData);
       setInvoiceDownloading(false);
     }
   };
@@ -469,27 +404,63 @@ export default function ServiceBookingPage() {
         isOpen={isAssignmentBoxActive}
         onClose={() => setAssignmentBox(false)}
       />
+
       <OtpDialog
-        isOpen={false}
+        isOpen={showOtp}
         onClose={() => setShowOtp(false)}
-        userId="user123"
-        phoneNumber="+1234567890"
-        actionId="optional-action" // Optional
-        metaData={{ key: "value" }} // Optional
-        onSuccess={(data) => ("OTP verified:", data)}
+        userId={bookingData?.user_id}
+        phoneNumber={process.env.NEXT_PUBLIC_ADMIN_PHONE_NUMBER}
+        actionId="optional-action"
+        metaData={{ KEY: "TEST_VALUE" }}
+        actionName="Approve Refund Request"
+        actionInfo="Once approved, the refund cannot be undone. Please confirm this action carefully."
+        confirmText="Approve Refund"
+        variant="danger"
+        onSuccess={async (data) => {
+          try {
+            // Call your approve refund API here
+            const result = await dispatch(
+              approveRefund({
+                service_booking_id: bookingData?.service_booking_id,
+                adminNote: "Refund approved by admin",
+              })
+            ).unwrap();
+
+            alert("Refund approved successfully!");
+            setShowOtp(false); // close dialog on success
+          } catch (err) {
+            console.error("Refund approval failed:", err);
+            alert("Refund approval failed. Please try again.");
+          }
+        }}
         onError={(error) => console.log("Error:", error)}
       />
+
       <ConfirmationDialog
-        isOpen={false}
-        onClose={null}
-        actionName="Delete User Account"
-        actionInfo="This will permanently remove all user data and cannot be undone."
-        confirmText="Delete"
+        isOpen={showConfirmationBox}
+        onClose={() => setConfirmationBox(false)}
+        actionName="Reject Refund Request"
+        actionInfo="Once rejected, the refund cannot be undone. Please confirm this action carefully."
+        confirmText="Reject Refund"
         variant="danger"
         onConfirm={async () => {
-          console.log("action here on confirmation");
+          try {
+            // Await the Redux action to complete
+            const result = await dispatch(
+              rejectRefund({
+                service_booking_id: bookingData?.service_booking_id,
+                adminNote: "THIS IS A TEST NOTE",
+              })
+            ).unwrap();
+
+            setConfirmationBox(false);
+          } catch (err) {
+            console.error("Refund rejection failed:", err);
+            alert("Failed to reject refund. Please try again.");
+          }
         }}
       />
+
       <div className="container">
         {/* Header */}
         <div className="page-header">
@@ -529,14 +500,39 @@ export default function ServiceBookingPage() {
               className="master_actions_btn download_invoice"
               isLoading={invoiceDownloading}
             />
-            <Button
-              type="outline"
-              size="medium"
-              text="Mark Fullfilled"
-              icon={CircleCheckBig}
-              onClick={null}
-              className="master_actions_btn fuffillment"
-            />
+            {bookingData.master_status === "processing" ? (
+              <>
+                <Button
+                  type="outline"
+                  size="medium"
+                  text="Mark Fullfilled"
+                  icon={CircleCheckBig}
+                  onClick={() => {
+                    dispatch(
+                      markServiceFulfilled([bookingData?.service_booking_id])
+                    );
+                  }}
+                  isLoading={service_action}
+                  className="master_actions_btn fuffillment"
+                />
+              </>
+            ) : bookingData.master_status === "completed" ? (
+              <>
+                <Button
+                  type="outline"
+                  size="medium"
+                  text="Un-Mark Funfilled"
+                  icon={CircleCheckBig}
+                  onClick={() => {
+                    dispatch(
+                      unmarkServiceFulfilled([bookingData?.service_booking_id])
+                    );
+                  }}
+                  isLoading={service_action}
+                  className="master_actions_btn fuffillment"
+                />
+              </>
+            ) : null}
           </div>
         </div>
 
@@ -776,45 +772,57 @@ export default function ServiceBookingPage() {
                 </div>
               </div>
             </div>
-            {/* Team Assignment */}
-            <div className="card invoice-card assignment">
-              <div className="card-header">
-                <div className="left_header">
-                  <h3>Assigned Team</h3>
-                </div>
-                <div className="right_headder">
-                  <div
-                    className={`status-badge  assignment_badge status-completed`}
-                  >
-                    <UserCircle size={16} />
-                    <span>{`${team_assigned?.dummyAssignedUsers.length} Members`}</span>
+            <Permission permission="bookings.assign_member">
+              {/* Team Assignment */}
+              <div className="card invoice-card assignment">
+                <div className="card-header">
+                  <div className="left_header">
+                    <h3>Assigned Team</h3>
+                  </div>
+                  <div className="right_headder">
+                    <Button
+                      type="primary"
+                      size="medium"
+                      text="Update Team"
+                      icon={UserPen}
+                      onClick={() => setAssignmentBox(true)}
+                      className="update_team_btn"
+                    />
+                    <div
+                      className={`status-badge  assignment_badge status-completed`}
+                    >
+                      <UserCircle size={16} />
+                      <span>
+                        {bookingData?.assignmentManagement?.assignToAll === true
+                          ? "All Assigned"
+                          : bookingData?.assignmentManagement?.members.length >
+                            0
+                          ? `${bookingData?.assignmentManagement?.members.length} Members `
+                          : "0 Members"}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div className="card-content">
-                <div className="invoice-info assigned_users_list">
-                  {team_assigned?.dummyAssignedUsers?.map((user) => (
-                    <div key={user.userCode} className={`user-card`}>
-                      <div className="user-avatar">{user.avatar}</div>
-                      <div className="user-info">
-                        <div className="user-name">{user.name}</div>
-                        <div className="user-email">{user.email}</div>
+                <div className="card-content">
+                  <div className="invoice-info assigned_users_list">
+                    {bookingData?.assignmentManagement?.members?.map((user) => (
+                      <div key={user.userCode} className={`user-card`}>
+                        <div className="user-avatar">
+                          <UserIcon size={18} />
+                        </div>
+                        <div className="user-info">
+                          <div className="user-name">{user.name}</div>
+                          <div className="user-email">{user.email}</div>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
+                  {bookingData?.assignmentManagement?.assignToAll && (
+                    <p>Assigned to All Users</p>
+                  )}
                 </div>
               </div>
-              <div className="card_action_footer">
-                <Button
-                  type="primary"
-                  size="medium"
-                  text="Update Team"
-                  icon={UserPen}
-                  onClick={() => setAssignmentBox(true)}
-                  className="update_team_btn"
-                />
-              </div>
-            </div>
+            </Permission>
           </div>
 
           <div className="spz_row2">

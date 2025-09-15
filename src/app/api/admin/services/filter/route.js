@@ -1,8 +1,13 @@
 import { NextResponse } from "next/server";
 import admin from "@/lib/firebase-admin";
+import { auth } from "@/utils/auth";
 import { z } from "zod";
 
 const db = admin.firestore();
+const { Filter } = admin.firestore; // ✅ Import Filter
+
+// Kill switch from .env
+const FEATURE_ENABLED = process.env.ASSIGNMENT_FEATURE_ENABLED === "true";
 
 // Valid quick ranges
 const QUICK_RANGES = [
@@ -83,17 +88,20 @@ export async function POST(req) {
   const startTime = Date.now();
 
   try {
+    const session = await auth();
+    if (!session || !session.user?.email) {
+      return NextResponse.json(
+        { success: false, message: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    const userEmail = session.user.email.toLowerCase();
+    const userRole = session.user.role;
+
     const body = await req.json();
-    console.log("Received request body:", body);
-
     const parsed = FilterSchema.safeParse(body);
-    console.log("Zod validation result:", {
-      success: parsed.success,
-      error: parsed.error,
-    });
-
     if (!parsed.success) {
-      console.log("Validation errors:", parsed.error.errors);
       return NextResponse.json(
         {
           success: false,
@@ -106,7 +114,6 @@ export async function POST(req) {
 
     const { quickRange, startDate, endDate, extraFilter } = parsed.data;
 
-    // Validate that only one type of date filter is used
     if (quickRange && (startDate || endDate)) {
       return NextResponse.json(
         {
@@ -118,41 +125,38 @@ export async function POST(req) {
     }
 
     let start, end;
-
     if (quickRange) {
       ({ start, end } = getDateRange(quickRange));
     } else if (startDate && endDate) {
       start = new Date(startDate);
       end = new Date(endDate);
-      // Set end to end of day for inclusive filtering
-      end.setHours(23, 59, 59, 999);
+      end.setHours(23, 59, 59, 999); // inclusive
     }
 
-    console.log("Date range:", {
-      start,
-      end,
-      startISO: start?.toISOString(),
-      endISO: end?.toISOString(),
-    });
-
-    // Build optimized Firestore query
     let query = db.collection("service_bookings");
 
-    // Apply date filtering at database level if dates are provided
-    if (start && end) {
-      const startISO = start.toISOString();
-      const endISO = end.toISOString();
-
-      query = query
-        .where("created_at", ">=", startISO)
-        .where("created_at", "<=", endISO);
+    // ── SuperAdmin OR feature disabled → all documents ──────────
+    if (!FEATURE_ENABLED || userRole === "superAdmin") {
+      // nothing special, keep full collection
+    } else {
+      // ── Assignment feature enabled → restricted documents ──────
+      query = query.where(
+        Filter.or(
+          Filter.where("assignmentManagement.assignToAll", "==", true),
+          Filter.where("assignedKeys", "array-contains", `email:${userEmail}`)
+        )
+      );
     }
 
-    // Apply extra filter at database level for simple fields (non-nested)
-    if (extraFilter) {
-      const { field, value } = extraFilter;
+    // ── Date filter ─────────────────────────────────────────────
+    if (start && end) {
+      query = query
+        .where("created_at", ">=", start.toISOString())
+        .where("created_at", "<=", end.toISOString());
+    }
 
-      // Check if it's a simple field that can be queried directly
+    // ── Extra simple field filter ───────────────────────────────
+    if (extraFilter) {
       const simpleFields = [
         "service_booking_id",
         "pay_id",
@@ -160,51 +164,48 @@ export async function POST(req) {
         "invoiceNumber",
         "master_status",
       ];
-
-      if (simpleFields.includes(field)) {
-        query = query.where(field, "==", value);
+      if (simpleFields.includes(extraFilter.field)) {
+        query = query.where(extraFilter.field, "==", extraFilter.value);
       }
     }
 
-    // Execute the optimized query
+    // ⚡ Fetch in a single query
     const snapshot = await query.get();
+    let docs = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
 
-    let results = snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
-
-    // Apply nested field filtering in memory (only if needed)
+    // ── Nested extraFilter handled in memory ─────────────────────
     if (extraFilter) {
       const { field, value } = extraFilter;
-
-      // Handle nested fields that couldn't be filtered at database level
       const nestedFields = [
         "service_details.service_id",
         "user_details.uid",
         "user_details.phone",
         "user_details.email",
       ];
-
       if (nestedFields.includes(field)) {
-        results = results.filter((r) => {
-          const fieldParts = field.split(".");
+        docs = docs.filter((r) => {
+          const parts = field.split(".");
           let current = r;
-          for (const part of fieldParts) {
-            current = current?.[part];
-          }
+          for (const p of parts) current = current?.[p];
           return current == value;
         });
       }
     }
+
+    // Sort by created_at DESC
+    docs.sort(
+      (a, b) =>
+        (new Date(b.created_at).getTime() || 0) -
+        (new Date(a.created_at).getTime() || 0)
+    );
 
     const executionTimeMs = Date.now() - startTime;
 
     return NextResponse.json({
       success: true,
       filters: { quickRange, startDate, endDate, extraFilter },
-      resultsCount: results.length,
-      bookings: results,
+      resultsCount: docs.length,
+      bookings: docs,
       meta: { executionTimeMs },
     });
   } catch (err) {

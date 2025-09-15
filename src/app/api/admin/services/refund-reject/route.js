@@ -1,4 +1,4 @@
-// POST /api/admin/service/refund-reject
+// /api/admin/service/refund-reject
 import { NextResponse } from "next/server";
 import { markRefundRejected } from "@/utils/service_mutation_helpers";
 import { z } from "zod";
@@ -15,23 +15,37 @@ export async function POST(req) {
 
     if (!parsed.success) {
       return NextResponse.json(
-        { success: false, error: parsed.error.errors },
+        {
+          success: false,
+          error: parsed.error.errors.map((e) => e.message).join(", "),
+        },
         { status: 400 }
       );
     }
 
     const { service_booking_id, adminNote } = parsed.data;
 
-    await markRefundRejected(service_booking_id, adminNote);
+    const result = await markRefundRejected(service_booking_id, adminNote);
+
+    if (!result || result.success === false) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: result?.reason || "Refund rejection failed",
+        },
+        { status: 400 }
+      );
+    }
 
     return NextResponse.json({
       success: true,
       message: `Refund rejected for service ${service_booking_id}`,
+      updatedService: result,
     });
   } catch (error) {
     console.error("Refund Reject API Error:", error);
     return NextResponse.json(
-      { success: false, error: error.message },
+      { success: false, error: error.message || "Internal server error" },
       { status: 500 }
     );
   }
