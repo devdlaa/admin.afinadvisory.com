@@ -6,14 +6,4 @@ export const helperRegistry = {
     console.log("Running ADMIN_REFUND_REQUEST with", metaData);
     return await adminRequestRefund(metaData);
   },
-
-  markServiceFulfilled: async (metaData) => {
-    console.log("Marking service fulfilled", metaData);
-    return { status: "service fulfilled", metaData };
-  },
-
-  unmarkFulfilled: async (metaData) => {
-    console.log("Unmarking service", metaData);
-    return { status: "service unmarked", metaData };
-  },
 };

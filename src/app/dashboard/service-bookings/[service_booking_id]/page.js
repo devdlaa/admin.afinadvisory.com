@@ -34,10 +34,14 @@ import {
   CircleCheckBig,
   Loader2,
   UserIcon,
+  RefreshCcw,
 } from "lucide-react";
 import "./ServiceBookingPage.scss";
+import InfoBanner from "@/app/components/InfoBanner/InfoBanner";
 import { Button } from "@/app/components/TinyLib/TinyLib";
 import OtpDialog from "@/app/components/OtpDialog/OtpDialog";
+import { OTP_CONFIGS } from "@/utils/otpConfigs";
+import { useOtpDialog } from "@/hooks/useOtpDialog";
 import { useSelector, useDispatch } from "react-redux";
 import { downloadInvoiceInNewWindow } from "@/utils/invoiceUtil";
 import Permission from "@/app/components/Permission";
@@ -95,7 +99,7 @@ const generateAdminSteps = (
   service,
   main_obj,
   handleConfirmation,
-  handleOtpConfirmation
+  handleApproveRefund
 ) => {
   const steps = service?.steps || {};
   const masterStatus = main_obj?.master_status || "";
@@ -170,9 +174,7 @@ const generateAdminSteps = (
           type: "secondary",
           icon: <CheckCircle />,
           action: "APPROVE_REFUND",
-          onClick: () => {
-            handleOtpConfirmation();
-          },
+          onClick: handleApproveRefund,
         },
         {
           label: "Reject Refund",
@@ -283,13 +285,13 @@ const ErrorMessage = ({ error, onRetry }) => (
 
 export default function ServiceBookingPage() {
   const [copiedField, setCopiedField] = useState("");
-  const [showOtp, setShowOtp] = useState(false);
+
   const [showConfirmationBox, setConfirmationBox] = useState(false);
   const [isAssignmentBoxActive, setAssignmentBox] = useState(false);
   const [invoiceDownloading, setInvoiceDownloading] = useState(false);
-
   const [error, setError] = useState(null);
-
+  const { isOpen, config, openOtpDialog, closeOtpDialog } = useOtpDialog();
+  const user = useSelector((state) => state.session.user);
   // Get service booking ID from URL params
   const params = useParams();
   const serviceBookingId = params.service_booking_id;
@@ -300,7 +302,39 @@ export default function ServiceBookingPage() {
     bookingLoading,
   } = useSelector((state) => state.services);
   const dispatch = useDispatch();
+  const serviceAttchedPaymentId = bookingData?.pay_id;
+  const currentLoggedInUserID = user?.uid;
+  const isRefundinProgress =
+    bookingData?.refundDetails?.current_status === "initiated" &&
+    bookingData?.refundDetails.isRefundInProgress === true
+      ? true
+      : false;
+  const isRefundFailed =
+    bookingData?.refundDetails?.current_status === "failed" &&
+    bookingData?.refundDetails.isRefundInProgress === false
+      ? true
+      : false;
+  const isRefundSuccess =
+    bookingData?.refundDetails?.current_status === "refunded" &&
+    bookingData?.refundDetails.isRefundInProgress === false
+      ? true
+      : false;
+  const isInvoiceDownloadAvailable =
+    bookingData.master_status === "processing" ||
+    bookingData.master_status === "refunded" ||
+    bookingData.master_status === "completed";
 
+  const isServiceStatusMutationAvailable = {
+    isAvailable:
+      (bookingData.master_status === "processing" ||
+        bookingData.master_status === "completed" ||
+        bookingData.master_status === "refunded") &&
+      !isRefundinProgress,
+    type:
+      bookingData.master_status === "processing"
+        ? "MARK_COMPLETE"
+        : "MARK_UNCOMPLETE",
+  };
   // Fetch booking data if not available in Redux
   useEffect(() => {
     if (!bookingData && serviceBookingId) {
@@ -314,7 +348,7 @@ export default function ServiceBookingPage() {
   }
 
   // Show error message
-  if (error && !bookingData) {
+  if (error) {
     return <ErrorMessage error={error} onRetry={() => fetchBookingData()} />;
   }
 
@@ -331,15 +365,42 @@ export default function ServiceBookingPage() {
   const handleConfirmation = () => {
     setConfirmationBox(true);
   };
+  const handleApproveRefund = () => {
+    const user = {
+      firstName: bookingData?.user_details?.firstName,
+      lastName: bookingData?.user_details?.lastName,
+      email: bookingData?.user_details?.email,
+      mobile: bookingData?.user_details?.phone,
+    };
+    const service = {
+      name: bookingData?.service_details?.service_name,
+    };
 
-  const handleOtpConfirmation = () => {
-    setShowOtp(true);
+    if (!serviceBookingId || typeof serviceBookingId !== "string") {
+      alert("Not serviceBookingId, Error");
+    }
+    if (!serviceAttchedPaymentId) {
+      alert("Not serviceAttchedPaymentId, Error");
+    }
+
+    if (!currentLoggedInUserID) {
+      alert("Not currentLoggedInUserID, Error");
+    }
+    openOtpDialog(
+      OTP_CONFIGS.APPROVE_REFUND(
+        serviceBookingId,
+        serviceAttchedPaymentId,
+        currentLoggedInUserID,
+        user,
+        service
+      )
+    );
   };
   const processedSteps = generateAdminSteps(
     bookingData?.progress_steps,
     bookingData,
     handleConfirmation,
-    handleOtpConfirmation
+    handleApproveRefund
   );
 
   const copyToClipboard = (text, fieldName) => {
@@ -360,10 +421,12 @@ export default function ServiceBookingPage() {
   };
 
   const handleDownloadInvoice = () => {
-    if (bookingData) {
-      setInvoiceDownloading(true);
-      downloadInvoiceInNewWindow(bookingData);
-      setInvoiceDownloading(false);
+    if (isInvoiceDownloadAvailable) {
+      if (bookingData) {
+        setInvoiceDownloading(true);
+        downloadInvoiceInNewWindow(bookingData);
+        setInvoiceDownloading(false);
+      }
     }
   };
 
@@ -406,34 +469,15 @@ export default function ServiceBookingPage() {
       />
 
       <OtpDialog
-        isOpen={showOtp}
-        onClose={() => setShowOtp(false)}
-        userId={bookingData?.user_id}
-        phoneNumber={process.env.NEXT_PUBLIC_ADMIN_PHONE_NUMBER}
-        actionId="optional-action"
-        metaData={{ KEY: "TEST_VALUE" }}
-        actionName="Approve Refund Request"
-        actionInfo="Once approved, the refund cannot be undone. Please confirm this action carefully."
-        confirmText="Approve Refund"
-        variant="danger"
-        onSuccess={async (data) => {
-          try {
-            // Call your approve refund API here
-            const result = await dispatch(
-              approveRefund({
-                service_booking_id: bookingData?.service_booking_id,
-                adminNote: "Refund approved by admin",
-              })
-            ).unwrap();
-
-            alert("Refund approved successfully!");
-            setShowOtp(false); // close dialog on success
-          } catch (err) {
-            console.error("Refund approval failed:", err);
-            alert("Refund approval failed. Please try again.");
-          }
+        isOpen={isOpen}
+        onClose={closeOtpDialog}
+        config={config}
+        onSuccess={(data) => {
+          console.log("OTP Verified Successfully");
         }}
-        onError={(error) => console.log("Error:", error)}
+        onError={(error) => {
+          console.error("OTP Verification Failed");
+        }}
       />
 
       <ConfirmationDialog
@@ -455,7 +499,7 @@ export default function ServiceBookingPage() {
 
             setConfirmationBox(false);
           } catch (err) {
-            console.error("Refund rejection failed:", err);
+            console.error("Refund rejection failed:");
             alert("Failed to reject refund. Please try again.");
           }
         }}
@@ -491,50 +535,93 @@ export default function ServiceBookingPage() {
               )}
               <span>{bookingData.master_status.toUpperCase()}</span>
             </div>
-            <Button
-              type="outline"
-              size="medium"
-              text="Download Invoice"
-              icon={DownloadCloudIcon}
-              onClick={handleDownloadInvoice}
-              className="master_actions_btn download_invoice"
-              isLoading={invoiceDownloading}
-            />
-            {bookingData.master_status === "processing" ? (
+
+            {isInvoiceDownloadAvailable && (
+              <Button
+                type="outline"
+                size="medium"
+                text="Download Invoice"
+                icon={DownloadCloudIcon}
+                onClick={handleDownloadInvoice}
+                className="master_actions_btn download_invoice"
+                isLoading={invoiceDownloading}
+              />
+            )}
+
+            {isServiceStatusMutationAvailable.isAvailable && (
               <>
-                <Button
-                  type="outline"
-                  size="medium"
-                  text="Mark Fullfilled"
-                  icon={CircleCheckBig}
-                  onClick={() => {
-                    dispatch(
-                      markServiceFulfilled([bookingData?.service_booking_id])
-                    );
-                  }}
-                  isLoading={service_action}
-                  className="master_actions_btn fuffillment"
-                />
+                {isServiceStatusMutationAvailable.type === "MARK_COMPLETE" ? (
+                  <>
+                    <Button
+                      type="outline"
+                      size="medium"
+                      text="Mark Fullfilled"
+                      icon={CircleCheckBig}
+                      onClick={() => {
+                        dispatch(
+                          markServiceFulfilled([
+                            bookingData?.service_booking_id,
+                          ])
+                        );
+                      }}
+                      isLoading={service_action}
+                      className="master_actions_btn fuffillment"
+                    />
+                  </>
+                ) : isServiceStatusMutationAvailable.type ===
+                  "MARK_UNCOMPLETE" ? (
+                  <>
+                    <Button
+                      type="outline"
+                      size="medium"
+                      text="Un-Mark Funfilled"
+                      icon={CircleCheckBig}
+                      onClick={() => {
+                        dispatch(
+                          unmarkServiceFulfilled([
+                            bookingData?.service_booking_id,
+                          ])
+                        );
+                      }}
+                      isLoading={service_action}
+                      className="master_actions_btn fuffillment"
+                    />
+                  </>
+                ) : null}
               </>
-            ) : bookingData.master_status === "completed" ? (
-              <>
-                <Button
-                  type="outline"
-                  size="medium"
-                  text="Un-Mark Funfilled"
-                  icon={CircleCheckBig}
-                  onClick={() => {
-                    dispatch(
-                      unmarkServiceFulfilled([bookingData?.service_booking_id])
-                    );
-                  }}
-                  isLoading={service_action}
-                  className="master_actions_btn fuffillment"
-                />
-              </>
-            ) : null}
+            )}
           </div>
         </div>
+
+        {isRefundSuccess ? (
+          <InfoBanner
+            type="success"
+            text="Refund Has Been Credited to Customers Account!"
+          />
+        ) : isRefundFailed ? (
+          <InfoBanner
+            type="error"
+            text="Refund failed. Please try again."
+            ButtonComponent={
+              <Button
+                type="filled"
+                size="medium"
+                text="Retry Refund"
+                icon={RefreshCcw}
+                onClick={null}
+                className="master_actions_btn retry_refund"
+                isLoading={null}
+              />
+            }
+          />
+        ) : isRefundinProgress ? (
+          <InfoBanner
+            type="info"
+            text="Your refund is being processed. This may take a few minutes."
+          />
+        ) : null}
+
+        {/* Refund In Progress */}
 
         <div className="content-grid">
           <div className="spz_row1">

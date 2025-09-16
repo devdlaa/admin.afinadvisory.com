@@ -215,13 +215,13 @@
               }
 
               span {
-                font-size: 20px;
+                font-size: 28px;
                 font-weight: 600;
               }
             }
 
             .max-commission {
-              font-size: 14px;
+              font-size: 20px;
               opacity: 0.9;
               font-weight: 500;
             }
@@ -345,6 +345,9 @@
       }
 
       .services-list {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 10px;
         .service-item {
           background: white;
           border: 1px solid #e2e8f0;

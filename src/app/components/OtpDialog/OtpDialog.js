@@ -2,16 +2,11 @@
 import { useState, useRef, useEffect } from "react";
 import { X, MessageSquare, Check, Loader2, AlertCircle } from "lucide-react";
 import "./OtpDialog.scss";
+
 const OtpDialog = ({
   isOpen,
   onClose,
-  userId,
-  phoneNumber,
-  actionName,
-  actionInfo,
-  confirmText,
-  actionId = null,
-  metaData = null,
+  config,
   onSuccess = () => {},
   onError = () => {},
 }) => {
@@ -24,6 +19,26 @@ const OtpDialog = ({
 
   const otpRefs = useRef([]);
 
+  // Default config values
+  const defaultConfig = {
+    actionName: "Verify Action",
+    actionInfo: "Please confirm this action by entering the OTP sent to your registered phone number.",
+    confirmText: "Send OTP",
+    variant: "primary",
+    successMessage: "Verification completed successfully!",
+    otpLength: 6,
+    autoCloseDelay: 1500,
+    endpoints: {
+      initiate: "/api/admin/otp/initiate",
+      verify: "/api/admin/otp/verify"
+    },
+    payload: {},
+    customValidation: null, // function to run custom validation before sending OTP
+    maskPhoneNumber: true
+  };
+
+  const finalConfig = { ...defaultConfig, ...config };
+
   // Reset state when dialog opens/closes
   useEffect(() => {
     if (isOpen) {
@@ -31,10 +46,10 @@ const OtpDialog = ({
       setLoading(false);
       setError("");
       setOtpId("");
-      setOtp(["", "", "", "", "", ""]);
+      setOtp(new Array(finalConfig.otpLength).fill(""));
       setSuccess(false);
     }
-  }, [isOpen]);
+  }, [isOpen, finalConfig.otpLength]);
 
   const handleClose = () => {
     if (!loading) {
@@ -43,22 +58,30 @@ const OtpDialog = ({
   };
 
   const handleProceed = async () => {
+    // Run custom validation if provided
+    if (finalConfig.customValidation) {
+      try {
+        const isValid = await finalConfig.customValidation();
+        if (!isValid) {
+          setError("Validation failed. Please try again.");
+          return;
+        }
+      } catch (validationError) {
+        setError(validationError.message || "Validation failed.");
+        return;
+      }
+    }
+
     setLoading(true);
     setError("");
 
     try {
-      const payload = {
-        userId,
-        ...(actionId && { actionId }),
-        ...(metaData && { metaData }),
-      };
-
-      const response = await fetch("/api/admin/otp/initiate", {
+      const response = await fetch(finalConfig.endpoints.initiate, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(finalConfig.payload),
       });
 
       const data = await response.json();
@@ -84,7 +107,7 @@ const OtpDialog = ({
     setOtp(newOtp);
 
     // Auto-focus next input
-    if (value && index < 5) {
+    if (value && index < finalConfig.otpLength - 1) {
       otpRefs.current[index + 1]?.focus();
     }
   };
@@ -97,8 +120,8 @@ const OtpDialog = ({
 
   const handleVerify = async () => {
     const otpCode = otp.join("");
-    if (otpCode.length !== 6) {
-      setError("Please enter a valid 6-digit OTP");
+    if (otpCode.length !== finalConfig.otpLength) {
+      setError(`Please enter a valid ${finalConfig.otpLength}-digit OTP`);
       return;
     }
 
@@ -106,7 +129,7 @@ const OtpDialog = ({
     setError("");
 
     try {
-      const response = await fetch("/api/admin/otp/verify", {
+      const response = await fetch(finalConfig.endpoints.verify, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -114,6 +137,7 @@ const OtpDialog = ({
         body: JSON.stringify({
           otpId,
           otp: otpCode,
+          ...finalConfig.payload, // Include original payload for context
         }),
       });
 
@@ -124,18 +148,18 @@ const OtpDialog = ({
         setTimeout(() => {
           onSuccess(data);
           handleClose();
-        }, 1500);
+        }, finalConfig.autoCloseDelay);
       } else {
         setError(data.error || "Invalid OTP. Please try again.");
-        setOtp(["", "", "", "", "", ""]);
+        setOtp(new Array(finalConfig.otpLength).fill(""));
         setTimeout(() => {
           onError(data);
-          handleClose();
-        }, 1500);
+        }, finalConfig.autoCloseDelay);
         otpRefs.current[0]?.focus();
       }
     } catch (err) {
       setError("Network error. Please try again.");
+      onError({ error: err.message });
     } finally {
       setLoading(false);
     }
@@ -144,22 +168,15 @@ const OtpDialog = ({
   const handleResendOtp = async () => {
     setLoading(true);
     setError("");
-    setOtp(["", "", "", "", "", ""]);
+    setOtp(new Array(finalConfig.otpLength).fill(""));
 
     try {
-      const payload = {
-        userId,
-        phoneNumber,
-        ...(actionId && { actionId }),
-        ...(metaData && { metaData }),
-      };
-
-      const response = await fetch("/api/otp/initiate", {
+      const response = await fetch(finalConfig.endpoints.initiate, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(finalConfig.payload),
       });
 
       const data = await response.json();
@@ -178,12 +195,16 @@ const OtpDialog = ({
 
   if (!isOpen) return null;
 
+  const getVariantClass = () => {
+    return `otp-dialog-${finalConfig.variant}`;
+  };
+
   return (
     <div className="otp-overlay">
-      <div className="otp-dialog">
+      <div className={`otp-dialog ${getVariantClass()}`}>
         <div className="otp-header">
           <div className="otp-title">
-            {step === 1 && actionName}
+            {step === 1 && finalConfig.actionName}
             {step === 3 && !success && "Enter Verification Code"}
             {success && "Verification Complete"}
           </div>
@@ -203,7 +224,7 @@ const OtpDialog = ({
               <div className="otp-icon">
                 <MessageSquare size={24} />
               </div>
-              <p className="otp-description">{actionInfo}</p>
+              <p className="otp-description">{finalConfig.actionInfo}</p>
               {error && (
                 <div className="otp-error">
                   <AlertCircle size={16} />
@@ -219,7 +240,7 @@ const OtpDialog = ({
                   Cancel
                 </button>
                 <button
-                  className="otp-btn otp-btn-primary"
+                  className={`otp-btn otp-btn-${finalConfig.variant}`}
                   onClick={handleProceed}
                   disabled={loading}
                 >
@@ -229,7 +250,7 @@ const OtpDialog = ({
                       Sending...
                     </>
                   ) : (
-                    "Send OTP"
+                    finalConfig.confirmText
                   )}
                 </button>
               </div>
@@ -243,7 +264,12 @@ const OtpDialog = ({
                 <MessageSquare size={24} />
               </div>
               <p className="otp-description">
-                Enter the 6-digit code sent to <strong>{phoneNumber}</strong>
+                Enter the {finalConfig.otpLength}-digit code sent to{" "}
+                <strong>
+                  {finalConfig.maskPhoneNumber 
+                    ? "your registered phone number" 
+                    : finalConfig.phoneNumber || "Admin Phone Number"}
+                </strong>
               </p>
 
               <div className="otp-input-container">
@@ -287,9 +313,9 @@ const OtpDialog = ({
                   )}
                 </button>
                 <button
-                  className="otp-btn otp-btn-primary"
+                  className={`otp-btn otp-btn-${finalConfig.variant}`}
                   onClick={handleVerify}
-                  disabled={loading || otp.join("").length !== 6}
+                  disabled={loading || otp.join("").length !== finalConfig.otpLength}
                 >
                   {loading ? (
                     <>
@@ -311,7 +337,7 @@ const OtpDialog = ({
                 <Check size={24} />
               </div>
               <p className="otp-description">
-                Phone number verified successfully!
+                {finalConfig.successMessage}
               </p>
             </div>
           )}

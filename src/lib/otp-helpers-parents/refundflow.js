@@ -1,7 +1,7 @@
 import razorpay from "../razorpay";
 import { markRefundInitiated } from "@/utils/service_mutation_helpers";
 export async function adminRequestRefund(metaData) {
-  const { payment_id, service_booking_id, amount, notes } = metaData;
+  const { payment_id, service_booking_id, notes } = metaData;
 
   if (!payment_id || !service_booking_id) {
     return {
@@ -51,10 +51,11 @@ export async function adminRequestRefund(metaData) {
     // 2️⃣ Call Razorpay refund
     // -----------------------------
     const refundOptions = {
-      amount, // optional, full refund if not passed
       speed: "normal",
       notes: notes || {},
     };
+
+
 
     const razorpayRefund = await razorpay.payments.refund(
       payment_id,
@@ -62,6 +63,7 @@ export async function adminRequestRefund(metaData) {
     );
 
     if (!["processed", "pending"].includes(razorpayRefund.status)) {
+      console.log("razorpayRefund",razorpayRefund);
       return {
         success: false,
         type: "failure",
@@ -114,6 +116,7 @@ export async function adminRequestRefund(metaData) {
     }
   } catch (err) {
     // Catch unexpected errors
+    console.log("err", err);
     return {
       success: false,
       type: "failure",

@@ -154,16 +154,16 @@ export async function markRefundRejected(service_booking_id, adminNote) {
   }
 }
 
-// Step: Refund Initiated
+// Step: Refund Initiated (supports retry)
 export async function markRefundInitiated(service_booking_id, meta_info) {
   validateServiceId(service_booking_id);
 
+  const db = admin.firestore();
   const serviceRef = db.collection("service_bookings").doc(service_booking_id);
 
   try {
     const result = await db.runTransaction(async (transaction) => {
       const doc = await transaction.get(serviceRef);
-
       if (!doc.exists) {
         return {
           service_booking_id,
@@ -176,11 +176,10 @@ export async function markRefundInitiated(service_booking_id, meta_info) {
       const data = doc.data();
       const steps = data?.progress_steps?.steps || {};
       const stepKeys = Object.keys(steps);
-      const lastStep =
-        stepKeys.length > 0 ? steps[stepKeys[stepKeys.length - 1]] : null;
+      const lastStep = stepKeys.length > 0 ? steps[stepKeys.length - 1] : null;
 
-      // ✅ Edge case: Service not in progress
-      if (data.master_status !== "in_progress") {
+      // ✅ Service must be in processing
+      if (data.master_status !== "processing") {
         return {
           service_booking_id,
           success: false,
@@ -189,8 +188,13 @@ export async function markRefundInitiated(service_booking_id, meta_info) {
         };
       }
 
-      // ✅ Edge case: Last step is not REFUND_REQUESTED
-      if (lastStep?.step_id !== "REFUND_REQUESTED") {
+      // ✅ Detect retry
+      const isRetry =
+        data.refundDetails?.current_status === "failed" ||
+        lastStep?.step_id === "REFUND_INITIATED";
+
+      // ✅ Guard for first attempt
+      if (!isRetry && lastStep?.step_id !== "REFUND_REQUESTED") {
         return {
           service_booking_id,
           success: false,
@@ -201,41 +205,70 @@ export async function markRefundInitiated(service_booking_id, meta_info) {
         };
       }
 
-      // Add REFUND_INITIATED step
-      const nextIndex = stepKeys.length.toString();
-      const newStep = {
-        step_id: "REFUND_INITIATED",
-        step_name: "Refund Initiated",
-        step_desc: "Refund accepted & team has initiated the process.",
-        isCompleted: true,
-        completed_at: Timestamp.now(),
-      };
-
-      const updatedSteps = {
-        ...steps,
-        [nextIndex]: newStep,
-      };
-
-      // Null-check meta_info (Razorpay response)
       const razorpayRefundDetails =
         meta_info && typeof meta_info === "object" ? meta_info : {};
+      const attemptNumber = (data.refundDetails?.last_attempt_number || 0) + 1;
 
+      const updatedSteps = { ...steps };
+
+      if (!isRetry) {
+        // ✅ First-time initiation → mark all old steps completed + add new step
+        Object.keys(updatedSteps).forEach((key) => {
+          updatedSteps[key] = {
+            ...updatedSteps[key],
+            isCompleted: true,
+            completed_at: updatedSteps[key].completed_at || Timestamp.now(),
+          };
+        });
+
+        const nextIndex = stepKeys.length.toString();
+        const newStep = {
+          step_id: "REFUND_INITIATED",
+          step_name: "Refund Initiated",
+          step_desc: "Refund accepted & team has initiated the process.",
+          isCompleted: true,
+          completed_at: Timestamp.now(),
+        };
+
+        updatedSteps[nextIndex] = newStep;
+
+        transaction.update(serviceRef, {
+          "progress_steps.steps": updatedSteps,
+          "progress_steps.current_step": newStep.step_name,
+          "progress_steps.current_step_index": parseInt(nextIndex),
+          "progress_steps.isFulfilled": false,
+        });
+      }
+
+      // ✅ Common updates for both first-time and retry
       transaction.update(serviceRef, {
         "refundDetails.current_status": "initiated",
         "refundDetails.initiatedAt": Timestamp.now(),
         "refundDetails.razorpay_refund_details": razorpayRefundDetails,
-        "progress_steps.steps": updatedSteps,
-        "progress_steps.current_step": newStep.step_name,
-        "progress_steps.current_step_index": parseInt(nextIndex),
-        "progress_steps.isFulfilled": false,
+        "refundDetails.last_attempt_number": attemptNumber,
+        "refundDetails.reason":
+          meta_info?.notes?.refund_reason || data.refundDetails?.reason || "",
+        "refundDetails.initiatedBy":
+          meta_info?.notes?.refund_by_user_id || null,
+        "refundDetails.isRefundInProgress": true,
+        "refundDetails.attempts": admin.firestore.FieldValue.arrayUnion({
+          attempt: attemptNumber,
+          razorpay_refund_id: razorpayRefundDetails.id,
+          amount: razorpayRefundDetails.amount,
+          status: "initiated",
+          requestedAt: Timestamp.now(),
+        }),
       });
 
-      return { service_booking_id, success: true, type: "mutation" };
+      return {
+        service_booking_id,
+        success: true,
+        type: isRetry ? "retry" : "mutation",
+      };
     });
 
     return result;
   } catch (error) {
-    // ❌ Real DB failure
     return {
       service_booking_id,
       success: false,
@@ -245,8 +278,45 @@ export async function markRefundInitiated(service_booking_id, meta_info) {
   }
 }
 
+// Handles if refund fails
+export async function markRefundFailed(service_booking_id, refundInfo) {
+  validateServiceId(service_booking_id);
+  const serviceRef = db.collection("service_bookings").doc(service_booking_id);
+
+  await db.runTransaction(async (transaction) => {
+    const doc = await transaction.get(serviceRef);
+    if (!doc.exists) throw new Error("Service not found");
+
+    const data = doc.data();
+    const attemptNumber = data.refundDetails?.last_attempt_number || 0;
+
+    const failedAt = refundInfo?.created_at
+      ? Timestamp.fromMillis(refundInfo.created_at * 1000)
+      : Timestamp.now();
+
+    transaction.update(serviceRef, {
+      "refundDetails.current_status": "failed",
+      "refundDetails.isRefundInProgress": false,
+      "refundDetails.failure_reason":
+        refundInfo?.status_reason || refundInfo?.reason || "Unknown",
+      "refundDetails.last_failed_at": failedAt,
+      "refundDetails.attempts": admin.firestore.FieldValue.arrayUnion({
+        attempt: attemptNumber,
+        razorpay_refund_id: refundInfo?.id || null,
+        amount: refundInfo?.amount ? refundInfo.amount / 100 : null, // ✅ Convert to ₹
+        status: "failed",
+        failedAt,
+      }),
+    });
+  });
+}
+
 // Step: Refund Credited
-export async function markRefundCredited(service_booking_id, refundInfo) {
+export async function markRefundCredited(
+  service_booking_id,
+  refundInfo,
+  creditNoteNumber
+) {
   try {
     validateServiceId(service_booking_id);
 
@@ -255,7 +325,10 @@ export async function markRefundCredited(service_booking_id, refundInfo) {
     }
 
     log(`Marking refund credited for service: ${service_booking_id}`);
-
+    const refundTimestamp = Timestamp.fromMillis(refundInfo.created_at * 1000);
+    const refundAmountInRupees = refundInfo?.amount
+      ? refundInfo.amount / 100
+      : 0;
     const step = {
       step_id: "REFUND_COMPLETED",
       step_name: "Refund Credited",
@@ -284,14 +357,22 @@ export async function markRefundCredited(service_booking_id, refundInfo) {
       };
 
       transaction.update(serviceRef, {
-        "refundDetails.current_status": "refunded",
-        "refundDetails.refundDate": Timestamp.now(),
+        "refundDetails.creditNoteNumber": creditNoteNumber,
+        "refundDetails.current_status":
+          refundInfo?.status === "processed"
+            ? "refunded"
+            : "failed",
+        "refundDetails.refundDate": refundTimestamp,
+        "refundDetails.refundAmount": refundAmountInRupees,
         "refundDetails.razorpay_refund_details": refundInfo,
-
+        "refundDetails.isRefund": true,
+        "refundDetails.isFullRefund": true,
+        "refundDetails.razorpay_acquirer_data": refundInfo?.acquirer_data || {},
+        "refundDetails.isRefundInProgress": false,
         "progress_steps.steps": updatedSteps,
         "progress_steps.current_step": step.step_name,
         "progress_steps.current_step_index": parseInt(nextIndex),
-        "progress_steps.isFulfilled": true, // ✅ Refund is successful, service fulfilled
+        "progress_steps.isFulfilled": true,
         master_status: "refunded",
       });
     });
@@ -675,3 +756,4 @@ export async function rollbackRefundToInitiatedOrCredited({
     };
   }
 }
+

@@ -269,6 +269,30 @@ export const deleteUser = createAsyncThunk(
   }
 );
 
+export const sendPasswordResetLink = createAsyncThunk(
+  "auth/sendPasswordResetLink",
+  async (email, { rejectWithValue }) => {
+    try {
+      const res = await fetch("/api/admin/users/reset-pwd-link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        // Server returned error status
+        return rejectWithValue(data.message || "Failed to send reset link");
+      }
+
+      return data; // success payload
+    } catch (err) {
+      return rejectWithValue(err.message || "Network error");
+    }
+  }
+);
+
 const usersSlice = createSlice({
   name: "users",
   initialState: {
@@ -438,6 +462,22 @@ const usersSlice = createSlice({
         state.error = action.error.message || "Somwthing Went Worng!";
       })
 
+      .addCase(sendPasswordResetLink.pending, (state) => {
+        state.resettingPassword = true;
+        state.resetPasswordError = null;
+        state.resetPasswordResults = null;
+        state.sentPasswordReset = false;
+      })
+      .addCase(sendPasswordResetLink.fulfilled, (state, action) => {
+        state.resettingPassword = false;
+        state.resetPasswordResults = action.payload;
+        state.sentPasswordReset = true;
+      })
+      .addCase(sendPasswordResetLink.rejected, (state, action) => {
+        state.resettingPassword = false;
+        state.resetPasswordError = action.payload || "Something went wrong";
+      })
+
       // Update user (general)
       .addCase(updateUser.pending, (state) => {
         state.updating = true;
@@ -565,8 +605,6 @@ const usersSlice = createSlice({
 
         // Build updated user object based on API response
         const updateUserPermissions = (user) => {
-        
-
           const updatedUser = {
             ...user,
             role: changes?.role ? changes.role.to : user.role,
@@ -576,13 +614,12 @@ const usersSlice = createSlice({
             updatedAt: timestamp || new Date().toISOString(),
           };
 
-       
           return updatedUser;
         };
 
         // Update in users array
         const userIndex = state.users.findIndex((user) => user.id === userId);
-    
+
         if (userIndex !== -1) {
           state.users[userIndex] = updateUserPermissions(
             state.users[userIndex]

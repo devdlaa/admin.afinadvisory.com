@@ -1193,25 +1193,6 @@
   display: flex;
   align-items: center;
   gap: 12px;
-
-  .master_actions_btn {
-    padding: 8px 14px !important;
-    box-shadow: none !important;
-    font-size: 15px;
-
-    &.download_invoice {
-      border: 1px solid rgba(0, 0, 0, 0.103) !important;
-      color: rgba(0, 0, 0, 0.801) !important;
-    }
-
-    &:hover {
-      transform: none !important;
-    }
-    svg {
-      width: 16px !important;
-      height: 16px !important;
-    }
-  }
 }
 
 // Loading Spinner Component Styles
@@ -1347,15 +1328,46 @@
   }
 }
 
-.right_headder{
+.right_headder {
   display: flex;
   align-items: center;
   gap: 10px;
-  .update_team_btn{
-       padding: 6px 20px !important;
+  .update_team_btn {
+    padding: 6px 20px !important;
     color: white;
-    svg{
+    svg {
       stroke: white;
     }
+  }
+}
+
+.master_actions_btn {
+  padding: 8px 14px !important;
+  box-shadow: none !important;
+  font-size: 15px;
+
+  &.retry_refund {
+    background: #ff00001c;
+    color: rgb(218, 22, 22);
+    outline: 1px solid #ff000029;
+    padding: 4px 12px !important;
+    font-size: 13px;
+    svg {
+      width: 14px !important;
+      height: 14px !important;
+    }
+  }
+
+  &.download_invoice {
+    border: 1px solid rgba(0, 0, 0, 0.103) !important;
+    color: rgba(0, 0, 0, 0.801) !important;
+  }
+
+  &:hover {
+    transform: none !important;
+  }
+  svg {
+    width: 16px !important;
+    height: 16px !important;
   }
 }

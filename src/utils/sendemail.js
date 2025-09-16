@@ -19,6 +19,10 @@ const EMAIL_TEMPLATES = {
       "Security Alert: New Admin User Onboarded - Afin Advisory Dashboard",
     template: "adminUserOnboardedNotification",
   },
+  SEND_USER_PWD_RESET_LINK: {
+    subject: "Password Reset Request - Afin Advisory Admin Dashboard",
+    template: "pwdresetAdminLinktoEmp",
+  },
 };
 
 const loadTemplate = async (templateName, variables) => {

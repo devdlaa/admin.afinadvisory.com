@@ -9,7 +9,7 @@ export async function requirePermission(req, required) {
   }
 
   const userPermissions = session.user?.permissions || [];
-  console.log("userPermissions", userPermissions);
+
   const requiredArray = Array.isArray(required) ? required : [required];
   const hasAll = requiredArray.every((perm) => userPermissions.includes(perm));
 
@@ -20,8 +20,8 @@ export async function requirePermission(req, required) {
         error: {
           message: "Access Denied",
           code: "",
-          details : {
-            errors  : ["Access Denied","Ask Admin to Provide Permission"]
+          details: {
+            errors: ["Access Denied", "Ask Admin to Provide Permission"],
           },
           timestamp: new Date().toISOString(),
         },

@@ -1,17 +1,20 @@
 import { NextResponse } from "next/server";
 import { initiateOtp } from "@/lib/otpService";
-
+import { auth } from "@/utils/auth";
+import { requirePermission } from "@/lib/requirePermission";
 export async function POST(req) {
   try {
-    const { userId,actionId, metaData } = await req.json();
+    const session = await auth();
+    const uid = session?.user?.uid;
 
-    if (!userId) {
-      return NextResponse.json({ success: false, error: "Missing fields" }, { status: 400 });
-    }
+    const { actionId, metaData } = await req.json();
 
-    const data = await initiateOtp({ userId, actionId, metaData });
+    const data = await initiateOtp({ uid, actionId, metaData });
     return NextResponse.json({ success: true, ...data });
   } catch (err) {
-    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: err.message },
+      { status: 500 }
+    );
   }
 }

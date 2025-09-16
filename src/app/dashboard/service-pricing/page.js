@@ -20,22 +20,22 @@ import {
 import "./service-pricing.scss";
 
 // Cache utilities
-const CACHE_KEY = 'admin_services_cache';
+const CACHE_KEY = "admin_services_cache";
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
 const getFromCache = () => {
   try {
     const cached = localStorage.getItem(CACHE_KEY);
     if (!cached) return null;
-    
+
     const { data, timestamp } = JSON.parse(cached);
     const now = Date.now();
-    
+
     if (now - timestamp > CACHE_DURATION) {
       localStorage.removeItem(CACHE_KEY);
       return null;
     }
-    
+
     return data;
   } catch (error) {
     localStorage.removeItem(CACHE_KEY);
@@ -47,11 +47,11 @@ const saveToCache = (data) => {
   try {
     const cacheData = {
       data,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
     localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
   } catch (error) {
-    console.warn('Failed to save to cache:', error);
+    console.warn("Failed to save to cache:", error);
   }
 };
 
@@ -59,7 +59,7 @@ const clearCache = () => {
   try {
     localStorage.removeItem(CACHE_KEY);
   } catch (error) {
-    console.warn('Failed to clear cache:', error);
+    console.warn("Failed to clear cache:", error);
   }
 };
 
@@ -74,7 +74,7 @@ const AdminDashboard = () => {
   const [error, setError] = useState(null);
   const [revalidateSlug, setRevaidateSlug] = useState("");
   const [isSaving, setSaving] = useState(false);
-  
+
   // Track if data has been fetched to prevent refetching
   const hasFetched = useRef(false);
   const abortControllerRef = useRef(null);
@@ -85,11 +85,11 @@ const AdminDashboard = () => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
-    
+
     try {
       setLoading(true);
       setError(null);
-      
+
       // Check cache first unless forcing refresh
       if (!forceRefresh) {
         const cachedData = getFromCache();
@@ -101,20 +101,20 @@ const AdminDashboard = () => {
           return;
         }
       }
-      
+
       // Create new abort controller for this request
       abortControllerRef.current = new AbortController();
-      
+
       const response = await fetch("/api/admin/service_pricing/get", {
-        signal: abortControllerRef.current.signal
+        signal: abortControllerRef.current.signal,
       });
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();
-      
+
       if (!data.services) {
         throw new Error(data.error || "Failed to fetch services");
       }
@@ -122,26 +122,26 @@ const AdminDashboard = () => {
       const servicesData = data.services || [];
       setServices(servicesData);
       setFilteredServices(servicesData);
-      
+
       // Save to cache
       saveToCache(servicesData);
-      
+
       // Show success toast only if we have services
       if (servicesData.length > 0) {
         showSuccess(`${servicesData.length} services loaded successfully`);
       }
-      
     } catch (error) {
       // Don't show error if request was aborted
-      if (error.name === 'AbortError') {
+      if (error.name === "AbortError") {
         return;
       }
-      
+
       console.error("Error fetching services:", error);
-      const errorMessage = error.message === "Failed to fetch" 
-        ? "Network error. Please check your connection and try again."
-        : error.message || "Failed to load services";
-      
+      const errorMessage =
+        error.message === "Failed to fetch"
+          ? "Network error. Please check your connection and try again."
+          : error.message || "Failed to load services";
+
       setError(errorMessage);
       showError(`Failed to load services: ${errorMessage}`);
     } finally {
@@ -156,7 +156,7 @@ const AdminDashboard = () => {
       hasFetched.current = true;
       fetchServices();
     }
-    
+
     // Cleanup function to abort any pending requests
     return () => {
       if (abortControllerRef.current) {
@@ -176,7 +176,7 @@ const AdminDashboard = () => {
           service.serviceId.toLowerCase().includes(searchTerm.toLowerCase())
       );
       setFilteredServices(filtered);
-      
+
       // Show info about search results
       if (searchTerm.trim() && filtered.length === 0) {
         showInfo(`No services found matching "${searchTerm}"`);
@@ -189,7 +189,7 @@ const AdminDashboard = () => {
     try {
       setFetchingConfig(true);
       setRevaidateSlug(service?.slug.split("/")[2]);
-      
+
       // Show loading toast for longer operations
       showInfo("Loading service configuration...");
 
@@ -206,7 +206,7 @@ const AdminDashboard = () => {
       }
 
       const config = await response.json();
-      
+
       if (!config) {
         throw new Error(config.error || "Failed to fetch service config");
       }
@@ -214,15 +214,15 @@ const AdminDashboard = () => {
       setSelectedService(config);
       setIsEditing(true);
       showSuccess(`Configuration loaded for ${service.name}`);
-      
     } catch (error) {
       setRevaidateSlug("");
       console.error("Error fetching service config:", error);
-      
-      const errorMessage = error.message === "Failed to fetch"
-        ? "Network error. Please check your connection and try again."
-        : error.message || "Failed to fetch service configuration";
-      
+
+      const errorMessage =
+        error.message === "Failed to fetch"
+          ? "Network error. Please check your connection and try again."
+          : error.message || "Failed to fetch service configuration";
+
       showError(`Failed to load configuration: ${errorMessage}`);
     } finally {
       setFetchingConfig(false);
@@ -233,10 +233,10 @@ const AdminDashboard = () => {
   const handleSaveService = async (updatedConfig) => {
     try {
       setSaving(true);
-      
+
       // Show loading toast
       showInfo("Saving configuration...");
-      
+
       const response = await fetch("/api/admin/service_pricing/update", {
         method: "POST",
         headers: {
@@ -252,9 +252,9 @@ const AdminDashboard = () => {
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const data = await response.json();
-      
+
       if (!data.success) {
         throw new Error(data.error || "Failed to update service");
       }
@@ -263,29 +263,30 @@ const AdminDashboard = () => {
       setIsEditing(false);
       setSelectedService(null);
       setSaving(false);
-      
+
       // Clear cache since data has been updated
       clearCache();
-      
+
       // Optionally refresh the services list
       hasFetched.current = false;
       fetchServices(true);
-      
+
       // Show success message with service name if available
-      const serviceName = updatedConfig.name || updatedConfig.serviceId || "Service";
+      const serviceName =
+        updatedConfig.name || updatedConfig.serviceId || "Service";
       showSuccess(`${serviceName} configuration updated successfully!`);
-      
     } catch (error) {
       setRevaidateSlug("");
       setSaving(false);
       console.error("Error saving service:", error);
-      
-      const errorMessage = error.message === "Failed to fetch"
-        ? "Network error. Please check your connection and try again."
-        : error.message || "Failed to save service configuration";
-      
+
+      const errorMessage =
+        error.message === "Failed to fetch"
+          ? "Network error. Please check your connection and try again."
+          : error.message || "Failed to save service configuration";
+
       showError(`Save failed: ${errorMessage}`);
-      
+
       // Don't close the editing modal on error so user can retry
     }
   };
@@ -395,10 +396,7 @@ const AdminDashboard = () => {
       {error && (
         <div className="error-state">
           <p>{error}</p>
-          <button
-            className="btn btn--secondary"
-            onClick={handleRetry}
-          >
+          <button className="btn btn--secondary" onClick={handleRetry}>
             Retry
           </button>
         </div>
@@ -412,24 +410,23 @@ const AdminDashboard = () => {
               <Database size={48} />
               <h3>No services found</h3>
               <p>
-                {searchTerm.trim() 
+                {searchTerm.trim()
                   ? `No services match "${searchTerm}". Try adjusting your search.`
-                  : "No services available. Check back later or contact support."
-                }
+                  : "No services available. Check back later or contact support."}
               </p>
             </div>
           ) : (
             filteredServices.map((service) => (
-              <div key={service.serviceId} className="service-card">
-                <div className="service-card__header">
+              <div key={service.serviceId} className="service-pricing-card">
+                <div className="service-pricing-card__header">
                   {getServiceIcon(service.name)}
-                  <div className="service-card__info">
-                    <h3 className="service-card__name">{service.name}</h3>
-                    <p className="service-card__id">{service.serviceId}</p>
+                  <div className="service-pricing-card__info">
+                    <h3 className="service-pricing-card__name">{service.name}</h3>
+                    <p className="service-pricing-card__id">{service.serviceId}</p>
                   </div>
                 </div>
 
-                <div className="service-card__actions">
+                <div className="service-pricing-card__actions">
                   <button
                     className="btn btn--outline"
                     onClick={() => handleEditService(service)}

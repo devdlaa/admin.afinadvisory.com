@@ -15,7 +15,8 @@ import {
   Info,
   Clock,
   Target,
-  Link
+  Link,
+  IndianRupee
 } from 'lucide-react';
 import { fetchServices } from "@/store/slices/couponsSlice";
 import './CouponDetailsModal.scss';
@@ -151,7 +152,7 @@ export default function CouponDetailsModal({ coupon, onClose }) {
                         {coupon.discount.kind === 'percent' ? (
                           <Percent size={24} />
                         ) : (
-                          <DollarSign size={24} />
+                          <IndianRupee size={24} />
                         )}
                         <span className="amount">
                           {getDiscountDisplay(coupon.discount)}
@@ -248,7 +249,7 @@ export default function CouponDetailsModal({ coupon, onClose }) {
                           {coupon.commission.kind === 'percent' ? (
                             <Percent size={20} />
                           ) : (
-                            <DollarSign size={20} />
+                            <IndianRupee size={20} />
                           )}
                           <span>
                             {coupon.commission.kind === 'percent' 
@@ -260,7 +261,7 @@ export default function CouponDetailsModal({ coupon, onClose }) {
                         
                         {coupon.commission.maxCommission && (
                           <div className="max-commission">
-                            Max: ${coupon.commission.maxCommission}
+                            Max: ₹{coupon.commission.maxCommission}
                           </div>
                         )}
                       </div>
