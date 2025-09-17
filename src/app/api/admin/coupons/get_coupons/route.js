@@ -5,6 +5,7 @@ import { z } from "zod";
 
 // Import and use permission check at the top:
 // import { requirePermission } from "@/utils/permissions";
+import { requirePermission } from "@/lib/requirePermission";
 // const permissionCheck = await requirePermission(req, "coupons.read");
 // if (permissionCheck) return permissionCheck;
 
@@ -27,9 +28,8 @@ const getCouponsQuerySchema = z.object({
 
 export async function GET(req) {
   try {
-    // Permission check placeholder
-    // const permissionCheck = await requirePermission(req, "coupons.read");
-    // if (permissionCheck) return permissionCheck;
+    const permissionCheck = await requirePermission(req, "coupons.access");
+    if (permissionCheck) return permissionCheck;
 
     await connectToDatabase();
 
@@ -109,7 +109,7 @@ export async function GET(req) {
       { status: 200 }
     );
   } catch (error) {
-    console.error("🔥 Error fetching coupons:", error);
+    console.error("🔥 Error fetching coupons:");
     return NextResponse.json(
       {
         success: false,

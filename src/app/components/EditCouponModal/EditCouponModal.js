@@ -40,7 +40,7 @@ export default function EditCouponModal({ coupon, onClose }) {
     loading,
     error,
     updateError,
-    updatingCoupon
+    updatingCoupon,
   } = useSelector((state) => state.coupons);
 
   // Form state - initialize with existing coupon data
@@ -56,6 +56,7 @@ export default function EditCouponModal({ coupon, onClose }) {
     appliesTo: {
       users: coupon.appliesTo?.users || "all",
     },
+    linkedInfluncer: coupon?.linkedInfluncer || null,
     usageLimits: {
       perUser: coupon.usageLimits?.perUser?.toString() || "",
       total: coupon.usageLimits?.total?.toString() || "",
@@ -190,7 +191,7 @@ export default function EditCouponModal({ coupon, onClose }) {
 
   const handleInfluencerSearch = async () => {
     if (!influencerEmail.trim()) return;
-    await dispatch(searchInfluencer({ email: influencerEmail.trim() }));
+    dispatch(searchInfluencer({ email: influencerEmail.trim() }));
   };
 
   const handleInfluencerLink = () => {
@@ -300,7 +301,15 @@ export default function EditCouponModal({ coupon, onClose }) {
       updateData.isInfluencerCoupon = formData.isInfluencerCoupon;
     }
 
-    if (formData.influencerId !== (coupon.influencerId || "")) {
+    // FIX: Always send influencerId when isInfluencerCoupon is true OR when it has changed
+    if (formData.isInfluencerCoupon) {
+      // If it's an influencer coupon, always send the influencerId (even if empty)
+      updateData.influencerId = formData.influencerId || null;
+    } else if (!formData.isInfluencerCoupon && coupon.influencerId) {
+      // If it's no longer an influencer coupon but had an influencer before, clear it
+      updateData.influencerId = null;
+    } else if (formData.influencerId !== (coupon.influencerId || "")) {
+      // If influencerId changed from the original
       updateData.influencerId = formData.influencerId || null;
     }
 
@@ -352,7 +361,6 @@ export default function EditCouponModal({ coupon, onClose }) {
               </div>
               <div className="header-text">
                 <h2>Edit Coupon</h2>
-        
               </div>
             </div>
             {hasChanges && (
@@ -694,79 +702,86 @@ export default function EditCouponModal({ coupon, onClose }) {
                 )}
 
                 {/* Commission */}
-                <div className="commission-section">
-                  <h4>Commission Settings</h4>
+                {(formData.influencerId) && (
+                  <div className="commission-section">
+                    <h4>Commission Settings</h4>
 
-                  <div className="commission-type-selector">
-                    <button
-                      type="button"
-                      className={`commission-type-btn ${
-                        formData.commission.kind === "percent" ? "active" : ""
-                      }`}
-                      onClick={() =>
-                        handleInputChange("commission.kind", "percent")
-                      }
-                    >
-                      <Percent size={16} />
-                      Percentage
-                    </button>
-                    <button
-                      type="button"
-                      className={`commission-type-btn ${
-                        formData.commission.kind === "fixed" ? "active" : ""
-                      }`}
-                      onClick={() =>
-                        handleInputChange("commission.kind", "fixed")
-                      }
-                    >
-                      <DollarSign size={16} />
-                      Fixed Amount
-                    </button>
-                  </div>
-
-                  <div className="form-grid">
-                    <div className="form-group">
-                      <label>
-                        {formData.commission.kind === "percent"
-                          ? "Commission (%)"
-                          : "Commission ($)"}
-                      </label>
-                      <input
-                        type="number"
-                        value={formData.commission.amount}
-                        onChange={(e) =>
-                          handleInputChange("commission.amount", e.target.value)
+                    <div className="commission-type-selector">
+                      <button
+                        type="button"
+                        className={`commission-type-btn ${
+                          formData.commission.kind === "percent" ? "active" : ""
+                        }`}
+                        onClick={() =>
+                          handleInputChange("commission.kind", "percent")
                         }
-                        placeholder={
-                          formData.commission.kind === "percent" ? "5" : "10"
+                      >
+                        <Percent size={16} />
+                        Percentage
+                      </button>
+                      <button
+                        type="button"
+                        className={`commission-type-btn ${
+                          formData.commission.kind === "fixed" ? "active" : ""
+                        }`}
+                        onClick={() =>
+                          handleInputChange("commission.kind", "fixed")
                         }
-                        min="0"
-                        step={
-                          formData.commission.kind === "percent" ? "1" : "0.01"
-                        }
-                      />
+                      >
+                        <DollarSign size={16} />
+                        Fixed Amount
+                      </button>
                     </div>
 
-                    {formData.commission.kind === "percent" && (
+                    <div className="form-grid">
                       <div className="form-group">
-                        <label>Max Commission ($)</label>
+                        <label>
+                          {formData.commission.kind === "percent"
+                            ? "Commission (%)"
+                            : "Commission ($)"}
+                        </label>
                         <input
                           type="number"
-                          value={formData.commission.maxCommission}
+                          value={formData.commission.amount}
                           onChange={(e) =>
                             handleInputChange(
-                              "commission.maxCommission",
+                              "commission.amount",
                               e.target.value
                             )
                           }
-                          placeholder="50"
+                          placeholder={
+                            formData.commission.kind === "percent" ? "5" : "10"
+                          }
                           min="0"
-                          step="0.01"
+                          step={
+                            formData.commission.kind === "percent"
+                              ? "1"
+                              : "0.01"
+                          }
                         />
                       </div>
-                    )}
+
+                      {formData.commission.kind === "percent" && (
+                        <div className="form-group">
+                          <label>Max Commission ($)</label>
+                          <input
+                            type="number"
+                            value={formData.commission.maxCommission}
+                            onChange={(e) =>
+                              handleInputChange(
+                                "commission.maxCommission",
+                                e.target.value
+                              )
+                            }
+                            placeholder="50"
+                            min="0"
+                            step="0.01"
+                          />
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             )}
           </div>
@@ -872,11 +887,17 @@ export default function EditCouponModal({ coupon, onClose }) {
             <button
               type="submit"
               className="save-btn"
-              disabled={updatingCoupon || !hasChanges || !formData.discount.amount}
+              disabled={
+                updatingCoupon || !hasChanges || !formData.discount.amount
+              }
             >
               {updatingCoupon ? (
                 <>
-                   <CircularProgress  color='white' size={16} className="spinner" />
+                  <CircularProgress
+                    color="white"
+                    size={16}
+                    className="spinner"
+                  />
                   Saving...
                 </>
               ) : (

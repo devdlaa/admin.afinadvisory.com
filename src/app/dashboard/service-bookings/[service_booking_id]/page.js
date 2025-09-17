@@ -35,6 +35,7 @@ import {
   Loader2,
   UserIcon,
   RefreshCcw,
+  Info,
 } from "lucide-react";
 import "./ServiceBookingPage.scss";
 import InfoBanner from "@/app/components/InfoBanner/InfoBanner";
@@ -320,7 +321,9 @@ export default function ServiceBookingPage() {
       ? true
       : false;
   const isInvoiceDownloadAvailable =
-    bookingData.master_status === "processing" ||
+    (bookingData.master_status === "processing" &&
+      (!bookingData?.refundDetails?.current_status || 
+        bookingData?.refundDetails?.current_status === "refunded")) ||
     bookingData.master_status === "refunded" ||
     bookingData.master_status === "completed";
 
@@ -617,7 +620,7 @@ export default function ServiceBookingPage() {
         ) : isRefundinProgress ? (
           <InfoBanner
             type="info"
-            text="Your refund is being processed. This may take a few minutes."
+            text="Your refund is being processed. This may take a upto 7 Working Days."
           />
         ) : null}
 
@@ -805,26 +808,6 @@ export default function ServiceBookingPage() {
                         #{bookingData.ticket_info.ticket_number}
                       </span>
                     </div>
-                    <a
-                      style={{
-                        textDecoration: "none",
-                      }}
-                      href={`https://tickets.afinadvisory.com/#ticket/zoom/${bookingData?.ticket_info?.ticket_id}`}
-                      target="_blank"
-                    >
-                      <div
-                        className={`ticket-status ${
-                          bookingData.ticket_info.isTicketOpen
-                            ? "open"
-                            : "closed"
-                        }`}
-                      >
-                        {bookingData.ticket_info.isTicketOpen
-                          ? "View in Zammad"
-                          : "Not Available"}
-                        <ArrowUpRight size={16} />
-                      </div>
-                    </a>
                   </div>
                   {bookingData?.coupon?.code && (
                     <div className="info-item">
@@ -835,25 +818,30 @@ export default function ServiceBookingPage() {
                           {bookingData?.coupon?.code}
                         </span>
                       </div>
+                    </div>
+                  )}
 
-                      <a
-                        style={{
-                          textDecoration: "none",
-                        }}
-                        href={`${process.env.NEXT_PUBLIC_WEB_URL}dashboard/marketing/coupon/${bookingData?.coupon?.code}`}
-                        target="_blank"
-                      >
-                        <div
-                          className={`ticket-status ${
-                            bookingData.ticket_info.isTicketOpen
-                              ? "open"
-                              : "closed"
-                          }`}
-                        >
-                          View Coupon
-                          <ArrowUpRight size={16} />
-                        </div>
-                      </a>
+                  {bookingData?.invoiceNumber && (
+                    <div className="info-item">
+                      <Info size={22} />
+                      <div>
+                        <span className="label">Invoice Number</span>
+                        <span className="value">
+                          {bookingData?.invoiceNumber}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {bookingData?.refundDetails.creditNoteNumber && (
+                    <div className="info-item">
+                      <Info size={22} />
+                      <div>
+                        <span className="label">C/N Number</span>
+                        <span className="value">
+                          {bookingData?.refundDetails?.creditNoteNumber}
+                        </span>
+                      </div>
                     </div>
                   )}
                 </div>

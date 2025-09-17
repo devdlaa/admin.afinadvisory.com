@@ -212,7 +212,8 @@ export default function CreateCouponModal({ onClose }) {
         )}
 
         <form onSubmit={handleSubmit} className="modal-body">
-          {/* Basic Info */}
+          <div className="coupo_modal_body_inner">
+ {/* Basic Info */}
           <div className="form-section">
             <div className="section-header">
               <h3>Basic Information</h3>
@@ -501,79 +502,86 @@ export default function CreateCouponModal({ onClose }) {
                   )}
 
                 {/* Commission */}
-                <div className="commission-section">
-                  <h4>Commission Settings</h4>
+                {formData.influencerId && (
+                  <div className="commission-section">
+                    <h4>Commission Settings</h4>
 
-                  <div className="commission-type-selector">
-                    <button
-                      type="button"
-                      className={`commission-type-btn ${
-                        formData.commission.kind === "percent" ? "active" : ""
-                      }`}
-                      onClick={() =>
-                        handleInputChange("commission.kind", "percent")
-                      }
-                    >
-                      <Percent size={16} />
-                      Percentage
-                    </button>
-                    <button
-                      type="button"
-                      className={`commission-type-btn ${
-                        formData.commission.kind === "fixed" ? "active" : ""
-                      }`}
-                      onClick={() =>
-                        handleInputChange("commission.kind", "fixed")
-                      }
-                    >
-                      <DollarSign size={16} />
-                      Fixed Amount
-                    </button>
-                  </div>
-
-                  <div className="form-grid">
-                    <div className="form-group">
-                      <label>
-                        {formData.commission.kind === "percent"
-                          ? "Commission (%)"
-                          : "Commission ($)"}
-                      </label>
-                      <input
-                        type="number"
-                        value={formData.commission.amount}
-                        onChange={(e) =>
-                          handleInputChange("commission.amount", e.target.value)
+                    <div className="commission-type-selector">
+                      <button
+                        type="button"
+                        className={`commission-type-btn ${
+                          formData.commission.kind === "percent" ? "active" : ""
+                        }`}
+                        onClick={() =>
+                          handleInputChange("commission.kind", "percent")
                         }
-                        placeholder={
-                          formData.commission.kind === "percent" ? "5" : "10"
+                      >
+                        <Percent size={16} />
+                        Percentage
+                      </button>
+                      <button
+                        type="button"
+                        className={`commission-type-btn ${
+                          formData.commission.kind === "fixed" ? "active" : ""
+                        }`}
+                        onClick={() =>
+                          handleInputChange("commission.kind", "fixed")
                         }
-                        min="0"
-                        step={
-                          formData.commission.kind === "percent" ? "1" : "0.01"
-                        }
-                      />
+                      >
+                        <DollarSign size={16} />
+                        Fixed Amount
+                      </button>
                     </div>
 
-                    {formData.commission.kind === "percent" && (
+                    <div className="form-grid">
                       <div className="form-group">
-                        <label>Max Commission ($)</label>
+                        <label>
+                          {formData.commission.kind === "percent"
+                            ? "Commission (%)"
+                            : "Commission ($)"}
+                        </label>
                         <input
                           type="number"
-                          value={formData.commission.maxCommission}
+                          value={formData.commission.amount}
                           onChange={(e) =>
                             handleInputChange(
-                              "commission.maxCommission",
+                              "commission.amount",
                               e.target.value
                             )
                           }
-                          placeholder="50"
+                          placeholder={
+                            formData.commission.kind === "percent" ? "5" : "10"
+                          }
                           min="0"
-                          step="0.01"
+                          step={
+                            formData.commission.kind === "percent"
+                              ? "1"
+                              : "0.01"
+                          }
                         />
                       </div>
-                    )}
+
+                      {formData.commission.kind === "percent" && (
+                        <div className="form-group">
+                          <label>Max Commission ($)</label>
+                          <input
+                            type="number"
+                            value={formData.commission.maxCommission}
+                            onChange={(e) =>
+                              handleInputChange(
+                                "commission.maxCommission",
+                                e.target.value
+                              )
+                            }
+                            placeholder="50"
+                            min="0"
+                            step="0.01"
+                          />
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             )}
           </div>
@@ -664,6 +672,7 @@ export default function CreateCouponModal({ onClose }) {
               </div>
             </div>
           </div>
+          </div>
 
           {/* Actions */}
           <div className="modal-actions">
@@ -678,7 +687,7 @@ export default function CreateCouponModal({ onClose }) {
             <button
               type="submit"
               className="create-btn"
-              disabled={loading || !formData.code || !formData.discount.amount}
+              disabled={loading || !formData.code || !formData.discount.amount || (formData.isInfluencerCoupon && formData.influencerId !== null && !formData.commission.amount )}
             >
               {loading ? (
                 <>

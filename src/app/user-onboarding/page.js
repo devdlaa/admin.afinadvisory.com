@@ -39,8 +39,8 @@ const OnboardingContent = () => {
 
   // User data from token (you might want to decode this from the token)
   const [userData, setUserData] = useState({
-    email: "test@gmail.com",
-    name: "test",
+    email: "",
+    name: "",
     company: "AFIN ADVISORY",
   });
 
@@ -409,24 +409,7 @@ const OnboardingContent = () => {
                     </div>
 
                     {/* Manual entry option */}
-                    {secretKey && (
-                      <div className="ob-secret-key-section">
-                        <p className="ob-secret-label">
-                          Can't scan? Enter this code manually:
-                        </p>
-                        <div className="ob-secret-key-container">
-                          <code className="ob-secret-key">{secretKey}</code>
-                          <button
-                            type="button"
-                            className="ob-copy-btn"
-                            onClick={copySecretKey}
-                            disabled={isLoading}
-                          >
-                            {secretCopied ? "Copied!" : "Copy"}
-                          </button>
-                        </div>
-                      </div>
-                    )}
+                 
                   </div>
 
                   <form onSubmit={handleTotpSubmit} className="ob-totp-form">

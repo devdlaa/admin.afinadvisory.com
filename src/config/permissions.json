@@ -154,15 +154,17 @@
             "id": "users.alter-permissions",
             "label": "Alter User Permissions",
             "category": "User Management"
+        },
+        {
+            "id": "users.reset-onboarding",
+            "label": "Resend User Onboarding",
+            "category": "User Management"
         }
     ],
     "roleDefaults": {
         "user": [
             "bookings.access",
-            "users.access",
-            "customers.access",
-            "coupons.access",
-            "service_pricing.access"
+            "customers.access"
         ],
         "admin": [
             "users.access",
@@ -174,11 +176,34 @@
             "commissions.access",
             "coupons.access",
             "coupons.create",
-            "coupons.update",
             "bookings.mark_fulfilled",
             "bookings.unmark_fulfilled"
         ],
         "superAdmin": [
+            "bookings.access",
+            "bookings.create_new_link",
+            "payment_link.access",
+            "bookings.reject_refund",
+            "bookings.initiate_refund",
+            "bookings.assign_member",
+            "bookings.mark_fulfilled",
+            "bookings.unmark_fulfilled",
+            "service_pricing.access",
+            "service_pricing.update",
+            "payments.access",
+            "influencers.access",
+            "influencers.create",
+            "influencers.update",
+            "influencers.delete",
+            "customers.access",
+            "customers.create",
+            "customers.update",
+            "commissions.access",
+            "commissions.update_paid_status",
+            "coupons.access",
+            "coupons.create",
+            "coupons.update",
+            "coupons.delete",
             "users.access",
             "users.invite",
             "users.delete",
@@ -186,31 +211,7 @@
             "users.reset_password",
             "users.update",
             "users.alter-permissions",
-            "bookings.access",
-            "payment_link.access",
-            "bookings.create_new_link",
-            "bookings.reject_refund",
-            "bookings.initiate_refund",
-            "bookings.assign_member",
-            "customers.access",
-            "customers.create",
-            "customers.update",
-            "influencers.access",
-            "influencers.create",
-            "influencers.update",
-            "influencers.delete",
-            "commissions.access",
-            "commissions.update_paid_status",
-            "coupons.access",
-            "coupons.create",
-            "coupons.update",
-            "coupons.delete",
-            "service_pricing.access",
-            "service_pricing.update",
-            "payments.access",
-            "bookings.mark_fulfilled",
-            "bookings.unmark_fulfilled",
-            "payment_link.access"
+            "users.reset-onboarding"
         ]
     },
     "roles": [

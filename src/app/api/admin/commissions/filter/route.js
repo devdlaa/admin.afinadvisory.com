@@ -103,7 +103,6 @@ export async function POST(req) {
       end.setHours(23, 59, 59, 999);
     }
 
-    console.log("Date range:", { start, end, startISO: start?.toISOString(), endISO: end?.toISOString() });
 
     // Since createdAt is stored as ISO string, we can use string comparison
     // ISO strings can be compared lexicographically for date ordering
@@ -122,7 +121,7 @@ export async function POST(req) {
     const snapshot = await query.get();
 
     let results = snapshot.docs.map((doc) => ({
-      uid: doc.id,
+    id: doc.id,
       ...doc.data(),
     }));
 

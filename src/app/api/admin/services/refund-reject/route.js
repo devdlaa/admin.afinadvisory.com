@@ -1,8 +1,8 @@
-// /api/admin/service/refund-reject
 import { NextResponse } from "next/server";
 import { markRefundRejected } from "@/utils/service_mutation_helpers";
+import { requirePermission } from "@/lib/requirePermission";
 import { z } from "zod";
-
+import { auth } from "@/utils/auth";
 const bodySchema = z.object({
   service_booking_id: z.string(),
   adminNote: z.string().min(3, "Admin note is required"),
@@ -10,8 +10,16 @@ const bodySchema = z.object({
 
 export async function POST(req) {
   try {
+    // Permission check placeholder
+    const permissionCheck = await requirePermission(
+      req,
+      "bookings.reject_refund"
+    );
+    if (permissionCheck) return permissionCheck;
+
     const body = await req.json();
     const parsed = bodySchema.safeParse(body);
+    const session = await auth();
 
     if (!parsed.success) {
       return NextResponse.json(
@@ -25,7 +33,7 @@ export async function POST(req) {
 
     const { service_booking_id, adminNote } = parsed.data;
 
-    const result = await markRefundRejected(service_booking_id, adminNote);
+    const result = await markRefundRejected(service_booking_id, adminNote,session);
 
     if (!result || result.success === false) {
       return NextResponse.json(

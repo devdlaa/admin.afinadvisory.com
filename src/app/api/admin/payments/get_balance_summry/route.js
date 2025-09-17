@@ -1,6 +1,6 @@
 import razorpay from "@/lib/razorpay";
 import { NextResponse } from "next/server";
-
+import { requirePermission } from "@/lib/requirePermission";
 // Helper to convert paise to INR and format as ₹ with commas
 function formatCurrency(amountInPaise) {
   return (amountInPaise / 100).toLocaleString("en-IN", {
@@ -20,6 +20,10 @@ function formatDate(timestamp) {
 
 export async function GET(req) {
   try {
+       // Permission check placeholder
+        const permissionCheck = await requirePermission(req, "payments.access");
+        if (permissionCheck) return permissionCheck;
+
     // 1️⃣ Last processed settlement (most recent completed)
     const processedSettlements = await razorpay.settlements.all({
       status: "processed",

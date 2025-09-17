@@ -3,7 +3,7 @@ import { connectToDatabase } from "@/utils/mongodb";
 import Coupon from "@/models/Coupon";
 import admin from "@/lib/firebase-admin";
 import { z } from "zod";
-
+import { requirePermission } from "@/lib/requirePermission";
 
 
 const searchCouponSchema = z.object({
@@ -26,8 +26,8 @@ function detectField(value) {
 export async function POST(req) {
   try {
     // Permission check placeholder
-    // const permissionCheck = await requirePermission(req, "coupons.read");
-    // if (permissionCheck) return permissionCheck;
+    const permissionCheck = await requirePermission(req, "coupons.access");
+    if (permissionCheck) return permissionCheck;
 
     await connectToDatabase();
 

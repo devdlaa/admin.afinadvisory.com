@@ -1,5 +1,5 @@
 import { Timestamp } from "firebase-admin/firestore";
-
+const FEATURE_ENABLED = process.env.ASSIGNMENT_FEATURE_ENABLED === "true";
 import admin from "@/lib/firebase-admin";
 
 const db = admin.firestore();
@@ -75,14 +75,19 @@ export async function markRefundRequested(serviceId, reason) {
 }
 
 // Step: Refund Rejected by admin
-export async function markRefundRejected(service_booking_id, adminNote) {
+export async function markRefundRejected(
+  service_booking_id,
+  adminNote,
+  session
+) {
   try {
     validateServiceId(service_booking_id);
 
     if (!adminNote || typeof adminNote !== "string") {
       return { success: false, reason: "Admin note is required" };
     }
-
+    const userEmail = session.user.email.toLowerCase();
+    const userRole = session.user.role || "";
     const serviceRef = db
       .collection("service_bookings")
       .doc(service_booking_id);
@@ -95,6 +100,24 @@ export async function markRefundRejected(service_booking_id, adminNote) {
       }
 
       const data = doc.data();
+
+      // 💡 Assignment-based access check
+      if (
+        FEATURE_ENABLED &&
+        userRole !== "superAdmin" &&
+        !data.assignmentManagement?.assignToAll &&
+        !(
+          Array.isArray(data.assignedKeys) &&
+          data.assignedKeys.includes(`email:${userEmail}`)
+        )
+      ) {
+        return {
+          id,
+          success: false,
+          reason: "Not assigned to this booking",
+        };
+      }
+
       const steps = data?.progress_steps?.steps || {};
       const stepKeys = Object.keys(steps).sort((a, b) => Number(a) - Number(b));
       const lastStep = stepKeys.length > 0 ? steps[stepKeys.length - 1] : null;
@@ -359,9 +382,7 @@ export async function markRefundCredited(
       transaction.update(serviceRef, {
         "refundDetails.creditNoteNumber": creditNoteNumber,
         "refundDetails.current_status":
-          refundInfo?.status === "processed"
-            ? "refunded"
-            : "failed",
+          refundInfo?.status === "processed" ? "refunded" : "failed",
         "refundDetails.refundDate": refundTimestamp,
         "refundDetails.refundAmount": refundAmountInRupees,
         "refundDetails.razorpay_refund_details": refundInfo,
@@ -424,13 +445,18 @@ export async function addStepInTransaction(
   });
 }
 
-export async function markServiceFulfilledByAdmin(service_booking_ids) {
+export async function markServiceFulfilledByAdmin(
+  service_booking_ids,
+  session
+) {
   // ✅ Accept single ID or array
   const ids = Array.isArray(service_booking_ids)
     ? service_booking_ids
     : [service_booking_ids];
 
   const results = [];
+  const userEmail = session.user.email.toLowerCase();
+  const userRole = session.user.role || "";
 
   for (const id of ids) {
     validateServiceId(id);
@@ -442,8 +468,24 @@ export async function markServiceFulfilledByAdmin(service_booking_ids) {
         if (!doc.exists) {
           return { id, success: false, reason: "Service not found" };
         }
-
         const data = doc.data();
+        // 💡 Assignment-based access check
+        if (
+          FEATURE_ENABLED &&
+          userRole !== "superAdmin" &&
+          !data.assignmentManagement?.assignToAll &&
+          !(
+            Array.isArray(data.assignedKeys) &&
+            data.assignedKeys.includes(`email:${userEmail}`)
+          )
+        ) {
+          return {
+            id,
+            success: false,
+            reason: "Not assigned to this booking",
+          };
+        }
+
         const steps = data?.progress_steps?.steps || {};
         const stepKeys = Object.keys(steps);
         const lastStep =
@@ -549,11 +591,16 @@ export async function getRefundStatus(serviceId) {
   }
 }
 
-export async function unmarkServiceFulfilledByAdmin(service_booking_id) {
+export async function unmarkServiceFulfilledByAdmin(
+  service_booking_id,
+  session
+) {
   validateServiceId(service_booking_id);
   log(`Unmarking service fulfilled: ${service_booking_id}`);
 
   const serviceRef = db.collection("service_bookings").doc(service_booking_id);
+  const userEmail = session.user.email.toLowerCase();
+  const userRole = session.user.role || "";
 
   try {
     await db.runTransaction(async (transaction) => {
@@ -561,6 +608,24 @@ export async function unmarkServiceFulfilledByAdmin(service_booking_id) {
       if (!doc.exists) throw new Error("Service not found");
 
       const data = doc.data();
+
+      // 💡 Assignment-based access check
+      if (
+        FEATURE_ENABLED &&
+        userRole !== "superAdmin" &&
+        !data.assignmentManagement?.assignToAll &&
+        !(
+          Array.isArray(data.assignedKeys) &&
+          data.assignedKeys.includes(`email:${userEmail}`)
+        )
+      ) {
+        return {
+          id,
+          success: false,
+          reason: "Not assigned to this booking",
+        };
+      }
+
       const steps = { ...data.progress_steps.steps };
 
       // Ensure keys are sorted numerically
@@ -756,4 +821,3 @@ export async function rollbackRefundToInitiatedOrCredited({
     };
   }
 }
-

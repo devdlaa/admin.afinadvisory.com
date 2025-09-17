@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import admin from "@/lib/firebase-admin";
 import { z } from "zod";
-
+import { requirePermission } from "@/lib/requirePermission";
 const db = admin.firestore();
 
 // Zod schema for pagination input
@@ -14,6 +14,13 @@ export async function POST(req) {
   const startTime = Date.now();
 
   try {
+            // Permission check placeholder
+    const permissionCheck = await requirePermission(
+      req,
+      "payment_link.access"
+    );
+    if (permissionCheck) return permissionCheck;
+
     const body = await req.json();
     const parse = PaginationSchema.safeParse(body);
 

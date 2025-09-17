@@ -1,7 +1,9 @@
-import { NextResponse } from "next/server";
 import admin from "@/lib/firebase-admin";
 import { z, ZodError } from "zod";
-import { createSuccessResponse,createErrorResponse } from "@/utils/resposeHandlers";
+import {
+  createSuccessResponse,
+  createErrorResponse,
+} from "@/utils/resposeHandlers";
 import { requirePermission } from "@/lib/requirePermission";
 import { auth as clientAuth } from "@/utils/auth";
 
@@ -130,7 +132,7 @@ const AddUserSchema = z
         .string()
         .optional()
         .refine((val) => {
-          if (!val) return true; 
+          if (!val) return true;
           return INDIAN_STATES.includes(val);
         }, "Invalid state. Please select a valid Indian state.")
         .default(""),
@@ -155,8 +157,6 @@ const AddUserSchema = z
       path: ["alternatePhone"],
     }
   );
-
-
 
 // FIXED: Enhanced duplicate checking with proper error handling
 async function checkDuplicates(email, phoneNumber, alternatePhone) {

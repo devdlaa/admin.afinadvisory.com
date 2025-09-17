@@ -161,7 +161,7 @@ export default function CouponDetailsModal({ coupon, onClose }) {
                       
                       {coupon.discount.maxDiscount && (
                         <div className="max-discount">
-                          Maximum discount: ${coupon.discount.maxDiscount}
+                          Maximum discount: ₹{coupon.discount.maxDiscount}
                         </div>
                       )}
                     </div>

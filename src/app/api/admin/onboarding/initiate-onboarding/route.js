@@ -7,8 +7,6 @@ import { authenticator } from "otplib";
 // Input validation schema
 const GenerateQrSchema = z.object({
   token: z.string(),
-  password: z.string().min(6),
-  confirmPassword: z.string().min(6),
 });
 
 // JWT secret for decoding invitation token
@@ -17,14 +15,7 @@ const INVITE_JWT_SECRET = process.env.JWT_SECRET;
 export async function POST(req) {
   try {
     const body = await req.json();
-    const { token, password, confirmPassword } = GenerateQrSchema.parse(body);
-
-    if (password !== confirmPassword) {
-      return NextResponse.json(
-        { success: false, error: "Passwords do not match" },
-        { status: 400 }
-      );
-    }
+    const { token } = GenerateQrSchema.parse(body);
 
     // Decode and verify JWT token
     let payload;
@@ -46,7 +37,7 @@ export async function POST(req) {
     }
 
     // Check if token purpose is valid for this operation
-    if (purpose !== "user_invitation" && purpose !== "password_reset") {
+    if (purpose !== "user_invitation" && purpose !== "onboarding_reset") {
       return NextResponse.json(
         { success: false, error: "Invalid token purpose" },
         { status: 400 }
@@ -87,15 +78,15 @@ export async function POST(req) {
           { status: 403 }
         );
       }
-    } else if (purpose === "password_reset") {
-      // For password reset, user must be active
+    } else if (purpose === "onboarding_reset") {
+      // For onboarding reset, user must be active
       if (userData.status !== "active") {
         return NextResponse.json(
           { success: false, error: "User account is not active" },
           { status: 403 }
         );
       }
-      
+
       // Check if user has Firebase Auth account
       if (!userData.firebaseAuthUid) {
         return NextResponse.json(
@@ -137,22 +128,22 @@ export async function POST(req) {
     };
 
     // Add purpose-specific data
-    if (purpose === "password_reset") {
-      updateData.passwordResetInProgress = true;
-      updateData.passwordResetInitiatedAt = new Date().toISOString();
+    if (purpose === "onboarding_reset") {
+      updateData.reonboardingResetInProgress = true; //passwordResetInProgress
+      updateData.reonboardingResetInitiatedAt = new Date().toISOString(); //passwordResetInitiatedAt
     }
 
     await userRef.update(updateData);
 
     return NextResponse.json({
       success: true,
-      message: purpose === "password_reset" 
-        ? "Password reset TOTP generated" 
-        : "TOTP secret generated",
+      message:
+        purpose === "onboarding_reset"
+          ? "Password reset TOTP generated"
+          : "TOTP secret generated",
       qrCodeUrl: otpauth,
-      purpose, 
+      purpose,
     });
-
   } catch (err) {
     if (err instanceof ZodError) {
       return NextResponse.json(

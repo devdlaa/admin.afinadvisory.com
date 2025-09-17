@@ -24,6 +24,7 @@ import {
   Rss,
   UsersRound,
   Link,
+  ShieldAlert,
 } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
 import Image from "next/image";
@@ -53,6 +54,7 @@ const Sidebar = () => {
       "/dashboard/profile": "profile",
       "/dashboard/settings": "settings",
       "/dashboard/manage-team": "users",
+      "/dashboard/user-profile": "my-profile",
     };
 
     // Sort paths by length (longest first) to ensure more specific paths are matched first
@@ -210,15 +212,15 @@ const Sidebar = () => {
 
   const bottomMenuItems = [
     {
-      id: "blogs",
-      label: "Manage Blogs",
-      icon: Rss,
-      path: "https://cms.afinadvisory.com/",
+      id: "my-profile",
+      label: "My Profile",
+      icon: UsersRound,
+      path: "/dashboard/user-profile",
     },
     {
       id: "users",
       label: "Manage Team",
-      icon: UsersRound,
+      icon: ShieldAlert,
       path: "/dashboard/manage-team",
       permission: "users.access",
     },

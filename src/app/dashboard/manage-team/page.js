@@ -2,7 +2,7 @@
 "use client";
 import { useState, useEffect, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { showSuccess,showError,showWarning } from "@/app/components/toastService";
+
 import {
   Plus,
   Search,
@@ -29,7 +29,9 @@ import {
   setSearchMode,
   fetchPermissions,
   resendInvite,
-  resetUserPassword,
+  resetUserOnboarding,
+  sendPasswordResetLink
+  
 } from "@/store/slices/userSlice";
 
 import InviteUserDialog from "../../components/InviteUserDialog/InviteUserDialog";
@@ -62,7 +64,8 @@ const UsersPage = () => {
     permissionsData,
     permissionsLoading,
     permissionsError,
-    resettingPassword,
+    resettingOnboarding, 
+    resettingPassword
   } = useSelector((state) => state.user);
 
   // Dialog states (keeping local as they don't need global state)
@@ -439,9 +442,16 @@ const UsersPage = () => {
                 setSelectedUser(user);
                 setDeleteDialogOpen(true);
               }}
-              onPasswordResetLinkSend={(user) => {
-                dispatch(resetUserPassword({ email: user?.email }));
+              onOmboardingResetLinkSend={(user) => {
+                dispatch(resetUserOnboarding({ email: user?.email }));
               }}
+
+               onResetPwdLinkSend={(user) => {
+                dispatch(sendPasswordResetLink({ email: user?.email }));
+              }}
+
+
+              sendPasswordResetLink
               onResendInvite={(user) => {
                 dispatch(resendInvite({ email: user?.email || null }));
               }}
@@ -450,7 +460,9 @@ const UsersPage = () => {
               onPageChange={handlePageChange}
               totalUsers={displayUsers?.length}
               loading={loading}
+              resettingOnboarding={resettingOnboarding}
               resettingPassword={resettingPassword}
+              
             />
 
             {/* Load More Button (outside table for seamless experience) */}

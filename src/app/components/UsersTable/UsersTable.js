@@ -13,6 +13,8 @@ import {
   CheckCircle,
   XCircle,
   LockKeyholeOpen,
+  UserRound,
+  AlertTriangle,
 } from "lucide-react";
 
 import {
@@ -23,6 +25,11 @@ import {
   CircularProgress,
   Snackbar,
   Alert,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Typography,
 } from "@mui/material";
 import "./UsersTable.scss";
 import { useSelector } from "react-redux";
@@ -37,8 +44,10 @@ const UsersTable = ({
   totalPages,
   onPageChange,
   totalUsers,
+  resettingOnboarding,
+  onOmboardingResetLinkSend,
+  onResetPwdLinkSend,
   resettingPassword,
-  onPasswordResetLinkSend,
 }) => {
   const [sortField, setSortField] = useState("name");
   const [sortDirection, setSortDirection] = useState("asc");
@@ -47,6 +56,15 @@ const UsersTable = ({
 
   const [open, setOpen] = useState(false);
   const [alert, setAlert] = useState(null);
+
+  // Confirmation dialog state
+  const [confirmDialog, setConfirmDialog] = useState({
+    open: false,
+    title: "",
+    message: "",
+    action: null,
+    user: null,
+  });
 
   const {
     reinviting,
@@ -70,6 +88,34 @@ const UsersTable = ({
   const handleClose = () => {
     setOpen(false);
   };
+
+  const handleConfirmDialogClose = () => {
+    setConfirmDialog({
+      open: false,
+      title: "",
+      message: "",
+      action: null,
+      user: null,
+    });
+  };
+
+  const handleConfirmAction = () => {
+    if (confirmDialog.action && confirmDialog.user) {
+      confirmDialog.action(confirmDialog.user);
+    }
+    handleConfirmDialogClose();
+  };
+
+  const showConfirmDialog = (title, message, action, user) => {
+    setConfirmDialog({
+      open: true,
+      title,
+      message,
+      action,
+      user,
+    });
+  };
+
   const getStatusBadge = (status) => {
     const statusConfig = {
       active: { icon: CheckCircle, class: "status-active", label: "Active" },
@@ -119,6 +165,30 @@ const UsersTable = ({
   const handleMenuAction = (action) => {
     if (selectedUser) {
       action(selectedUser);
+    }
+    handleMenuClose();
+  };
+
+  const handlePasswordReset = () => {
+    if (selectedUser) {
+      showConfirmDialog(
+        "Send Password Reset Link",
+        `Are you sure you want to send a password reset link to ${selectedUser.name} (${selectedUser.email})? This will allow them to reset their password.`,
+        onResetPwdLinkSend,
+        selectedUser
+      );
+    }
+    handleMenuClose();
+  };
+
+  const handleOnboardingReset = () => {
+    if (selectedUser) {
+      showConfirmDialog(
+        "Reset Onboarding Flow",
+        `Are you sure you want to reset the onboarding flow for ${selectedUser.name} (${selectedUser.email})? This will restart their entire onboarding process.`,
+        onOmboardingResetLinkSend,
+        selectedUser
+      );
     }
     handleMenuClose();
   };
@@ -174,6 +244,57 @@ const UsersTable = ({
       >
         {alert}
       </Snackbar>
+
+      {/* Confirmation Dialog */}
+      <Dialog
+        open={confirmDialog.open}
+        onClose={handleConfirmDialogClose}
+        className="teams-management-dialog"
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle className="teams-management-dialog__title">
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <AlertTriangle size={24} color="#f59e0b" />
+            {confirmDialog.title}
+          </div>
+        </DialogTitle>
+        <DialogContent className="teams-management-dialog__content">
+          <Typography
+            variant="body1"
+            style={{ color: "#374151", lineHeight: 1.6 }}
+          >
+            {confirmDialog.message}
+          </Typography>
+        </DialogContent>
+        <DialogActions className="teams-management-dialog__actions">
+          <Button
+            onClick={handleConfirmDialogClose}
+            variant="outlined"
+            style={{
+              borderColor: "#d1d5db",
+              color: "#6b7280",
+              textTransform: "none",
+              fontWeight: 500,
+            }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleConfirmAction}
+            variant="contained"
+            style={{
+              backgroundColor: "#3b82f6",
+              color: "white",
+              textTransform: "none",
+              fontWeight: 500,
+            }}
+          >
+            Continue
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       <div className="users-table-container">
         <div className="table-wrapper">
           <table className="users-table">
@@ -310,11 +431,7 @@ const UsersTable = ({
                         </MenuItem>
                       )}
                       <MenuItem
-                        onClick={() => {
-                          if (!resettingPassword) {
-                            handleMenuAction(onPasswordResetLinkSend);
-                          }
-                        }}
+                        onClick={handlePasswordReset}
                         className="dropdown-item"
                         disabled={resettingPassword}
                       >
@@ -327,8 +444,23 @@ const UsersTable = ({
                           />
                         )}
 
-                        <span>Sent Password Link</span>
+                        <span>Password Reset Link</span>
                       </MenuItem>
+
+                      <MenuItem
+                        onClick={handleOnboardingReset}
+                        className="dropdown-item"
+                        disabled={resettingOnboarding}
+                      >
+                        {resettingOnboarding ? (
+                          <CircularProgress size={16} />
+                        ) : (
+                          <UserRound size={16} style={{ marginRight: 8 }} />
+                        )}
+
+                        <span>Onboarding Reset Flow</span>
+                      </MenuItem>
+
                       <MenuItem
                         onClick={() => handleMenuAction(onDelete)}
                         className="dropdown-item delete-item"

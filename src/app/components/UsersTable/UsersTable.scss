@@ -63,6 +63,7 @@
 
     tbody {
       tr {
+                display: table-row !important;
         border-bottom: 1px solid var(--border-color);
         transition: background-color 0.2s ease;
 
@@ -419,5 +420,49 @@
     min-width: 32px;
     height: 32px;
     font-size: 13px;
+  }
+}
+
+.teams-management-dialog {
+  .MuiDialog-paper {
+    border-radius: 12px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1),
+      0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  }
+
+  &__title {
+    padding: 24px 24px 16px 24px;
+    border-bottom: 1px solid #e5e7eb;
+
+    .MuiDialogTitle-root {
+      padding: 0;
+      font-weight: 600;
+      font-size: 18px;
+      color: #111827;
+    }
+  }
+
+  &__content {
+    padding: 20px 24px;
+
+    .MuiDialogContent-root {
+      padding: 0;
+    }
+  }
+
+  &__actions {
+    padding: 16px 24px 24px 24px;
+    gap: 12px;
+
+    .MuiDialogActions-root {
+      padding: 0;
+    }
+
+    .MuiButton-root {
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      min-width: 80px;
+    }
   }
 }

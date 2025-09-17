@@ -1,9 +1,16 @@
 import admin from "@/lib/firebase-admin";
 import razorpay from "@/lib/razorpay";
 import { NextResponse } from "next/server";
-
+import { requirePermission } from "@/lib/requirePermission";
 export async function POST(req) {
   try {
+        // Permission check placeholder
+    const permissionCheck = await requirePermission(
+      req,
+      "bookings.create_new_link"
+    );
+    if (permissionCheck) return permissionCheck;
+
     const body = await req.json();
 
     // --- 1. Validate incoming notes object ---

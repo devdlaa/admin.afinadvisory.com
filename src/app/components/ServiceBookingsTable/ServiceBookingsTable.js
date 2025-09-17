@@ -46,6 +46,7 @@ const statusConfig = {
 
 const tabs = [
   { id: "all", label: "All Bookings" },
+  { id: "payment_pending", label: "Payment Pending" },
   { id: "processing", label: "In Progress" },
   { id: "completed", label: "Completed" },
   { id: "refund_requested", label: "Refund Requested" },
@@ -55,7 +56,7 @@ const tabs = [
 const ServiceBookingsTable = ({ onQuickView, actionButtons = [] }) => {
   const dispatch = useDispatch();
   const router = useRouter();
-  
+
   // Local state for tabs and sorting
   const [activeTab, setActiveTab] = useState("all");
   const [sortConfig, setSortConfig] = useState({
@@ -99,9 +100,6 @@ const ServiceBookingsTable = ({ onQuickView, actionButtons = [] }) => {
     dispatch(selectBooking(bookingId));
   };
 
-  // Handle select all checkbox
-  const handleSelectAll = () => {};
-
   const getStatusClass = (status) => {
     return `status-badge status-${statusConfig[status]?.color || "default"}`;
   };
@@ -118,16 +116,29 @@ const ServiceBookingsTable = ({ onQuickView, actionButtons = [] }) => {
   // Filter bookings based on active tab
   const filteredBookings = useMemo(() => {
     let baseBookings = isSearchActive ? searchedBookings : bookings;
-    
+
     switch (activeTab) {
+      case "payment_pending":
+        return baseBookings.filter(
+          (booking) => booking.master_status === "payment_pending"
+        );
       case "processing":
-        return baseBookings.filter(booking => booking.master_status === "processing");
+        return baseBookings.filter(
+          (booking) => booking.master_status === "processing"
+        );
+
       case "completed":
-        return baseBookings.filter(booking => booking.master_status === "completed");
+        return baseBookings.filter(
+          (booking) => booking.master_status === "completed"
+        );
       case "refunded":
-        return baseBookings.filter(booking => booking.master_status === "refunded");
+        return baseBookings.filter(
+          (booking) => booking.master_status === "refunded"
+        );
       case "refund_requested":
-        return baseBookings.filter(booking => booking.isRefundFlagged === true);
+        return baseBookings.filter(
+          (booking) => booking.isRefundFlagged === true
+        );
       default:
         return baseBookings;
     }
@@ -136,13 +147,25 @@ const ServiceBookingsTable = ({ onQuickView, actionButtons = [] }) => {
   // Calculate counts for each tab
   const tabCounts = useMemo(() => {
     const baseBookings = isSearchActive ? searchedBookings : bookings;
-    
+
     return {
       all: baseBookings.length,
-      processing: baseBookings.filter(booking => booking.master_status === "processing").length,
-      completed: baseBookings.filter(booking => booking.master_status === "completed").length,
-      refunded: baseBookings.filter(booking => booking.master_status === "refunded").length,
-      refund_requested: baseBookings.filter(booking => booking.isRefundFlagged === true).length,
+      processing: baseBookings.filter(
+        (booking) => booking.master_status === "processing"
+      ).length,
+      paymentpending: baseBookings.filter(
+        (booking) => booking.master_status === "payment_pending"
+      ).length,
+
+      completed: baseBookings.filter(
+        (booking) => booking.master_status === "completed"
+      ).length,
+      refunded: baseBookings.filter(
+        (booking) => booking.master_status === "refunded"
+      ).length,
+      refund_requested: baseBookings.filter(
+        (booking) => booking.isRefundFlagged === true
+      ).length,
     };
   }, [bookings, searchedBookings, isSearchActive]);
 
@@ -159,8 +182,12 @@ const ServiceBookingsTable = ({ onQuickView, actionButtons = [] }) => {
           bValue = b.service_details?.service_name || "";
           break;
         case "customer_name":
-          aValue = `${a.user_details?.firstName || ""} ${a.user_details?.lastName || ""}`.trim();
-          bValue = `${b.user_details?.firstName || ""} ${b.user_details?.lastName || ""}`.trim();
+          aValue = `${a.user_details?.firstName || ""} ${
+            a.user_details?.lastName || ""
+          }`.trim();
+          bValue = `${b.user_details?.firstName || ""} ${
+            b.user_details?.lastName || ""
+          }`.trim();
           break;
         case "plan_name":
           aValue = a.plan_details?.plan_name || "";
@@ -190,7 +217,7 @@ const ServiceBookingsTable = ({ onQuickView, actionButtons = [] }) => {
 
   // Handle sorting
   const handleSort = (key) => {
-    setSortConfig(prev => ({
+    setSortConfig((prev) => ({
       key,
       direction: prev.key === key && prev.direction === "asc" ? "desc" : "asc",
     }));
@@ -201,9 +228,11 @@ const ServiceBookingsTable = ({ onQuickView, actionButtons = [] }) => {
     if (sortConfig.key !== columnKey) {
       return <ChevronUp size={14} className="sort-icon inactive" />;
     }
-    return sortConfig.direction === "asc" ? 
-      <ChevronUp size={14} className="sort-icon active" /> : 
-      <ChevronDown size={14} className="sort-icon active" />;
+    return sortConfig.direction === "asc" ? (
+      <ChevronUp size={14} className="sort-icon active" />
+    ) : (
+      <ChevronDown size={14} className="sort-icon active" />
+    );
   };
 
   return (
@@ -228,23 +257,38 @@ const ServiceBookingsTable = ({ onQuickView, actionButtons = [] }) => {
           {/* Fixed Table Header */}
           <div className="table-head">
             <div className="table-row header-row">
-              <div className="table-cell booking-cell sortable" onClick={() => handleSort("service_name")}>
+              <div
+                className="table-cell booking-cell sortable"
+                onClick={() => handleSort("service_name")}
+              >
                 <span>Service Details</span>
                 {renderSortIcon("service_name")}
               </div>
-              <div className="table-cell customer-cell sortable" onClick={() => handleSort("customer_name")}>
+              <div
+                className="table-cell customer-cell sortable"
+                onClick={() => handleSort("customer_name")}
+              >
                 <span>Customer</span>
                 {renderSortIcon("customer_name")}
               </div>
-              <div className="table-cell plan-cell sortable" onClick={() => handleSort("plan_name")}>
+              <div
+                className="table-cell plan-cell sortable"
+                onClick={() => handleSort("plan_name")}
+              >
                 <span>Plan</span>
                 {renderSortIcon("plan_name")}
               </div>
-              <div className="table-cell date-cell sortable" onClick={() => handleSort("created_at")}>
+              <div
+                className="table-cell date-cell sortable"
+                onClick={() => handleSort("created_at")}
+              >
                 <span>Date</span>
                 {renderSortIcon("created_at")}
               </div>
-              <div className="table-cell status-cell sortable" onClick={() => handleSort("master_status")}>
+              <div
+                className="table-cell status-cell sortable"
+                onClick={() => handleSort("master_status")}
+              >
                 <span>Status</span>
                 {renderSortIcon("master_status")}
               </div>

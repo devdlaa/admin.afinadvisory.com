@@ -1,12 +1,15 @@
 import razorpay from "@/lib/razorpay";
 import { NextResponse } from "next/server";
-
+import { requirePermission } from "@/lib/requirePermission";
 // Default pagination
 const DEFAULT_COUNT = 10;
 const DEFAULT_SKIP = 0;
 
 export async function POST(req) {
   try {
+     // Permission check placeholder
+        const permissionCheck = await requirePermission(req, "payments.access");
+        if (permissionCheck) return permissionCheck;
     const body = await req.json();
     const count = parseInt(body.count) || DEFAULT_COUNT;
     const skip = parseInt(body.skip) || DEFAULT_SKIP;

@@ -172,7 +172,7 @@ export const searchInfluencer = createAsyncThunk(
   "coupons/searchInfluencer",
   async ({ email }, { rejectWithValue }) => {
     try {
-      const response = await fetch("/api/admin/influencers/get", {
+      const response = await fetch("/api/admin/influencers/get_by_email", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -181,13 +181,15 @@ export const searchInfluencer = createAsyncThunk(
       });
 
       const data = await response.json();
+   
 
       if (!response.ok) {
         return rejectWithValue(data.error || "Influencer not found");
       }
 
-      return data.data;
+      return data;
     } catch (error) {
+ 
       return rejectWithValue(error.message);
     }
   }
@@ -195,7 +197,7 @@ export const searchInfluencer = createAsyncThunk(
 
 const initialState = {
   coupons: [],
-  allCoupons: [], // Store all fetched coupons
+  allCoupons: [],
   services: [],
   currentInfluencer: null,
   hasFeched: false,
@@ -358,7 +360,8 @@ const couponsSlice = createSlice({
       })
       .addCase(searchInfluencer.fulfilled, (state, action) => {
         state.influencerLoading = false;
-        state.currentInfluencer = action.payload;
+  
+        state.currentInfluencer = action.payload?.influencer || null;
       })
       .addCase(searchInfluencer.rejected, (state, action) => {
         state.influencerLoading = false;

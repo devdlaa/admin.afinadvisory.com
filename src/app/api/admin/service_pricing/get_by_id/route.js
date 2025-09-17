@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import admin from "@/lib/firebase-admin";
-
+import { requirePermission } from "@/lib/requirePermission";
 const schema = z.object({
   serviceId: z.string().min(1, "serviceId is required"),
 });
@@ -10,6 +10,12 @@ const db = admin.firestore();
 
 export async function POST(req) {
   try {
+    // Permission check placeholder
+    const permissionCheck = await requirePermission(
+      req,
+      "service_pricing.access"
+    );
+    if (permissionCheck) return permissionCheck;
     const body = await req.json();
 
     // ✅ Validate body with zod

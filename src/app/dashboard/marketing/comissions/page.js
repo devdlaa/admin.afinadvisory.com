@@ -56,6 +56,8 @@ const CommissionsManagement = () => {
     isFetching,
   } = useSelector((state) => state.commissions);
 
+
+
   // Local state
   const [searchValue, setSearchValue] = useState("");
   const [showFilters, setShowFilters] = useState(false);

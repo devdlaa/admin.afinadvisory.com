@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { Eye, EyeOff, ArrowRight, ArrowLeft, Info, LogIn } from "lucide-react";
@@ -8,10 +8,17 @@ import { auth } from "@/lib/firebase";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import "./login.scss";
 
-const LoginPage = () => {
+// Create a separate component that uses useSearchParams
+const LoginContent = () => {
   const searchParams = useSearchParams();
   const [currentStep, setCurrentStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Turnstile refs and state
+  const turnstileRef = useRef(null);
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const [turnstileLoaded, setTurnstileLoaded] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
 
   // Step 1 - Email and Password
   const [loginData, setLoginData] = useState({
@@ -27,6 +34,49 @@ const LoginPage = () => {
 
   // Store Firebase ID token for NextAuth
   const [firebaseIdToken, setFirebaseIdToken] = useState("");
+
+  // Handle client-side mounting
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  // Load Cloudflare Turnstile script
+  useEffect(() => {
+    if (!isMounted) return;
+    
+    const script = document.createElement('script');
+    script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
+    script.async = true;
+    script.onload = () => setTurnstileLoaded(true);
+    document.head.appendChild(script);
+
+    return () => {
+      // Cleanup script on unmount
+      if (document.head.contains(script)) {
+        document.head.removeChild(script);
+      }
+    };
+  }, [isMounted]);
+
+  // Initialize Turnstile widget when script loads
+  useEffect(() => {
+    if (turnstileLoaded && window.turnstile && turnstileRef.current) {
+      window.turnstile.render(turnstileRef.current, {
+        sitekey: process.env.NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY, // Add your site key here
+        callback: function(token) {
+          setTurnstileToken(token);
+        },
+        'error-callback': function() {
+          setTurnstileToken("");
+        },
+        'expired-callback': function() {
+          setTurnstileToken("");
+        },
+        theme: 'light', // or 'dark' to match your design
+        size: 'normal', // 'normal', 'compact', or 'invisible'
+      });
+    }
+  }, [turnstileLoaded]);
 
   // Handle URL error parameter on component mount
   useEffect(() => {
@@ -56,6 +106,11 @@ const LoginPage = () => {
       errors.password = "Password is required";
     }
 
+    // Check if Turnstile is completed (only if mounted)
+    if (isMounted && !turnstileToken) {
+      errors.turnstile = "Please complete the security verification";
+    }
+
     setLoginErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -69,13 +124,38 @@ const LoginPage = () => {
     setLoginErrors({});
 
     try {
+      // First verify Turnstile token with your backend
+      const turnstileResponse = await fetch('/api/verify-turnstile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          token: turnstileToken,
+        }),
+      });
+
+      const turnstileResult = await turnstileResponse.json();
+      
+      if (!turnstileResult.success) {
+        setLoginErrors({
+          general: "Security verification failed. Please try again.",
+        });
+        // Reset Turnstile
+        if (window.turnstile) {
+          window.turnstile.reset();
+        }
+        setTurnstileToken("");
+        return;
+      }
+
       // Sign in with Firebase to get ID token
       const userCredential = await signInWithEmailAndPassword(
         auth,
         loginData.email,
         loginData.password
       );
-      console.log("userCredential", userCredential);
+      
       // Get the ID token
       const idToken = await userCredential.user.getIdToken();
       setFirebaseIdToken(idToken);
@@ -83,7 +163,7 @@ const LoginPage = () => {
       // Move to TOTP step
       setCurrentStep(2);
     } catch (error) {
-      console.error("Firebase login error:", error);
+      console.error("Login error:", error);
 
       // Handle different Firebase error codes
       let errorMessage = "Invalid email or password. Please try again.";
@@ -103,6 +183,12 @@ const LoginPage = () => {
       setLoginErrors({
         general: errorMessage,
       });
+
+      // Reset Turnstile on error
+      if (window.turnstile) {
+        window.turnstile.reset();
+      }
+      setTurnstileToken("");
     } finally {
       setIsLoading(false);
     }
@@ -124,14 +210,14 @@ const LoginPage = () => {
       const result = await signIn("credentials", {
         idToken: firebaseIdToken,
         totpCode: totpCode,
-        redirect: false, // ✅ This prevents redirect on error
+        redirect: false,
         callbackUrl: "/dashboard",
       });
 
       if (result?.error) {
         // Stay on step 2 and show error
         setTotpError("Invalid verification code. Please try again.");
-        setTotpCode(""); // Clear the code for retry
+        setTotpCode("");
       } else if (result?.ok) {
         // Success - redirect to dashboard
         window.location.href = "/dashboard";
@@ -149,6 +235,11 @@ const LoginPage = () => {
     setTotpCode("");
     setTotpError("");
     setFirebaseIdToken("");
+    // Reset Turnstile when going back
+    if (window.turnstile) {
+      window.turnstile.reset();
+    }
+    setTurnstileToken("");
   };
 
   const stepStyle = {
@@ -253,6 +344,19 @@ const LoginPage = () => {
                   )}
                 </div>
 
+                {/* Cloudflare Turnstile */}
+                {isMounted && (
+                  <div className="lg-form-group">
+                    <div 
+                      ref={turnstileRef}
+                      className="lg-turnstile-container"
+                    ></div>
+                    {loginErrors.turnstile && (
+                      <span className="lg-error-text">{loginErrors.turnstile}</span>
+                    )}
+                  </div>
+                )}
+
                 <button
                   type="button"
                   className="lg-login-btn"
@@ -339,6 +443,39 @@ const LoginPage = () => {
         </div>
       </div>
     </div>
+  );
+};
+
+// Loading fallback component
+const LoginPageFallback = () => {
+  return (
+    <div className="lg-login-container">
+      <div className="lg-login-card">
+        <div className="lg-step-header">
+          <img
+            src="/assets/svg/afin_admin_logo.svg"
+            alt="AFINTHRIVE ADVISORY ADMIN LOGIN"
+          />
+        </div>
+        <div className="lg-steps-container">
+          <div className="lg-step">
+            <div className="lg-step-title">
+              <h2>Loading...</h2>
+              <p>Please wait while we prepare your login page</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Main component wrapped with Suspense
+const LoginPage = () => {
+  return (
+    <Suspense fallback={<LoginPageFallback />}>
+      <LoginContent />
+    </Suspense>
   );
 };
 

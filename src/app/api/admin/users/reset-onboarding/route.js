@@ -9,8 +9,9 @@ const FRONTEND_URL =
   process.env.NEXT_PUBLIC_WEB_URL || "https://afinadvisory.com";
 const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || "info@afinadvisory.com";
 
-// Password Reset Request Schema
-const PasswordResetSchema = z.object({
+// CHANGED: Updated schema name and comments from "Password Reset" to "Onboarding Reset"
+// Onboarding Reset Request Schema
+const OnboardingResetSchema = z.object({
   email: z
     .string()
     .email("Please provide a valid email address")
@@ -52,22 +53,24 @@ const createErrorResponse = (errors, status = 400, message = null) => {
   );
 };
 
-// Send password reset email
-async function sendPasswordResetEmail(userData, resetToken) {
+// CHANGED: Function name and comments updated from "sendPasswordResetEmail" to "sendOnboardingResetEmail"
+// Send onboarding reset email
+async function sendOnboardingResetEmail(userData, resetToken) {
   try {
     // Validate required data
     if (!userData?.email || !userData?.name || !resetToken) {
-      throw new Error("Missing required data for sending password reset email");
+      throw new Error("Missing required data for sending onboarding reset email");
     }
 
-    const resetLink = `${FRONTEND_URL}/reset-password?token=${resetToken}`;
+    // CHANGED: Updated URL path from "/reset-password" to "/reset-onboarding" and variable name
+    const onboardingResetLink = `${FRONTEND_URL}user-onboarding?token=${resetToken}`;
 
     const emailResult = await SEND_EMAIL({
       to: userData.email,
-      type: "SEND_USER_PWD_RESET_LINK",
+      type: "SEND_USER_ONBOARDING_RESET_LINK", 
       variables: {
         recipientName: userData.name,
-        resetLink,
+        onboardingResetLink: onboardingResetLink,
         expiryHours: 24,
       },
     });
@@ -80,17 +83,19 @@ async function sendPasswordResetEmail(userData, resetToken) {
 
     return { success: true };
   } catch (error) {
-    console.error("Password reset email sending failed:", error);
+  
+    console.error("Onboarding reset email sending failed:", error);
     return {
       success: false,
-      error: error.message || "Failed to send password reset email",
+      error: error.message || "Failed to send onboarding reset email",
     };
   }
 }
 
 export async function POST(req) {
   try {
-    const permissionCheck = await requirePermission(req, "users.reset_password");
+   
+    const permissionCheck = await requirePermission(req, "users.reset-onboarding");
     if (permissionCheck) return permissionCheck;
 
     if (!JWT_SECRET) {
@@ -146,15 +151,15 @@ export async function POST(req) {
       return createErrorResponse(
         [
           {
-            field: "body",
-            message: "Invalid JSON format in request body",
-            code: "JSON_PARSE_ERROR",
-          },
-        ],
-        400,
-        "Invalid JSON in request body"
-      );
-    }
+              field: "body",
+              message: "Invalid JSON format in request body",
+              code: "JSON_PARSE_ERROR",
+            },
+          ],
+          400,
+          "Invalid JSON in request body"
+        );
+      }
 
     // Input validation
     let validatedData;
@@ -173,7 +178,8 @@ export async function POST(req) {
         );
       }
 
-      validatedData = PasswordResetSchema.parse(body);
+
+      validatedData = OnboardingResetSchema.parse(body);
     } catch (validationError) {
       console.error("Validation error:", validationError);
 
@@ -234,10 +240,9 @@ export async function POST(req) {
         .get();
 
       if (userQuery.empty) {
-        // For security reasons, we don't reveal if email exists or not
-        // But we still return success to prevent email enumeration
+   
         return createSuccessResponse(
-          "If a user with this email exists, a password reset link has been sent",
+          "If a user with this email exists, an onboarding reset link has been sent",
           { emailSent: false },
           200
         );
@@ -245,10 +250,10 @@ export async function POST(req) {
 
       existingUser = userQuery.docs[0].data();
 
-      // Additional check: only send reset link for active users
+     
       if (existingUser.status !== "active") {
         return createSuccessResponse(
-          "If a user with this email exists, a password reset link has been sent",
+          "If a user with this email exists, an onboarding reset link has been sent",
           { emailSent: false },
           200
         );
@@ -276,7 +281,7 @@ export async function POST(req) {
           email: existingUser.email,
           userCode: existingUser.userCode,
           name: existingUser.name,
-          purpose: "password_reset",
+          purpose: "onboarding_reset", // CHANGED: Updated purpose from "password_reset" to "onboarding_reset"
         },
         JWT_SECRET,
         { expiresIn: "24h" }
@@ -307,7 +312,8 @@ export async function POST(req) {
       await userDocRef.update({
         resetToken,
         resetExpiresAt,
-        lastPasswordResetRequestAt: now,
+        // CHANGED: Updated field name from "lastPasswordResetRequestAt" to "lastOnboardingResetRequestAt"
+        lastOnboardingResetRequestAt: now,
         updatedAt: now,
       });
     } catch (updateError) {
@@ -321,12 +327,14 @@ export async function POST(req) {
           },
         ],
         500,
-        "Failed to process password reset request"
+        // CHANGED: Updated error message from "password reset" to "onboarding reset"
+        "Failed to process onboarding reset request"
       );
     }
 
-    // Send password reset email
-    const emailResult = await sendPasswordResetEmail(existingUser, resetToken);
+    // CHANGED: Updated function call from sendPasswordResetEmail to sendOnboardingResetEmail
+    // Send onboarding reset email
+    const emailResult = await sendOnboardingResetEmail(existingUser, resetToken);
 
     // Prepare response
     const responseData = {
@@ -335,26 +343,30 @@ export async function POST(req) {
     };
 
     if (!emailResult.success) {
+      // CHANGED: Updated warning message from "Reset request" to "Onboarding reset request"
       responseData.warning =
-        "Reset request processed but email could not be sent";
+        "Onboarding reset request processed but email could not be sent";
       responseData.emailError = emailResult.error;
 
+      // CHANGED: Updated console log message from "Password reset" to "Onboarding reset"
       console.warn(
-        `Password reset requested for ${validatedData.email} but email failed:`,
+        `Onboarding reset requested for ${validatedData.email} but email failed:`,
         emailResult.error
       );
     }
 
+    // CHANGED: Updated success and error messages from "Password reset" to "Onboarding reset"
     const message = emailResult.success
-      ? "Password reset link has been sent to your email"
-      : "Password reset request processed but email could not be sent";
+      ? "Onboarding reset link has been sent to your email"
+      : "Onboarding reset request processed but email could not be sent";
 
     const status = emailResult.success ? 200 : 206; // 206 = Partial Content
 
     return createSuccessResponse(message, responseData, status);
   } catch (error) {
+    // CHANGED: Updated error log from "reset-password" to "reset-onboarding"
     console.error(
-      "Unexpected error in POST /api/admin/users/reset-password:",
+      "Unexpected error in POST /api/admin/users/reset-onboarding:",
       error
     );
 

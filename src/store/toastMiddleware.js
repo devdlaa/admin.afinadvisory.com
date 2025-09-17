@@ -5,7 +5,6 @@ import {
 } from "@/app/components/toastService";
 
 const toastMiddleware = () => (next) => (action) => {
-
   // Success messages
   if (action.type.endsWith("/fulfilled")) {
     switch (action.type) {
@@ -66,10 +65,20 @@ const toastMiddleware = () => (next) => (action) => {
         showSuccess("Invitation resent successfully");
         break;
 
-      // Reset User Password
-      case "users/resetUserPassword/fulfilled":
+      // Reset User Onboarding
+      case "users/resetUserOnboarding/fulfilled":
         const resetPayload = action.payload;
         if (resetPayload?.data?.emailSent) {
+          showSuccess("Onboarding reset link sent successfully");
+        } else {
+          showInfo("Onboarding reset processed but email could not be sent");
+        }
+        break;
+
+      // Reset User Onboarding
+      case "users/sendPasswordResetLink/fulfilled":
+        const resetPassowrdLinkPayload = action.payload;
+        if (resetPassowrdLinkPayload?.success) {
           showSuccess("Password reset link sent successfully");
         } else {
           showInfo("Password reset processed but email could not be sent");
@@ -355,7 +364,7 @@ const toastMiddleware = () => (next) => (action) => {
         }
         break;
 
-      case "users/resetUserPassword/rejected":
+      case "users/resetUserOnboarding/rejected":
         const resetError = action.payload;
         if (Array.isArray(resetError) && resetError[0]?.message) {
           showError(resetError[0].message);
@@ -363,7 +372,23 @@ const toastMiddleware = () => (next) => (action) => {
           showError(
             resetError?.message ||
               action.error?.message ||
-              "Failed to send password reset link"
+              "Failed to send Onboarding reset link"
+          );
+        }
+        break;
+
+      case "users/sendPasswordResetLink/rejected":
+        const sendPasswordResetLinkErr = action.payload;
+        if (
+          Array.isArray(sendPasswordResetLinkErr) &&
+          sendPasswordResetLinkErr[0]?.message
+        ) {
+          showError(sendPasswordResetLinkErr[0].message);
+        } else {
+          showError(
+            sendPasswordResetLinkErr?.message ||
+              action.error?.message ||
+              "Failed to send Password reset link"
           );
         }
         break;
@@ -408,7 +433,7 @@ const toastMiddleware = () => (next) => (action) => {
         break;
 
       case "customers/updateCustomer/rejected":
-                console.log("action.payload->",action.payload);
+        console.log("action.payload->", action.payload);
         const updateCustomerError = action.payload?.message.details?.errors;
 
         if (updateCustomerError?.includes("not found")) {
@@ -675,8 +700,12 @@ const toastMiddleware = () => (next) => (action) => {
         showInfo("Resending invitation...");
         break;
 
-      case "users/resetUserPassword/pending":
-        showInfo("Sending password reset link...");
+      case "users/resetUserOnboarding/pending":
+        showInfo("Sending Onboarding reset link...");
+        break;
+
+      case "users/sendPasswordResetLink/pending":
+        showInfo("Sending Password reset link...");
         break;
 
       case "users/updateUserPermissions/pending":

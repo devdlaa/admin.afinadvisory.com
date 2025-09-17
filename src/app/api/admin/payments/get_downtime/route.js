@@ -1,6 +1,6 @@
 import Razorpay from "razorpay";
 import { NextResponse } from "next/server";
-
+import { requirePermission } from "@/lib/requirePermission";
 // Initialize Razorpay
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
@@ -57,6 +57,10 @@ function aggregateDowntime(items) {
 
 export async function GET(req) {
   try {
+
+     // Permission check placeholder
+        const permissionCheck = await requirePermission(req, "payments.access");
+        if (permissionCheck) return permissionCheck;
     // Fetch all payment downtime info
     const downtimeData = await razorpay.payments.fetchPaymentDowntime();
 

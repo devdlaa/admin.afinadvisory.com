@@ -11,17 +11,17 @@ const EMAIL_TEMPLATES = {
     template: "adminUserInvite",
   },
   SEND_USER_PWD_RESET_LINK: {
-    subject: "Your Password Reset Link - Afin Advisory Dashboard",
+    subject: "Password Reset Request - Afin Advisory Admin Dashboard",
     template: "adminUserPwdRestLink",
+  },
+    SEND_USER_ONBOARDING_RESET_LINK: {
+    subject: "Onboarding Reset Request - Afin Advisory Admin Dashboard",
+    template: "adminOnboardingResetLink",
   },
   ADMIN_USER_ONBOARDED_NOTIFICATION: {
     subject:
       "Security Alert: New Admin User Onboarded - Afin Advisory Dashboard",
     template: "adminUserOnboardedNotification",
-  },
-  SEND_USER_PWD_RESET_LINK: {
-    subject: "Password Reset Request - Afin Advisory Admin Dashboard",
-    template: "pwdresetAdminLinktoEmp",
   },
 };
 

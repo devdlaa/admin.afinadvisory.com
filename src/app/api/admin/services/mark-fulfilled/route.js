@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { auth } from "@/utils/auth";
 import { markServiceFulfilledByAdmin } from "@/utils/service_mutation_helpers";
 import { requirePermission } from "@/lib/requirePermission";
 import { z } from "zod";
@@ -17,6 +18,8 @@ export async function POST(req) {
     ]);
     if (permissionCheck) return permissionCheck;
 
+    const session = await auth();
+
     const body = await req.json();
     const parsed = bodySchema.safeParse(body);
 
@@ -30,7 +33,8 @@ export async function POST(req) {
     const { service_booking_ids } = parsed.data;
 
     const updated_services = await markServiceFulfilledByAdmin(
-      service_booking_ids
+      service_booking_ids,
+      session
     );
 
     return NextResponse.json({

@@ -39,6 +39,7 @@ const CONFIG = {
     "/api/auth",
     "/api/admin/onboarding/initiate-onboarding",
     "/api/admin/onboarding/verify-onboarding",
+    "/api/verify-turnstile"
     // TODO : REMOVE THESE AFTER TESTING===============================================================
   ],
 

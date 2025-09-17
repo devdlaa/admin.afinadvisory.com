@@ -41,7 +41,7 @@ export async function POST(req) {
     }
 
     // Check if token purpose is valid
-    if (purpose !== "user_invitation" && purpose !== "password_reset") {
+    if (purpose !== "user_invitation" && purpose !== "onboarding_reset") {
       return NextResponse.json(
         { success: false, error: "Invalid token purpose" },
         { status: 400 }
@@ -76,7 +76,7 @@ export async function POST(req) {
           { status: 403 }
         );
       }
-    } else if (purpose === "password_reset") {
+    } else if (purpose === "onboarding_reset") {
       if (userData.status !== "active") {
         return NextResponse.json(
           { success: false, error: "User account is not active" },
@@ -187,7 +187,7 @@ export async function POST(req) {
         console.warn("Failed to send onboarding email to admin:", emailError);
       }
 
-    } else if (purpose === "password_reset") {
+    } else if (purpose === "onboarding_reset") {
       // Update existing Firebase Auth user password
       try {
         await admin.auth().updateUser(userData.firebaseAuthUid, {

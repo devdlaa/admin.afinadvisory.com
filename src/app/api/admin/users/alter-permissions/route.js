@@ -113,7 +113,7 @@ export async function PATCH(req) {
   try {
     const session = await auth();
     // TODO: Add permission check
-    const permissionCheck = await requirePermission(req, ["users.access", "users.alter-permissions"]);
+    const permissionCheck = await requirePermission(req, "users.alter-permissions");
     if (permissionCheck) return permissionCheck;
 
     // Parse request body

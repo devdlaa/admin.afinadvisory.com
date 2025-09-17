@@ -217,11 +217,11 @@ export const fetchPermissions = createAsyncThunk(
   }
 );
 
-export const resetUserPassword = createAsyncThunk(
-  "users/resetUserPassword",
+export const resetUserOnboarding = createAsyncThunk(
+  "users/resetUserOnboarding", //resetUserPassword
   async ({ email }, { rejectWithValue }) => {
     try {
-      const response = await fetch("/api/admin/users/reset-password", {
+      const response = await fetch("/api/admin/users/reset-onboarding", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
@@ -231,7 +231,7 @@ export const resetUserPassword = createAsyncThunk(
 
       if (!response.ok || !result.success) {
         return rejectWithValue(
-          result.errors || [{ message: "Failed to send password reset link" }]
+          result.errors || [{ message: "Failed to send onboarding reset link" }]
         );
       }
 
@@ -270,13 +270,14 @@ export const deleteUser = createAsyncThunk(
 );
 
 export const sendPasswordResetLink = createAsyncThunk(
-  "auth/sendPasswordResetLink",
+  "users/sendPasswordResetLink",
   async (email, { rejectWithValue }) => {
+    const payload = email?.email ? { email: email?.email } : null;
     try {
       const res = await fetch("/api/admin/users/reset-pwd-link", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
@@ -322,10 +323,18 @@ const usersSlice = createSlice({
     reinviteError: null,
     reinvitingResults: null,
     sentReinvite: false,
+    // onboarding-init-states
+    resettingOnboarding: false,
+    resetOnboardingError: null,
+    resetOnboardingResults: null,
+    sentOnboardingReset: false,
+
+    // password reset-link init-states
     resettingPassword: false,
     resetPasswordError: null,
     resetPasswordResults: null,
     sentPasswordReset: false,
+
     deleting: false,
     deleteError: null,
     deletedUser: null,
@@ -546,22 +555,22 @@ const usersSlice = createSlice({
       })
 
       // Reset user password
-      .addCase(resetUserPassword.pending, (state) => {
-        state.resettingPassword = true;
-        state.resetPasswordError = null;
-        state.sentPasswordReset = false;
+      .addCase(resetUserOnboarding.pending, (state) => {
+        state.resettingOnboarding = true;
+        state.resetOnboardingError = null;
+        state.sentOnboardingReset = false;
       })
-      .addCase(resetUserPassword.fulfilled, (state, action) => {
-        state.resettingPassword = false;
-        state.sentPasswordReset = true;
-        state.resetPasswordResults = action.payload.message;
+      .addCase(resetUserOnboarding.fulfilled, (state, action) => {
+        state.resettingOnboarding = false;
+        state.sentOnboardingReset = true;
+        state.resetOnboardingResults = action.payload.message;
 
         const { email } = action.payload.data;
 
         // Update user timestamps in all relevant arrays
         const updateUserTimestamps = (user) => ({
           ...user,
-          lastPasswordResetRequestAt: new Date().toISOString(),
+          lastOnboardingResetRequestAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         });
 
@@ -586,10 +595,11 @@ const usersSlice = createSlice({
           state.selectedUser = updateUserTimestamps(state.selectedUser);
         }
       })
-      .addCase(resetUserPassword.rejected, (state, action) => {
-        state.resettingPassword = false;
-        state.resetPasswordError =
-          action?.payload?.[0]?.message || "Failed to send password reset link";
+      .addCase(resetUserOnboarding.rejected, (state, action) => {
+        state.resettingOnboarding = false;
+        state.resetOnboardingError =
+          action?.payload?.[0]?.message ||
+          "Failed to send onboarding reset link";
       })
 
       // Update user permissions
