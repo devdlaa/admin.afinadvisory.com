@@ -5,7 +5,7 @@ import { authenticator } from "otplib";
 
 const db = admin.firestore();
 
-export const { handlers, auth, signIn, signOut } = NextAuth({
+export const authOptions = {
   providers: [
     CredentialsProvider({
       name: "Credentials",
@@ -18,7 +18,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (!idToken || !totpCode) throw new Error("Invalid login details");
 
         try {
-          // Verify Firebase ID token
+          // ✅ Verify Firebase ID token
           const decoded = await admin.auth().verifyIdToken(idToken);
           const firebaseUser = await admin.auth().getUser(decoded.uid);
 
@@ -36,11 +36,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           if (!data || data.status !== "active")
             throw new Error("Invalid login details");
 
-          // Verify TOTP
+          // ✅ Verify TOTP during login
           const isValid = authenticator.check(totpCode, data.totpSecret);
           if (!isValid) throw new Error("Invalid login details");
 
-          // Build full user object
+          // ✅ Build user object + default lock flag
           return {
             id: doc.id,
             uid: firebaseUser.uid,
@@ -74,6 +74,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             inviteExpiresAt:
               data?.inviteExpiresAt?.toDate?.()?.toISOString() ||
               data?.inviteExpiresAt,
+            // 🔒 Dashboard lock flag
+            isDashboardLocked: false,
           };
         } catch (err) {
           console.error("Authorize error:", err);
@@ -82,26 +84,31 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
     }),
   ],
+
   trustedHosts: ["admin.afinadvisory.com"],
 
   session: {
     strategy: "jwt",
-    maxAge: 2 * 24 * 60 * 60, 
+    maxAge: 2 * 24 * 60 * 60, // 2 days
   },
 
   jwt: {
-    maxAge: 2 * 24 * 60 * 60, 
+    maxAge: 2 * 24 * 60 * 60,
   },
+
   callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
-        Object.assign(token, user);
+    async jwt({ token, user, trigger, session }) {
+      if (user) Object.assign(token, user);
+
+      if (trigger === "update" && session?.isDashboardLocked !== undefined) {
+        token.isDashboardLocked = session.isDashboardLocked;
       }
       return token;
     },
 
     async session({ session, token }) {
       session.user = { ...token };
+      session.isDashboardLocked = token.isDashboardLocked || false;
       return session;
     },
   },
@@ -112,4 +119,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
 
   secret: process.env.NEXTAUTH_SECRET,
-});
+};
+
+export const { handlers, auth, signIn, signOut } = NextAuth(authOptions);
+
+export async function verifyTotpForUnlock(userId, code) {
+  const doc = await db.collection("admin_users").doc(userId).get();
+  if (!doc.exists) return false;
+  const secret = doc.data()?.totpSecret;
+  return authenticator.check(code, secret);
+}

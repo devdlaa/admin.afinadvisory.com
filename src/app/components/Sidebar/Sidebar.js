@@ -26,7 +26,8 @@ import {
   Link,
   ShieldAlert,
 } from "lucide-react";
-import { signOut, useSession } from "next-auth/react";
+import { signOut } from "next-auth/react";
+
 import Image from "next/image";
 import Permission from "../Permission";
 import { useRouter, usePathname } from "next/navigation";
@@ -37,6 +38,7 @@ const Sidebar = () => {
   const [expandedItems, setExpandedItems] = useState({});
   const router = useRouter();
   const pathname = usePathname();
+
 
   useEffect(() => {
     // Enhanced path detection logic

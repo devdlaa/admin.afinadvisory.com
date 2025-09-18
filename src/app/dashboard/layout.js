@@ -4,6 +4,7 @@ import TopBar from "../components/TopBar/TopBar";
 import { SessionProvider } from "next-auth/react";
 import "./Layout.scss";
 import { Providers } from "../components/providers";
+import LockDashboardButton from "../components/LockDashboardButton/LockDashboardButton";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -17,6 +18,7 @@ export default function RootLayout({ children }) {
         <SessionProvider>
           <Providers>
             <div className="layout">
+              <LockDashboardButton/>
               <Sidebar />
               <div className={`main-content `}>
                 <TopBar />

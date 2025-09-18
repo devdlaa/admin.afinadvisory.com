@@ -39,7 +39,8 @@ const CONFIG = {
     "/api/auth",
     "/api/admin/onboarding/initiate-onboarding",
     "/api/admin/onboarding/verify-onboarding",
-    "/api/verify-turnstile"
+    "/api/verify-turnstile",
+    "/api/admin/users/unlock-dashboard",
     // TODO : REMOVE THESE AFTER TESTING===============================================================
   ],
 
@@ -219,7 +220,7 @@ function addSecurityHeaders(response) {
 }
 
 // New: Create error response for permission issues
-function createPermissionErrorResponse(pathname, isApiRoute = false,req) {
+function createPermissionErrorResponse(pathname, isApiRoute = false, req) {
   if (isApiRoute) {
     return new NextResponse(
       JSON.stringify({
@@ -320,6 +321,27 @@ export async function middleware(req) {
       });
     }
 
+    //  ✅ Dashboard lock check
+    if (
+      token &&
+      token.isDashboardLocked &&
+      !pathname.startsWith("/dashboard/locked") &&
+      !pathname.startsWith("/api/unlock-dashboard")
+    ) {
+      const lockedUrl = new URL("/dashboard/locked", req.url);
+      return NextResponse.redirect(lockedUrl);
+    }
+
+    // ✅ If dashboard is unlocked, prevent access to /locked
+    if (
+      token &&
+      !token.isDashboardLocked &&
+      pathname.startsWith("/dashboard/locked")
+    ) {
+      const redirectUrl = new URL(CONFIG.DEFAULT_AUTH_REDIRECT, req.url);
+      return NextResponse.redirect(redirectUrl);
+    }
+
     // Log authentication status with permissions
     if (token) {
       log("debug", "User authenticated", {
@@ -360,7 +382,7 @@ export async function middleware(req) {
           userPermissions: token.permissions || [],
           requiredPermissions: getRequiredPermissionsForRoute(pathname),
         });
-        return createPermissionErrorResponse(pathname, false,req);
+        return createPermissionErrorResponse(pathname, false, req);
       }
     }
 
