@@ -125,7 +125,9 @@ const BookingPaymentModal = ({ isOpen, onClose }) => {
         </div>
 
         {error && (
-          <div className="error-message">
+          <div style={{
+            borderRadius :"0px"
+          }} className="error-message">
             <AlertCircle size={16} />
             <span>{error}</span>
           </div>

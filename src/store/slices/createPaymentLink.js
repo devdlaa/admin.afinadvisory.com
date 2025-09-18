@@ -15,7 +15,7 @@ export const checkExistingCustomer = createAsyncThunk(
       if (!data.success) {
         return rejectWithValue(data.error);
       }
-      return data.customer;
+      return data;
     } catch (error) {
       return rejectWithValue(error.message);
     }
@@ -404,7 +404,7 @@ const createPaymentLinkSlice = createSlice({
       })
       .addCase(checkExistingCustomer.fulfilled, (state, action) => {
         state.loading = false;
-        const customer = action.payload;
+        const customer = action?.payload?.data;
         state.selectedCustomer = customer;
 
         // Check for missing required fields
@@ -421,7 +421,7 @@ const createPaymentLinkSlice = createSlice({
       })
       .addCase(checkExistingCustomer.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload;
+        state.error = action?.payload?.error?.message || "Customer Not Found!";
         state.canProceedToNextStep = false;
       })
 

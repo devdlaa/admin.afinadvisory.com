@@ -27,7 +27,7 @@
   max-width: fit-content;
   height: fit-content;
   max-height: 800px;
-  min-height:700px;
+  min-height: 700px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -927,7 +927,7 @@
   cursor: not-allowed;
 }
 
-.error-message {
+.error-message {  
   display: flex;
   align-items: center;
   gap: 10px;
@@ -1211,16 +1211,13 @@
 
 /* Plan Card Improvements */
 .plan-card {
-
   display: flex;
   flex-direction: column;
   justify-content: space-between;
 }
 
 .plan-card:hover {
-
- border-color: rgba(0, 0, 0, 0.089);
-
+  border-color: rgba(0, 0, 0, 0.089);
 }
 
 .plan-card.selected:hover {
