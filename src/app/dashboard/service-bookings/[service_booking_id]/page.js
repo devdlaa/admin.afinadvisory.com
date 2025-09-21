@@ -321,20 +321,20 @@ export default function ServiceBookingPage() {
       ? true
       : false;
   const isInvoiceDownloadAvailable =
-    (bookingData.master_status === "processing" &&
-      (!bookingData?.refundDetails?.current_status || 
+    (bookingData?.master_status === "processing" &&
+      (!bookingData?.refundDetails?.current_status ||
         bookingData?.refundDetails?.current_status === "refunded")) ||
-    bookingData.master_status === "refunded" ||
-    bookingData.master_status === "completed";
+    bookingData?.master_status === "refunded" ||
+    bookingData?.master_status === "completed";
 
   const isServiceStatusMutationAvailable = {
     isAvailable:
-      (bookingData.master_status === "processing" ||
-        bookingData.master_status === "completed" ||
-        bookingData.master_status === "refunded") &&
+      (bookingData?.master_status === "processing" ||
+        bookingData?.master_status === "completed" ||
+        bookingData?.master_status === "refunded") &&
       !isRefundinProgress,
     type:
-      bookingData.master_status === "processing"
+      bookingData?.master_status === "processing"
         ? "MARK_COMPLETE"
         : "MARK_UNCOMPLETE",
   };
@@ -389,13 +389,14 @@ export default function ServiceBookingPage() {
     if (!currentLoggedInUserID) {
       alert("Not currentLoggedInUserID, Error");
     }
+
     openOtpDialog(
       OTP_CONFIGS.APPROVE_REFUND(
         serviceBookingId,
         serviceAttchedPaymentId,
         currentLoggedInUserID,
-        user,
-        service
+        service,
+        user
       )
     );
   };
@@ -914,7 +915,9 @@ export default function ServiceBookingPage() {
                   <div className="payment-row">
                     <span>Base Price</span>
                     <span>
-                      {formatCurrency(bookingData?.payment_details?.offer_price)}
+                      {formatCurrency(
+                        bookingData?.payment_details?.offer_price
+                      )}
                     </span>
                   </div>
 

@@ -1,5 +1,24 @@
 import razorpay from "../razorpay";
 import { markRefundInitiated } from "@/utils/service_mutation_helpers";
+
+function flattenNotes(obj, parentKey = "", res = {}) {
+  for (const [key, value] of Object.entries(obj || {})) {
+    const newKey = parentKey ? `${parentKey}_${key}` : key;
+
+    if (value && typeof value === "object" && !Array.isArray(value)) {
+      // Recursively flatten nested objects
+      flattenNotes(value, newKey, res);
+    } else if (Array.isArray(value)) {
+      // Convert arrays to JSON strings
+      res[newKey] = JSON.stringify(value);
+    } else {
+      // Convert everything else to string
+      res[newKey] = String(value);
+    }
+  }
+  return res;
+}
+
 export async function adminRequestRefund(metaData) {
   const { payment_id, service_booking_id, notes } = metaData;
 
@@ -52,10 +71,8 @@ export async function adminRequestRefund(metaData) {
     // -----------------------------
     const refundOptions = {
       speed: "normal",
-      notes: notes || {},
+      notes: flattenNotes(notes) || {},
     };
-
-
 
     const razorpayRefund = await razorpay.payments.refund(
       payment_id,
@@ -63,7 +80,7 @@ export async function adminRequestRefund(metaData) {
     );
 
     if (!["processed", "pending"].includes(razorpayRefund.status)) {
-      console.log("razorpayRefund",razorpayRefund);
+      console.log("razorpayRefund", razorpayRefund);
       return {
         success: false,
         type: "failure",
@@ -120,8 +137,8 @@ export async function adminRequestRefund(metaData) {
     return {
       success: false,
       type: "failure",
-      message: "Refund workflow failed unexpectedly",
-      error: err.message,
+      message: err?.description || "Refund workflow failed unexpectedly",
+      error: err?.message,
     };
   }
 }

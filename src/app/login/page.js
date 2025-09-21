@@ -14,6 +14,9 @@ const LoginContent = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Check if we're in development environment
+  const isDevelopment = process.env.NODE_ENV === "development";
+
   // Turnstile refs and state
   const turnstileRef = useRef(null);
   const [turnstileToken, setTurnstileToken] = useState("");
@@ -38,11 +41,15 @@ const LoginContent = () => {
   // Handle client-side mounting
   useEffect(() => {
     setIsMounted(true);
-  }, []);
+    // Auto-set turnstile token in development
+    if (isDevelopment) {
+      setTurnstileToken("dev-bypass-token");
+    }
+  }, [isDevelopment]);
 
-  // Load Cloudflare Turnstile script
+  // Load Cloudflare Turnstile script (only in production)
   useEffect(() => {
-    if (!isMounted) return;
+    if (!isMounted || isDevelopment) return;
 
     const script = document.createElement("script");
     script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js";
@@ -56,13 +63,15 @@ const LoginContent = () => {
         document.head.removeChild(script);
       }
     };
-  }, [isMounted]);
+  }, [isMounted, isDevelopment]);
 
-  // Initialize Turnstile widget when script loads
+  // Initialize Turnstile widget when script loads (only in production)
   useEffect(() => {
+    if (isDevelopment) return;
+
     if (turnstileLoaded && window.turnstile && turnstileRef.current) {
       window.turnstile.render(turnstileRef.current, {
-        sitekey: process.env.NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY, // Add your site key here
+        sitekey: process.env.NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY,
         callback: function (token) {
           setTurnstileToken(token);
         },
@@ -72,11 +81,11 @@ const LoginContent = () => {
         "expired-callback": function () {
           setTurnstileToken("");
         },
-        theme: "light", // or 'dark' to match your design
-        size: "normal", // 'normal', 'compact', or 'invisible'
+        theme: "light",
+        size: "normal",
       });
     }
-  }, [turnstileLoaded]);
+  }, [turnstileLoaded, isDevelopment]);
 
   // Handle URL error parameter on component mount
   useEffect(() => {
@@ -106,8 +115,8 @@ const LoginContent = () => {
       errors.password = "Password is required";
     }
 
-    // Check if Turnstile is completed (only if mounted)
-    if (isMounted && !turnstileToken) {
+    // Check if Turnstile is completed (only in production and if mounted)
+    if (isMounted && !isDevelopment && !turnstileToken) {
       errors.turnstile = "Please complete the security verification";
     }
 
@@ -124,29 +133,31 @@ const LoginContent = () => {
     setLoginErrors({});
 
     try {
-      // First verify Turnstile token with your backend
-      const turnstileResponse = await fetch("/api/verify-turnstile", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          token: turnstileToken,
-        }),
-      });
-
-      const turnstileResult = await turnstileResponse.json();
-
-      if (!turnstileResult.success) {
-        setLoginErrors({
-          general: "Security verification failed. Please try again.",
+      // Verify Turnstile token with backend (skip in development)
+      if (!isDevelopment) {
+        const turnstileResponse = await fetch("/api/verify-turnstile", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            token: turnstileToken,
+          }),
         });
-        // Reset Turnstile
-        if (window.turnstile) {
-          window.turnstile.reset();
+
+        const turnstileResult = await turnstileResponse.json();
+
+        if (!turnstileResult.success) {
+          setLoginErrors({
+            general: "Security verification failed. Please try again.",
+          });
+          // Reset Turnstile
+          if (window.turnstile) {
+            window.turnstile.reset();
+          }
+          setTurnstileToken("");
+          return;
         }
-        setTurnstileToken("");
-        return;
       }
 
       // Sign in with Firebase to get ID token
@@ -184,11 +195,11 @@ const LoginContent = () => {
         general: errorMessage,
       });
 
-      // Reset Turnstile on error
-      if (window.turnstile) {
+      // Reset Turnstile on error (only in production)
+      if (!isDevelopment && window.turnstile) {
         window.turnstile.reset();
+        setTurnstileToken("");
       }
-      setTurnstileToken("");
     } finally {
       setIsLoading(false);
     }
@@ -235,11 +246,14 @@ const LoginContent = () => {
     setTotpCode("");
     setTotpError("");
     setFirebaseIdToken("");
-    // Reset Turnstile when going back
-    if (window.turnstile) {
+    // Reset Turnstile when going back (only in production)
+    if (!isDevelopment && window.turnstile) {
       window.turnstile.reset();
+      setTurnstileToken("");
+    } else if (isDevelopment) {
+      // Reset dev token
+      setTurnstileToken("dev-bypass-token");
     }
-    setTurnstileToken("");
   };
 
   const stepStyle = {
@@ -258,6 +272,14 @@ const LoginContent = () => {
             alt="AFINTHRIVE ADVISORY ADMIN LOGIN"
           />
         </div>
+
+        {/* Development Environment Notice */}
+        {isDevelopment && (
+          <div className="lg-dev-notice">
+            <Info size={16} />
+            Development Mode - Security verification disabled
+          </div>
+        )}
 
         {/* Steps */}
         <div className="lg-steps-container">
@@ -344,8 +366,8 @@ const LoginContent = () => {
                   )}
                 </div>
 
-                {/* Cloudflare Turnstile */}
-                {isMounted && (
+                {/* Cloudflare Turnstile - Only show in production */}
+                {isMounted && !isDevelopment && (
                   <div className="lg-form-group">
                     <div
                       ref={turnstileRef}
