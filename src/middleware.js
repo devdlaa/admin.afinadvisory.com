@@ -52,7 +52,7 @@ const CONFIG = {
 
   RATE_LIMIT: {
     windowMs: 15 * 60 * 1000,
-    maxRequests: 5000,
+    maxRequests: 1500,
   },
 };
 

@@ -789,7 +789,7 @@ export default function ServiceBookingPage() {
                         <span className="label">State Choosen</span>
                         <span className="value">
                           {bookingData?.state_wise_extra &&
-                            bookingData.state_wise_extra?.state_chosen}
+                            bookingData?.state_wise_extra?.state_chosen}
                         </span>
                       </div>
                       <CopyButton
@@ -805,7 +805,7 @@ export default function ServiceBookingPage() {
                     <div>
                       <span className="label">Support Ticket</span>
                       <span className="value">
-                        #{bookingData.ticket_info.ticket_number}
+                        #{bookingData?.ticket_info?.ticket_number}
                       </span>
                     </div>
                   </div>
@@ -914,11 +914,11 @@ export default function ServiceBookingPage() {
                   <div className="payment-row">
                     <span>Base Price</span>
                     <span>
-                      {formatCurrency(bookingData.payment_details.offer_price)}
+                      {formatCurrency(bookingData?.payment_details?.offer_price)}
                     </span>
                   </div>
 
-                  {bookingData.payment_details.isMultiQuantity && (
+                  {bookingData?.payment_details?.isMultiQuantity && (
                     <div className="payment-row">
                       <span>Quantity</span>
                       <span>{bookingData.payment_details.quantity_bought}</span>

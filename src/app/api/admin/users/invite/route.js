@@ -27,19 +27,19 @@ const createSuccessResponse = (message, data = {}, status = 201) => {
 const createErrorResponse = (errors, status = 400, message = null) => {
   // Ensure errors is always an array
   const errorArray = Array.isArray(errors) ? errors : [errors];
-  
+
   // Standardize error format for UI consistency
-  const formattedErrors = errorArray.map(error => ({
-    field: error.field || 'unknown',
-    message: error.message || 'An error occurred',
-    code: error.code || 'VALIDATION_ERROR',
-    receivedValue: error.receivedValue || undefined
+  const formattedErrors = errorArray.map((error) => ({
+    field: error.field || "unknown",
+    message: error.message || "An error occurred",
+    code: error.code || "VALIDATION_ERROR",
+    receivedValue: error.receivedValue || undefined,
   }));
 
   return NextResponse.json(
     {
       success: false,
-      message: message || 'Request validation failed',
+      message: message || "Request validation failed",
       errors: formattedErrors,
       timestamp: new Date().toISOString(),
     },
@@ -55,7 +55,7 @@ async function getNextUserCode() {
   try {
     const nextCounter = await db.runTransaction(async (transaction) => {
       const doc = await transaction.get(counterRef);
-      const current = doc.exists ? (doc.data()?.current || 0) : 0;
+      const current = doc.exists ? doc.data()?.current || 0 : 0;
       const updated = current + 1;
       transaction.set(counterRef, { current: updated }, { merge: true });
       return updated;
@@ -73,7 +73,7 @@ async function getNextUserCode() {
 // 🆕 ENHANCED PERMISSIONS VALIDATION
 function validatePermissions(permissions) {
   if (!permissions) return true; // undefined/null is valid (optional field)
-  
+
   if (!Array.isArray(permissions)) {
     throw new Error("Permissions must be an array");
   }
@@ -86,7 +86,9 @@ function validatePermissions(permissions) {
     throw new Error("Server configuration error: permissions not available");
   }
 
-  const validPermissionIds = permissionsList.availablePermissions.map((p) => p.id);
+  const validPermissionIds = permissionsList.availablePermissions.map(
+    (p) => p.id
+  );
   const invalidPermissions = permissions.filter(
     (p) => !validPermissionIds.includes(p)
   );
@@ -121,7 +123,9 @@ async function sendInvitationEmail(userData, inviteToken) {
     });
 
     if (!emailResult?.success) {
-      throw new Error(emailResult?.error || "Email service returned unsuccessful response");
+      throw new Error(
+        emailResult?.error || "Email service returned unsuccessful response"
+      );
     }
 
     return { success: true };
@@ -136,21 +140,19 @@ async function sendInvitationEmail(userData, inviteToken) {
 
 export async function POST(req) {
   try {
-
-     const permissionCheck = await requirePermission(
-          req,
-          "users.invite"
-        );
-        if (permissionCheck) return permissionCheck;
+    const permissionCheck = await requirePermission(req, "users.invite");
+    if (permissionCheck) return permissionCheck;
     // 🆕 ENHANCED ENVIRONMENT VALIDATION
     if (!JWT_SECRET) {
       console.error("JWT_SECRET not configured");
       return createErrorResponse(
-        [{
-          field: "server",
-          message: "Server configuration error",
-          code: "MISSING_JWT_SECRET"
-        }],
+        [
+          {
+            field: "server",
+            message: "Server configuration error",
+            code: "MISSING_JWT_SECRET",
+          },
+        ],
         500,
         "Server configuration error"
       );
@@ -160,41 +162,46 @@ export async function POST(req) {
     let body;
     try {
       const rawBody = await req.text();
-      if (!rawBody || rawBody.trim() === '') {
+      if (!rawBody || rawBody.trim() === "") {
         return createErrorResponse(
-          [{
-            field: "body",
-            message: "Request body is empty",
-            code: "EMPTY_BODY"
-          }],
+          [
+            {
+              field: "body",
+              message: "Request body is empty",
+              code: "EMPTY_BODY",
+            },
+          ],
           400,
           "Empty request body"
         );
       }
-      
+
       body = JSON.parse(rawBody);
-      
+
       // Check if body is null or not an object
-      if (!body || typeof body !== 'object') {
+      if (!body || typeof body !== "object") {
         return createErrorResponse(
-          [{
-            field: "body",
-            message: "Request body must be a valid JSON object",
-            code: "INVALID_JSON_OBJECT"
-          }],
+          [
+            {
+              field: "body",
+              message: "Request body must be a valid JSON object",
+              code: "INVALID_JSON_OBJECT",
+            },
+          ],
           400,
           "Invalid request body format"
         );
       }
-
     } catch (parseError) {
       console.error("JSON parsing error:", parseError);
       return createErrorResponse(
-        [{
-          field: "body",
-          message: "Invalid JSON format in request body",
-          code: "JSON_PARSE_ERROR"
-        }],
+        [
+          {
+            field: "body",
+            message: "Invalid JSON format in request body",
+            code: "JSON_PARSE_ERROR",
+          },
+        ],
         400,
         "Invalid JSON in request body"
       );
@@ -206,11 +213,13 @@ export async function POST(req) {
       // Pre-validation checks
       if (!body.name?.trim()) {
         return createErrorResponse(
-          [{
-            field: "name",
-            message: "Name is required",
-            code: "MISSING_REQUIRED_FIELD"
-          }],
+          [
+            {
+              field: "name",
+              message: "Name is required",
+              code: "MISSING_REQUIRED_FIELD",
+            },
+          ],
           400,
           "Missing required field: name"
         );
@@ -218,11 +227,13 @@ export async function POST(req) {
 
       if (!body.email?.trim()) {
         return createErrorResponse(
-          [{
-            field: "email",
-            message: "Email is required",
-            code: "MISSING_REQUIRED_FIELD"
-          }],
+          [
+            {
+              field: "email",
+              message: "Email is required",
+              code: "MISSING_REQUIRED_FIELD",
+            },
+          ],
           400,
           "Missing required field: email"
         );
@@ -230,20 +241,19 @@ export async function POST(req) {
 
       validatedData = CreateUserSchema.parse(body);
       validatePermissions(validatedData.permissions);
-
     } catch (validationError) {
       console.error("Validation error:", validationError);
-      
+
       if (validationError instanceof ZodError) {
         const formattedErrors = validationError.errors.map((error) => ({
           field: error.path.join(".") || "unknown",
           message: error.message,
           code: "VALIDATION_ERROR",
-          receivedValue: error.received
+          receivedValue: error.received,
         }));
-        
+
         return createErrorResponse(
-          formattedErrors, 
+          formattedErrors,
           400,
           "Input validation failed"
         );
@@ -251,11 +261,13 @@ export async function POST(req) {
 
       // Handle permission validation errors
       return createErrorResponse(
-        [{
-          field: "permissions",
-          message: validationError.message,
-          code: "PERMISSION_VALIDATION_ERROR"
-        }],
+        [
+          {
+            field: "permissions",
+            message: validationError.message,
+            code: "PERMISSION_VALIDATION_ERROR",
+          },
+        ],
         400,
         "Permission validation failed"
       );
@@ -269,11 +281,13 @@ export async function POST(req) {
     } catch (dbError) {
       console.error("Database initialization error:", dbError);
       return createErrorResponse(
-        [{
-          field: "database",
-          message: "Database connection failed",
-          code: "DB_CONNECTION_ERROR"
-        }],
+        [
+          {
+            field: "database",
+            message: "Database connection failed",
+            code: "DB_CONNECTION_ERROR",
+          },
+        ],
         503,
         "Database service unavailable"
       );
@@ -285,14 +299,16 @@ export async function POST(req) {
         .where("email", "==", validatedData.email)
         .limit(1)
         .get();
-        
+
       if (!emailQuery.empty) {
         return createErrorResponse(
-          [{
-            field: "email",
-            message: "A user with this email already exists",
-            code: "DUPLICATE_EMAIL"
-          }],
+          [
+            {
+              field: "email",
+              message: "A user with this email already exists",
+              code: "DUPLICATE_EMAIL",
+            },
+          ],
           409,
           "Email already exists"
         );
@@ -300,11 +316,13 @@ export async function POST(req) {
     } catch (queryError) {
       console.error("Email query error:", queryError);
       return createErrorResponse(
-        [{
-          field: "database",
-          message: "Failed to check existing email",
-          code: "DB_QUERY_ERROR"
-        }],
+        [
+          {
+            field: "database",
+            message: "Failed to check existing email",
+            code: "DB_QUERY_ERROR",
+          },
+        ],
         503,
         "Database query failed"
       );
@@ -316,14 +334,16 @@ export async function POST(req) {
         .where("phone", "==", validatedData.phone)
         .limit(1)
         .get();
-        
+
       if (!phoneQuery.empty) {
         return createErrorResponse(
-          [{
-            field: "phone",
-            message: "A user with this phone number already exists",
-            code: "DUPLICATE_PHONE"
-          }],
+          [
+            {
+              field: "phone",
+              message: "A user with this phone number already exists",
+              code: "DUPLICATE_PHONE",
+            },
+          ],
           409,
           "Phone number already exists"
         );
@@ -331,11 +351,13 @@ export async function POST(req) {
     } catch (queryError) {
       console.error("Phone query error:", queryError);
       return createErrorResponse(
-        [{
-          field: "database",
-          message: "Failed to check existing phone number",
-          code: "DB_QUERY_ERROR"
-        }],
+        [
+          {
+            field: "database",
+            message: "Failed to check existing phone number",
+            code: "DB_QUERY_ERROR",
+          },
+        ],
         503,
         "Database query failed"
       );
@@ -356,16 +378,18 @@ export async function POST(req) {
           purpose: "user_invitation",
         },
         JWT_SECRET,
-        { expiresIn: "15m" }
+        { expiresIn: "24h" }
       );
     } catch (tokenError) {
       console.error("Token generation error:", tokenError);
       return createErrorResponse(
-        [{
-          field: "server",
-          message: "Failed to generate invitation token",
-          code: "TOKEN_GENERATION_ERROR"
-        }],
+        [
+          {
+            field: "server",
+            message: "Failed to generate invitation token",
+            code: "TOKEN_GENERATION_ERROR",
+          },
+        ],
         500,
         "Token generation failed"
       );
@@ -398,11 +422,13 @@ export async function POST(req) {
     } catch (saveError) {
       console.error("User save error:", saveError);
       return createErrorResponse(
-        [{
-          field: "database",
-          message: "Failed to save user data",
-          code: "DB_SAVE_ERROR"
-        }],
+        [
+          {
+            field: "database",
+            message: "Failed to save user data",
+            code: "DB_SAVE_ERROR",
+          },
+        ],
         500,
         "Failed to create user"
       );
@@ -422,10 +448,11 @@ export async function POST(req) {
     };
 
     if (!emailResult.success) {
-      responseData.warning = "User created but invitation email could not be sent";
+      responseData.warning =
+        "User created but invitation email could not be sent";
       responseData.emailError = emailResult.error;
       responseData.inviteToken = inviteToken; // Provide token for manual sending
-      
+
       console.warn(
         `User ${userDocRef.id} created but email failed:`,
         emailResult.error
@@ -436,21 +463,22 @@ export async function POST(req) {
       ? "User created successfully and invitation email sent"
       : "User created but invitation email failed to send";
 
-    const status = emailResult.success ? 201 : 206; // 206 = Partial Content
+    const status = emailResult.success ? 201 : 206;
 
     return createSuccessResponse(message, responseData, status);
-
   } catch (error) {
     console.error("Unexpected error in POST /api/admin/users/create:", error);
 
     // 🆕 SPECIFIC ERROR TYPE HANDLING
     if (error.name === "TypeError") {
       return createErrorResponse(
-        [{
-          field: "server",
-          message: "Invalid data type in request",
-          code: "TYPE_ERROR"
-        }],
+        [
+          {
+            field: "server",
+            message: "Invalid data type in request",
+            code: "TYPE_ERROR",
+          },
+        ],
         400,
         "Data type error"
       );
@@ -458,11 +486,13 @@ export async function POST(req) {
 
     if (error.code === "ENOTFOUND" || error.code === "ECONNREFUSED") {
       return createErrorResponse(
-        [{
-          field: "server",
-          message: "External service unavailable",
-          code: "SERVICE_UNAVAILABLE"
-        }],
+        [
+          {
+            field: "server",
+            message: "External service unavailable",
+            code: "SERVICE_UNAVAILABLE",
+          },
+        ],
         503,
         "External service unavailable"
       );
@@ -470,11 +500,13 @@ export async function POST(req) {
 
     if (error.name === "FirebaseError") {
       return createErrorResponse(
-        [{
-          field: "database",
-          message: "Database operation failed",
-          code: "FIREBASE_ERROR"
-        }],
+        [
+          {
+            field: "database",
+            message: "Database operation failed",
+            code: "FIREBASE_ERROR",
+          },
+        ],
         503,
         "Database service error"
       );
@@ -482,16 +514,18 @@ export async function POST(req) {
 
     // Generic server error
     return createErrorResponse(
-      [{
-        field: "server",
-        message: process.env.NODE_ENV === "development"
-          ? error.message || "Internal server error"
-          : "An unexpected error occurred",
-        code: "INTERNAL_SERVER_ERROR"
-      }],
+      [
+        {
+          field: "server",
+          message:
+            process.env.NODE_ENV === "development"
+              ? error.message || "Internal server error"
+              : "An unexpected error occurred",
+          code: "INTERNAL_SERVER_ERROR",
+        },
+      ],
       500,
       "Internal server error"
     );
   }
 }
-

@@ -9,6 +9,7 @@ import {
   ArrowRight,
   ArrowLeft,
   Info,
+  CircleAlert,
 } from "lucide-react";
 import QRCode from "qrcode";
 
@@ -29,7 +30,7 @@ const OnboardingContent = () => {
   const [passwordErrors, setPasswordErrors] = useState({});
   const [inviteToken, setInviteToken] = useState(null);
   const searchParams = useSearchParams();
-  
+
   // Step 2 - Google Authenticator
   const [qrDataUrl, setQrDataUrl] = useState("");
   const [secretKey, setSecretKey] = useState("");
@@ -48,7 +49,6 @@ const OnboardingContent = () => {
     const token = searchParams.get("token");
     if (token) {
       setInviteToken(token);
-    
     }
   }, [searchParams]);
 
@@ -99,8 +99,6 @@ const OnboardingContent = () => {
           },
           body: JSON.stringify({
             token: inviteToken,
-            password: passwordData.password,
-            confirmPassword: passwordData.confirmPassword,
           }),
         }
       );
@@ -258,6 +256,7 @@ const OnboardingContent = () => {
                 <form onSubmit={handlePasswordSubmit} className="ob-form">
                   {passwordErrors.general && (
                     <div className="ob-error-banner">
+                      <CircleAlert size={16} color="#cf4141" />
                       {passwordErrors.general}
                     </div>
                   )}
@@ -409,7 +408,6 @@ const OnboardingContent = () => {
                     </div>
 
                     {/* Manual entry option */}
-                 
                   </div>
 
                   <form onSubmit={handleTotpSubmit} className="ob-totp-form">
