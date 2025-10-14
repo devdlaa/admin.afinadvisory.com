@@ -80,7 +80,7 @@ function validateServiceConfig(config) {
     if (typeof obj !== "object" || obj === null) return currentDepth;
 
     return Math.max(
-      ...Object.values(obj).map((val) => getDepth(val, currentDepth + 1)),
+      ...Object.values(obj)?.map((val) => getDepth(val, currentDepth + 1)),
       currentDepth
     );
   }
@@ -115,6 +115,7 @@ async function triggerClientRevalidation(slug, serviceId) {
   try {
     // Trigger Next.js revalidation
     if (CLIENT_REVALIDATE_SECRET) {
+      console.log("CLIENT_REVALIDATE_SECRET",CLIENT_REVALIDATE_SECRET);
       const revalidateRes = await fetch(`${CLIENT_BASE_URL}/api/revalidate`, {
         method: "POST",
         headers: {
@@ -126,7 +127,7 @@ async function triggerClientRevalidation(slug, serviceId) {
         signal: AbortSignal.timeout(5000),
       });
 
-      console.log("revalidateRes",revalidateRes);
+      console.log("revalidateRes", revalidateRes);
       operations.revalidate = revalidateRes.ok;
 
       if (!revalidateRes.ok) {
@@ -159,7 +160,10 @@ export async function POST(req) {
   try {
     const session = await auth();
     // TODO: Add permission check
-    const permissionCheck = await requirePermission(req, "service_pricing.update");
+    const permissionCheck = await requirePermission(
+      req,
+      "service_pricing.update"
+    );
     if (permissionCheck) return permissionCheck;
 
     // Parse request body
@@ -174,13 +178,17 @@ export async function POST(req) {
       );
     }
 
+   
+
     // Validate input using Zod schema
     let validatedData;
     try {
       validatedData = schema.parse(body);
+      console.log("validatedData",body);
     } catch (validationError) {
+           console.log("validatedData",body);
       if (validationError instanceof ZodError) {
-        const formattedErrors = validationError.errors.map((error) => ({
+        const formattedErrors = validationError?.errors?.map((error) => ({
           field: error.path.join("."),
           message: error.message,
           receivedValue: error.input,
@@ -364,3 +372,7 @@ export async function POST(req) {
     );
   }
 }
+
+
+
+

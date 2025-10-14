@@ -548,56 +548,67 @@
   {
     "serviceId": "AFINSID06_092",
     "name": "15 CA/CB Certificate",
-    "description": ""
+    "description": "",
+    "slug": "/service/15ca-15cb-certificate-foreign-remittance-compliance"
   },
   {
     "serviceId": "AFINSID06_093",
     "name": "Register Section 8 Company",
-    "description": ""
+    "description": "",
+    "slug": "/service/section-8-company"
   },
   {
     "serviceId": "AFINSID06_094",
     "name": "ROC Report for Companies & LLPs",
-    "description": ""
+    "description": "",
+    "slug": "/service/company-name-search-availability-check"
   },
   {
     "serviceId": "AFINSID06_095",
     "name": "LLP Name Availability Search",
-    "description": ""
+    "description": "",
+    "slug": "/service/company-name-search-availability-check"
   },
   {
     "serviceId": "AFINSID06_096",
     "name": "Check Company Name Availability",
-    "description": ""
+    "description": "",
+    "slug": "/service/company-name-search-availability-check"
   },
   {
     "serviceId": "AFINSID06_097",
     "name": "Partnership to PVT LTD Co. Conversion",
-    "description": ""
+    "description": "",
+    "slug": "/service/partnership-to-company-conversion"
   },
   {
     "serviceId": "AFINSID06_098",
     "name": "PVT LTD Co. to Public Ltd Conversion",
-    "description": ""
+    "description": "",
+    "slug": "/service/private-company-to-public-company"
   },
   {
     "serviceId": "AFINSID06_099",
     "name": "PVT LTD Co. to OPC Conversion",
-    "description": ""
+    "description": "",
+    "slug": "/service/private-company-to-opc-conversion"
   },
   {
     "serviceId": "AFINSID06_100",
     "name": "Public Ltd. Co. to LLP Conversion",
-    "description": ""
+    "description": "",
+    "slug": "/service/company-to-llp-conversion"
   },
   {
     "serviceId": "AFINSID06_101",
     "name": "Transform Your Partnership into LLP",
-    "description": ""
+    "description": "",
+    "slug": "/service/upgrade-partnership-to-llp"
   },
   {
     "serviceId": "AFINSID06_102",
     "name": "Sole Proprietorship to PVT LTD Co.",
-    "description": ""
+    "description": "",
+    "slug": "/service/proprietorship-to-pvt-co"
   }
 ]

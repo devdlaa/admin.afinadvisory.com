@@ -188,7 +188,7 @@ const AdminDashboard = () => {
   const handleEditService = async (service) => {
     try {
       setFetchingConfig(true);
-      setRevaidateSlug(service?.slug.split("/")[2]);
+      setRevaidateSlug(service?.slug?.split("/")[2]);
 
       // Show loading toast for longer operations
       showInfo("Loading service configuration...");
