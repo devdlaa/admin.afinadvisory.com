@@ -126,6 +126,7 @@ async function triggerClientRevalidation(slug, serviceId) {
         signal: AbortSignal.timeout(5000),
       });
 
+      console.log("revalidateRes",revalidateRes);
       operations.revalidate = revalidateRes.ok;
 
       if (!revalidateRes.ok) {

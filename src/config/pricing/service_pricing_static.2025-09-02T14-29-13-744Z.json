@@ -544,5 +544,60 @@
     "name": "LEI Registration",
     "description": "",
     "slug": "/service/lei-registration-legal-entity-identifier"
+  },
+  {
+    "serviceId": "AFINSID06_092",
+    "name": "15 CA/CB Certificate",
+    "description": ""
+  },
+  {
+    "serviceId": "AFINSID06_093",
+    "name": "Register Section 8 Company",
+    "description": ""
+  },
+  {
+    "serviceId": "AFINSID06_094",
+    "name": "ROC Report for Companies & LLPs",
+    "description": ""
+  },
+  {
+    "serviceId": "AFINSID06_095",
+    "name": "LLP Name Availability Search",
+    "description": ""
+  },
+  {
+    "serviceId": "AFINSID06_096",
+    "name": "Check Company Name Availability",
+    "description": ""
+  },
+  {
+    "serviceId": "AFINSID06_097",
+    "name": "Partnership to PVT LTD Co. Conversion",
+    "description": ""
+  },
+  {
+    "serviceId": "AFINSID06_098",
+    "name": "PVT LTD Co. to Public Ltd Conversion",
+    "description": ""
+  },
+  {
+    "serviceId": "AFINSID06_099",
+    "name": "PVT LTD Co. to OPC Conversion",
+    "description": ""
+  },
+  {
+    "serviceId": "AFINSID06_100",
+    "name": "Public Ltd. Co. to LLP Conversion",
+    "description": ""
+  },
+  {
+    "serviceId": "AFINSID06_101",
+    "name": "Transform Your Partnership into LLP",
+    "description": ""
+  },
+  {
+    "serviceId": "AFINSID06_102",
+    "name": "Sole Proprietorship to PVT LTD Co.",
+    "description": ""
   }
 ]
