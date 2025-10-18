@@ -44,7 +44,7 @@ const AddInfluencerDialog = ({ isOpen, onClose }) => {
   const { isAddingNewInfluencer, addInfluencerError, newInfluencerData } =
     useSelector(selectAddInfluencerStates);
   const errorMessage = useSelector(selectAddInfluencerErrorMessage);
-
+  console.log("errorMessage", errorMessage);
   const [activeTab, setActiveTab] = useState("primary");
   const [formData, setFormData] = useState({
     name: "",
@@ -59,7 +59,7 @@ const AddInfluencerDialog = ({ isOpen, onClose }) => {
     profileImageUrl: "",
     tags: [],
     bio: "",
-    location: { city: "", country: "" },
+
     address: { lane: "", city: "", state: "", pincode: "", country: "" },
     bankDetails: {
       accountHolderName: "",
@@ -76,8 +76,6 @@ const AddInfluencerDialog = ({ isOpen, onClose }) => {
   const payoutMethods = [
     { value: "bank_transfer", label: "Bank Transfer" },
     { value: "upi", label: "UPI" },
-    { value: "paypal", label: "PayPal" },
-    { value: "crypto", label: "Crypto" },
   ];
 
   const socialPlatforms = [
@@ -110,7 +108,7 @@ const AddInfluencerDialog = ({ isOpen, onClose }) => {
       profileImageUrl: "",
       tags: [],
       bio: "",
-      location: { city: "", country: "" },
+
       address: { lane: "", city: "", state: "", pincode: "", country: "" },
       bankDetails: {
         accountHolderName: "",
@@ -234,15 +232,6 @@ const AddInfluencerDialog = ({ isOpen, onClose }) => {
       bio: formData.bio.trim() || undefined,
       preferredPayoutMethod: formData.preferredPayoutMethod || undefined,
 
-      // Clean nested objects
-      location:
-        formData.location.city.trim() || formData.location.country.trim()
-          ? {
-              city: formData.location.city.trim() || undefined,
-              country: formData.location.country.trim() || undefined,
-            }
-          : undefined,
-
       address:
         formData.address.lane.trim() ||
         formData.address.city.trim() ||
@@ -276,6 +265,9 @@ const AddInfluencerDialog = ({ isOpen, onClose }) => {
     try {
       await dispatch(addNewInfluencer(cleanedData)).unwrap();
       // Success - the dialog will be closed by the success effect below
+      if (!addInfluencerError) {
+        onClose();
+      }
     } catch (error) {
       // Error is handled by Redux and displayed in the UI
       console.error("Failed to add influencer:", error);
@@ -381,7 +373,7 @@ const AddInfluencerDialog = ({ isOpen, onClose }) => {
               <AlertCircle size={16} />
               <div>
                 <strong>{errorMessage.title}</strong>
-                <p>{errorMessage.message}</p>
+                <p>{errorMessage?.message}</p>
               </div>
               <button onClick={() => dispatch(clearError())}>
                 <X size={16} />
@@ -549,29 +541,6 @@ const AddInfluencerDialog = ({ isOpen, onClose }) => {
                           <option value="inactive">Inactive</option>
                         </select>
                       </div>
-
-                      <div className="form-group">
-                        <label className="form-label">
-                          <CreditCard size={16} />
-                          Default Commission Rate (%)
-                        </label>
-                        <input
-                          type="number"
-                          min="0"
-                          max="100"
-                          step="0.1"
-                          className="form-input"
-                          value={formData.defaultCommissionRate}
-                          onChange={(e) =>
-                            handleInputChange(
-                              "defaultCommissionRate",
-                              parseFloat(e.target.value) || 0
-                            )
-                          }
-                          placeholder="5.0"
-                          disabled={isAddingNewInfluencer}
-                        />
-                      </div>
                     </div>
                   </div>
 
@@ -582,15 +551,17 @@ const AddInfluencerDialog = ({ isOpen, onClose }) => {
                         <Instagram size={18} />
                         Social Media Links
                       </h3>
-                      <button
-                        type="button"
-                        className="add-btn"
-                        onClick={addSocialLink}
-                        disabled={isAddingNewInfluencer}
-                      >
-                        <Plus size={16} />
-                        Add Social
-                      </button>
+                      {formData?.socialLinks?.length < 5 && (
+                        <button
+                          type="button"
+                          className="add-btn"
+                          onClick={addSocialLink}
+                          disabled={isAddingNewInfluencer}
+                        >
+                          <Plus size={16} />
+                          Add Social
+                        </button>
+                      )}
                     </div>
 
                     {formData.socialLinks.map((social, index) => (
@@ -741,7 +712,9 @@ const AddInfluencerDialog = ({ isOpen, onClose }) => {
                   {/* Bank Details */}
                   {formData.preferredPayoutMethod === "bank_transfer" && (
                     <div className="form-section">
-                      <h3>
+                      <h3 style={{
+                        marginBottom : "0px"
+                      }}>
                         <CreditCard size={18} />
                         Bank Details
                       </h3>
@@ -907,49 +880,6 @@ const AddInfluencerDialog = ({ isOpen, onClose }) => {
                       Location & Address
                     </h3>
 
-                    <div className="form-row">
-                      <div className="form-group">
-                        <label className="form-label">City (Location)</label>
-                        <div className="input-wrapper">
-                          <input
-                            type="text"
-                            className="form-input with-icon"
-                            value={formData.location.city}
-                            onChange={(e) =>
-                              handleNestedInputChange(
-                                "location",
-                                "city",
-                                e.target.value
-                              )
-                            }
-                            placeholder="Enter city"
-                            disabled={isAddingNewInfluencer}
-                          />
-                          <MapPin className="input-icon" size={18} />
-                        </div>
-                      </div>
-                      <div className="form-group">
-                        <label className="form-label">Country (Location)</label>
-                        <div className="input-wrapper">
-                          <input
-                            type="text"
-                            className="form-input with-icon"
-                            value={formData.location.country}
-                            onChange={(e) =>
-                              handleNestedInputChange(
-                                "location",
-                                "country",
-                                e.target.value
-                              )
-                            }
-                            placeholder="Enter country"
-                            disabled={isAddingNewInfluencer}
-                          />
-                          <Globe className="input-icon" size={18} />
-                        </div>
-                      </div>
-                    </div>
-
                     <div className="form-group">
                       <label className="form-label">Street Address</label>
                       <div className="input-wrapper">
@@ -1008,7 +938,7 @@ const AddInfluencerDialog = ({ isOpen, onClose }) => {
                       </div>
                     </div>
 
-                    <div className="form-row ads">
+                    <div className="form-row">
                       <div className="form-group">
                         <label className="form-label">Postal Code</label>
                         <input
@@ -1047,7 +977,7 @@ const AddInfluencerDialog = ({ isOpen, onClose }) => {
                   </div>
 
                   {/* Additional Information */}
-                  <div className="form-section">
+                  {/* <div className="form-section">
                     <div className="section-header">
                       <h3>
                         <Plus size={18} />
@@ -1109,7 +1039,7 @@ const AddInfluencerDialog = ({ isOpen, onClose }) => {
                         </button>
                       </div>
                     ))}
-                  </div>
+                  </div> */}
                 </div>
               </div>
             )}

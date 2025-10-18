@@ -198,7 +198,7 @@ export default function EditCouponModal({ coupon, onClose }) {
     if (currentInfluencer) {
       setFormData((prev) => ({
         ...prev,
-        influencerId: currentInfluencer.id,
+        influencerId: coupon.influencerId || currentInfluencer.id,
         isInfluencerCoupon: true,
       }));
     }
@@ -298,7 +298,9 @@ export default function EditCouponModal({ coupon, onClose }) {
     }
 
     if (formData.isInfluencerCoupon !== (coupon.isInfluencerCoupon || false)) {
-      updateData.isInfluencerCoupon = formData.isInfluencerCoupon;
+      updateData.isInfluencerCoupon = formData?.influencerId
+        ? formData.isInfluencerCoupon
+        : false;
     }
 
     // FIX: Always send influencerId when isInfluencerCoupon is true OR when it has changed
@@ -310,7 +312,9 @@ export default function EditCouponModal({ coupon, onClose }) {
       updateData.influencerId = null;
     } else if (formData.influencerId !== (coupon.influencerId || "")) {
       // If influencerId changed from the original
-      updateData.influencerId = formData.influencerId || null;
+      updateData.influencerId = formData.isInfluencerCoupon
+        ? formData.influencerId
+        : null;
     }
 
     // Handle commission changes
@@ -318,9 +322,9 @@ export default function EditCouponModal({ coupon, onClose }) {
       const originalCommission = coupon.commission;
       const newCommission = {
         kind: formData.commission.kind,
-        amount: parseFloat(formData.commission.amount) || 0,
+        amount: Math.round(formData.commission.amount) || 0,
         maxCommission: formData.commission.maxCommission
-          ? parseFloat(formData.commission.maxCommission)
+          ? Math.round(formData.commission.maxCommission)
           : undefined,
       };
 
@@ -333,6 +337,9 @@ export default function EditCouponModal({ coupon, onClose }) {
         updateData.commission = newCommission;
       }
     } else if (!formData.isInfluencerCoupon && coupon.commission) {
+      updateData.commission = null;
+    }
+    if (formData.isInfluencerCoupon === false) {
       updateData.commission = null;
     }
 
@@ -475,19 +482,13 @@ export default function EditCouponModal({ coupon, onClose }) {
                   onChange={(e) =>
                     handleInputChange("discount.amount", e.target.value)
                   }
-                  placeholder={
-                    formData.discount.kind === "percent" ? "10" : "50"
-                  }
-                  min="0"
-                  max={formData.discount.kind === "percent" ? "100" : undefined}
-                  step={formData.discount.kind === "percent" ? "1" : "0.01"}
                   required
                 />
               </div>
 
               {formData.discount.kind === "percent" && (
                 <div className="form-group">
-                  <label>Max Discount ($)</label>
+                  <label>Max Discount (₹)</label>
                   <input
                     type="number"
                     value={formData.discount.maxDiscount}
@@ -496,7 +497,6 @@ export default function EditCouponModal({ coupon, onClose }) {
                     }
                     placeholder="100"
                     min="0"
-                    step="0.01"
                   />
                 </div>
               )}
@@ -632,10 +632,6 @@ export default function EditCouponModal({ coupon, onClose }) {
                   checked={formData.isInfluencerCoupon}
                   onChange={(e) => {
                     handleInputChange("isInfluencerCoupon", e.target.checked);
-                    if (!e.target.checked) {
-                      handleInputChange("influencerId", "");
-                      dispatch(clearInfluencer());
-                    }
                   }}
                 />
                 <Crown size={16} />
@@ -702,7 +698,7 @@ export default function EditCouponModal({ coupon, onClose }) {
                 )}
 
                 {/* Commission */}
-                {(formData.influencerId) && (
+                {formData.influencerId && (
                   <div className="commission-section">
                     <h4>Commission Settings</h4>
 
@@ -728,7 +724,7 @@ export default function EditCouponModal({ coupon, onClose }) {
                           handleInputChange("commission.kind", "fixed")
                         }
                       >
-                        <DollarSign size={16} />
+                        <IndianRupee size={16} />
                         Fixed Amount
                       </button>
                     </div>
@@ -738,7 +734,7 @@ export default function EditCouponModal({ coupon, onClose }) {
                         <label>
                           {formData.commission.kind === "percent"
                             ? "Commission (%)"
-                            : "Commission ($)"}
+                            : "Commission (₹)"}
                         </label>
                         <input
                           type="number"
@@ -753,17 +749,12 @@ export default function EditCouponModal({ coupon, onClose }) {
                             formData.commission.kind === "percent" ? "5" : "10"
                           }
                           min="0"
-                          step={
-                            formData.commission.kind === "percent"
-                              ? "1"
-                              : "0.01"
-                          }
                         />
                       </div>
 
                       {formData.commission.kind === "percent" && (
                         <div className="form-group">
-                          <label>Max Commission ($)</label>
+                          <label>Max Commission (₹)</label>
                           <input
                             type="number"
                             value={formData.commission.maxCommission}
@@ -773,9 +764,7 @@ export default function EditCouponModal({ coupon, onClose }) {
                                 e.target.value
                               )
                             }
-                            placeholder="50"
                             min="0"
-                            step="0.01"
                           />
                         </div>
                       )}
@@ -794,7 +783,7 @@ export default function EditCouponModal({ coupon, onClose }) {
             </div>
 
             <div className="form-grid">
-              <div className="form_grp_wrapper three">
+              <div className="form_grp_wrapper ">
                 <div className="form-group">
                   <label>Applies To</label>
                   <select
@@ -834,7 +823,7 @@ export default function EditCouponModal({ coupon, onClose }) {
                   />
                 </div>
               </div>
-              <div className="form_grp_wrapper three">
+              <div className="form_grp_wrapper">
                 <div className="form-group">
                   <label>Total Uses</label>
                   <input

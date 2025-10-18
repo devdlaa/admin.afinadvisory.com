@@ -15,14 +15,11 @@ import {
   influencersFilterConfig,
 } from "@/config/actionBarConfig";
 
-import { 
-  fetchInfluencers, 
-  clearError 
-} from "@/store/slices/influencersSlice";
+import { fetchInfluencers, clearError } from "@/store/slices/influencersSlice";
 
 const InfluencerDashboard = () => {
   const dispatch = useDispatch();
-  
+
   // Get state from Redux
   const { hasFetched, isFetching } = useSelector((state) => state.influencers);
 

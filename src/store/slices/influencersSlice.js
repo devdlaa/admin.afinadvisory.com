@@ -3,14 +3,17 @@ import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 // Async thunks for API calls
 export const fetchInfluencers = createAsyncThunk(
   "influencers/fetchInfluencers",
-  async ({ cursor = null, limit = 10, fresh = false }, { rejectWithValue, getState }) => {
+  async (
+    { cursor = null, limit = 10, fresh = false },
+    { rejectWithValue, getState }
+  ) => {
     const state = getState().influencers;
-    
+
     // Prevent concurrent fetches for fresh requests
-    if (fresh && state.isFetching) {
-      return rejectWithValue("Already fetching");
-    }
-    
+    // if (fresh && state.isFetching) {
+    //   return rejectWithValue("Already fetching");
+    // }
+
     const payload = cursor ? { limit, cursor } : { limit };
     try {
       const response = await fetch("/api/admin/influencers/get", {
@@ -32,7 +35,7 @@ export const fetchInfluencers = createAsyncThunk(
       }
 
       return {
-        influencers: data.influncers, // Note: API returns 'influncers'
+        influencers: data.influncers,
         hasMore: data.hasMore,
         cursor: data.cursor,
         resultsCount: data.resultsCount,
@@ -129,7 +132,7 @@ export const filterInfluencers = createAsyncThunk(
         mode,
         filters: data.filters,
         resultsCount: data.resultsCount,
-        influencers: data.influencers
+        influencers: data.influencers,
       };
     } catch (error) {
       return rejectWithValue(error.message);
@@ -181,22 +184,36 @@ export const deleteInfluencer = createAsyncThunk(
         },
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
       const data = await response.json();
 
+      if (!response.ok) {
+        // Return structured error with code and details from API
+        return rejectWithValue({
+          message:
+            data.error?.message || `HTTP error! status: ${response.status}`,
+          code: data.error?.code || "HTTP_ERROR",
+          details: data.error?.details || null,
+        });
+      }
+
       if (!data.success) {
-        throw new Error(data.error || "Failed to delete influencer");
+        return rejectWithValue({
+          message: data.error?.message || "Failed to delete influencer",
+          code: data.error?.code || "DELETE_FAILED",
+          details: data.error?.details || null,
+        });
       }
 
       return {
         id,
         message: data.message,
+        deletedData: data.data, // Includes deletedId, authDeleted, email, name
       };
     } catch (error) {
-      return rejectWithValue(error.message);
+      return rejectWithValue({
+        message: error.message || "Network error occurred",
+        code: "NETWORK_ERROR",
+      });
     }
   }
 );
@@ -281,7 +298,7 @@ const initialState = {
   loading: false,
   loadingNext: false,
   selectedInfluencer: null,
-  
+
   // Add fetching state management
   hasFetched: false,
   isFetching: false,
@@ -521,12 +538,12 @@ const influencersSlice = createSlice({
     builder
       .addCase(fetchInfluencers.pending, (state, action) => {
         const { cursor, fresh } = action.meta.arg || {};
-        
+
         // Prevent concurrent fetches
         if (state.isFetching && !cursor) {
           return;
         }
-        
+
         state.loading = true;
         state.isFetching = true;
         state.error = null;
@@ -544,14 +561,16 @@ const influencersSlice = createSlice({
         state.loading = false;
         state.isFetching = false;
         state.hasFetched = true;
-        
+
         const { influencers, hasMore, cursor, fresh } = action.payload;
         const isLoadMore = action.meta.arg?.cursor && !fresh;
 
         if (isLoadMore) {
           // For load more: append new data and dedupe
-          const existingIds = new Set(state.allInfluencers.map(i => i.id));
-          const newInfluencers = influencers.filter(i => !existingIds.has(i.id));
+          const existingIds = new Set(state.allInfluencers.map((i) => i.id));
+          const newInfluencers = influencers.filter(
+            (i) => !existingIds.has(i.id)
+          );
           state.allInfluencers = [...state.allInfluencers, ...newInfluencers];
         } else {
           // For fresh fetch: replace all data
@@ -742,13 +761,13 @@ const influencersSlice = createSlice({
         // Handle structured error object
         if (action.payload && typeof action.payload === "object") {
           const errorPayload = action.payload;
-
+         
           switch (errorPayload.type) {
             case "duplicate_data":
               state.addInfluencerError = {
                 type: "duplicate",
-                message: `Influencer already exists: ${errorPayload.message}`,
-                details: errorPayload.details,
+                message: errorPayload?.message?.message,
+                details: errorPayload?.message?.details,
               };
               break;
 
@@ -756,7 +775,7 @@ const influencersSlice = createSlice({
               state.addInfluencerError = {
                 type: "validation",
                 message: `Validation failed: ${errorPayload.message}`,
-                details: errorPayload.details,
+                details: errorPayload?.message?.details,
               };
               break;
 
@@ -780,7 +799,7 @@ const influencersSlice = createSlice({
               state.addInfluencerError = {
                 type: "unknown",
                 message: errorPayload.message || "An unexpected error occurred",
-                details: errorPayload.details,
+                details: errorPayload?.message?.details,
               };
           }
         } else {
@@ -936,7 +955,7 @@ export const selectAddInfluencerErrorMessage = (state) => {
   switch (error?.type) {
     case "duplicate":
       return {
-        title: "Influencer Already Exists",
+        title: "Account Already Exists",
         message: error?.message,
         type: "warning",
       };

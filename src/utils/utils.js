@@ -293,7 +293,7 @@ export function exportCommissionsToExcel(commissionsData) {
     if (key.includes("Id")) width = 30;
     if (key === "couponCode") width = 20;
     if (key === "status") width = 12;
-    if (key.includes("At")) width = 25; // timestamp fields
+    if (key.includes("At")) width = 25; 
     colWidths.push({ wch: width });
   });
   worksheet["!cols"] = colWidths;
@@ -431,4 +431,42 @@ export function generateInfluencerUsername(email, phone) {
   }
 
   return username;
+}
+
+
+export function removeEmptyFields(input) {
+  if (Array.isArray(input)) {
+    
+    return input
+      .map((item) => removeEmptyFields(item))
+      .filter(
+        (item) =>
+          item !== undefined &&
+          item !== null &&
+          (typeof item !== "object" || Object.keys(item).length > 0)
+      );
+  } else if (input !== null && typeof input === "object") {
+    const cleaned = {};
+    for (const key in input) {
+      if (!input.hasOwnProperty(key)) continue;
+      const value = input[key];
+      if (value === undefined || value === null || value === "") continue;
+
+      if (typeof value === "object") {
+        const nested = removeEmptyFields(value);
+        if (
+          nested !== undefined &&
+          nested !== null &&
+          (typeof nested !== "object" || Object.keys(nested).length > 0)
+        ) {
+          cleaned[key] = nested;
+        }
+      } else {
+        cleaned[key] = value;
+      }
+    }
+    return cleaned;
+  }
+  // Primitive value (non-empty) → return as is
+  return input;
 }

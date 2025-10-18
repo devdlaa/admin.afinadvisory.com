@@ -174,7 +174,9 @@ const InfluencerTable = ({ actionButtons = [] }) => {
             <div className="table-cell category-cell" data-label="Category">
               <div className="category-badge">
                 <span className="category-text">
-                  {getDisplayCategories(influencer?.tags || influencer?.category)}
+                  {getDisplayCategories(
+                    influencer?.tags || influencer?.category
+                  )}
                 </span>
               </div>
             </div>

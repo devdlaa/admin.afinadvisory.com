@@ -69,7 +69,6 @@ export async function PATCH(req, context) {
     }
 
     const body = await req.json();
-    console.log("🔸 Incoming update body:", body);
 
     const parsed = couponUpdateSchema.safeParse(body);
     if (!parsed.success) {

@@ -12,7 +12,6 @@ const influencerIdSchema = z.object({
     .regex(/^[a-zA-Z0-9_-]+$/, "Invalid influencer ID format"),
 });
 
-// Partial schema for updates - all fields are optional except for system fields
 const updateInfluencerSchema = z
   .object({
     // Basic fields
@@ -113,8 +112,10 @@ const updateInfluencerSchema = z
         country: z.string().max(100).optional(),
       })
       .optional(),
+
+    // Payout fields
     preferredPayoutMethod: z
-      .enum(["paypal", "bank_transfer", "upi", "crypto"])
+      .enum(["paypal", "bank_transfer", "upi"])
       .optional(),
     bankDetails: z
       .object({
@@ -125,24 +126,9 @@ const updateInfluencerSchema = z
           .optional(),
         ifscCode: z
           .string()
-          .regex(/^[A-Z]{4}[0-9]{7}$/, "Invalid IFSC code format")
-          .optional(),
-        swiftCode: z
-          .string()
-          .regex(
-            /^[A-Z]{4}[A-Z]{2}[A-Z0-9]{2}([A-Z0-9]{3})?$/,
-            "Invalid SWIFT code format"
-          )
-          .optional(),
-        iban: z
-          .string()
-          .regex(
-            /^[A-Z]{2}[0-9]{2}[A-Z0-9]{4}[0-9]{7}([A-Z0-9]?){0,16}$/,
-            "Invalid IBAN format"
-          )
+          .regex(/^[A-Z]{4}0[A-Z0-9]{5,8}$/, "Invalid IFSC code format")
           .optional(),
         bankName: z.string().max(100).optional(),
-        bankCountry: z.string().max(100).optional(),
         upiId: z
           .string()
           .regex(
@@ -150,8 +136,10 @@ const updateInfluencerSchema = z
             "Invalid UPI ID format"
           )
           .optional(),
+        paypalEmail: z.string().email("Invalid PayPal email").optional(),
       })
       .optional(),
+
     totalCampaigns: z.number().int().nonnegative().optional(),
     totalSales: z.number().nonnegative().optional(),
     engagementRate: z
@@ -174,7 +162,7 @@ const updateInfluencerSchema = z
         })
       )
       .max(20, "Maximum 20 additional info items allowed")
-      .optional()
+      .optional(),
   })
   .refine((data) => Object.keys(data).length > 0, {
     message: "At least one field must be provided for update",
@@ -187,6 +175,7 @@ const PROTECTED_FIELDS = [
   "updatedAt",
   "createdBy",
   "lastUpdatedBy",
+  "authUid", // Protect auth UID from direct updates
 ];
 
 // Standardized response helpers
@@ -222,19 +211,86 @@ const sanitizeUpdateData = (data) => {
     delete sanitized[field];
   });
 
+  // Add lowercase fields for search if updating name/email/username
+  if (sanitized.name) {
+    sanitized.lowercase_name = sanitized.name.toLowerCase();
+  }
+  if (sanitized.email) {
+    sanitized.lowercase_email = sanitized.email.toLowerCase();
+  }
+  if (sanitized.username) {
+    sanitized.lowercase_username = sanitized.username.toLowerCase();
+  }
+
   // Add system fields
   sanitized.updatedAt = new Date().toISOString();
 
   return sanitized;
 };
 
+// Rollback helper for Auth user email
+async function rollbackAuthEmail(authUid, originalEmail) {
+  try {
+    if (authUid && originalEmail) {
+      await admin.auth().updateUser(authUid, {
+        email: originalEmail,
+      });
+      console.log(`✅ Rolled back Auth email to: ${originalEmail}`);
+      return true;
+    }
+  } catch (error) {
+    console.error(`❌ Failed to rollback Auth email for ${authUid}:`, error);
+    return false;
+  }
+}
+
+// Rollback helper for Auth user status
+async function rollbackAuthStatus(authUid, originalStatus) {
+  try {
+    if (authUid) {
+      const disabled = originalStatus === "inactive";
+      await admin.auth().updateUser(authUid, {
+        disabled,
+      });
+      console.log(
+        `✅ Rolled back Auth status to: ${originalStatus} (disabled: ${disabled})`
+      );
+      return true;
+    }
+  } catch (error) {
+    console.error(`❌ Failed to rollback Auth status for ${authUid}:`, error);
+    return false;
+  }
+}
+
+// TODO : Rollback Firestore update
+async function rollbackFirestoreUpdate(docRef, originalData) {
+  try {
+    await docRef.update({
+      ...originalData,
+      updatedAt: new Date().toISOString(),
+    });
+    console.log(`✅ Rolled back Firestore document`);
+    return true;
+  } catch (error) {
+    console.error(`❌ Failed to rollback Firestore document:`, error);
+    return false;
+  }
+}
+
 export async function PATCH(req) {
   let db;
   let influencerId;
   let requestBody;
+  let authUid;
+  let originalData = {};
+  let authUpdates = {
+    email: false,
+    status: false,
+  };
 
   try {
-    // Permission check - uncomment and configure based on your permission mapping
+    // Permission check
     const permissionCheck = await requirePermission(req, "influencers.update");
     if (permissionCheck) return permissionCheck;
 
@@ -271,8 +327,8 @@ export async function PATCH(req) {
     // Validate request body against schema
     const bodyValidation = updateInfluencerSchema.safeParse(requestBody);
     if (!bodyValidation.success) {
-      const errorMessages = bodyValidation.error.errors
-        .map((err) => `${err.path.join(".")}: ${err.message}`)
+      const errorMessages = bodyValidation.error.issues
+        ?.map((err) => `${err.path.join(".")}: ${err.message}`)
         .join(", ");
 
       return createErrorResponse(
@@ -288,7 +344,7 @@ export async function PATCH(req) {
     db = admin.firestore();
     const docRef = db.collection("influencers").doc(influencerId);
 
-    // Check if influencer exists
+    // Check if influencer exists and get current data
     const docSnap = await docRef.get();
     if (!docSnap.exists) {
       return createErrorResponse(
@@ -298,64 +354,62 @@ export async function PATCH(req) {
       );
     }
 
+    const existingData = docSnap.data();
+    authUid = existingData.authUid;
+
+    // Store original values for potential rollback
+    originalData = {
+      email: existingData.email,
+      status: existingData.status,
+    };
+
+    // Check if authUid exists
+    if (!authUid) {
+      return createErrorResponse(
+        "Auth UID not found for this influencer",
+        400,
+        "MISSING_AUTH_UID"
+      );
+    }
+
+    // Verify Auth user exists
+    try {
+      await admin.auth().getUser(authUid);
+    } catch (authError) {
+      console.error("Auth user not found:", authError);
+      return createErrorResponse(
+        "Associated authentication account not found",
+        404,
+        "AUTH_USER_NOT_FOUND"
+      );
+    }
+
     // Check for unique constraints (email, username, referralCode)
-    if (
-      validatedData.email ||
-      validatedData.username ||
-      validatedData.referralCode
-    ) {
-      const existingData = docSnap.data();
-      const queries = [];
+    const queries = [];
 
-      if (validatedData.email && validatedData.email !== existingData.email) {
-        queries.push(
-          db
-            .collection("influencers")
-            .where("email", "==", validatedData.email)
-            .limit(1)
-            .get()
-        );
-      }
+    if (validatedData.email && validatedData.email !== existingData.email) {
+      queries.push({
+        type: "email",
+        promise: db
+          .collection("influencers")
+          .where("email", "==", validatedData.email)
+          .limit(1)
+          .get(),
+      });
+    }
 
-      if (
-        validatedData.username &&
-        validatedData.username !== existingData.username
-      ) {
-        queries.push(
-          db
-            .collection("influencers")
-            .where("username", "==", validatedData.username)
-            .limit(1)
-            .get()
-        );
-      }
-
-      if (
-        validatedData.referralCode &&
-        validatedData.referralCode !== existingData.referralCode
-      ) {
-        queries.push(
-          db
-            .collection("influencers")
-            .where("referralCode", "==", validatedData.referralCode)
-            .limit(1)
-            .get()
-        );
-      }
-
-      const results = await Promise.all(queries);
+    // Check for duplicates
+    if (queries.length > 0) {
+      const results = await Promise.all(queries.map((q) => q.promise));
       const conflicts = [];
 
       results.forEach((result, index) => {
         if (!result.empty) {
-          const field =
-            validatedData.email && index === 0
-              ? "email"
-              : validatedData.username &&
-                (validatedData.email ? index === 1 : index === 0)
-              ? "username"
-              : "referralCode";
-          conflicts.push(field);
+          // Make sure the conflicting document is not the same influencer
+          const conflictDoc = result.docs[0];
+          if (conflictDoc.id !== influencerId) {
+            conflicts.push(queries[index].type);
+          }
         }
       });
 
@@ -368,13 +422,105 @@ export async function PATCH(req) {
       }
     }
 
-    // Sanitize and prepare update data
+    // Check if email already exists in Firebase Auth (different user)
+    if (validatedData.email && validatedData.email !== existingData.email) {
+      try {
+        const existingAuthUser = await admin
+          .auth()
+          .getUserByEmail(validatedData.email);
+
+        // If found and it's a different user, return error
+        if (existingAuthUser.uid !== authUid) {
+          return createErrorResponse(
+            "Email already in use by another account",
+            409,
+            "EMAIL_IN_USE_AUTH"
+          );
+        }
+      } catch (authError) {
+        // If error is "user not found", that's good - email is available
+        if (authError.code !== "auth/user-not-found") {
+          throw authError; // Re-throw unexpected errors
+        }
+      }
+    }
+
+    // STEP 1: Update Firebase Auth User
+    const authUpdatePayload = {};
+    let authUpdateNeeded = false;
+
+    // Update email in Auth if changed
+    if (validatedData.email && validatedData.email !== existingData.email) {
+      authUpdatePayload.email = validatedData.email;
+      authUpdateNeeded = true;
+      authUpdates.email = true;
+    }
+
+    // Update status (enabled/disabled) in Auth if changed
+    if (validatedData.status && validatedData.status !== existingData.status) {
+      authUpdatePayload.disabled = validatedData.status === "inactive";
+      authUpdateNeeded = true;
+      authUpdates.status = true;
+    }
+
+    // Perform Auth update if needed
+    if (authUpdateNeeded) {
+      try {
+        await admin.auth().updateUser(authUid, authUpdatePayload);
+        console.log(`✅ Updated Auth user ${authUid}:`, authUpdatePayload);
+      } catch (authError) {
+        console.error("Failed to update Auth user:", authError);
+
+        // Handle specific auth errors
+        if (authError.code === "auth/email-already-exists") {
+          return createErrorResponse(
+            "Email already in use by another account",
+            409,
+            "EMAIL_IN_USE"
+          );
+        }
+
+        if (authError.code === "auth/invalid-email") {
+          return createErrorResponse(
+            "Invalid email format",
+            400,
+            "INVALID_EMAIL"
+          );
+        }
+
+        throw new Error(`Auth update failed: ${authError.message}`);
+      }
+    }
+
+    // STEP 2: Update Firestore Document
     const updateData = sanitizeUpdateData(validatedData);
 
-    // Perform the update
-    await docRef.update(updateData);
+    try {
+      await docRef.update(updateData);
+      console.log(`✅ Updated Firestore document ${influencerId}`);
+    } catch (firestoreError) {
+      console.error("Failed to update Firestore:", firestoreError);
 
-    // Fetch updated document
+      // Rollback Auth updates if Firestore update failed
+      const rollbackPromises = [];
+
+      if (authUpdates.email) {
+        rollbackPromises.push(rollbackAuthEmail(authUid, originalData.email));
+      }
+      if (authUpdates.status) {
+        rollbackPromises.push(rollbackAuthStatus(authUid, originalData.status));
+      }
+
+      await Promise.allSettled(rollbackPromises);
+
+      return createErrorResponse(
+        "Failed to update influencer data. Auth changes have been rolled back.",
+        500,
+        "FIRESTORE_UPDATE_FAILED"
+      );
+    }
+
+    // STEP 3: Fetch and return updated document
     const updatedDoc = await docRef.get();
     const updatedData = updatedDoc.data();
 
@@ -383,11 +529,8 @@ export async function PATCH(req) {
     const safeBankDetails = bankDetails
       ? {
           ...bankDetails,
-          accountNumber: bankDetails.accountNumber
+          accountNumber: bankDetails?.accountNumber
             ? `****${bankDetails.accountNumber.slice(-4)}`
-            : undefined,
-          iban: bankDetails.iban
-            ? `****${bankDetails.iban.slice(-4)}`
             : undefined,
         }
       : undefined;
@@ -397,26 +540,45 @@ export async function PATCH(req) {
       bankDetails: safeBankDetails,
     };
 
-    // Log successful update for audit purposes
-    console.log(`✅ Influencer ${influencerId} successfully updated by admin`, {
-      updatedFields: Object.keys(updateData),
-      timestamp: new Date().toISOString(),
-    });
+    // Build success message
+    const updatedFields = [];
+    if (authUpdates.email) updatedFields.push("email");
+    if (authUpdates.status) updatedFields.push("status");
 
-    return createSuccessResponse(
-      "Influencer updated successfully",
-      responseData
-    );
+    const message =
+      updatedFields.length > 0
+        ? `Influencer updated successfully. Auth fields updated: ${updatedFields.join(
+            ", "
+          )}`
+        : "Influencer updated successfully";
+
+    return createSuccessResponse(message, responseData);
   } catch (err) {
-    // Enhanced error logging with more context
-    console.error("🔥 Error updating influencer:", {
+    // Critical error - attempt to rollback everything
+    console.error("🔥 Critical error updating influencer:", {
       error: err.message,
       stack: err.stack,
       influencerId: influencerId || "unknown",
+      authUid: authUid || "unknown",
       requestBody: requestBody ? Object.keys(requestBody) : "unparsed",
       timestamp: new Date().toISOString(),
       url: req.url,
     });
+
+    // Attempt rollback of all Auth changes
+    const rollbackPromises = [];
+
+    if (authUpdates.email) {
+      rollbackPromises.push(rollbackAuthEmail(authUid, originalData.email));
+    }
+    if (authUpdates.status) {
+      rollbackPromises.push(rollbackAuthStatus(authUid, originalData.status));
+    }
+
+    if (rollbackPromises.length > 0) {
+      await Promise.allSettled(rollbackPromises);
+      console.log("🔄 Attempted to rollback all Auth changes");
+    }
 
     // Handle specific Firebase/Firestore errors
     if (err.code) {

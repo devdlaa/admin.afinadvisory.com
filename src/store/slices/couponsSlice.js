@@ -116,6 +116,7 @@ export const updateCoupon = createAsyncThunk(
       const data = await response.json();
 
       if (!response.ok) {
+        console.log("response", response, data);
         return rejectWithValue(data.error || "Failed to update coupon");
       }
 
@@ -181,15 +182,15 @@ export const searchInfluencer = createAsyncThunk(
       });
 
       const data = await response.json();
-   
 
       if (!response.ok) {
-        return rejectWithValue(data.error || "Influencer not found");
+        return rejectWithValue(
+          data.error?.details[0]?.message || "Influencer not found"
+        );
       }
 
-      return data;
+      return data?.data;
     } catch (error) {
- 
       return rejectWithValue(error.message);
     }
   }
@@ -360,8 +361,8 @@ const couponsSlice = createSlice({
       })
       .addCase(searchInfluencer.fulfilled, (state, action) => {
         state.influencerLoading = false;
-  
-        state.currentInfluencer = action.payload?.influencer || null;
+
+        state.currentInfluencer = action.payload || null;
       })
       .addCase(searchInfluencer.rejected, (state, action) => {
         state.influencerLoading = false;

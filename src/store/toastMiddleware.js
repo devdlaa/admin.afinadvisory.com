@@ -433,7 +433,7 @@ const toastMiddleware = () => (next) => (action) => {
         break;
 
       case "customers/updateCustomer/rejected":
-        console.log("action.payload->", action.payload);
+        
         const updateCustomerError = action.payload?.message.details?.errors;
 
         if (updateCustomerError?.includes("not found")) {

@@ -610,5 +610,11 @@
     "name": "Sole Proprietorship to PVT LTD Co.",
     "description": "",
     "slug": "/service/proprietorship-to-pvt-co"
+  },
+  {
+    "serviceId": "AFINSID06_103",
+    "name": "ection 8 Company to Pvt or Public Ltd",
+    "description": "",
+    "slug": "/service/section8-to-private-public"
   }
 ]

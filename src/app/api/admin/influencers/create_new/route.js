@@ -1,9 +1,13 @@
-import { NextResponse } from "next/server";
 import admin from "@/lib/firebase-admin";
 import { z, ZodError } from "zod";
 import { auth } from "@/utils/auth";
 import { v4 as uuidv4 } from "uuid";
-import { createSuccessResponse, createErrorResponse } from "@/utils/resposeHandlers";
+import { SEND_EMAIL } from "@/utils/sendemail";
+
+import {
+  createSuccessResponse,
+  createErrorResponse,
+} from "@/utils/resposeHandlers";
 
 import { requirePermission } from "@/lib/requirePermission";
 
@@ -25,10 +29,6 @@ const influencerSchema = z.object({
       "Username can only contain letters, numbers, and underscores"
     )
     .trim(),
-  defaultCommissionRate: z
-    .number()
-    .min(0, "Commission rate cannot be negative")
-    .max(100, "Commission rate cannot exceed 100%"),
 
   // Optional fields with validation
   phone: z
@@ -87,12 +87,7 @@ const influencerSchema = z.object({
     )
     .max(10, "Maximum 10 social links allowed")
     .optional(),
-  location: z
-    .object({
-      city: z.string().max(100).optional(),
-      country: z.string().max(100).optional(),
-    })
-    .optional(),
+
   address: z
     .object({
       lane: z.string().max(200).optional(),
@@ -105,9 +100,7 @@ const influencerSchema = z.object({
       country: z.string().max(100).optional(),
     })
     .optional(),
-  preferredPayoutMethod: z
-    .enum(["paypal", "bank_transfer", "upi", "crypto"])
-    .optional(),
+  preferredPayoutMethod: z.enum(["bank_transfer", "upi"]).optional(),
   bankDetails: z
     .object({
       accountHolderName: z.string().max(100).optional(),
@@ -119,22 +112,9 @@ const influencerSchema = z.object({
         .string()
         .regex(/^[A-Z]{4}[0-9]{7}$/, "Invalid IFSC code format")
         .optional(),
-      swiftCode: z
-        .string()
-        .regex(
-          /^[A-Z]{4}[A-Z]{2}[A-Z0-9]{2}([A-Z0-9]{3})?$/,
-          "Invalid SWIFT code format"
-        )
-        .optional(),
-      iban: z
-        .string()
-        .regex(
-          /^[A-Z]{2}[0-9]{2}[A-Z0-9]{4}[0-9]{7}([A-Z0-9]?){0,16}$/,
-          "Invalid IBAN format"
-        )
-        .optional(),
+
       bankName: z.string().max(100).optional(),
-      bankCountry: z.string().max(100).optional(),
+
       upiId: z
         .string()
         .regex(
@@ -172,36 +152,8 @@ const influencerSchema = z.object({
 });
 
 // Business logic validation
-async function validateInfluencerData(db, data) {
+async function validateInfluencerData(data) {
   const errors = [];
-
-  // Check for duplicate email
-  const emailQuery = await db
-    .collection("influencers")
-    .where("email", "==", data.email)
-    .limit(1)
-    .get();
-
-  if (!emailQuery.empty) {
-    errors.push({
-      field: "email",
-      message: "An influencer with this email already exists",
-    });
-  }
-
-  // Check for duplicate username
-  const usernameQuery = await db
-    .collection("influencers")
-    .where("username", "==", data.username)
-    .limit(1)
-    .get();
-
-  if (!usernameQuery.empty) {
-    errors.push({
-      field: "username",
-      message: "This username is already taken",
-    });
-  }
 
   // Validate custom commission logic
   if (data.customCommission) {
@@ -226,19 +178,18 @@ async function validateInfluencerData(db, data) {
   if (data.bankDetails) {
     const { preferredPayoutMethod } = data;
     if (preferredPayoutMethod === "bank_transfer") {
-      const { accountNumber, ifscCode, swiftCode } = data.bankDetails;
+      const { accountNumber, ifscCode } = data.bankDetails;
       if (!accountNumber) {
         errors.push({
           field: "bankDetails.accountNumber",
           message: "Account number is required for bank transfer payout",
         });
       }
-      // Require either IFSC (India) or SWIFT code (International)
-      if (!ifscCode && !swiftCode) {
+      // Require IFSC code for India
+      if (!ifscCode) {
         errors.push({
           field: "bankDetails",
-          message:
-            "Either IFSC code or SWIFT code is required for bank transfers",
+          message: "IFSC code is required for bank transfers",
         });
       }
     }
@@ -269,10 +220,39 @@ function generateInfluencerIds(name) {
   return { id, referralCode };
 }
 
+// Cleanup function for rollback
+async function cleanupAuth(uid) {
+  try {
+    if (uid) {
+      await admin.auth().deleteUser(uid);
+      console.log(`Rolled back auth user: ${uid}`);
+    }
+  } catch (error) {
+    console.error(`Failed to rollback auth user ${uid}:`, error);
+  }
+}
+
+async function cleanupFirestore(id) {
+  try {
+    if (id) {
+      const db = admin.firestore();
+      await db.collection("influencers").doc(id).delete();
+      console.log(`Rolled back Firestore document: ${id}`);
+    }
+  } catch (error) {
+    console.error(`Failed to rollback Firestore document ${id}:`, error);
+  }
+}
+
 export async function POST(req) {
+  let newInfluencerAuthUid = null;
+  let influencerId = null;
+  let resetLink = null;
+
   try {
     const session = await auth();
 
+    // Check permissions
     const permissionCheck = await requirePermission(req, "influencers.create");
     if (permissionCheck) return permissionCheck;
 
@@ -287,7 +267,7 @@ export async function POST(req) {
         "Invalid request format",
         400,
         "INVALID_JSON",
-        ["Request body must be valid JSON" ]
+        ["Request body must be valid JSON"]
       );
     }
 
@@ -319,92 +299,293 @@ export async function POST(req) {
     }
 
     // Business logic validation
-    const businessErrors = await validateInfluencerData(db, validatedData);
+    const businessErrors = await validateInfluencerData(validatedData);
     if (businessErrors.length > 0) {
       return createErrorResponse(
         "Influencer data validation failed",
-        409,
-        "DUPLICATE_DATA",
+        400,
+        "VALIDATION_ERROR",
         businessErrors
       );
     }
 
-    // Generate IDs and prepare document
-    const { id, referralCode: generatedReferralCode } = generateInfluencerIds(
-      validatedData.name
-    );
-    const now = new Date().toISOString();
+    // Check if email already exists in Firebase Auth
+    try {
+      const existingAuthUser = await admin
+        .auth()
+        .getUserByEmail(validatedData.email);
 
-    const influencerDoc = {
-      ...validatedData,
-      id,
-      // Use provided referral code or generate one
-      referralCode: validatedData.referralCode || generatedReferralCode,
-      // Add search-friendly fields
-      lowercase_name: validatedData.name.toLowerCase(),
-      lowercase_email: validatedData.email.toLowerCase(),
-      lowercase_username: validatedData.username.toLowerCase(),
-      // Set timestamps
-      lastActiveAt: now,
-      createdAt: now,
-      updatedAt: now,
-      // Add audit trail
-      createdBy: session?.user?.id  || "admin", // TODO: Replace with actual user ID from session
-    };
+      console.log("User already exists in Auth:", existingAuthUser.uid);
 
-    // Create influencer document
-    await db.collection("influencers").doc(id).set(influencerDoc);
-
-    // Prepare response data (exclude sensitive information)
-    const responseData = {
-      id: influencerDoc.id,
-      name: influencerDoc.name,
-      email: influencerDoc.email,
-      username: influencerDoc.username,
-      referralCode: influencerDoc.referralCode,
-      status: influencerDoc.status,
-      defaultCommissionRate: influencerDoc.defaultCommissionRate,
-      verificationStatus: influencerDoc.verificationStatus,
-      createdAt: influencerDoc.createdAt,
-      // Include non-sensitive optional fields if present
-      ...(influencerDoc.profileImageUrl && {
-        profileImageUrl: influencerDoc.profileImageUrl,
-      }),
-      ...(influencerDoc.tags && { tags: influencerDoc.tags }),
-      ...(influencerDoc.bio && { bio: influencerDoc.bio }),
-      ...(influencerDoc.location && { location: influencerDoc.location }),
-    };
-
-    return createSuccessResponse(
-      `Influencer '${validatedData.name}' created successfully`,
-      responseData
-    );
-  } catch (error) {
-    // Log error for monitoring
-    console.error("Create influencer operation failed:", {
-      error: error.message,
-      stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
-      timestamp: new Date().toISOString(),
-    });
-
-    // Handle specific Firebase errors
-    if (error.code === "permission-denied") {
       return createErrorResponse(
-        "Access denied",
-        403,
-        "PERMISSION_DENIED",
+        "Existing Account: Email Already in Use",
+        409,
+        "DUPLICATE_EMAIL",
         [
           {
-            field: "permissions",
-            message: "Insufficient permissions to create influencers",
+            field: "email",
+            message: "An account with this email already exists",
+          },
+        ]
+      );
+    } catch (error) {
+      // If user not found, proceed with creation
+      if (error.code !== "auth/user-not-found") {
+        throw error; // Re-throw unexpected errors
+      }
+    }
+
+    // STEP 1: Create Firebase Auth User
+    let newInfluencerAuth;
+    try {
+      const authUserData = {
+        disabled: false,
+        displayName: validatedData.name,
+        email: validatedData.email,
+        emailVerified: false,
+      };
+
+      newInfluencerAuth = await admin.auth().createUser(authUserData);
+      newInfluencerAuthUid = newInfluencerAuth.uid;
+
+      console.log("Created Auth user:", newInfluencerAuthUid);
+    } catch (authError) {
+      console.error("Failed to create Auth user:", authError);
+
+      // Handle specific auth errors
+      if (authError.code === "auth/email-already-exists") {
+        return createErrorResponse(
+          "Email Already in Use",
+          409,
+          "DUPLICATE_EMAIL",
+          [
+            {
+              field: "email",
+              message: "An account with this email already exists",
+            },
+          ]
+        );
+      }
+
+      if (authError.code === "auth/phone-number-already-exists") {
+        return createErrorResponse(
+          "Phone Number Already in Use",
+          409,
+          "DUPLICATE_PHONE",
+          [
+            {
+              field: "phone",
+              message: "An account with this phone number already exists",
+            },
+          ]
+        );
+      }
+
+      if (authError.code === "auth/invalid-phone-number") {
+        return createErrorResponse(
+          "Invalid Phone Number",
+          400,
+          "INVALID_PHONE",
+          [
+            {
+              field: "phone",
+              message: "The provided phone number is invalid",
+            },
+          ]
+        );
+      }
+
+      throw new Error(`Auth user creation failed: ${authError.message}`);
+    }
+
+    // STEP 2: Generate password reset link
+    try {
+      resetLink = await admin
+        .auth()
+        .generatePasswordResetLink(validatedData.email, {
+          url:
+            process.env.NEXT_PUBLIC_APP_URL || "https://share.afinadvisory.com",
+        });
+
+      console.log("Generated password reset link");
+    } catch (resetLinkError) {
+      console.error("Failed to generate password reset link:", resetLinkError);
+
+      // Rollback: Delete auth user
+      await cleanupAuth(newInfluencerAuthUid);
+
+      return createErrorResponse(
+        "Failed to Generate Password Reset Link",
+        500,
+        "RESET_LINK_GENERATION_FAILED",
+        [
+          {
+            field: "email",
+            message:
+              "Could not generate password reset link. User creation rolled back.",
           },
         ]
       );
     }
 
+    // STEP 3: Create Firestore Document
+    try {
+      // Generate IDs and prepare document
+      const { id, referralCode: generatedReferralCode } = generateInfluencerIds(
+        validatedData.name
+      );
+      influencerId = id;
+      const now = new Date().toISOString();
+
+      const influencerDoc = {
+        ...validatedData,
+        id,
+        authUid: newInfluencerAuthUid, // Link to Firebase Auth user
+        referralCode: validatedData.referralCode || generatedReferralCode,
+        // Add search-friendly fields
+        lowercase_name: validatedData.name.toLowerCase(),
+        lowercase_email: validatedData.email.toLowerCase(),
+        lowercase_username: validatedData.username.toLowerCase(),
+        // Set timestamps
+        lastActiveAt: now,
+        createdAt: now,
+        updatedAt: now,
+        // Add audit trail
+        createdBy: session?.user?.id || "system",
+        passwordResetSentAt: now,
+      };
+
+      await db.collection("influencers").doc(id).set(influencerDoc);
+      console.log("Created Firestore document:", id);
+    } catch (firestoreError) {
+      console.error("Failed to create Firestore document:", firestoreError);
+
+      // Rollback: Delete auth user
+      await cleanupAuth(newInfluencerAuthUid);
+
+      return createErrorResponse(
+        "Database Operation Failed",
+        500,
+        "FIRESTORE_ERROR",
+        [
+          {
+            field: "database",
+            message:
+              "Failed to create influencer record. User creation rolled back.",
+          },
+        ]
+      );
+    }
+
+    // STEP 4: Send Password Reset Email
+    try {
+      await SEND_EMAIL({
+        to: validatedData.email,
+        type: "INFLUNCER_PASSWORD_RESET_NOTIFICATION",
+        variables: {
+          recipientName: validatedData.name,
+          resetLink,
+          expiryHours: 24,
+        },
+      });
+
+      console.log("Password reset email sent successfully");
+    } catch (emailError) {
+      console.error("Failed to send password reset email:", emailError);
+
+      // Don't rollback - influencer is created, just log the email failure
+      // We'll return success but note that email failed
+      console.warn(
+        `Influencer ${influencerId} created but password reset email failed to send`
+      );
+
+      // Optionally, you could update the Firestore doc to mark email as failed
+      try {
+        await db.collection("influencers").doc(influencerId).update({
+          passwordResetEmailFailed: true,
+          passwordResetEmailError: emailError.message,
+          updatedAt: new Date().toISOString(),
+        });
+      } catch (updateError) {
+        console.error("Failed to update email failure status:", updateError);
+      }
+
+      // Prepare response data
+      const responseData = {
+        id: influencerId,
+        name: validatedData.name,
+        email: validatedData.email,
+        username: validatedData.username,
+        referralCode: validatedData.referralCode,
+        status: validatedData.status,
+        defaultCommissionRate: validatedData.defaultCommissionRate,
+        verificationStatus: validatedData.verificationStatus,
+        authUid: newInfluencerAuthUid,
+        emailSent: false,
+        warning: "Influencer created but password reset email failed to send",
+      };
+
+      return createSuccessResponse(
+        `Influencer '${validatedData.name}' created but email notification failed`,
+        responseData,
+        201
+      );
+    }
+
+    // SUCCESS: Everything worked
+    const responseData = {
+      id: influencerId,
+      name: validatedData.name,
+      email: validatedData.email,
+      username: validatedData.username,
+      referralCode: validatedData.referralCode || influencerId,
+      status: validatedData.status,
+      defaultCommissionRate: validatedData.defaultCommissionRate,
+      verificationStatus: validatedData.verificationStatus,
+      authUid: newInfluencerAuthUid,
+      emailSent: true,
+      createdAt: new Date().toISOString(),
+      // Include non-sensitive optional fields if present
+      ...(validatedData.profileImageUrl && {
+        profileImageUrl: validatedData.profileImageUrl,
+      }),
+      ...(validatedData.tags && { tags: validatedData.tags }),
+      ...(validatedData.bio && { bio: validatedData.bio }),
+      ...(validatedData.location && { location: validatedData.location }),
+    };
+
+    return createSuccessResponse(
+      `Influencer '${validatedData.name}' created successfully. Password reset email sent.`,
+      responseData,
+      201
+    );
+  } catch (error) {
+    // Critical error occurred - attempt rollback
+    console.error("Critical error in influencer creation:", {
+      error: error.message,
+      stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
+      timestamp: new Date().toISOString(),
+    });
+
+    // Attempt to rollback both Auth and Firestore
+    await Promise.allSettled([
+      cleanupAuth(newInfluencerAuthUid),
+      cleanupFirestore(influencerId),
+    ]);
+
+    // Handle specific Firebase errors
+    if (error.code === "permission-denied") {
+      return createErrorResponse("Access Denied", 403, "PERMISSION_DENIED", [
+        {
+          field: "permissions",
+          message: "Insufficient permissions to create influencers",
+        },
+      ]);
+    }
+
     if (error.code === "unavailable") {
       return createErrorResponse(
-        "Service temporarily unavailable",
+        "Service Temporarily Unavailable",
         503,
         "SERVICE_UNAVAILABLE",
         [
@@ -418,17 +599,12 @@ export async function POST(req) {
     }
 
     if (error.code === "deadline-exceeded") {
-      return createErrorResponse(
-        "Request timeout",
-        408,
-        "TIMEOUT",
-        [
-          {
-            field: "server",
-            message: "Operation took too long to complete. Please try again.",
-          },
-        ]
-      );
+      return createErrorResponse("Request Timeout", 408, "TIMEOUT", [
+        {
+          field: "server",
+          message: "Operation took too long to complete. Please try again.",
+        },
+      ]);
     }
 
     // Generic server error
@@ -438,7 +614,7 @@ export async function POST(req) {
         : "An unexpected error occurred while creating the influencer";
 
     return createErrorResponse(
-      "Internal server error",
+      "Internal Server Error",
       500,
       "INTERNAL_SERVER_ERROR",
       [{ field: "server", message: errorMessage }]

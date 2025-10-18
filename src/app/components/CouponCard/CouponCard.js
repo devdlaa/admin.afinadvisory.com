@@ -1,4 +1,3 @@
-// components/CouponCard/CouponCard.js
 "use client";
 
 import React, { useState } from "react";
@@ -9,7 +8,6 @@ import {
   Eye,
   Calendar,
   Percent,
-  DollarSign,
   Users,
   Crown,
   Tag,
@@ -67,7 +65,7 @@ const CouponCard = ({ coupon }) => {
   };
 
   const getDiscountDisplay = (discount) => {
-       return discount.amount;
+    return discount.amount;
   };
 
   return (

@@ -12,21 +12,28 @@ import {
   Globe,
   FileText,
   Settings,
+  Trash,
 } from "lucide-react";
 import "./InfluencerDrawer.scss";
 
 import {
   updateInfluencer,
+  deleteInfluencer,
   handleEditCloseInfluencer,
   setInfluencerDrawer,
 } from "@/store/slices/influencersSlice";
+import { removeEmptyFields } from "@/utils/utils";
 
 const InfluencerDrawer = () => {
   const dispatch = useDispatch();
 
   // Get state from Redux
-  const { isInfluencerDrawerOpen, selectedInfluencer, isUpdatingInfluencer } =
-    useSelector((state) => state.influencers);
+  const {
+    isInfluencerDrawerOpen,
+    selectedInfluencer,
+    isUpdatingInfluencer,
+    isDeletingInfluencer,
+  } = useSelector((state) => state.influencers);
 
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
@@ -93,7 +100,7 @@ const InfluencerDrawer = () => {
         verificationStatus: selectedInfluencer.verificationStatus || "",
         status: selectedInfluencer.status || "",
         defaultCommissionRate: selectedInfluencer.defaultCommissionRate || 0,
-        referralCode: selectedInfluencer.referralCode || "",
+        referralCode: "",
         profileImageUrl: selectedInfluencer.profileImageUrl || "",
         preferredPayoutMethod: selectedInfluencer.preferredPayoutMethod || "",
         bankDetails: {
@@ -184,7 +191,7 @@ const InfluencerDrawer = () => {
     [
       "name",
       "email",
-      "username",
+
       "phone",
       "bio",
       "referralCode",
@@ -227,14 +234,14 @@ const InfluencerDrawer = () => {
     ) {
       updateData.additionalInfo = formData.additionalInfo;
     }
-
+    const refinedData = removeEmptyFields(updateData);
     // Dispatch update if anything changed
-    if (Object.keys(updateData).length > 0) {
+    if (Object.keys(refinedData).length > 0) {
       try {
         await dispatch(
           updateInfluencer({
             id: selectedInfluencer.id,
-            updateData,
+            updateData: refinedData,
           })
         ).unwrap();
         setIsEditing(false);
@@ -316,8 +323,8 @@ const InfluencerDrawer = () => {
                     onChange={(e) =>
                       handleInputChange("username", e.target.value)
                     }
-                    disabled={!isEditing}
-                    className={`form-input ${!isEditing ? "disabled" : ""}`}
+                    disabled
+                    className={`form-input disabled`}
                     placeholder="unique_username"
                   />
                 </div>
@@ -525,7 +532,7 @@ const InfluencerDrawer = () => {
                 </div>
               ))}
 
-              {isEditing && (
+              {isEditing && formData?.socialLinks.length < 5 && (
                 <button
                   type="button"
                   onClick={() =>
@@ -569,8 +576,8 @@ const InfluencerDrawer = () => {
                     onChange={(e) =>
                       handleInputChange("verificationStatus", e.target.value)
                     }
-                    disabled={!isEditing}
-                    className={`form-select ${!isEditing ? "disabled" : ""}`}
+                    disabled
+                    className={`form-select disabled`}
                   >
                     <option value="">Select verification status</option>
                     <option value="pending">Pending</option>
@@ -615,8 +622,8 @@ const InfluencerDrawer = () => {
                         parseFloat(e.target.value) || 0
                       )
                     }
-                    disabled={!isEditing}
-                    className={`form-input ${!isEditing ? "disabled" : ""}`}
+                    disabled
+                    className={`form-input disabled`}
                   />
                 </div>
               </div>
@@ -632,8 +639,8 @@ const InfluencerDrawer = () => {
                       e.target.value.toUpperCase()
                     )
                   }
-                  disabled={!isEditing}
-                  className={`form-input ${!isEditing ? "disabled" : ""}`}
+                  disabled
+                  className={`form-input disabled`}
                   placeholder="UNIQUE123"
                 />
               </div>
@@ -658,10 +665,8 @@ const InfluencerDrawer = () => {
                   className={`form-select ${!isEditing ? "disabled" : ""}`}
                 >
                   <option value="">Select payout method</option>
-                  <option value="paypal">PayPal</option>
                   <option value="bank_transfer">Bank Transfer</option>
                   <option value="upi">UPI</option>
-                  <option value="crypto">Crypto</option>
                 </select>
               </div>
 
@@ -739,7 +744,7 @@ const InfluencerDrawer = () => {
                   }
                   disabled={!isEditing}
                   className={`form-input ${!isEditing ? "disabled" : ""}`}
-                  placeholder="username@upi"
+                  placeholder="username"
                 />
               </div>
             </div>
@@ -775,7 +780,7 @@ const InfluencerDrawer = () => {
                     isUpdatingInfluencer ? "loading" : ""
                   }`}
                   onClick={handleSave}
-                  disabled={isUpdatingInfluencer}
+                  disabled={isUpdatingInfluencer || isDeletingInfluencer}
                 >
                   {isUpdatingInfluencer ? (
                     <>
@@ -786,6 +791,27 @@ const InfluencerDrawer = () => {
                     <>
                       <Save size={16} />
                       Save Changes
+                    </>
+                  )}
+                </button>
+                <button
+                  className={`delete-influencer-button ${
+                    isDeletingInfluencer ? "loading" : ""
+                  }`}
+                  onClick={() => {
+                    dispatch(deleteInfluencer({ id: selectedInfluencer?.id }));
+                  }}
+                  disabled={isDeletingInfluencer}
+                >
+                  {isDeletingInfluencer ? (
+                    <>
+                      <div className="spinner"></div>
+                      Deleting...
+                    </>
+                  ) : (
+                    <>
+                      <Trash size={16} />
+                      Delete Influncer
                     </>
                   )}
                 </button>

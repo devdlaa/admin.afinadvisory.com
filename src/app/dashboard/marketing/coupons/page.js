@@ -42,7 +42,6 @@ export default function CouponsPage() {
     hasFeched,
   } = useSelector((state) => state.coupons);
 
-  const [activeTab, setActiveTab] = useState("all");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showSearchFilters, setShowSearchFilters] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -91,6 +90,7 @@ export default function CouponsPage() {
   // Get display data based on search mode
   const displayCoupons = isSearchMode ? searchResults : coupons;
   const displayLoading = isSearchMode ? searchLoading : loading;
+
 
   return (
     <div className="coupons-page">
@@ -192,7 +192,7 @@ export default function CouponsPage() {
         {error && (
           <div className="error-banner">
             <AlertCircle size={20} />
-            <span>{error}</span>
+            <span>ERROR</span>
             <button onClick={() => dispatch(clearError())}>×</button>
           </div>
         )}

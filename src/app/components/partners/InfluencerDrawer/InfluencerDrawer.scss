@@ -8,7 +8,7 @@
   bottom: 0;
   background: rgba(0, 0, 0, 0.4);
   z-index: 1000;
-  
+
   .influencer-drawer {
     position: absolute;
     top: 0;
@@ -20,7 +20,7 @@
     display: flex;
     flex-direction: column;
     animation: drawerSlideIn 0.3s ease-out;
-    
+
     .drawer-header {
       padding: 20px 24px;
       border-bottom: 1px solid #e2e8f0;
@@ -29,12 +29,12 @@
       justify-content: space-between;
       align-items: center;
       flex-shrink: 0;
-      
+
       .header-left {
         display: flex;
         align-items: center;
         gap: 12px;
-        
+
         .influencer-avatar {
           width: 48px;
           height: 48px;
@@ -45,18 +45,18 @@
           justify-content: center;
           overflow: hidden;
           flex-shrink: 0;
-          
+
           img {
             width: 100%;
             height: 100%;
             object-fit: cover;
           }
-          
+
           svg {
             color: #64748b;
           }
         }
-        
+
         .header-info {
           h3 {
             margin: 0;
@@ -65,7 +65,7 @@
             color: #0f172a;
             line-height: 1.2;
           }
-          
+
           .user-id {
             font-size: 12px;
             color: #64748b;
@@ -75,12 +75,12 @@
           }
         }
       }
-      
+
       .header-actions {
         display: flex;
         align-items: center;
         gap: 12px;
-        
+
         .toggle-button {
           display: flex;
           align-items: center;
@@ -93,25 +93,25 @@
           font-size: 13px;
           font-weight: 500;
           transition: all 0.2s ease;
-          
+
           &:hover {
             background: #f9fafb;
             border-color: #3b82f6;
             color: #3b82f6;
           }
-          
+
           &.editing {
             background: #fef2f2;
             color: #dc2626;
             border-color: #fecaca;
-            
+
             &:hover {
               background: #fef2f2;
               border-color: #dc2626;
             }
           }
         }
-        
+
         .close-button {
           width: 36px;
           height: 36px;
@@ -123,7 +123,7 @@
           justify-content: center;
           color: #6b7280;
           transition: all 0.2s ease;
-          
+
           &:hover {
             background: #f9fafb;
             border-color: #9ca3af;
@@ -132,13 +132,13 @@
         }
       }
     }
-    
+
     .drawer-tabs {
       display: flex;
       background: #ffffff;
       border-bottom: 1px solid #e2e8f0;
       flex-shrink: 0;
-      
+
       .tab {
         flex: 1;
         padding: 16px 20px;
@@ -151,12 +151,12 @@
         text-transform: uppercase;
         letter-spacing: 0.025em;
         transition: all 0.2s ease;
-        
+
         &:hover {
           color: #3b82f6;
           background: #f8fafc;
         }
-        
+
         &.active {
           color: #3b82f6;
           border-bottom-color: #3b82f6;
@@ -164,30 +164,30 @@
         }
       }
     }
-    
+
     .drawer-content {
       flex: 1;
       overflow-y: auto;
-      
+
       .primary-info-tab {
         padding: 24px;
         display: flex;
         flex-direction: column;
         gap: 15px;
-        
+
         .form-section {
           gap: 0px;
           .form-section-title {
             margin: 32px 0 16px 0;
             padding-top: 16px;
             border-top: 1px solid #e2e8f0;
-            
+
             &:first-child {
               margin-top: 0;
               padding-top: 0;
               border-top: none;
             }
-            
+
             h4 {
               margin: 0;
               font-size: 14px;
@@ -197,27 +197,26 @@
               letter-spacing: 0.025em;
             }
           }
-          
+
           .form-row {
             margin-bottom: 0px;
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 16px;
-            
+
             @media (max-width: 480px) {
               grid-template-columns: 1fr;
             }
           }
-          
+
           .form-group {
             margin-bottom: 18px;
-            &.url{
+            &.url {
               flex-direction: row;
               display: flex;
-             align-items: end;
-
+              align-items: end;
             }
-            
+
             label {
               display: block;
               margin-bottom: 0px;
@@ -225,26 +224,28 @@
               font-weight: 500;
               color: #374151;
             }
-            
+
             .input-with-icon {
               position: relative;
               display: flex;
               align-items: center;
-              
-              svg, .tiktok-icon {
+
+              svg,
+              .tiktok-icon {
                 position: absolute;
                 left: 12px;
                 color: #9ca3af;
                 z-index: 2;
                 font-size: 16px;
               }
-              
+
               .form-input {
                 padding-left: 40px;
               }
             }
-            
-            .form-input, .form-select {
+
+            .form-input,
+            .form-select {
               width: 100%;
               padding: 12px 16px;
               border: 1.5px solid #d1d5db;
@@ -253,29 +254,29 @@
               color: #374151;
               background: #ffffff;
               transition: all 0.2s ease;
-              
+
               &:focus {
                 border-color: #3b82f6;
                 box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
                 outline: none;
               }
-              
+
               &.disabled {
                 background: #f9fafb;
                 color: #6b7280;
                 cursor: not-allowed;
-                
+
                 &:focus {
                   border-color: #d1d5db;
                   box-shadow: none;
                 }
               }
-              
+
               &::placeholder {
                 color: #9ca3af;
               }
             }
-            
+
             .form-textarea {
               width: 100%;
               padding: 12px 16px;
@@ -288,19 +289,19 @@
               min-height: 80px;
               font-family: inherit;
               transition: all 0.2s ease;
-              
+
               &:focus {
                 border-color: #3b82f6;
                 box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
                 outline: none;
               }
-              
+
               &.disabled {
                 background: #f9fafb;
                 color: #6b7280;
                 cursor: not-allowed;
                 resize: none;
-                
+
                 &:focus {
                   border-color: #d1d5db;
                   box-shadow: none;
@@ -309,12 +310,15 @@
             }
           }
         }
-        
+
         .form-actions {
           padding: 20px 0;
           border-top: 1px solid #e2e8f0;
           margin-top: 24px;
-          
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 10px;
+
           .save-button {
             width: 100%;
             padding: 12px 24px;
@@ -325,152 +329,37 @@
             font-size: 14px;
             font-weight: 600;
             transition: all 0.2s ease;
-            
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            justify-content: center;
+
             &:hover {
               background: #059669;
               transform: translateY(-1px);
               box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
             }
           }
-        }
-      }
-      
-      .analytics-tab {
-        padding: 24px;
-        
-        .analytics-cards {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-          gap: 16px;
-          margin-bottom: 32px;
-          
-          .analytics-card {
-            padding: 20px;
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
-            border-radius: 12px;
+
+          .delete-influencer-button {
+            width: 100%;
+            padding: 12px 24px;
+            background: #ef4444;
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
             transition: all 0.2s ease;
-            
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            justify-content: center;
+
             &:hover {
-              border-color: #d1d5db;
-              box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-            }
-            
-            .card-header {
-              display: flex;
-              align-items: center;
-              gap: 8px;
-              margin-bottom: 12px;
-              
-              svg, .heart-icon, .comment-icon {
-                color: #64748b;
-                font-size: 16px;
-              }
-              
-              span {
-                font-size: 13px;
-                font-weight: 500;
-                color: #64748b;
-              }
-            }
-            
-            .card-value {
-              font-size: 24px;
-              font-weight: 700;
-              color: #0f172a;
-              margin-bottom: 8px;
-            }
-            
-            .card-change {
-              font-size: 12px;
-              font-weight: 500;
-              
-              &.positive {
-                color: #059669;
-              }
-              
-              &.negative {
-                color: #dc2626;
-              }
-            }
-          }
-        }
-        
-        .platform-breakdown {
-          margin-bottom: 32px;
-          
-          h4 {
-            margin: 0 0 16px 0;
-            font-size: 16px;
-            font-weight: 600;
-            color: #0f172a;
-          }
-          
-          .platform-stats {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            
-            .platform-item {
-              display: flex;
-              align-items: center;
-              gap: 12px;
-              padding: 12px 16px;
-              background: #f8fafc;
-              border: 1px solid #e2e8f0;
-              border-radius: 8px;
-              
-              svg, .tiktok-icon {
-                color: #64748b;
-                font-size: 16px;
-              }
-              
-              span:nth-child(2) {
-                flex: 1;
-                font-weight: 500;
-                color: #374151;
-              }
-              
-              .platform-followers {
-                font-weight: 600;
-                color: #059669;
-              }
-            }
-          }
-        }
-        
-        .recent-activity {
-          h4 {
-            margin: 0 0 16px 0;
-            font-size: 16px;
-            font-weight: 600;
-            color: #0f172a;
-          }
-          
-          .activity-list {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            
-            .activity-item {
-              padding: 12px 16px;
-              background: #f8fafc;
-              border: 1px solid #e2e8f0;
-              border-radius: 8px;
-              border-left: 4px solid #3b82f6;
-              
-              .activity-date {
-                font-size: 12px;
-                color: #64748b;
-                font-weight: 500;
-                margin-bottom: 4px;
-              }
-              
-              .activity-text {
-                font-size: 14px;
-                color: #374151;
-                font-weight: 500;
-              }
+              background: #dc2626;
+              transform: translateY(-1px);
+              box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
             }
           }
         }
@@ -494,13 +383,13 @@
     .influencer-drawer {
       width: 100%;
       max-width: none;
-      
+
       .drawer-content {
         .primary-info-tab,
         .analytics-tab {
           padding: 20px;
         }
-        
+
         .analytics-tab .analytics-cards {
           grid-template-columns: 1fr;
         }
@@ -514,22 +403,22 @@
   &::-webkit-scrollbar {
     width: 6px;
   }
-  
+
   &::-webkit-scrollbar-track {
     background: #f1f5f9;
   }
-  
+
   &::-webkit-scrollbar-thumb {
     background: #cbd5e1;
     border-radius: 3px;
-    
+
     &:hover {
       background: #94a3b8;
     }
   }
 }
 
-.form_grp_wrapper{
+.form_grp_wrapper {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;

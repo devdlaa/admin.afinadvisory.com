@@ -7,7 +7,7 @@ const db = admin.firestore();
 // Zod schema for pagination input
 const PaginationSchema = z.object({
   limit: z.number().int().positive().max(50).default(10),
-  cursor: z.string().optional(), // last doc id
+  cursor: z.string().optional(), 
 });
 
 export async function POST(req) {
@@ -44,7 +44,7 @@ export async function POST(req) {
 
     const hasMore = docs.length > limit;
     const influncers = hasMore ? docs.slice(0, limit) : docs;
-    console.log("influncers",influncers);
+    
     const executionTimeMs = Date.now() - startTime;
 
     return NextResponse.json({

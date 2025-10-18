@@ -35,88 +35,17 @@ const CouponSchema = new mongoose.Schema({
   },
 
   isInfluencerCoupon: { type: Boolean, default: false },
-  influencerId: { type: String,default: "" },
+  influencerId: { type: String, default: "" },
 
   commission: {
     kind: { type: String, enum: ["percent", "fixed"] },
-    amount: Number,
-    maxCommission: Number,
+    amount: { type: Number, default: 0 },
+    maxCommission: { type: Number, default: 0 },
   },
 
-  createdBy: { type: String,default: "" },
+  createdBy: { type: String, default: "" },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
 });
 
 export default mongoose.models.Coupon || mongoose.model("Coupon", CouponSchema);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
