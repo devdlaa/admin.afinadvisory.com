@@ -164,6 +164,7 @@ export const updateCustomer = createAsyncThunk(
         updateData,
       };
     } catch (error) {
+      console.log("error.message",error.message);
       return rejectWithValue(error.message);
     }
   }
@@ -190,20 +191,20 @@ export const addNewUser = createAsyncThunk(
           status: response.status,
           type: "api_error",
           message: data.error || `HTTP error! status: ${response.status}`,
-          details: data.details || null,
+          details: data?.details || null,
           originalData: data,
         };
 
         // Handle specific error types
         if (response.status === 409) {
           errorDetails.type = "duplicate_data";
-          if (data.details && Array.isArray(data.details)) {
+          if (data?.details && Array.isArray(data?.details)) {
             errorDetails.message = data.details.join(", ");
           }
         } else if (response.status === 400) {
           errorDetails.type = "validation_error";
-          if (data.details && Array.isArray(data.details)) {
-            errorDetails.message = data.details
+          if (data?.details && Array.isArray(data?.details)) {
+            errorDetails.message = data?.details
               .map((err) => err.message || err)
               .join(", ");
           }
@@ -223,7 +224,7 @@ export const addNewUser = createAsyncThunk(
         meta: data.meta,
       };
     } catch (error) {
-      console.error("addNewUser thunk error:", error);
+
 
       // Handle network errors or other unexpected errors
       return rejectWithValue({
@@ -524,7 +525,7 @@ const customersSlice = createSlice({
       .addCase(filterCustomers.fulfilled, (state, action) => {
         state.filterLoading = false;
         const { mode, customers, filters, resultsCount } = action.payload;
-        console.log("action.payload",action.payload);
+   
         if (mode === "filter") {
           state.filteredCustomers = customers?.data?.customers;
           state.isFilterActive = true;
@@ -631,7 +632,7 @@ const customersSlice = createSlice({
               state.addUserError = {
                 type: "duplicate",
                 message: `User already exists: ${erroMsgStr}`,
-                details: errorPayload.details,
+                details: errorPayload?.details,
               };
               break;
 
@@ -639,7 +640,7 @@ const customersSlice = createSlice({
               state.addUserError = {
                 type: "validation",
                 message: `Validation failed: ${erroMsgStr}`,
-                details: errorPayload.details,
+                details: errorPayload?.details,
               };
               break;
 
@@ -663,7 +664,7 @@ const customersSlice = createSlice({
               state.addUserError = {
                 type: "unknown",
                 message: erroMsgStr || "An unexpected error occurred",
-                details: errorPayload.details,
+                details: errorPayload?.details,
               };
           }
         } else {

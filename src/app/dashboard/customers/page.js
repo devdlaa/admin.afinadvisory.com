@@ -55,15 +55,16 @@ export default function CustomersPage() {
 
   // Initial data fetch - only once
   useEffect(() => {
-    const shouldFetch = !initialFetchRef.current && 
-                       !loading && 
-                       customers.length === 0 && 
-                       !fetchPromiseRef.current;
+    const shouldFetch =
+      !initialFetchRef.current &&
+      !loading &&
+      customers.length === 0 &&
+      !fetchPromiseRef.current;
 
     if (shouldFetch) {
       initialFetchRef.current = true;
       fetchPromiseRef.current = dispatch(fetchCustomers({ cursor: null }));
-      
+
       // Clear the promise reference when done
       fetchPromiseRef.current.finally(() => {
         fetchPromiseRef.current = null;
@@ -78,7 +79,7 @@ export default function CustomersPage() {
       if (fetchPromiseRef.current) {
         fetchPromiseRef.current = null;
       }
-      
+
       // Reset the initialization flag for next mount
       initialFetchRef.current = false;
     };
@@ -99,7 +100,7 @@ export default function CustomersPage() {
         isOpen={isAddUserDialogOpen}
         onClose={handleCloseAddUserDialog}
       />
-      
+
       <CustomerDrawer />
 
       {/* Action Bar */}

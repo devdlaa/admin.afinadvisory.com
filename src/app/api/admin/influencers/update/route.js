@@ -263,20 +263,7 @@ async function rollbackAuthStatus(authUid, originalStatus) {
   }
 }
 
-// TODO : Rollback Firestore update
-async function rollbackFirestoreUpdate(docRef, originalData) {
-  try {
-    await docRef.update({
-      ...originalData,
-      updatedAt: new Date().toISOString(),
-    });
-    console.log(`✅ Rolled back Firestore document`);
-    return true;
-  } catch (error) {
-    console.error(`❌ Failed to rollback Firestore document:`, error);
-    return false;
-  }
-}
+
 
 export async function PATCH(req) {
   let db;

@@ -19,11 +19,21 @@ import "./AssignmentDialog.scss";
 import { CircularProgress } from "@mui/material";
 import { updateAssignmentManagement } from "@/store/slices/servicesSlice";
 
-const AssignmentDialog = ({ isOpen, onClose }) => {
+import { selectUser, selectPermissions } from "@/store/slices/sessionSlice";
+
+const AssignmentDialog = ({ isOpen, onClose, isBookingSub = false }) => {
   const dispatch = useDispatch();
+  const user = useSelector(selectUser);
+
+  const permissions = useSelector(selectPermissions);
+  const isAbleToAssign = !permissions?.includes("bookings.assign_member");
+
+
 
   // Redux state
-  const { selectedBookings } = useSelector((state) => state.services);
+  const selectedBookings = isBookingSub
+    ? isOpen
+    : useSelector((state) => state.services.selectedBookings);
 
   // Local state
   const [availableUsers, setAvailableUsers] = useState([]);
@@ -79,10 +89,7 @@ const AssignmentDialog = ({ isOpen, onClose }) => {
   const cacheUsers = (users) => {
     try {
       const timestamp = Date.now();
-      localStorage.setItem(
-        CACHE_KEY,
-        JSON.stringify({ users, timestamp })
-      );
+      localStorage.setItem(CACHE_KEY, JSON.stringify({ users, timestamp }));
       setCacheTimestamp(timestamp);
     } catch (error) {
       console.error("Error caching users:", error);
@@ -92,7 +99,7 @@ const AssignmentDialog = ({ isOpen, onClose }) => {
   // Helper function to format cache age
   const formatCacheAge = (timestamp) => {
     if (!timestamp) return "";
-    
+
     const ageInMinutes = Math.floor((Date.now() - timestamp) / (1000 * 60));
     if (ageInMinutes < 1) {
       return "Just now";
@@ -420,15 +427,17 @@ const AssignmentDialog = ({ isOpen, onClose }) => {
 
   return (
     <div className="assignment-dialog-backdrop">
-      <div className="assignment-dialog">
+      <div className={`assignment-dialog ${isAbleToAssign && "no_able"}`}>
         <div className="dialog-header">
           <div className="header-content">
             <h2>Assign Team Members</h2>
-            <p className="subtitle">
+           {
+            !isAbleToAssign &&  <p className="subtitle">
               {isAssignToAll
                 ? "All users are assigned to this task"
                 : "Drag and drop users to manage team assignments"}
             </p>
+           }
           </div>
           <button className="close-btn" onClick={handleClose}>
             <X size={20} />
@@ -499,7 +508,10 @@ const AssignmentDialog = ({ isOpen, onClose }) => {
                       disabled={refreshingUsers || saving}
                       title="Refresh user list"
                     >
-                      <RefreshCw size={14} className={refreshingUsers ? "spinning" : ""} />
+                      <RefreshCw
+                        size={14}
+                        className={refreshingUsers ? "spinning" : ""}
+                      />
                     </button>
                   </div>
 

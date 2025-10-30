@@ -95,7 +95,7 @@ export const updateCommissionStatus = createAsyncThunk(
       });
 
       const data = await response.json();
-
+   
       if (!response.ok) {
         return rejectWithValue(data.error || "Update failed");
       }
@@ -230,15 +230,15 @@ const commissionsSlice = createSlice({
         (c) => c.status === "unpaid"
       ).length;
       state.stats.totalAmount = commissions.reduce(
-        (sum, c) => sum + (c.amount || 0),
+        (sum, c) => sum + (c.calculatedCommission || 0),
         0
       );
       state.stats.paidAmount = commissions
         .filter((c) => c.status === "paid")
-        .reduce((sum, c) => sum + (c.amount || 0), 0);
+        .reduce((sum, c) => sum + (c.calculatedCommission || 0), 0);
       state.stats.unpaidAmount = commissions
         .filter((c) => c.status === "unpaid")
-        .reduce((sum, c) => sum + (c.amount || 0), 0);
+        .reduce((sum, c) => sum + (c.calculatedCommission || 0), 0);
     },
   },
   extraReducers: (builder) => {

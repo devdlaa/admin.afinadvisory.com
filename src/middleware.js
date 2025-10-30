@@ -91,14 +91,15 @@ function checkRateLimit(ip, limit = CONFIG.RATE_LIMIT.maxRequests) {
 function log(level, message, metadata = {}) {
   const timestamp = new Date().toISOString();
   const logEntry = { timestamp, level, message, ...metadata };
-  console.log(logEntry);
 
   if (level === "error") {
     console.error(`[${timestamp}] ERROR:`, message, metadata);
   } else if (level === "warn") {
     console.warn(`[${timestamp}] WARN:`, message, metadata);
   } else {
-    console.log(`[${timestamp}] ${level.toUpperCase()}:`, message, metadata);
+    if (process.env.NODE_ENV === "development") {
+      console.log(`[${timestamp}] ${level.toUpperCase()}:`, message, metadata);
+    }
   }
 }
 
@@ -255,6 +256,7 @@ export async function middleware(req) {
       "Access-Control-Allow-Origin": origin,
       "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
       "Access-Control-Allow-Headers": "Content-Type, Authorization",
+      "Access-Control-Allow-Credentials": "true",
     };
 
     // Preflight request handling
@@ -270,6 +272,7 @@ export async function middleware(req) {
     Object.entries(corsHeaders).forEach(([key, value]) => {
       res.headers.set(key, value);
     });
+    return addSecurityHeaders(res);
   }
 
   const startTime = Date.now();
@@ -282,13 +285,30 @@ export async function middleware(req) {
     req.headers.get("x-real-ip") ||
     "unknown";
 
-  // Log incoming request for debugging
-  log("info", "Processing request", {
-    pathname,
-    userAgent: userAgent.substring(0, 100),
-    ip,
-    method: req.method,
-  });
+  // --- Allow access-denied page for logged-in users only ---
+  if (req.nextUrl.pathname.startsWith("/dashboard/access-denied")) {
+    // Get the auth token (you already do this later — reuse same logic here)
+    let token = null;
+    try {
+      token = await getToken({
+        req,
+        secret: process.env.NEXTAUTH_SECRET,
+        secureCookie: process.env.NODE_ENV === "production",
+      });
+    } catch (err) {
+      console.error("Token fetch error:", err);
+    }
+
+    // If not logged in → redirect to login
+    if (!token) {
+      const loginUrl = new URL(CONFIG.DEFAULT_LOGIN_REDIRECT, req.url);
+      loginUrl.searchParams.set("callbackUrl", "/dashboard");
+      return NextResponse.redirect(loginUrl);
+    }
+
+    // Logged in → allow access to the access-denied page
+    return addSecurityHeaders(NextResponse.next());
+  }
 
   try {
     // Check rate limit

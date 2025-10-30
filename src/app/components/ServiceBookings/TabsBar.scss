@@ -1,0 +1,77 @@
+.tabs-container {
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid #e2e8f0;
+  background: #ffffff;
+  gap: 2px;
+  overflow-x: auto;
+  flex-shrink: 0;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f8fafc;
+  border-radius: 12px;
+
+  &::-webkit-scrollbar {
+    height: 4px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: #f8fafc;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 2px;
+
+    &:hover {
+      background: #94a3b8;
+    }
+  }
+}
+
+.tab-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 20px;
+  background: none;
+  border: none;
+  font-size: 14px;
+  font-weight: 500;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  border-bottom: 2px solid transparent;
+
+  &:hover {
+    color: #374151;
+    background: #f8fafc;
+  }
+
+  &.active {
+    color: #3b82f6;
+    border-bottom-color: #3b82f6;
+    background: #f8fafc;
+
+    .tab-count {
+      background: #dbeafe;
+      color: #1e40af;
+    }
+  }
+
+  .tab-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    background: #f1f5f9;
+    color: #64748b;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1;
+    transition: all 0.2s ease;
+  }
+}

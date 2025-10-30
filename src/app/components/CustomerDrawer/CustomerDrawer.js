@@ -16,7 +16,11 @@ import {
 } from "lucide-react";
 import "./CustomerDrawer.scss";
 
-import { setCustomerDrawr, updateCustomer } from "@/store/slices/customersSlice";
+import {
+  setCustomerDrawr,
+  updateCustomer,
+} from "@/store/slices/customersSlice";
+import { CircularProgress } from "@mui/material";
 
 const SelectedCustomersDrawer = () => {
   const dispatch = useDispatch();
@@ -96,8 +100,7 @@ const SelectedCustomersDrawer = () => {
       updateData.phoneNumber = formData.phoneNumber;
     if (formData.alternatePhone !== selectedCustomers.alternatePhone)
       updateData.alternatePhone = formData.alternatePhone;
-    if (formData.dob !== selectedCustomers.dob) 
-      updateData.dob = formData.dob;
+    if (formData.dob !== selectedCustomers.dob) updateData.dob = formData.dob;
     if (formData.gender !== selectedCustomers.gender)
       updateData.gender = formData.gender;
     if (formData.accountStatus !== selectedCustomers.accountStatus)
@@ -106,7 +109,7 @@ const SelectedCustomersDrawer = () => {
     // Check address changes
     const currentAddress = selectedCustomers.address || {};
     const hasAddressChanges = Object.keys(formData.address).some(
-      key => formData.address[key] !== (currentAddress[key] || "")
+      (key) => formData.address[key] !== (currentAddress[key] || "")
     );
 
     if (hasAddressChanges) {
@@ -123,33 +126,33 @@ const SelectedCustomersDrawer = () => {
       formData.address.street,
       formData.address.city,
       formData.address.state,
-      formData.address.pincode
+      formData.address.pincode,
     ];
-    
-    const isProfileComplete = profileFields.every(field => field && field.trim() !== "");
+
+    const isProfileComplete = profileFields.every(
+      (field) => field && field.trim() !== ""
+    );
     if (isProfileComplete !== selectedCustomers.isProfileCompleted) {
       updateData.isProfileCompleted = isProfileComplete;
     }
 
     if (Object.keys(updateData).length > 0) {
       try {
-        console.log("Updating customer with data:", updateData);
         await dispatch(
           updateCustomer({
-            id: selectedCustomers.uid, // Using uid instead of id
+            id: selectedCustomers.uid,
             updateData,
           })
         ).unwrap();
         setIsEditing(false);
-        console.log("Customer updated successfully");
+        dispatch(setCustomerDrawr());
       } catch (error) {
-        console.error("Failed to update customer:", error);
-        // You might want to show a toast notification here
-        alert("Failed to update customer: " + error);
+        setIsEditing(false);
+         dispatch(setCustomerDrawr());
       }
     } else {
-      console.log("No changes detected");
       setIsEditing(false);
+       dispatch(setCustomerDrawr());
     }
   };
 
@@ -213,7 +216,9 @@ const SelectedCustomersDrawer = () => {
           <div className="header-actions">
             <button
               className={`toggle-button ${isEditing ? "editing" : ""}`}
-              onClick={() => isEditing ? handleCancelEdit() : setIsEditing(true)}
+              onClick={() =>
+                isEditing ? handleCancelEdit() : setIsEditing(true)
+              }
               disabled={isUpdatingCustomer}
             >
               {isEditing ? "Cancel" : "Enable Edit"}
@@ -454,7 +459,6 @@ const SelectedCustomersDrawer = () => {
                   >
                     <option value="active">Active</option>
                     <option value="inactive">Inactive</option>
-                    <option value="suspended">Suspended</option>
                   </select>
                 </div>
               </div>
@@ -462,13 +466,15 @@ const SelectedCustomersDrawer = () => {
               {isEditing && (
                 <div className="form-actions">
                   <button
-                    className={`save-button ${isUpdatingCustomer ? "loading" : ""}`}
+                    className={`save-button ${
+                      isUpdatingCustomer ? "loading" : ""
+                    }`}
                     onClick={handleSave}
                     disabled={isUpdatingCustomer}
                   >
                     {isUpdatingCustomer ? (
                       <>
-                        <div className="spinner"></div>
+                        <CircularProgress color="white" size={16} />
                         Saving...
                       </>
                     ) : (

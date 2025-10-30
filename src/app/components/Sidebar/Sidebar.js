@@ -25,6 +25,7 @@ import {
   UsersRound,
   Link,
   ShieldAlert,
+  ClipboardList,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 
@@ -39,7 +40,6 @@ const Sidebar = () => {
   const router = useRouter();
   const pathname = usePathname();
 
-
   useEffect(() => {
     // Enhanced path detection logic
     const pathToItemMap = {
@@ -51,6 +51,7 @@ const Sidebar = () => {
       "/dashboard/marketing/partners": "partners",
       "/dashboard/marketing/coupons": "coupons",
       "/dashboard/marketing/comissions": "comissions",
+      "/dashboard/marketing/partner-programm-join-list": "join-list",
       "/dashboard/analytics": "analytics",
       "/dashboard/reports": "reports",
       "/dashboard/profile": "profile",
@@ -209,6 +210,13 @@ const Sidebar = () => {
       icon: WalletCardsIcon,
       path: "/dashboard/marketing/comissions",
       permission: "commissions.access",
+    },
+    {
+      id: "join-list",
+      label: "Influncer Join List",
+      icon: ClipboardList,
+      path: "/dashboard/marketing/partner-programm-join-list",
+      permission: "influencers.access",
     },
   ];
 

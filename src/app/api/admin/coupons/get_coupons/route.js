@@ -3,11 +3,9 @@ import { connectToDatabase } from "@/utils/mongodb";
 import Coupon from "@/models/Coupon";
 import { z } from "zod";
 
-// Import and use permission check at the top:
-// import { requirePermission } from "@/utils/permissions";
+
 import { requirePermission } from "@/lib/requirePermission";
-// const permissionCheck = await requirePermission(req, "coupons.read");
-// if (permissionCheck) return permissionCheck;
+
 
 const getCouponsQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),

@@ -434,7 +434,7 @@ const toastMiddleware = () => (next) => (action) => {
 
       case "customers/updateCustomer/rejected":
         
-        const updateCustomerError = action.payload?.message.details?.errors;
+        const updateCustomerError = action.payload?.message?.details?.errors;
 
         if (updateCustomerError?.includes("not found")) {
           showError("Customer not found. Please refresh the page.");

@@ -19,20 +19,24 @@ import {
   servicesFilterConfig,
 } from "@/config/actionBarConfig";
 
-import ServiceBookingsTable from "@/app/components/ServiceBookingsTable/ServiceBookingsTable";
+import ServiceBookingsCards from "@/app/components/ServiceBookings/ServiceBookingsCards";
 import ServiceBookingQuickView from "@/app/components/ServiceBookingQuickView/ServiceBookingQuickView";
+import AssignmentDialog from "@/app/components/AssignmentDialog/AssignmentDialog";
 
 export default function Home() {
   const dispatch = useDispatch();
   const [showFilterDialog, setShowFilterDialog] = useState(false);
   const [filterMode, setFilterMode] = useState("filter");
-  
+  const [isAssignmentBoxActive, setAssignmentBox] = useState(null);
+
   // Ref to prevent multiple fetches
   const fetchInProgressRef = useRef(false);
 
   // Redux selectors
   const quickViewData = useSelector((state) => state.services.quickViewData);
-  const { loading, bookings, initialized } = useSelector((state) => state.services);
+  const { loading, bookings, initialized } = useSelector(
+    (state) => state.services
+  );
 
   // Memoized handlers to prevent unnecessary re-renders
   const handleFilterClick = useCallback(() => {
@@ -45,9 +49,12 @@ export default function Home() {
     setShowFilterDialog(true);
   }, []);
 
-  const handleQuickView = useCallback((booking) => {
-    dispatch(setQuickViewData(booking));
-  }, [dispatch]);
+  const handleQuickView = useCallback(
+    (booking) => {
+      dispatch(setQuickViewData(booking));
+    },
+    [dispatch]
+  );
 
   const handleCloseQuickView = useCallback(() => {
     dispatch(clearQuickViewData());
@@ -63,16 +70,13 @@ export default function Home() {
 
   // Initial data fetch - only if not initialized
   useEffect(() => {
-    const shouldFetch = !initialized && 
-                       !loading && 
-                       !fetchInProgressRef.current;
+    const shouldFetch = !initialized && !loading && !fetchInProgressRef.current;
 
     if (shouldFetch) {
       fetchInProgressRef.current = true;
-      dispatch(fetchBookings({ cursor: null }))
-        .finally(() => {
-          fetchInProgressRef.current = false;
-        });
+      dispatch(fetchBookings({ cursor: null })).finally(() => {
+        fetchInProgressRef.current = false;
+      });
     }
   }, [dispatch, initialized, loading]);
 
@@ -94,6 +98,11 @@ export default function Home() {
         gap: "28px",
       }}
     >
+      <AssignmentDialog
+        isOpen={isAssignmentBoxActive}
+        isBookingSub={true}
+        onClose={() => setAssignmentBox(null)}
+      />
       {/* Action Bar */}
       <GenericActionBar
         {...servicesActionBarConfig}
@@ -102,7 +111,12 @@ export default function Home() {
       />
 
       {/* Bookings Table */}
-      <ServiceBookingsTable onQuickView={handleQuickView} />
+      <ServiceBookingsCards
+        onQuickView={handleQuickView}
+        onAssignTeam={(e) => {
+          setAssignmentBox(e);
+        }}
+      />
 
       {/* Filter Dialog */}
       <GenericFilterDialog

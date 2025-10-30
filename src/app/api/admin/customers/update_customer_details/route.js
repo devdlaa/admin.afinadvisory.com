@@ -1,8 +1,10 @@
-import { NextResponse } from "next/server";
 import admin from "@/lib/firebase-admin";
 import { z } from "zod";
 import { requirePermission } from "@/lib/requirePermission";
-import { createSuccessResponse,createErrorResponse } from "@/utils/resposeHandlers";
+import {
+  createSuccessResponse,
+  createErrorResponse,
+} from "@/utils/resposeHandlers";
 const db = admin.firestore();
 
 // Define which fields can be updated by admin (whitelist approach)
@@ -15,7 +17,7 @@ const UPDATEABLE_FIELDS = [
   "gender",
   "accountStatus",
   "address",
-  "isProfileCompleted"
+  "isProfileCompleted",
 ];
 
 // Protected fields that should never be updated
@@ -27,7 +29,7 @@ const PROTECTED_FIELDS = [
   "createdBy",
   "role", // Role changes should have separate endpoint
   "isEmailVerified",
-  "isPhoneVerified"
+  "isPhoneVerified",
 ];
 
 // Enhanced Zod schema for validation
@@ -67,16 +69,18 @@ const UpdateCustomerSchema = z.object({
           if (!date) return true; // Allow empty
           const parsedDate = new Date(date);
           const now = new Date();
-          const minAge = new Date(now.getFullYear() - 120, now.getMonth(), now.getDate());
+          const minAge = new Date(
+            now.getFullYear() - 120,
+            now.getMonth(),
+            now.getDate()
+          );
           return parsedDate <= now && parsedDate >= minAge;
         }, "Invalid date of birth")
         .optional(),
       gender: z
         .enum(["male", "female", "other", "prefer-not-to-say", ""])
         .optional(),
-      accountStatus: z
-        .enum(["active", "inactive", "suspended", "banned"])
-        .optional(),
+      accountStatus: z.enum(["active", "inactive", "suspended"]).optional(),
       isProfileCompleted: z.boolean().optional(),
       address: z
         .object({
@@ -94,31 +98,37 @@ const UpdateCustomerSchema = z.object({
     .refine((data) => Object.keys(data).length > 0, {
       message: "At least one field must be provided for update",
     })
-    .refine((data) => {
-      // Ensure alternate phone is different from primary phone
-      if (data.alternatePhone && data.phoneNumber && data.alternatePhone === data.phoneNumber) {
-        return false;
+    .refine(
+      (data) => {
+        // Ensure alternate phone is different from primary phone
+        if (
+          data.alternatePhone &&
+          data.phoneNumber &&
+          data.alternatePhone === data.phoneNumber
+        ) {
+          return false;
+        }
+        return true;
+      },
+      {
+        message:
+          "Alternate phone number must be different from primary phone number",
+        path: ["alternatePhone"],
       }
-      return true;
-    }, {
-      message: "Alternate phone number must be different from primary phone number",
-      path: ["alternatePhone"]
-    }),
+    ),
 });
-
-
 
 // Helper to check for duplicate phone numbers
 const checkPhoneDuplicates = async (userId, phoneNumber, alternatePhone) => {
   const duplicates = { primary: false, alternate: false };
-  
+
   if (phoneNumber) {
     const phoneQuery = await db
       .collection("users")
       .where("phoneNumber", "==", phoneNumber)
       .limit(1)
       .get();
-    
+
     if (!phoneQuery.empty && phoneQuery.docs[0].id !== userId) {
       duplicates.primary = true;
     }
@@ -126,15 +136,23 @@ const checkPhoneDuplicates = async (userId, phoneNumber, alternatePhone) => {
 
   if (alternatePhone) {
     const queries = [
-      db.collection("users").where("phoneNumber", "==", alternatePhone).limit(1).get(),
-      db.collection("users").where("alternatePhone", "==", alternatePhone).limit(1).get()
+      db
+        .collection("users")
+        .where("phoneNumber", "==", alternatePhone)
+        .limit(1)
+        .get(),
+      db
+        .collection("users")
+        .where("alternatePhone", "==", alternatePhone)
+        .limit(1)
+        .get(),
     ];
-    
+
     const results = await Promise.all(queries);
-    const hasConflict = results.some(result => 
-      !result.empty && result.docs[0].id !== userId
+    const hasConflict = results.some(
+      (result) => !result.empty && result.docs[0].id !== userId
     );
-    
+
     if (hasConflict) {
       duplicates.alternate = true;
     }
@@ -146,18 +164,18 @@ const checkPhoneDuplicates = async (userId, phoneNumber, alternatePhone) => {
 // Helper to sanitize update data
 const sanitizeUpdateData = (data, userId) => {
   const sanitized = {};
-  
+
   // Only include whitelisted fields
-  Object.keys(data).forEach(key => {
+  Object?.keys(data)?.forEach((key) => {
     if (UPDATEABLE_FIELDS.includes(key) && !PROTECTED_FIELDS.includes(key)) {
       sanitized[key] = data[key];
     }
   });
-  
+
   // Add system fields
   sanitized.updatedAt = new Date().toISOString();
-  sanitized.lastUpdatedBy = "admin"; // Can be enhanced to include admin user ID
-  
+  sanitized.lastUpdatedBy = userId;
+
   return sanitized;
 };
 
@@ -170,7 +188,7 @@ const sanitizeCustomerResponse = (customerData) => {
     lastLoginIP,
     ...safeData
   } = customerData;
-  
+
   return safeData;
 };
 
@@ -189,13 +207,13 @@ export async function POST(req) {
     } catch (parseError) {
       return createErrorResponse(
         "Invalid JSON in request body",
-        400,
+        200,
         "INVALID_JSON"
       );
     }
 
     const parsed = UpdateCustomerSchema.safeParse(requestBody);
-    
+
     if (!parsed.success) {
       const validationErrors = parsed.error.errors.map((err) => ({
         field: err.path.join("."),
@@ -205,7 +223,7 @@ export async function POST(req) {
 
       return createErrorResponse(
         "Validation failed",
-        400,
+        200,
         "VALIDATION_ERROR",
         validationErrors
       );
@@ -217,11 +235,11 @@ export async function POST(req) {
     // Get user document reference and check if exists
     const userRef = db.collection("users").doc(userId);
     const userDoc = await userRef.get();
-    
+
     if (!userDoc.exists) {
       return createErrorResponse(
         "Customer not found",
-        404,
+        200,
         "CUSTOMER_NOT_FOUND"
       );
     }
@@ -239,11 +257,12 @@ export async function POST(req) {
       if (duplicates.primary || duplicates.alternate) {
         const errors = [];
         if (duplicates.primary) errors.push("Phone number already exists");
-        if (duplicates.alternate) errors.push("Alternate phone number already exists");
+        if (duplicates.alternate)
+          errors.push("Alternate phone number already exists");
 
         return createErrorResponse(
           "Duplicate phone number found",
-          409,
+          200,
           "DUPLICATE_PHONE",
           { errors, duplicateFields: duplicates }
         );
@@ -262,19 +281,36 @@ export async function POST(req) {
     }
 
     // Validate account status change logic
-    if (sanitizedUpdateData.accountStatus && sanitizedUpdateData.accountStatus !== currentData.accountStatus) {
+    if (
+      sanitizedUpdateData.accountStatus &&
+      sanitizedUpdateData.accountStatus !== currentData.accountStatus
+    ) {
       const validTransitions = {
-        'active': ['inactive', 'suspended'],
-        'inactive': ['active'],
-        'suspended': ['active', 'banned'],
-        'banned': [] // Banned accounts cannot be changed (require special handling)
+        active: ["inactive", "suspended"],
+        inactive: ["active"],
+        suspended: ["active", "banned"],
+        banned: [], // Banned accounts cannot be changed (require special handling)
       };
 
-      const currentStatus = currentData.accountStatus || 'active';
-      if (!validTransitions[currentStatus]?.includes(sanitizedUpdateData.accountStatus)) {
+      const currentStatus = currentData.accountStatus || "active";
+
+      if (sanitizedUpdateData.accountStatus === "active") {
+        await admin.auth().updateUser(userId, {
+          disabled: false,
+        });
+      } else if (sanitizedUpdateData.accountStatus === "inactive") {
+        await admin.auth().updateUser(userId, {
+          disabled: true,
+        });
+      }
+      if (
+        !validTransitions[currentStatus]?.includes(
+          sanitizedUpdateData.accountStatus
+        )
+      ) {
         return createErrorResponse(
           `Cannot change account status from ${currentStatus} to ${sanitizedUpdateData.accountStatus}`,
-          400,
+          200,
           "INVALID_STATUS_TRANSITION"
         );
       }
@@ -287,40 +323,21 @@ export async function POST(req) {
     const updatedDoc = await userRef.get();
     const updatedCustomer = {
       uid: updatedDoc.id,
-      ...sanitizeCustomerResponse(updatedDoc.data())
+      ...sanitizeCustomerResponse(updatedDoc.data()),
     };
 
-    // Log successful update for audit purposes
-    console.log(`✅ Customer ${userId} successfully updated by admin`, {
-      updatedFields: Object.keys(sanitizedUpdateData),
-      previousStatus: currentData.accountStatus,
-      newStatus: sanitizedUpdateData.accountStatus,
-      timestamp: new Date().toISOString()
+    return createSuccessResponse("Customer updated successfully", {
+      customer: updatedCustomer,
+      updatedFields: Object.keys(sanitizedUpdateData).filter(
+        (field) => field !== "updatedAt" && field !== "lastUpdatedBy"
+      ),
     });
-
-    return createSuccessResponse(
-      "Customer updated successfully",
-      {
-        customer: updatedCustomer,
-        updatedFields: Object.keys(sanitizedUpdateData).filter(field => field !== 'updatedAt' && field !== 'lastUpdatedBy')
-      }
-    );
-
   } catch (error) {
-    console.error("🔥 Error updating customer:", {
-      error: error.message,
-      stack: error.stack,
-      userId: userId || "unknown",
-      requestBody: requestBody ? Object.keys(requestBody) : "unparsed",
-      timestamp: new Date().toISOString(),
-      url: req.url
-    });
-
     // Handle specific Firestore errors
     if (error.code === "not-found") {
       return createErrorResponse(
         "Customer not found",
-        404,
+        200,
         "CUSTOMER_NOT_FOUND"
       );
     }
@@ -328,7 +345,7 @@ export async function POST(req) {
     if (error.code === "permission-denied") {
       return createErrorResponse(
         "Database permission denied",
-        403,
+        200,
         "DATABASE_PERMISSION_DENIED"
       );
     }
@@ -336,7 +353,7 @@ export async function POST(req) {
     if (error.code === "unavailable") {
       return createErrorResponse(
         "Database service temporarily unavailable",
-        503,
+        200,
         "DATABASE_UNAVAILABLE"
       );
     }
@@ -344,7 +361,7 @@ export async function POST(req) {
     if (error.code === "deadline-exceeded") {
       return createErrorResponse(
         "Database operation timed out",
-        504,
+        200,
         "DATABASE_TIMEOUT"
       );
     }
@@ -352,7 +369,7 @@ export async function POST(req) {
     if (error.code === "invalid-argument") {
       return createErrorResponse(
         "Invalid update data provided",
-        400,
+        200,
         "INVALID_UPDATE_DATA"
       );
     }
@@ -360,7 +377,7 @@ export async function POST(req) {
     // Generic server error
     return createErrorResponse(
       "An unexpected error occurred while updating the customer",
-      500,
+      200,
       "INTERNAL_SERVER_ERROR"
     );
   }

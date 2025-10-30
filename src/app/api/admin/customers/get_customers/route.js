@@ -1,13 +1,16 @@
 import { NextResponse } from "next/server";
 import admin from "@/lib/firebase-admin";
 import { z } from "zod";
-import { createSuccessResponse,createErrorResponse } from "@/utils/resposeHandlers";
+import {
+  createSuccessResponse,
+  createErrorResponse,
+} from "@/utils/resposeHandlers";
 const db = admin.firestore();
 
 // Zod schema for pagination input
 const PaginationSchema = z.object({
   limit: z.number().int().positive().max(50).default(10),
-  cursor: z.string().optional(), // last doc id
+  cursor: z.string().optional(), 
 });
 
 export async function POST(req) {
@@ -38,6 +41,9 @@ export async function POST(req) {
       }
     }
 
+    // NOTE : DO NOT NEED THE TOTAL RIGHT NOW IT WILL INCREASE THE EXEC TIME BY DOUBLE.
+    // const countSnap = await db.collection("users").count().get();
+    // const totalUsers = countSnap.data().count;
     const snap = await query.get();
 
     const docs = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
@@ -50,6 +56,7 @@ export async function POST(req) {
     return NextResponse.json({
       success: true,
       resultsCount: customers.length,
+      totalCustomers: 0,
       customers,
       hasMore,
       cursor: customers.length ? customers[customers.length - 1].id : null,

@@ -51,6 +51,25 @@
     flex-direction: column;
     overflow: hidden;
     animation: slideUp 0.3s ease;
+
+    &.no_able {
+      max-width: 450px;
+        .dialog-footer{
+          display: none;
+        }
+      
+      .assignment-container {
+ 
+        grid-template-columns: 1fr;
+        .available-section{
+          display: none;
+        }
+        .divider{
+          display: none;
+        }
+      
+      }
+    }
   }
 
   @keyframes slideUp {

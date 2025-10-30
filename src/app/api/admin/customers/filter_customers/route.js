@@ -1,8 +1,11 @@
-import { NextResponse } from "next/server";
 import admin from "@/lib/firebase-admin";
 import { z } from "zod";
-// import { requirePermission } from "@/utils/permissions";
-import { createSuccessResponse,createErrorResponse } from "@/utils/resposeHandlers";
+
+import { requirePermission } from "@/lib/requirePermission";
+import {
+  createSuccessResponse,
+  createErrorResponse,
+} from "@/utils/resposeHandlers";
 const db = admin.firestore();
 
 // Valid quick ranges with clear definitions
@@ -90,8 +93,6 @@ const FilterSchema = z
     }
   );
 
-
-
 // Enhanced date range calculation with better edge case handling
 function getDateRange(quickRange) {
   const now = new Date();
@@ -155,7 +156,7 @@ export async function POST(req) {
 
   try {
     // Permission check - uncomment and configure based on your permission mapping
-    const permissionCheck = await requirePermission(req, "customers.read");
+    const permissionCheck = await requirePermission(req, "customers.access");
     if (permissionCheck) return permissionCheck;
 
     // Parse and validate request body
@@ -207,7 +208,7 @@ export async function POST(req) {
     } else if (startDate && endDate) {
       start = new Date(startDate);
       end = new Date(endDate);
-      // Set end to end of day for inclusive filtering
+
       end.setHours(23, 59, 59, 999);
     }
 
@@ -281,14 +282,6 @@ export async function POST(req) {
     }
 
     const executionTimeMs = Date.now() - startTime;
-
-    // Log successful query for audit purposes
-    console.log(`✅ Customer filter query executed successfully`, {
-      resultsCount: results.length,
-      filters: { quickRange, startDate, endDate, extraFilter },
-      executionTimeMs,
-      timestamp: new Date().toISOString(),
-    });
 
     return createSuccessResponse(
       `Found ${results.length} customers`,

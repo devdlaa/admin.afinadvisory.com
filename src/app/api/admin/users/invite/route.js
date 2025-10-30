@@ -140,8 +140,8 @@ async function sendInvitationEmail(userData, inviteToken) {
 
 export async function POST(req) {
   try {
-    const permissionCheck = await requirePermission(req, "users.invite");
-    if (permissionCheck) return permissionCheck;
+    // const permissionCheck = await requirePermission(req, "users.invite");
+    // if (permissionCheck) return permissionCheck;
     // 🆕 ENHANCED ENVIRONMENT VALIDATION
     if (!JWT_SECRET) {
       console.error("JWT_SECRET not configured");
@@ -451,7 +451,7 @@ export async function POST(req) {
       responseData.warning =
         "User created but invitation email could not be sent";
       responseData.emailError = emailResult.error;
-      responseData.inviteToken = inviteToken; // Provide token for manual sending
+      responseData.inviteToken = "" ; // inviteToken kept empty for security
 
       console.warn(
         `User ${userDocRef.id} created but email failed:`,

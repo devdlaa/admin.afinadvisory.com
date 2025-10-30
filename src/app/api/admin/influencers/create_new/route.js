@@ -85,7 +85,7 @@ const influencerSchema = z.object({
         url: z.string().url("Invalid social media URL"),
       })
     )
-    .max(10, "Maximum 10 social links allowed")
+    .max(5, "Maximum 10 social links allowed")
     .optional(),
 
   address: z
@@ -407,7 +407,7 @@ export async function POST(req) {
             process.env.NEXT_PUBLIC_APP_URL || "https://share.afinadvisory.com",
         });
 
-      console.log("Generated password reset link");
+  
     } catch (resetLinkError) {
       console.error("Failed to generate password reset link:", resetLinkError);
 
@@ -456,7 +456,7 @@ export async function POST(req) {
       };
 
       await db.collection("influencers").doc(id).set(influencerDoc);
-      console.log("Created Firestore document:", id);
+ 
     } catch (firestoreError) {
       console.error("Failed to create Firestore document:", firestoreError);
 
@@ -489,7 +489,7 @@ export async function POST(req) {
         },
       });
 
-      console.log("Password reset email sent successfully");
+
     } catch (emailError) {
       console.error("Failed to send password reset email:", emailError);
 

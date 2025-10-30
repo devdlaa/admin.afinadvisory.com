@@ -1,278 +1,425 @@
 import { Timestamp } from "firebase-admin/firestore";
-const FEATURE_ENABLED = process.env.ASSIGNMENT_FEATURE_ENABLED === "true";
 import admin from "@/lib/firebase-admin";
 
 const db = admin.firestore();
+const FEATURE_ENABLED = process.env.ASSIGNMENT_FEATURE_ENABLED === "true";
 
-const log = (message, data = null) => {
-  console.log(`[RefundHelpers] ${message}`, data ? JSON.stringify(data) : "");
+// ============================================================================
+// 🧠 STRUCTURED LOGGING UTILITY
+// ============================================================================
+const logger = {
+  log: (action, data = {}) => {
+    console.log(
+      JSON.stringify({
+        ts: new Date().toISOString(),
+        module: "RefundHelpers",
+        action,
+        ...data,
+      })
+    );
+  },
+  error: (action, error, data = {}) => {
+    console.error(
+      JSON.stringify({
+        ts: new Date().toISOString(),
+        module: "RefundHelpers",
+        action,
+        error: error.message || error,
+        ...data,
+      })
+    );
+  },
 };
 
-// Utility function for input validation
+// ============================================================================
+// ⚙️ STANDARDIZED ERROR RESPONSE
+// ============================================================================
+const createResponse = (success, data = {}) => ({
+  success,
+  ...data,
+});
+
+// ============================================================================
+// 🔁 STEP MANAGER UTILITY
+// ============================================================================
+class StepManager {
+  constructor(steps = {}) {
+    this.steps = { ...steps };
+  }
+
+  getStepKeys() {
+    return Object.keys(this.steps).sort((a, b) => Number(a) - Number(b));
+  }
+
+  getLastStep() {
+    const keys = this.getStepKeys();
+    return keys.length > 0 ? this.steps[keys[keys.length - 1]] : null;
+  }
+
+  stepExists(stepId) {
+    return Object.values(this.steps).some((s) => s.step_id === stepId);
+  }
+
+  markAllCompleted() {
+    const completed = {};
+    Object.keys(this.steps).forEach((key) => {
+      completed[key] = {
+        ...this.steps[key],
+        isCompleted: true,
+        completed_at: this.steps[key].completed_at || Timestamp.now(),
+      };
+    });
+    this.steps = completed;
+    return this;
+  }
+
+  addStep(step) {
+    if (this.stepExists(step.step_id)) {
+      logger.log("step_already_exists", { step_id: step.step_id });
+      return this;
+    }
+
+    const nextIndex = this.getStepKeys().length.toString();
+    this.steps[nextIndex] = {
+      ...step,
+      isCompleted: step.isCompleted ?? true,
+      completed_at: step.completed_at || Timestamp.now(),
+    };
+    return this;
+  }
+
+  removeStepsAfterIndex(index) {
+    const newSteps = {};
+    const keys = this.getStepKeys();
+    for (let i = 0; i <= index; i++) {
+      newSteps[i.toString()] = this.steps[keys[i]];
+    }
+    this.steps = newSteps;
+    return this;
+  }
+
+  removeLastStep() {
+    const keys = this.getStepKeys();
+    if (keys.length > 0) {
+      delete this.steps[keys[keys.length - 1]];
+    }
+    return this;
+  }
+
+  findStepIndex(stepId) {
+    const keys = this.getStepKeys();
+    return keys.findIndex((key) => this.steps[key]?.step_id === stepId);
+  }
+
+  markStepIncomplete(stepId) {
+    const keys = this.getStepKeys();
+    for (const key of keys) {
+      if (this.steps[key].step_id === stepId) {
+        this.steps[key].isCompleted = false;
+        return this;
+      }
+    }
+    return this;
+  }
+
+  getCurrentStepInfo() {
+    const keys = this.getStepKeys();
+    const lastIndex = keys.length - 1;
+    const lastStep = keys.length > 0 ? this.steps[keys[lastIndex]] : null;
+
+    return {
+      steps: this.steps,
+      current_step: lastStep?.step_name || null,
+      current_step_index: lastIndex >= 0 ? lastIndex : null,
+    };
+  }
+
+  getSteps() {
+    return this.steps;
+  }
+}
+
+// ============================================================================
+// 🧩 TRANSACTION HELPER
+// ============================================================================
+async function runServiceTransaction(serviceId, callback) {
+  const serviceRef = db.collection("service_bookings").doc(serviceId);
+
+  try {
+    const result = await db.runTransaction(async (transaction) => {
+      const doc = await transaction.get(serviceRef);
+
+      if (!doc.exists) {
+        return createResponse(false, {
+          serviceId,
+          type: "edge_case",
+          reason: "Service not found",
+        });
+      }
+
+      const data = doc.data();
+      return await callback(transaction, serviceRef, doc, data);
+    });
+
+    return result;
+  } catch (error) {
+    logger.error("transaction_failed", error, { serviceId });
+    return createResponse(false, {
+      serviceId,
+      type: "failure",
+      reason: error.message || "Transaction failed",
+    });
+  }
+}
+
+// ============================================================================
+// 📦 FEATURE TOGGLE UTILITY
+// ============================================================================
+function isFeatureAllowed(user, booking) {
+  if (!FEATURE_ENABLED) return true;
+  if (user.role === "superAdmin") return true;
+  if (booking.assignmentManagement?.assignToAll) return true;
+
+  const userEmail = user.email.toLowerCase();
+  return (
+    Array.isArray(booking.assignedKeys) &&
+    booking.assignedKeys.includes(`email:${userEmail}`)
+  );
+}
+
+// ============================================================================
+// 🧼 VALIDATION HELPERS
+// ============================================================================
 const validateServiceId = (serviceId) => {
   if (!serviceId || typeof serviceId !== "string") {
     throw new Error("Valid Service ID is required");
   }
 };
 
+const validateReason = (reason) => {
+  if (!reason || typeof reason !== "string") {
+    throw new Error("Reason is required");
+  }
+};
+
+// ============================================================================
+// 🔒 STATUS GUARDS
+// ============================================================================
+const statusGuards = {
+  canRequestRefund: (masterStatus) => masterStatus === "in_progress",
+  canRejectRefund: (data) => {
+    if (data.refundDetails?.current_status === "rejected") {
+      return { allowed: false, reason: "Refund already rejected" };
+    }
+    if (data.progress_steps?.isFulfilled) {
+      return { allowed: false, reason: "Service already fulfilled" };
+    }
+    const stepManager = new StepManager(data.progress_steps?.steps);
+    const lastStep = stepManager.getLastStep();
+    if (!lastStep || lastStep.step_id !== "REFUND_REQUESTED") {
+      return {
+        allowed: false,
+        reason: "Cannot reject refund: last step is not REFUND_REQUESTED",
+      };
+    }
+    return { allowed: true };
+  },
+  canInitiateRefund: (data) => {
+    if (data.master_status !== "processing") {
+      return {
+        allowed: false,
+        reason: `Cannot initiate refund. Service status is ${data.master_status}`,
+      };
+    }
+    return { allowed: true };
+  },
+  canFulfillService: (data) => {
+    const stepManager = new StepManager(data.progress_steps?.steps);
+    const lastStep = stepManager.getLastStep();
+
+    if (lastStep?.step_id === "SERVICE_FULFILLED") {
+      return { allowed: false, reason: "Already fulfilled" };
+    }
+
+    const forbiddenSteps = [
+      "REFUND_REQUESTED",
+      "REFUND_INITIATED",
+      "REFUND_COMPLETED",
+    ];
+    if (lastStep && forbiddenSteps.includes(lastStep.step_id)) {
+      return {
+        allowed: false,
+        reason: `Cannot fulfill service because last step is ${lastStep.step_id}`,
+      };
+    }
+
+    return { allowed: true };
+  },
+};
+
+// ============================================================================
+// REFUND WORKFLOW FUNCTIONS
+// ============================================================================
+
 // Step: Refund Requested by user
 export async function markRefundRequested(serviceId, reason) {
   validateServiceId(serviceId);
-  if (!reason || typeof reason !== "string") {
-    return { serviceId, success: false, reason: "Refund reason is required" };
-  }
+  validateReason(reason);
 
-  const serviceRef = db.collection("service_bookings").doc(serviceId);
+  logger.log("refund_requested", { serviceId });
 
-  try {
-    const result = await db.runTransaction(async (transaction) => {
-      const doc = await transaction.get(serviceRef);
-      if (!doc.exists) {
-        return { serviceId, success: false, reason: "Service not found" };
-      }
-
-      const data = doc.data();
-
-      // Only allow refund request if master_status is "in_progress"
-      if (data?.master_status !== "in_progress") {
-        return {
-          serviceId,
-          success: false,
-          reason: `Cannot request refund: service status is ${data?.master_status}`,
-        };
-      }
-
-      const step = {
-        step_id: "REFUND_REQUESTED",
-        step_name: "Refund Requested",
-        step_desc: "Customer has requested a refund.",
-        isCompleted: true,
-        completed_at: Timestamp.now(),
-      };
-
-      // Update refund details
-      transaction.update(serviceRef, {
-        isRefundFlagged: true,
-        "refundDetails.isRefund": true,
-        "refundDetails.current_status": "requested",
-        "refundDetails.requestedAt": Timestamp.now(),
-        "refundDetails.reason": reason,
+  return runServiceTransaction(serviceId, async (transaction, ref, doc, data) => {
+    if (!statusGuards.canRequestRefund(data.master_status)) {
+      return createResponse(false, {
+        serviceId,
+        reason: `Cannot request refund: service status is ${data.master_status}`,
       });
+    }
 
-      await addStepInTransaction(transaction, serviceRef, step, data);
-
-      return { serviceId, success: true };
+    const stepManager = new StepManager(data.progress_steps?.steps);
+    stepManager.addStep({
+      step_id: "REFUND_REQUESTED",
+      step_name: "Refund Requested",
+      step_desc: "Customer has requested a refund.",
     });
 
-    return result;
-  } catch (error) {
-    return {
-      serviceId,
-      success: false,
-      reason: error.message || "Transaction failed",
-    };
-  }
+    const stepInfo = stepManager.getCurrentStepInfo();
+
+    transaction.update(ref, {
+      isRefundFlagged: true,
+      "refundDetails.isRefund": true,
+      "refundDetails.current_status": "requested",
+      "refundDetails.requestedAt": Timestamp.now(),
+      "refundDetails.reason": reason,
+      "progress_steps.steps": stepInfo.steps,
+      "progress_steps.current_step": stepInfo.current_step,
+      "progress_steps.current_step_index": stepInfo.current_step_index,
+    });
+
+    return createResponse(true, { serviceId });
+  });
 }
 
 // Step: Refund Rejected by admin
-export async function markRefundRejected(
-  service_booking_id,
-  adminNote,
-  session
-) {
-  try {
-    validateServiceId(service_booking_id);
+export async function markRefundRejected(service_booking_id, adminNote, session) {
+  validateServiceId(service_booking_id);
+  validateReason(adminNote);
 
-    if (!adminNote || typeof adminNote !== "string") {
-      return { success: false, reason: "Admin note is required" };
-    }
-    const userEmail = session.user.email.toLowerCase();
-    const userRole = session.user.role || "";
-    const serviceRef = db
-      .collection("service_bookings")
-      .doc(service_booking_id);
+  logger.log("refund_rejected", { service_booking_id });
 
-    await db.runTransaction(async (transaction) => {
-      const doc = await transaction.get(serviceRef);
-
-      if (!doc.exists) {
-        throw new Error("Service not found");
-      }
-
-      const data = doc.data();
-
-      // 💡 Assignment-based access check
-      if (
-        FEATURE_ENABLED &&
-        userRole !== "superAdmin" &&
-        !data.assignmentManagement?.assignToAll &&
-        !(
-          Array.isArray(data.assignedKeys) &&
-          data.assignedKeys.includes(`email:${userEmail}`)
-        )
-      ) {
-        return {
-          id,
-          success: false,
+  return runServiceTransaction(
+    service_booking_id,
+    async (transaction, ref, doc, data) => {
+      // Access check
+      if (!isFeatureAllowed(session.user, data)) {
+        return createResponse(false, {
+          id: service_booking_id,
           reason: "Not assigned to this booking",
-        };
+        });
       }
 
-      const steps = data?.progress_steps?.steps || {};
-      const stepKeys = Object.keys(steps).sort((a, b) => Number(a) - Number(b));
-      const lastStep = stepKeys.length > 0 ? steps[stepKeys.length - 1] : null;
-
-      // Prevent multiple rejections
-      if (data?.refundDetails?.current_status === "rejected") {
-        throw new Error("Refund has already been rejected");
+      // Status guard
+      const guardResult = statusGuards.canRejectRefund(data);
+      if (!guardResult.allowed) {
+        return createResponse(false, {
+          id: service_booking_id,
+          reason: guardResult.reason,
+        });
       }
 
-      // Prevent rejection if service is fulfilled
-      if (data?.progress_steps?.isFulfilled) {
-        throw new Error("Service already fulfilled");
-      }
-
-      // Only allow rejection if last step is REFUND_REQUESTED
-      if (!lastStep || lastStep.step_id !== "REFUND_REQUESTED") {
-        throw new Error(
-          "Cannot reject refund: last step is not REFUND_REQUESTED"
-        );
-      }
-
-      // Mark REFUND_REQUESTED step as completed
-      for (const key of stepKeys) {
-        if (steps[key].step_id === "REFUND_REQUESTED") {
-          steps[key].isCompleted = true;
-          steps[key].completed_at = Timestamp.now();
-        }
-      }
-      // Add REFUND_REJECTED step
-      const nextIndex = stepKeys.length.toString();
-      const newStep = {
+      const stepManager = new StepManager(data.progress_steps?.steps);
+      stepManager.addStep({
         step_id: "REFUND_REJECTED",
         step_name: "Refund Rejected",
         step_desc: "Refund request was rejected by the team.",
-        isCompleted: true,
-        completed_at: Timestamp.now(),
-      };
+      });
 
-      const updatedSteps = { ...steps, [nextIndex]: newStep };
+      const stepInfo = stepManager.getCurrentStepInfo();
 
-      transaction.update(serviceRef, {
+      transaction.update(ref, {
         "refundDetails.current_status": "rejected",
         "refundDetails.admin_notes": adminNote,
         "refundDetails.rejectedAt": Timestamp.now(),
-        "progress_steps.steps": updatedSteps,
-        "progress_steps.current_step": newStep.step_name,
-        "progress_steps.current_step_index": parseInt(nextIndex),
+        "progress_steps.steps": stepInfo.steps,
+        "progress_steps.current_step": stepInfo.current_step,
+        "progress_steps.current_step_index": stepInfo.current_step_index,
         "progress_steps.isFulfilled": false,
       });
-    });
 
-    // Fetch the updated document after transaction
-    const updated_service = await serviceRef.get();
-    return { success: true, updatedService: updated_service.data() };
-  } catch (error) {
-    return { success: false, reason: error.message || "Transaction failed" };
-  }
+      // Fetch updated document for response
+      const updatedDoc = await ref.get();
+      return createResponse(true, { updatedService: updatedDoc.data() });
+    }
+  );
 }
 
 // Step: Refund Initiated (supports retry)
 export async function markRefundInitiated(service_booking_id, meta_info) {
   validateServiceId(service_booking_id);
 
-  const db = admin.firestore();
-  const serviceRef = db.collection("service_bookings").doc(service_booking_id);
+  logger.log("refund_initiated", { service_booking_id });
 
-  try {
-    const result = await db.runTransaction(async (transaction) => {
-      const doc = await transaction.get(serviceRef);
-      if (!doc.exists) {
-        return {
+  return runServiceTransaction(
+    service_booking_id,
+    async (transaction, ref, doc, data) => {
+      // Status guard
+      const guardResult = statusGuards.canInitiateRefund(data);
+      if (!guardResult.allowed) {
+        return createResponse(false, {
           service_booking_id,
-          success: false,
           type: "edge_case",
-          reason: "Service not found",
-        };
+          reason: guardResult.reason,
+        });
       }
 
-      const data = doc.data();
-      const steps = data?.progress_steps?.steps || {};
-      const stepKeys = Object.keys(steps);
-      const lastStep = stepKeys.length > 0 ? steps[stepKeys.length - 1] : null;
+      const stepManager = new StepManager(data.progress_steps?.steps);
+      const lastStep = stepManager.getLastStep();
 
-      // ✅ Service must be in processing
-      if (data.master_status !== "processing") {
-        return {
-          service_booking_id,
-          success: false,
-          type: "edge_case",
-          reason: `Cannot initiate refund. Service status is ${data.master_status}`,
-        };
-      }
-
-      // ✅ Detect retry
+      // Detect retry
       const isRetry =
         data.refundDetails?.current_status === "failed" ||
         lastStep?.step_id === "REFUND_INITIATED";
 
-      // ✅ Guard for first attempt
+      // Guard for first attempt
       if (!isRetry && lastStep?.step_id !== "REFUND_REQUESTED") {
-        return {
+        return createResponse(false, {
           service_booking_id,
-          success: false,
           type: "edge_case",
-          reason: `Cannot initiate refund. Last step is ${
-            lastStep?.step_id || "none"
-          }`,
-        };
+          reason: `Cannot initiate refund. Last step is ${lastStep?.step_id || "none"}`,
+        });
       }
 
       const razorpayRefundDetails =
         meta_info && typeof meta_info === "object" ? meta_info : {};
       const attemptNumber = (data.refundDetails?.last_attempt_number || 0) + 1;
 
-      const updatedSteps = { ...steps };
-
+      // First-time initiation: mark all steps completed + add new step
       if (!isRetry) {
-        // ✅ First-time initiation → mark all old steps completed + add new step
-        Object.keys(updatedSteps).forEach((key) => {
-          updatedSteps[key] = {
-            ...updatedSteps[key],
-            isCompleted: true,
-            completed_at: updatedSteps[key].completed_at || Timestamp.now(),
-          };
-        });
-
-        const nextIndex = stepKeys.length.toString();
-        const newStep = {
+        stepManager.markAllCompleted().addStep({
           step_id: "REFUND_INITIATED",
           step_name: "Refund Initiated",
           step_desc: "Refund accepted & team has initiated the process.",
-          isCompleted: true,
-          completed_at: Timestamp.now(),
-        };
+        });
 
-        updatedSteps[nextIndex] = newStep;
+        const stepInfo = stepManager.getCurrentStepInfo();
 
-        transaction.update(serviceRef, {
-          "progress_steps.steps": updatedSteps,
-          "progress_steps.current_step": newStep.step_name,
-          "progress_steps.current_step_index": parseInt(nextIndex),
+        transaction.update(ref, {
+          "progress_steps.steps": stepInfo.steps,
+          "progress_steps.current_step": stepInfo.current_step,
+          "progress_steps.current_step_index": stepInfo.current_step_index,
           "progress_steps.isFulfilled": false,
         });
       }
 
-      // ✅ Common updates for both first-time and retry
-      transaction.update(serviceRef, {
+      // Common updates for both first-time and retry
+      transaction.update(ref, {
         "refundDetails.current_status": "initiated",
         "refundDetails.initiatedAt": Timestamp.now(),
         "refundDetails.razorpay_refund_details": razorpayRefundDetails,
         "refundDetails.last_attempt_number": attemptNumber,
         "refundDetails.reason":
           meta_info?.notes?.refund_reason || data.refundDetails?.reason || "",
-        "refundDetails.initiatedBy":
-          meta_info?.notes?.refund_by_user_id || null,
+        "refundDetails.initiatedBy": meta_info?.notes?.refund_by_user_id || null,
         "refundDetails.isRefundInProgress": true,
         "refundDetails.attempts": admin.firestore.FieldValue.arrayUnion({
           attempt: attemptNumber,
@@ -283,55 +430,47 @@ export async function markRefundInitiated(service_booking_id, meta_info) {
         }),
       });
 
-      return {
+      return createResponse(true, {
         service_booking_id,
-        success: true,
         type: isRetry ? "retry" : "mutation",
-      };
-    });
-
-    return result;
-  } catch (error) {
-    return {
-      service_booking_id,
-      success: false,
-      type: "failure",
-      reason: error.message || "Transaction failed",
-    };
-  }
+      });
+    }
+  );
 }
 
 // Handles if refund fails
 export async function markRefundFailed(service_booking_id, refundInfo) {
   validateServiceId(service_booking_id);
-  const serviceRef = db.collection("service_bookings").doc(service_booking_id);
 
-  await db.runTransaction(async (transaction) => {
-    const doc = await transaction.get(serviceRef);
-    if (!doc.exists) throw new Error("Service not found");
+  logger.log("refund_failed", { service_booking_id });
 
-    const data = doc.data();
-    const attemptNumber = data.refundDetails?.last_attempt_number || 0;
+  return runServiceTransaction(
+    service_booking_id,
+    async (transaction, ref, doc, data) => {
+      const attemptNumber = data.refundDetails?.last_attempt_number || 0;
 
-    const failedAt = refundInfo?.created_at
-      ? Timestamp.fromMillis(refundInfo.created_at * 1000)
-      : Timestamp.now();
+      const failedAt = refundInfo?.created_at
+        ? Timestamp.fromMillis(refundInfo.created_at * 1000)
+        : Timestamp.now();
 
-    transaction.update(serviceRef, {
-      "refundDetails.current_status": "failed",
-      "refundDetails.isRefundInProgress": false,
-      "refundDetails.failure_reason":
-        refundInfo?.status_reason || refundInfo?.reason || "Unknown",
-      "refundDetails.last_failed_at": failedAt,
-      "refundDetails.attempts": admin.firestore.FieldValue.arrayUnion({
-        attempt: attemptNumber,
-        razorpay_refund_id: refundInfo?.id || null,
-        amount: refundInfo?.amount ? refundInfo.amount / 100 : null, // ✅ Convert to ₹
-        status: "failed",
-        failedAt,
-      }),
-    });
-  });
+      transaction.update(ref, {
+        "refundDetails.current_status": "failed",
+        "refundDetails.isRefundInProgress": false,
+        "refundDetails.failure_reason":
+          refundInfo?.status_reason || refundInfo?.reason || "Unknown",
+        "refundDetails.last_failed_at": failedAt,
+        "refundDetails.attempts": admin.firestore.FieldValue.arrayUnion({
+          attempt: attemptNumber,
+          razorpay_refund_id: refundInfo?.id || null,
+          amount: refundInfo?.amount ? refundInfo.amount / 100 : null,
+          status: "failed",
+          failedAt,
+        }),
+      });
+
+      return createResponse(true, { service_booking_id });
+    }
+  );
 }
 
 // Step: Refund Credited
@@ -340,46 +479,30 @@ export async function markRefundCredited(
   refundInfo,
   creditNoteNumber
 ) {
-  try {
-    validateServiceId(service_booking_id);
+  validateServiceId(service_booking_id);
 
-    if (!refundInfo) {
-      throw new Error("Refund information is required");
-    }
+  if (!refundInfo) {
+    throw new Error("Refund information is required");
+  }
 
-    log(`Marking refund credited for service: ${service_booking_id}`);
-    const refundTimestamp = Timestamp.fromMillis(refundInfo.created_at * 1000);
-    const refundAmountInRupees = refundInfo?.amount
-      ? refundInfo.amount / 100
-      : 0;
-    const step = {
-      step_id: "REFUND_COMPLETED",
-      step_name: "Refund Credited",
-      step_desc: "Refund has been successfully credited to your Bank Account.",
-      isCompleted: true,
-      completed_at: Timestamp.now(),
-    };
+  logger.log("refund_credited", { service_booking_id });
 
-    const serviceRef = db
-      .collection("service_bookings")
-      .doc(service_booking_id);
+  const refundTimestamp = Timestamp.fromMillis(refundInfo.created_at * 1000);
+  const refundAmountInRupees = refundInfo?.amount ? refundInfo.amount / 100 : 0;
 
-    await db.runTransaction(async (transaction) => {
-      const doc = await transaction.get(serviceRef);
-      if (!doc.exists) {
-        throw new Error("Service not found");
-      }
+  return runServiceTransaction(
+    service_booking_id,
+    async (transaction, ref, doc, data) => {
+      const stepManager = new StepManager(data.progress_steps?.steps);
+      stepManager.addStep({
+        step_id: "REFUND_COMPLETED",
+        step_name: "Refund Credited",
+        step_desc: "Refund has been successfully credited to your Bank Account.",
+      });
 
-      const data = doc.data();
-      const steps = data?.progress_steps?.steps || {};
-      const nextIndex = Object.keys(steps).length.toString();
+      const stepInfo = stepManager.getCurrentStepInfo();
 
-      const updatedSteps = {
-        ...steps,
-        [nextIndex]: step,
-      };
-
-      transaction.update(serviceRef, {
+      transaction.update(ref, {
         "refundDetails.creditNoteNumber": creditNoteNumber,
         "refundDetails.current_status":
           refundInfo?.status === "processed" ? "refunded" : "failed",
@@ -390,307 +513,144 @@ export async function markRefundCredited(
         "refundDetails.isFullRefund": true,
         "refundDetails.razorpay_acquirer_data": refundInfo?.acquirer_data || {},
         "refundDetails.isRefundInProgress": false,
-        "progress_steps.steps": updatedSteps,
-        "progress_steps.current_step": step.step_name,
-        "progress_steps.current_step_index": parseInt(nextIndex),
+        "progress_steps.steps": stepInfo.steps,
+        "progress_steps.current_step": stepInfo.current_step,
+        "progress_steps.current_step_index": stepInfo.current_step_index,
         "progress_steps.isFulfilled": true,
         master_status: "refunded",
       });
-    });
 
-    log(
-      `Successfully marked refund credited for service: ${service_booking_id}`
-    );
-  } catch (error) {
-    log(
-      `Error marking refund credited for service ${service_booking_id}:`,
-      error.message
-    );
-    throw error;
-  }
-}
-
-export async function addStepInTransaction(
-  transaction,
-  serviceRef,
-  step,
-  docData
-) {
-  if (!docData?.progress_steps) {
-    log(`Progress steps not found for service, skipping step addition`);
-    return;
-  }
-
-  const existingSteps = docData.progress_steps.steps || {};
-
-  const stepAlreadyExists = Object.values(existingSteps).some(
-    (s) => s.step_id === step.step_id
+      return createResponse(true, { service_booking_id });
+    }
   );
-  if (stepAlreadyExists) {
-    log(`Step ${step.step_id} already exists, skipping addition`);
-    return;
-  }
-
-  const nextIndex = Object.keys(existingSteps).length.toString();
-
-  const updatedSteps = {
-    ...existingSteps,
-    [nextIndex]: step,
-  };
-
-  transaction.update(serviceRef, {
-    "progress_steps.steps": updatedSteps,
-    "progress_steps.current_step": step.step_name,
-    "progress_steps.current_step_index": parseInt(nextIndex),
-  });
 }
 
-export async function markServiceFulfilledByAdmin(
-  service_booking_ids,
-  session
-) {
-  // ✅ Accept single ID or array
+// Mark Service Fulfilled by Admin
+export async function markServiceFulfilledByAdmin(service_booking_ids, session) {
   const ids = Array.isArray(service_booking_ids)
     ? service_booking_ids
     : [service_booking_ids];
 
   const results = [];
-  const userEmail = session.user.email.toLowerCase();
-  const userRole = session.user.role || "";
 
   for (const id of ids) {
-    validateServiceId(id);
-    const serviceRef = db.collection("service_bookings").doc(id);
-
     try {
-      const result = await db.runTransaction(async (transaction) => {
-        const doc = await transaction.get(serviceRef);
-        if (!doc.exists) {
-          return { id, success: false, reason: "Service not found" };
-        }
-        const data = doc.data();
-        // 💡 Assignment-based access check
-        if (
-          FEATURE_ENABLED &&
-          userRole !== "superAdmin" &&
-          !data.assignmentManagement?.assignToAll &&
-          !(
-            Array.isArray(data.assignedKeys) &&
-            data.assignedKeys.includes(`email:${userEmail}`)
-          )
-        ) {
-          return {
-            id,
-            success: false,
-            reason: "Not assigned to this booking",
-          };
-        }
+      validateServiceId(id);
 
-        const steps = data?.progress_steps?.steps || {};
-        const stepKeys = Object.keys(steps);
-        const lastStep =
-          stepKeys.length > 0 ? steps[stepKeys.length - 1] : null;
-
-        // Already fulfilled?
-        if (lastStep?.step_id === "SERVICE_FULFILLED") {
-          return { id, success: false, reason: "Already fulfilled" };
-        }
-
-        // Check refund-related steps
-        if (lastStep) {
-          const forbiddenLastSteps = [
-            "REFUND_REQUESTED",
-            "REFUND_INITIATED",
-            "REFUND_COMPLETED",
-          ];
-          if (forbiddenLastSteps.includes(lastStep.step_id)) {
-            return {
+      const result = await runServiceTransaction(
+        id,
+        async (transaction, ref, doc, data) => {
+          // Access check
+          if (!isFeatureAllowed(session.user, data)) {
+            return createResponse(false, {
               id,
-              success: false,
-              reason: `Cannot fulfill service because last step is ${lastStep.step_id}`,
-            };
+              reason: "Not assigned to this booking",
+            });
           }
+
+          // Status guard
+          const guardResult = statusGuards.canFulfillService(data);
+          if (!guardResult.allowed) {
+            return createResponse(false, { id, reason: guardResult.reason });
+          }
+
+          const stepManager = new StepManager(data.progress_steps?.steps);
+          stepManager.markAllCompleted().addStep({
+            step_id: "SERVICE_FULFILLED",
+            step_name: "Process Fulfilled",
+            step_desc: "Congrats, Your Service Request has Been Completed",
+          });
+
+          const stepInfo = stepManager.getCurrentStepInfo();
+
+          transaction.update(ref, {
+            "progress_steps.steps": stepInfo.steps,
+            "progress_steps.current_step": stepInfo.current_step,
+            "progress_steps.current_step_index": stepInfo.current_step_index,
+            "progress_steps.isFulfilled": true,
+            master_status: "completed",
+          });
+
+          return createResponse(true, { id });
         }
+      );
 
-        // ✅ Mark all previous steps as completed
-        const completedSteps = {};
-        for (const key of stepKeys) {
-          completedSteps[key] = {
-            ...steps[key],
-            isCompleted: true,
-          };
-        }
-
-        // Allowed → append new fulfilled step
-        const nextIndex = stepKeys.length.toString();
-        const newStep = {
-          step_id: "SERVICE_FULFILLED",
-          step_name: "Process Fulfilled",
-          step_desc: "Congrats, Your Service Request has Been Completed",
-          isCompleted: true,
-          completed_at: Timestamp.now(),
-        };
-
-        const updatedSteps = {
-          ...completedSteps,
-          [nextIndex]: newStep,
-        };
-
-        transaction.update(serviceRef, {
-          "progress_steps.steps": updatedSteps,
-          "progress_steps.current_step": newStep.step_name,
-          "progress_steps.current_step_index": parseInt(nextIndex),
-          "progress_steps.isFulfilled": true,
-          master_status: "completed",
-        });
-
-        return { id, success: true };
-      });
-
-      // Fetch the fresh doc to return updated data if fulfilled
       if (result.success) {
+        const serviceRef = db.collection("service_bookings").doc(id);
         const fresh = await serviceRef.get();
-        results.push({
-          success: true,
-          service: { id: fresh.id, ...fresh.data() },
-        });
+        results.push(createResponse(true, { service: { id: fresh.id, ...fresh.data() } }));
       } else {
         results.push(result);
       }
     } catch (error) {
-      results.push({
-        id,
-        success: false,
-        reason: error.message || "Transaction failed",
-      });
+      logger.error("mark_fulfilled_failed", error, { id });
+      results.push(createResponse(false, { id, reason: error.message }));
     }
   }
 
-  return results; // ✅ Always returns an array of results
+  return results;
 }
 
-// Helper function to get current refund status
-export async function getRefundStatus(serviceId) {
-  try {
-    validateServiceId(serviceId);
-
-    const doc = await db.collection("services").doc(serviceId).get();
-    if (!doc.exists) {
-      throw new Error("Service not found");
-    }
-
-    const data = doc.data();
-    return {
-      isRefundFlagged: data.isRefundFlagged || false,
-      refundDetails: data.refundDetails || null,
-      masterStatus: data.master_status || null,
-    };
-  } catch (error) {
-    log(`Error getting refund status for service ${serviceId}:`, error.message);
-    throw error;
-  }
-}
-
-export async function unmarkServiceFulfilledByAdmin(
-  service_booking_id,
-  session
-) {
+// Unmark Service Fulfilled by Admin
+export async function unmarkServiceFulfilledByAdmin(service_booking_id, session) {
   validateServiceId(service_booking_id);
-  log(`Unmarking service fulfilled: ${service_booking_id}`);
 
-  const serviceRef = db.collection("service_bookings").doc(service_booking_id);
-  const userEmail = session.user.email.toLowerCase();
-  const userRole = session.user.role || "";
+  logger.log("unmark_service_fulfilled", { service_booking_id });
 
-  try {
-    await db.runTransaction(async (transaction) => {
-      const doc = await transaction.get(serviceRef);
-      if (!doc.exists) throw new Error("Service not found");
-
-      const data = doc.data();
-
-      // 💡 Assignment-based access check
-      if (
-        FEATURE_ENABLED &&
-        userRole !== "superAdmin" &&
-        !data.assignmentManagement?.assignToAll &&
-        !(
-          Array.isArray(data.assignedKeys) &&
-          data.assignedKeys.includes(`email:${userEmail}`)
-        )
-      ) {
-        return {
-          id,
-          success: false,
+  const result = await runServiceTransaction(
+    service_booking_id,
+    async (transaction, ref, doc, data) => {
+      // Access check
+      if (!isFeatureAllowed(session.user, data)) {
+        return createResponse(false, {
+          id: service_booking_id,
           reason: "Not assigned to this booking",
-        };
+        });
       }
 
-      const steps = { ...data.progress_steps.steps };
+      const stepManager = new StepManager(data.progress_steps?.steps);
+      const lastStep = stepManager.getLastStep();
 
-      // Ensure keys are sorted numerically
-      const stepKeys = Object.keys(steps).sort((a, b) => Number(a) - Number(b));
-      const lastIndex = stepKeys[stepKeys.length - 1];
-
-      if (steps[lastIndex]?.step_id !== "SERVICE_FULFILLED") {
-        throw new Error("Last step is not SERVICE_FULFILLED, cannot unmark");
+      if (lastStep?.step_id !== "SERVICE_FULFILLED") {
+        return createResponse(false, {
+          id: service_booking_id,
+          reason: "Last step is not SERVICE_FULFILLED, cannot unmark",
+        });
       }
 
-      // Remove the last step
-      delete steps[lastIndex];
+      // Remove last step
+      stepManager.removeLastStep();
 
-      // Find the SERVICE_IN_PROGRESS step
-      let currentStepIndex = null;
-      let currentStepName = null;
-
-      for (const key of stepKeys) {
-        if (steps[key]?.step_id === "SERVICE_IN_PROGRESS") {
-          steps[key].isCompleted = false;
-          currentStepIndex = Number(key);
-          currentStepName = steps[key].step_name;
-          break;
-        }
+      // Find and mark SERVICE_IN_PROGRESS as incomplete
+      const inProgressIndex = stepManager.findStepIndex("SERVICE_IN_PROGRESS");
+      if (inProgressIndex !== -1) {
+        stepManager.markStepIncomplete("SERVICE_IN_PROGRESS");
       }
 
-      // If SERVICE_IN_PROGRESS not found, fallback to new last step
-      if (currentStepIndex === null) {
-        const newStepKeys = Object.keys(steps).sort(
-          (a, b) => Number(a) - Number(b)
-        );
-        const newLastIndex =
-          newStepKeys.length > 0 ? newStepKeys[newStepKeys.length - 1] : null;
+      const stepInfo = stepManager.getCurrentStepInfo();
 
-        if (newLastIndex !== null) {
-          currentStepIndex = Number(newLastIndex);
-          currentStepName = steps[newLastIndex].step_name;
-        }
-      }
-
-      transaction.update(serviceRef, {
-        "progress_steps.steps": steps,
-        "progress_steps.current_step": currentStepName,
-        "progress_steps.current_step_index": currentStepIndex,
+      transaction.update(ref, {
+        "progress_steps.steps": stepInfo.steps,
+        "progress_steps.current_step": stepInfo.current_step,
+        "progress_steps.current_step_index": stepInfo.current_step_index,
         "progress_steps.isFulfilled": false,
         master_status: "processing",
       });
-    });
 
-    // ✅ Fetch updated doc AFTER transaction
+      return createResponse(true, { service_booking_id });
+    }
+  );
+
+  if (result.success) {
+    const serviceRef = db.collection("service_bookings").doc(service_booking_id);
     const updatedService = await serviceRef.get();
-
-    return {
-      success: true,
-      service: updatedService.data(),
-    };
-  } catch (error) {
-    return {
-      success: false,
-      id: service_booking_id,
-      reason: error.message || "Transaction failed",
-    };
+    return createResponse(true, { service: updatedService.data() });
   }
+
+  return result;
 }
 
+// Rollback Refund to Initiated or Credited
 export async function rollbackRefundToInitiatedOrCredited({
   service_booking_id,
   adminNote,
@@ -698,100 +658,64 @@ export async function rollbackRefundToInitiatedOrCredited({
 }) {
   validateServiceId(service_booking_id);
 
-  const serviceRef = db.collection("service_bookings").doc(service_booking_id);
+  logger.log("rollback_refund", { service_booking_id, immediateCredit });
 
-  try {
-    const result = await db.runTransaction(async (transaction) => {
-      const doc = await transaction.get(serviceRef);
-      if (!doc.exists) {
-        return {
-          service_booking_id,
-          success: false,
-          reason: "Service not found",
-        };
-      }
+  return runServiceTransaction(
+    service_booking_id,
+    async (transaction, ref, doc, data) => {
+      const stepManager = new StepManager(data.progress_steps?.steps);
+      const stepKeys = stepManager.getStepKeys();
 
-      const data = doc.data();
-      const steps = data?.progress_steps?.steps || {};
-      const stepKeys = Object.keys(steps);
-
-      // Find last in_progress step index
+      // Find last in_progress or rejected step
       let lastIndexInProgress = -1;
       for (let i = stepKeys.length - 1; i >= 0; i--) {
-        const step = steps[stepKeys[i]];
-        if (
-          step.step_id === "IN_PROGRESS" ||
-          step.step_id === "REFUND_REJECTED"
-        ) {
+        const step = stepManager.getSteps()[stepKeys[i]];
+        if (step.step_id === "IN_PROGRESS" || step.step_id === "REFUND_REJECTED") {
           lastIndexInProgress = i;
           break;
         }
       }
 
       if (lastIndexInProgress === -1) {
-        return {
+        return createResponse(false, {
           service_booking_id,
-          success: false,
           reason: "Cannot rollback, no suitable in-progress step found",
-        };
+        });
       }
 
-      // Remove all steps after lastIndexInProgress
-      const newSteps = {};
-      for (let i = 0; i <= lastIndexInProgress; i++) {
-        newSteps[i.toString()] = steps[stepKeys[i]];
-      }
+      // Remove all steps after the target index
+      stepManager.removeStepsAfterIndex(lastIndexInProgress);
 
-      let nextIndex = Object.keys(newSteps).length;
+      // Add refund steps
+      stepManager
+        .addStep({
+          step_id: "REFUND_REQUESTED",
+          step_name: "Refund Requested",
+          step_desc: "Customer has requested a refund (rollback).",
+        })
+        .addStep({
+          step_id: "REFUND_INITIATED",
+          step_name: "Refund Initiated",
+          step_desc: "Refund initiated after rollback.",
+        });
 
-      // Add REFUND_REQUESTED
-      const refundRequestedStep = {
-        step_id: "REFUND_REQUESTED",
-        step_name: "Refund Requested",
-        step_desc: "Customer has requested a refund (rollback).",
-        isCompleted: true,
-        completed_at: Timestamp.now(),
-      };
-      newSteps[nextIndex.toString()] = refundRequestedStep;
-      nextIndex++;
-
-      // Add REFUND_INITIATED
-      const refundInitiatedStep = {
-        step_id: "REFUND_INITIATED",
-        step_name: "Refund Initiated",
-        step_desc: "Refund initiated after rollback.",
-        isCompleted: true,
-        completed_at: Timestamp.now(),
-      };
-      newSteps[nextIndex.toString()] = refundInitiatedStep;
-      nextIndex++;
-
-      // Optionally add REFUND_CREDITED immediately
-      let refundCreditedStep = null;
       if (immediateCredit) {
-        refundCreditedStep = {
+        stepManager.addStep({
           step_id: "REFUND_CREDITED",
           step_name: "Refund Credited",
           step_desc: adminNote || "Refund credited by admin.",
-          isCompleted: true,
-          completed_at: Timestamp.now(),
-        };
-        newSteps[nextIndex.toString()] = refundCreditedStep;
-        nextIndex++;
+        });
       }
 
-      // Update meta fields
+      const stepInfo = stepManager.getCurrentStepInfo();
+
       const updatedData = {
-        "progress_steps.steps": newSteps,
-        "progress_steps.current_step_index": nextIndex - 1,
-        "progress_steps.current_step": immediateCredit
-          ? refundCreditedStep.step_name
-          : refundInitiatedStep.step_name,
-        "progress_steps.isFulfilled": immediateCredit, // only fulfilled if immediately credited
+        "progress_steps.steps": stepInfo.steps,
+        "progress_steps.current_step_index": stepInfo.current_step_index,
+        "progress_steps.current_step": stepInfo.current_step,
+        "progress_steps.isFulfilled": immediateCredit,
         "refundDetails.isRefund": true,
-        "refundDetails.current_status": immediateCredit
-          ? "refunded"
-          : "initiated",
+        "refundDetails.current_status": immediateCredit ? "refunded" : "initiated",
         "refundDetails.requestedAt": Timestamp.now(),
         "refundDetails.initiatedAt": Timestamp.now(),
       };
@@ -801,23 +725,36 @@ export async function rollbackRefundToInitiatedOrCredited({
         updatedData["refundDetails.admin_notes"] = adminNote || null;
       }
 
-      transaction.update(serviceRef, updatedData);
+      transaction.update(ref, updatedData);
 
-      return {
+      return createResponse(true, {
         service_booking_id,
-        success: true,
         stepsAdded: immediateCredit
           ? ["REFUND_REQUESTED", "REFUND_INITIATED", "REFUND_CREDITED"]
           : ["REFUND_REQUESTED", "REFUND_INITIATED"],
-      };
-    });
+      });
+    }
+  );
+}
 
-    return result;
+// Helper: Get Refund Status
+export async function getRefundStatus(serviceId) {
+  try {
+    validateServiceId(serviceId);
+
+    const doc = await db.collection("service_bookings").doc(serviceId).get();
+    if (!doc.exists) {
+      return createResponse(false, { reason: "Service not found" });
+    }
+
+    const data = doc.data();
+    return createResponse(true, {
+      isRefundFlagged: data.isRefundFlagged || false,
+      refundDetails: data.refundDetails || null,
+      masterStatus: data.master_status || null,
+    });
   } catch (error) {
-    return {
-      service_booking_id,
-      success: false,
-      reason: error.message || "Transaction failed",
-    };
+    logger.error("get_refund_status_failed", error, { serviceId });
+    return createResponse(false, { reason: error.message });
   }
 }

@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { requirePermission } from "@/lib/requirePermission";
 export async function POST(req) {
   try {
-        // Permission check placeholder
+    // Permission check placeholder
     const permissionCheck = await requirePermission(
       req,
       "bookings.create_new_link"

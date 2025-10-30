@@ -642,11 +642,11 @@
   font-size: 14px;
 }
 
-.summary-card .summary-row.discount {
+.summary-card .summary-row .discount {
   color: #059669;
 }
 
-.summary-card .summary-row.total {
+.summary-card .summary-row .total {
   font-weight: 600;
   font-size: 16px;
   color: #0f172a;
@@ -927,7 +927,7 @@
   cursor: not-allowed;
 }
 
-.error-message {  
+.error-message {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -1405,4 +1405,10 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
+}
+
+.summary-row {
+  span {
+    color: rgb(80, 79, 79) !important;
+  }
 }

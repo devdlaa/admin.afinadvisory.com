@@ -17,7 +17,7 @@ import {
   resetCommissionsState,
 } from "@/store/slices/commissionsSlice";
 
-import { exportCommissionsToExcel } from "@/utils/utils";
+
 import {
   Search,
   Filter,
@@ -596,7 +596,7 @@ const CommissionsManagement = () => {
                     <td>{getStatusBadge(commission.status)}</td>
                     <td>
                       <span className="amount">
-                        {formatCurrency(commission.amount)}
+                        {formatCurrency(commission.calculatedCommission)}
                       </span>
                     </td>
                     <td>

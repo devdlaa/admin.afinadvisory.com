@@ -199,7 +199,6 @@ const GenericActionBar = ({
 
   const handleNextPage = () => {
     if (canGoNext && !loading) {
-      console.log("needsMoreData",needsMoreData);
       dispatch(goToNextPage());
 
       // Only fetch more data if we're in regular pagination mode and need more data

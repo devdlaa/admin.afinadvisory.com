@@ -1,0 +1,15 @@
+.loading-state {
+  background-color: rgb(247, 247, 247);
+  display: flex;
+  min-height: 400px;
+  flex-direction: column;
+  gap: 10px;
+  justify-content: center;
+  padding: 20px;
+  align-items: center;
+
+  p {
+    color: #6b7280;
+    font-size: 14px;
+  }
+}

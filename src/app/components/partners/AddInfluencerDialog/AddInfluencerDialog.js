@@ -37,14 +37,14 @@ import {
   selectAddInfluencerErrorMessage,
 } from "@/store/slices/influencersSlice";
 
-const AddInfluencerDialog = ({ isOpen, onClose }) => {
+const AddInfluencerDialog = ({ isOpen, onClose, prefilledData, onSuccess }) => {
   const dispatch = useDispatch();
 
   // Get Redux state
   const { isAddingNewInfluencer, addInfluencerError, newInfluencerData } =
     useSelector(selectAddInfluencerStates);
   const errorMessage = useSelector(selectAddInfluencerErrorMessage);
-  console.log("errorMessage", errorMessage);
+  
   const [activeTab, setActiveTab] = useState("primary");
   const [formData, setFormData] = useState({
     name: "",
@@ -59,7 +59,6 @@ const AddInfluencerDialog = ({ isOpen, onClose }) => {
     profileImageUrl: "",
     tags: [],
     bio: "",
-
     address: { lane: "", city: "", state: "", pincode: "", country: "" },
     bankDetails: {
       accountHolderName: "",
@@ -72,6 +71,58 @@ const AddInfluencerDialog = ({ isOpen, onClose }) => {
   });
   const [errors, setErrors] = useState({});
   const [newTag, setNewTag] = useState("");
+
+  // Populate form with prefilled data when dialog opens
+  useEffect(() => {
+    if (isOpen && prefilledData) {
+      const attrs = prefilledData.attributes || {};
+      
+      // Parse social links
+      let socialLinks = [];
+      try {
+        socialLinks = JSON.parse(attrs.SOCIAL_LINKS || "[]");
+      } catch (e) {
+        socialLinks = [];
+      }
+
+      // Map Brevo data to form structure
+      const mappedData = {
+        name: `${attrs.FIRSTNAME || ""} ${attrs.LASTNAME || ""}`.trim(),
+        email: prefilledData.email || "",
+        username: "", // Will be auto-generated
+        phone: attrs.SMS?.replace(/^91/, "") || "", // Remove country code if present
+        adminNotes: attrs.BIO || "",
+        status: "active",
+        socialLinks: socialLinks.map(link => ({
+          platform: link.platform || "instagram",
+          url: link.url || ""
+        })),
+        defaultCommissionRate: 5,
+        preferredPayoutMethod: attrs.PREFERRED_CONTACT_METHOD === "bank" ? "bank_transfer" : 
+                               attrs.PREFERRED_CONTACT_METHOD === "upi" ? "upi" : "",
+        profileImageUrl: "",
+        tags: [],
+        bio: attrs.BIO || "",
+        address: {
+          lane: attrs.ADDRESS_LANE || "",
+          city: attrs.CITY || "",
+          state: attrs.STATE || "",
+          pincode: attrs.PINCODE || "",
+          country: attrs.COUNTRY || "",
+        },
+        bankDetails: {
+          accountHolderName: "",
+          accountNumber: "",
+          ifscCode: "",
+          bankName: "",
+          upiId: "",
+        },
+        additionalInfo: [],
+      };
+
+      setFormData(mappedData);
+    }
+  }, [isOpen, prefilledData]);
 
   const payoutMethods = [
     { value: "bank_transfer", label: "Bank Transfer" },
@@ -98,7 +149,7 @@ const AddInfluencerDialog = ({ isOpen, onClose }) => {
     setFormData({
       name: "",
       email: "",
-      username: "", // This will auto-populate when email/phone are entered
+      username: "",
       phone: "",
       adminNotes: "",
       status: "active",
@@ -108,7 +159,6 @@ const AddInfluencerDialog = ({ isOpen, onClose }) => {
       profileImageUrl: "",
       tags: [],
       bio: "",
-
       address: { lane: "", city: "", state: "", pincode: "", country: "" },
       bankDetails: {
         accountHolderName: "",
@@ -214,7 +264,6 @@ const AddInfluencerDialog = ({ isOpen, onClose }) => {
     // Clean the data before sending
     const cleanedData = {
       ...formData,
-      // Remove empty arrays and strings
       tags: formData.tags.length > 0 ? formData.tags : undefined,
       socialLinks:
         formData.socialLinks.length > 0
@@ -231,7 +280,6 @@ const AddInfluencerDialog = ({ isOpen, onClose }) => {
       profileImageUrl: formData.profileImageUrl.trim() || undefined,
       bio: formData.bio.trim() || undefined,
       preferredPayoutMethod: formData.preferredPayoutMethod || undefined,
-
       address:
         formData.address.lane.trim() ||
         formData.address.city.trim() ||
@@ -246,7 +294,6 @@ const AddInfluencerDialog = ({ isOpen, onClose }) => {
               country: formData.address.country.trim() || undefined,
             }
           : undefined,
-
       bankDetails: Object.values(formData.bankDetails).some((value) =>
         value.trim()
       )
@@ -264,9 +311,9 @@ const AddInfluencerDialog = ({ isOpen, onClose }) => {
 
     try {
       await dispatch(addNewInfluencer(cleanedData)).unwrap();
-      // Success - the dialog will be closed by the success effect below
-      if (!addInfluencerError) {
-        onClose();
+      // Success - call onSuccess callback if provided
+      if (!addInfluencerError && onSuccess && prefilledData) {
+        onSuccess(prefilledData.email);
       }
     } catch (error) {
       // Error is handled by Redux and displayed in the UI
@@ -291,7 +338,7 @@ const AddInfluencerDialog = ({ isOpen, onClose }) => {
         resetForm();
         dispatch(clearAddInfluencerData());
         onClose?.();
-      }, 1000); // Small delay to show success state
+      }, 1000);
     }
   }, [
     newInfluencerData,
@@ -333,7 +380,6 @@ const AddInfluencerDialog = ({ isOpen, onClose }) => {
         username: generatedUsername,
       }));
 
-      // Clear username error if it exists
       if (errors.username) {
         setErrors((prev) => {
           const newErrors = { ...prev };
@@ -342,7 +388,6 @@ const AddInfluencerDialog = ({ isOpen, onClose }) => {
         });
       }
     } else if (!formData.email.trim() && !formData.phone.trim()) {
-      // Clear username if both email and phone are empty
       setFormData((prev) => ({
         ...prev,
         username: "",
@@ -358,7 +403,8 @@ const AddInfluencerDialog = ({ isOpen, onClose }) => {
         <div className="dialog-container" onClick={(e) => e.stopPropagation()}>
           <div className="dialog-header">
             <div className="dialog-title">
-              <h2>Add New Influencer</h2>
+              <h2>{prefilledData ? "Create Influencer from Waitlist" : "Add New Influencer"}</h2>
+            
             </div>
             {!isAddingNewInfluencer && (
               <button className="close-btn" onClick={handleClose}>
@@ -493,7 +539,7 @@ const AddInfluencerDialog = ({ isOpen, onClose }) => {
                                   ? "Auto-generated from email & phone"
                                   : "Enter email and phone to generate"
                               }
-                              disabled={true} // Always disabled/read-only
+                              disabled={true}
                               readOnly
                             />
                             <AtSign className="input-icon" size={18} />
@@ -712,9 +758,7 @@ const AddInfluencerDialog = ({ isOpen, onClose }) => {
                   {/* Bank Details */}
                   {formData.preferredPayoutMethod === "bank_transfer" && (
                     <div className="form-section">
-                      <h3 style={{
-                        marginBottom : "0px"
-                      }}>
+                      <h3 style={{ marginBottom: "0px" }}>
                         <CreditCard size={18} />
                         Bank Details
                       </h3>
@@ -975,71 +1019,6 @@ const AddInfluencerDialog = ({ isOpen, onClose }) => {
                       </div>
                     </div>
                   </div>
-
-                  {/* Additional Information */}
-                  {/* <div className="form-section">
-                    <div className="section-header">
-                      <h3>
-                        <Plus size={18} />
-                        Additional Information
-                      </h3>
-                      <button
-                        type="button"
-                        className="add-btn"
-                        onClick={addAdditionalInfo}
-                        disabled={
-                          isAddingNewInfluencer ||
-                          formData.additionalInfo.length >= 20
-                        }
-                      >
-                        <Plus size={16} />
-                        Add Field
-                      </button>
-                    </div>
-
-                    {formData.additionalInfo.map((info, index) => (
-                      <div key={index} className="additional-info-item">
-                        <input
-                          type="text"
-                          className="form-input key-input"
-                          value={info.key}
-                          onChange={(e) =>
-                            handleAdditionalInfoChange(
-                              index,
-                              "key",
-                              e.target.value
-                            )
-                          }
-                          placeholder="Field name"
-                          maxLength={50}
-                          disabled={isAddingNewInfluencer}
-                        />
-                        <input
-                          type="text"
-                          className="form-input value-input"
-                          value={info.value}
-                          onChange={(e) =>
-                            handleAdditionalInfoChange(
-                              index,
-                              "value",
-                              e.target.value
-                            )
-                          }
-                          placeholder="Field value"
-                          maxLength={500}
-                          disabled={isAddingNewInfluencer}
-                        />
-                        <button
-                          type="button"
-                          className="remove-btn"
-                          onClick={() => removeAdditionalInfo(index)}
-                          disabled={isAddingNewInfluencer}
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    ))}
-                  </div> */}
                 </div>
               </div>
             )}
