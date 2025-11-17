@@ -28,6 +28,7 @@ export const authOptions = {
             .limit(1)
             .get();
 
+            console.log("userQuery",userQuery);
           if (userQuery.empty) throw new Error("Invalid login details");
 
           const doc = userQuery.docs[0];

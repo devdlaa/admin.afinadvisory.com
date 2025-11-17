@@ -140,7 +140,7 @@ function getRequiredPermissionsForRoute(pathname) {
         return permissions;
       }
     } else if (pathname.startsWith(route + "/")) {
-      // Handle sub-routes (e.g., /dashboard/customers/123 should match /dashboard/customers)
+   
       return permissions;
     }
   }

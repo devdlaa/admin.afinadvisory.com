@@ -20,39 +20,40 @@ function formatDate(timestamp) {
 
 export async function GET(req) {
   try {
-       // Permission check placeholder
-        const permissionCheck = await requirePermission(req, "payments.access");
-        if (permissionCheck) return permissionCheck;
+    // Permission check placeholder
+    const permissionCheck = await requirePermission(req, "payments.access");
+    if (permissionCheck) return permissionCheck;
 
     // 1️⃣ Last processed settlement (most recent completed)
-    const processedSettlements = await razorpay.settlements.all({
+    const processedSettlements = razorpay.settlements.all({
       status: "processed",
       count: 1,
       skip: 0,
     });
+
     const lastProcessedAmount =
-      processedSettlements.items.length > 0
-        ? processedSettlements.items[0].amount
+      processedSettlements?.items?.length > 0
+        ? processedSettlements?.items[0]?.amount
         : 0;
 
     // 2️⃣ Total due in bank (all in_process settlements)
-    const pendingSettlements = await razorpay.settlements.all({
+    const pendingSettlements = razorpay.settlements.all({
       status: "in_process",
       count: 100,
     });
-    const totalDueInBank = pendingSettlements.items.reduce(
+    const totalDueInBank = pendingSettlements?.items?.reduce(
       (sum, s) => sum + s.amount,
       0
     );
 
     // 3️⃣ Upcoming settlement (next created settlement)
-    const createdSettlements = await razorpay.settlements.all({
+    const createdSettlements = razorpay.settlements.all({
       status: "created",
       count: 100,
     });
 
-    const upcomingSettlement = createdSettlements.items
-      .filter(s => s.amount > 0)
+    const upcomingSettlement = createdSettlements?.items
+      ?.filter((s) => s.amount > 0)
       .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))[0];
 
     const upcomingSettlementAmount = upcomingSettlement
@@ -78,7 +79,7 @@ export async function GET(req) {
       { status: 200 }
     );
   } catch (err) {
-    console.error("Error fetching balance summary:", err);
+    console.error(err);
     return NextResponse.json(
       {
         success: false,
