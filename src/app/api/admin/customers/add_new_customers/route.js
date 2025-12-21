@@ -1,5 +1,5 @@
 import admin from "@/lib/firebase-admin";
-import { z, ZodError } from "zod";
+import { z } from "zod";
 import {
   createSuccessResponse,
   createErrorResponse,
@@ -10,153 +10,9 @@ import { auth as clientAuth } from "@/utils/auth";
 const db = admin.firestore();
 const auth = admin.auth();
 
-const INDIAN_STATES = [
-  "Andhra Pradesh",
-  "Arunachal Pradesh",
-  "Assam",
-  "Bihar",
-  "Chhattisgarh",
-  "Goa",
-  "Gujarat",
-  "Haryana",
-  "Himachal Pradesh",
-  "Jharkhand",
-  "Karnataka",
-  "Kerala",
-  "Madhya Pradesh",
-  "Maharashtra",
-  "Manipur",
-  "Meghalaya",
-  "Mizoram",
-  "Nagaland",
-  "Odisha",
-  "Punjab",
-  "Rajasthan",
-  "Sikkim",
-  "Tamil Nadu",
-  "Telangana",
-  "Tripura",
-  "Uttar Pradesh",
-  "Uttarakhand",
-  "West Bengal",
-  "Andaman and Nicobar Islands",
-  "Chandigarh",
-  "Daman and Diu",
-  "Delhi",
-  "Jammu and Kashmir",
-  "Ladakh",
-  "Lakshadweep",
-  "Puducherry",
-];
+import { syncClientToAlgolia } from "@/lib/algoliaSync";
 
-// FIXED: Zod schema for address state validation
-const AddUserSchema = z
-  .object({
-    // Mandatory fields
-    firstName: z
-      .string()
-      .min(1, "First name is required")
-      .max(50, "First name cannot exceed 50 characters")
-      .regex(
-        /^[a-zA-Z\s'-]+$/,
-        "First name can only contain letters, spaces, hyphens, and apostrophes"
-      )
-      .trim(),
-    lastName: z
-      .string()
-      .min(1, "Last name is required")
-      .max(50, "Last name cannot exceed 50 characters")
-      .regex(
-        /^[a-zA-Z\s'-]+$/,
-        "Last name can only contain letters, spaces, hyphens, and apostrophes"
-      )
-      .trim(),
-    email: z
-      .string()
-      .email("Invalid email address")
-      .max(254, "Email address too long")
-      .toLowerCase()
-      .trim(),
-    phoneNumber: z
-      .string()
-      .min(10, "Phone number must be at least 10 digits")
-      .max(15, "Phone number cannot exceed 15 digits")
-      .regex(/^[0-9]+$/, "Phone number can only contain digits")
-      .trim(),
-
-    // Optional fields
-    gender: z
-      .enum(["male", "female", "other", "prefer-not-to-say", ""])
-      .optional()
-      .default(""),
-    dob: z
-      .string()
-      .refine((date) => {
-        if (!date) return true;
-        const parsedDate = new Date(date);
-        const now = new Date();
-        const minAge = new Date(
-          now.getFullYear() - 120,
-          now.getMonth(),
-          now.getDate()
-        );
-        return parsedDate <= now && parsedDate >= minAge;
-      }, "Invalid date of birth")
-      .optional()
-      .default(""),
-    alternatePhone: z
-      .string()
-      .refine((phone) => {
-        if (!phone) return true;
-        return /^[0-9]{10,15}$/.test(phone);
-      }, "Alternate phone number must be 10-15 digits")
-      .optional()
-      .default(""),
-
-    // FIXED: Address schema - state is properly validated
-    address: z.object({
-      street: z
-        .string()
-        .max(200, "Street address too long")
-        .optional()
-        .default(""),
-      pincode: z
-        .string()
-        .refine((pin) => {
-          if (!pin) return true;
-          return /^[0-9]{4,10}$/.test(pin);
-        }, "Pincode must be 4-10 digits")
-        .optional()
-        .default(""),
-      state: z
-        .string()
-        .optional()
-        .refine((val) => {
-          if (!val) return true;
-          return INDIAN_STATES.includes(val);
-        }, "Invalid state. Please select a valid Indian state.")
-        .default(""),
-      city: z.string().max(50, "City name too long").optional().default(""),
-      country: z
-        .string()
-        .max(50, "Country name too long")
-        .optional()
-        .default(""),
-    }),
-  })
-  .refine(
-    (data) => {
-      if (data.alternatePhone && data.alternatePhone === data.phoneNumber) {
-        return false;
-      }
-      return true;
-    },
-    {
-      message:
-        "Alternate phone number must be different from primary phone number",
-      path: ["alternatePhone"],
-    }
-  );
+import { AddUserWithMandatoryEmailSchema as AddUserSchema } from "@/app/schemas/ClientSchema";
 
 // FIXED: Enhanced duplicate checking with proper error handling
 async function checkDuplicates(email, phoneNumber, alternatePhone) {
@@ -173,7 +29,6 @@ async function checkDuplicates(email, phoneNumber, alternatePhone) {
       duplicates.email = !emailQuery.empty;
     }
 
-    // FIXED: Check primary phone duplicate with proper null check
     if (phoneNumber) {
       const phoneQuery = await db
         .collection("users")
@@ -435,7 +290,6 @@ export async function POST(req) {
       createdBy: session?.user?.id || session?.user?.uid || "admin",
     };
 
-    // FIXED: Save to Firestore with proper error handling
     try {
       await db.collection("users").doc(userRecord.uid).set(userDoc);
     } catch (firestoreError) {
@@ -469,9 +323,11 @@ export async function POST(req) {
       resetLink = null;
     }
 
+    // sync to angolia
+    syncClientToAlgolia(userDoc);
+
     const executionTimeMs = Date.now() - startTime;
 
-    // FIXED: Remove sensitive information from response properly
     const { createdBy, ...safeUserData } = userDoc;
     const responseData = {
       id: userRecord.uid,

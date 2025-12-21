@@ -27,6 +27,7 @@ const EMAIL_TEMPLATES = {
     subject: "Reset Your Afin Influncer Dashboard Password - Afin Advisory",
     template: "pwd_reset_link_influncer",
   },
+  
 };
 
 const loadTemplate = async (templateName, variables) => {

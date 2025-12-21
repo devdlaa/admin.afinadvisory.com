@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useSelector, useDispatch } from "react-redux";
 import {
   X,
   Loader2,
@@ -15,25 +14,26 @@ import {
   Clock,
   Wifi,
 } from "lucide-react";
-import "./AssignmentDialog.scss";
+import style from "./AssignmentDialog.module.scss";
 import { CircularProgress } from "@mui/material";
-import { updateAssignmentManagement } from "@/store/slices/servicesSlice";
-
-import { selectUser, selectPermissions } from "@/store/slices/sessionSlice";
-
-const AssignmentDialog = ({ isOpen, onClose, isBookingSub = false }) => {
-  const dispatch = useDispatch();
-  const user = useSelector(selectUser);
-
-  const permissions = useSelector(selectPermissions);
-  const isAbleToAssign = !permissions?.includes("bookings.assign_member");
 
 
-
-  // Redux state
-  const selectedBookings = isBookingSub
-    ? isOpen
-    : useSelector((state) => state.services.selectedBookings);
+const AssignmentDialog = ({ 
+  isOpen, 
+  onClose, 
+  config = {},
+  hasPermission = false 
+}) => {
+  // Destructure config with defaults
+  const {
+    selectedItem,
+    apiEndpoint,
+    buildPayload,
+    onSuccessDispatch,
+    title = "Assign Team Members",
+    subtitle = "Drag and drop users to manage team assignments",
+    validateItem = (item) => item?.id ? null : "No item selected"
+  } = config;
 
   // Local state
   const [availableUsers, setAvailableUsers] = useState([]);
@@ -158,10 +158,10 @@ const AssignmentDialog = ({ isOpen, onClose, isBookingSub = false }) => {
 
   // Fetch data when dialog opens
   useEffect(() => {
-    if (isOpen && selectedBookings) {
+    if (isOpen && selectedItem) {
       fetchData();
     }
-  }, [isOpen, selectedBookings?.id]);
+  }, [isOpen, selectedItem?.id]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -190,13 +190,13 @@ const AssignmentDialog = ({ isOpen, onClose, isBookingSub = false }) => {
 
       setAvailableUsers(users);
 
-      // Get current assignment from selectedBookings
-      const currentAssignment = selectedBookings?.assignmentManagement || {
+      // Get current assignment from selectedItem
+      const currentAssignment = selectedItem?.assignmentManagement || {
         assignToAll: false,
         members: [],
       };
 
-      // Set initial state from current booking
+      // Set initial state from current item
       const currentAssignedUsers = currentAssignment.members || [];
       const currentAssignToAll = currentAssignment.assignToAll || false;
 
@@ -348,8 +348,16 @@ const AssignmentDialog = ({ isOpen, onClose, isBookingSub = false }) => {
   };
 
   const handleAssignUsers = async () => {
-    if (!selectedBookings?.id) {
-      setError("No booking selected");
+    // Validate selected item
+    const validationError = validateItem(selectedItem);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
+    // Check if required config is provided
+    if (!apiEndpoint || !buildPayload) {
+      setError("Missing required configuration");
       return;
     }
 
@@ -357,30 +365,29 @@ const AssignmentDialog = ({ isOpen, onClose, isBookingSub = false }) => {
     setError(null);
 
     try {
-      const payload = {
-        serviceId: selectedBookings.id,
-        assignmentManagement: {
-          assignToAll: isAssignToAll,
-          members: isAssignToAll
-            ? []
-            : assignedUsers.map((u) => ({
-                userCode: u.userCode,
-                name: u.name,
-                email: u.email,
-                sendEmail: false,
-              })),
-        },
+      // Build assignment data
+      const assignmentData = {
+        assignToAll: isAssignToAll,
+        members: isAssignToAll
+          ? []
+          : assignedUsers.map((u) => ({
+              userCode: u.userCode,
+              name: u.name,
+              email: u.email,
+              sendEmail: false,
+            })),
       };
-      const response = await fetch(
-        "/api/admin/services/assigmnets/assign_members",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(payload),
-        }
-      );
+
+      // Build payload using config function
+      const payload = buildPayload(selectedItem.id, assignmentData);
+
+      const response = await fetch(apiEndpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -392,13 +399,10 @@ const AssignmentDialog = ({ isOpen, onClose, isBookingSub = false }) => {
         throw new Error(data.error || "Failed to update assignment");
       }
 
-      // Dispatch action to update Redux store
-      dispatch(
-        updateAssignmentManagement({
-          serviceId: selectedBookings.id,
-          assignmentManagement: data.assignmentManagement,
-        })
-      );
+      // Dispatch Redux action if provided
+      if (onSuccessDispatch) {
+        onSuccessDispatch(data);
+      }
 
       // Update original state after successful save
       setOriginalAssignedUsers([...assignedUsers]);
@@ -426,55 +430,55 @@ const AssignmentDialog = ({ isOpen, onClose, isBookingSub = false }) => {
   const isDisabled = isAssignToAll;
 
   return (
-    <div className="assignment-dialog-backdrop">
-      <div className={`assignment-dialog ${isAbleToAssign && "no_able"}`}>
-        <div className="dialog-header">
-          <div className="header-content">
-            <h2>Assign Team Members</h2>
-           {
-            !isAbleToAssign &&  <p className="subtitle">
-              {isAssignToAll
-                ? "All users are assigned to this task"
-                : "Drag and drop users to manage team assignments"}
-            </p>
-           }
+    <div className={style.assignmentDialogBackdrop}>
+      <div className={`${style.assignmentDialog} ${!hasPermission ? style.noAble : ''}`}>
+        <div className={style.dialogHeader}>
+          <div className={style.headerContent}>
+            <h2>{title}</h2>
+            {hasPermission && (
+              <p className={style.subtitle}>
+                {isAssignToAll
+                  ? "All users are assigned to this task"
+                  : subtitle}
+              </p>
+            )}
           </div>
-          <button className="close-btn" onClick={handleClose}>
+          <button className={style.closeBtn} onClick={handleClose}>
             <X size={20} />
           </button>
         </div>
 
-        <div className="dialog-body">
+        <div className={style.dialogBody}>
           {error && (
-            <div className="error-banner">
+            <div className={style.errorBanner}>
               <AlertCircle size={16} />
               <span>{error}</span>
             </div>
           )}
 
           {loading ? (
-            <div className="loading-state">
-              <Loader2 className="loader" />
+            <div className={style.loadingState}>
+              <Loader2 className={style.loader} />
               <p>Loading team members...</p>
             </div>
           ) : (
-            <div className="assignment-container">
+            <div className={style.assignmentContainer}>
               {/* Available Users - Left Side */}
-              <div className={`user-section available-section`}>
-                <div className="section-header">
-                  <div className="header_inner">
-                    <div className="section-title">
+              <div className={`${style.userSection} ${style.availableSection}`}>
+                <div className={style.sectionHeader}>
+                  <div className={style.headerInner}>
+                    <div className={style.sectionTitle}>
                       <Users size={16} />
                       <h3>Available Members</h3>
-                      <span className="count">
+                      <span className={style.count}>
                         ({filteredAvailableUsers.length})
                       </span>
                     </div>
 
-                    <div className="assign-all-toggle">
+                    <div className={style.assignAllToggle}>
                       <button
                         disabled={saving}
-                        className={`toggle-btn ${!saving && "active"}`}
+                        className={`${style.toggleBtn} ${!saving ? style.active : ''}`}
                         onClick={handleAssignToAllToggle}
                       >
                         {isAssignToAll ? (
@@ -488,48 +492,48 @@ const AssignmentDialog = ({ isOpen, onClose, isBookingSub = false }) => {
                   </div>
 
                   {/* Cache Status and Refresh */}
-                  <div className="cache-controls">
-                    <div className="cache-status">
+                  <div className={style.cacheControls}>
+                    <div className={style.cacheStatus}>
                       {isFromCache ? (
-                        <div className="cache-info">
+                        <div className={style.cacheInfo}>
                           <Clock size={12} />
                           <span>Cached {formatCacheAge(cacheTimestamp)}</span>
                         </div>
                       ) : (
-                        <div className="cache-info fresh">
+                        <div className={`${style.cacheInfo} ${style.fresh}`}>
                           <Wifi size={12} />
                           <span>Fresh data</span>
                         </div>
                       )}
                     </div>
                     <button
-                      className="refresh-btn"
+                      className={style.refreshBtn}
                       onClick={refreshUsers}
                       disabled={refreshingUsers || saving}
                       title="Refresh user list"
                     >
                       <RefreshCw
                         size={14}
-                        className={refreshingUsers ? "spinning" : ""}
+                        className={refreshingUsers ? style.spinning : ''}
                       />
                     </button>
                   </div>
 
-                  <div className="search-wrapper">
-                    <Search size={14} className="search-icon" />
+                  <div className={style.searchWrapper}>
+                    <Search size={14} className={style.searchIcon} />
                     <input
                       type="text"
                       placeholder="Search available..."
                       value={availableSearch}
                       onChange={(e) => setAvailableSearch(e.target.value)}
-                      className="search-input"
+                      className={style.searchInput}
                       disabled={isDisabled}
                     />
                   </div>
                 </div>
 
                 <div
-                  className={`users-list ${isDisabled ? "disabled" : ""}`}
+                  className={`${style.usersList} ${isDisabled ? style.disabled : ''}`}
                   onDragOver={handleDragOver}
                   onDrop={(e) => handleDrop(e, "available")}
                 >
@@ -539,26 +543,26 @@ const AssignmentDialog = ({ isOpen, onClose, isBookingSub = false }) => {
                         cursor: "grab",
                       }}
                       key={user.userCode}
-                      className={`user-card available ${
-                        isDisabled ? "disabled" : ""
+                      className={`${style.userCard} ${style.available} ${
+                        isDisabled ? style.disabled : ''
                       }`}
                       draggable={!isDisabled}
                       onDragStart={(e) => handleDragStart(e, user, "available")}
                     >
-                      <div className="user-avatar">
+                      <div className={style.userAvatar}>
                         {user.avatar ||
                           user.name?.substring(0, 2).toUpperCase() ||
                           "?"}
                       </div>
-                      <div className="user-info">
-                        <div className="user-name">{user.name}</div>
-                        <div className="user-email">{user.email}</div>
+                      <div className={style.userInfo}>
+                        <div className={style.userName}>{user.name}</div>
+                        <div className={style.userEmail}>{user.email}</div>
                       </div>
                     </div>
                   ))}
 
                   {filteredAvailableUsers.length === 0 && (
-                    <div className="empty-state">
+                    <div className={style.emptyState}>
                       <Users size={24} />
                       <p>No available members found</p>
                     </div>
@@ -567,19 +571,19 @@ const AssignmentDialog = ({ isOpen, onClose, isBookingSub = false }) => {
               </div>
 
               {/* Vertical Divider */}
-              <div className="divider"></div>
+              <div className={style.divider}></div>
 
               {/* Assigned Users - Right Side */}
               <div
-                className={`user-section assigned-section ${
-                  isDisabled ? "disabled" : ""
+                className={`${style.userSection} ${style.assignedSection} ${
+                  isDisabled ? style.disabled : ''
                 }`}
               >
-                <div className="section-header">
-                  <div className="section-title">
+                <div className={style.sectionHeader}>
+                  <div className={style.sectionTitle}>
                     <UserPlus size={16} />
                     <h3>Assigned Members</h3>
-                    <span className="count">
+                    <span className={style.count}>
                       {isAssignToAll
                         ? "(All)"
                         : `(${assignedUsers.length}/${MAX_ASSIGNED_USERS})`}
@@ -587,14 +591,14 @@ const AssignmentDialog = ({ isOpen, onClose, isBookingSub = false }) => {
                   </div>
 
                   {!isAssignToAll && (
-                    <div className="search-wrapper">
-                      <Search size={14} className="search-icon" />
+                    <div className={style.searchWrapper}>
+                      <Search size={14} className={style.searchIcon} />
                       <input
                         type="text"
                         placeholder="Search assigned..."
                         value={assignedSearch}
                         onChange={(e) => setAssignedSearch(e.target.value)}
-                        className="search-input"
+                        className={style.searchInput}
                         disabled={isDisabled}
                       />
                     </div>
@@ -602,21 +606,21 @@ const AssignmentDialog = ({ isOpen, onClose, isBookingSub = false }) => {
                 </div>
 
                 {isAtLimit && !isAssignToAll && (
-                  <div className="limit-warning">
+                  <div className={style.limitWarning}>
                     <AlertCircle size={14} />
                     <span>Maximum 10 members can be assigned</span>
                   </div>
                 )}
 
                 {isAssignToAll ? (
-                  <div className="all-users-state">
+                  <div className={style.allUsersState}>
                     <Users size={48} />
                     <h4>All Users Assigned</h4>
                     <p>Every team member is assigned to this task</p>
                   </div>
                 ) : (
                   <div
-                    className={`users-list`}
+                    className={style.usersList}
                     onDragOver={handleDragOver}
                     onDrop={(e) => handleDrop(e, "assigned")}
                   >
@@ -626,28 +630,28 @@ const AssignmentDialog = ({ isOpen, onClose, isBookingSub = false }) => {
                           cursor: "grab",
                         }}
                         key={user.userCode}
-                        className={`user-card assigned ${
-                          isDisabled ? "disabled" : ""
+                        className={`${style.userCard} ${style.assigned} ${
+                          isDisabled ? style.disabled : ''
                         }`}
                         draggable={!isDisabled}
                         onDragStart={(e) =>
                           handleDragStart(e, user, "assigned")
                         }
                       >
-                        <div className="user-avatar assigned">
+                        <div className={`${style.userAvatar} ${style.assigned}`}>
                           {user.avatar ||
                             user.name?.substring(0, 2).toUpperCase() ||
                             "?"}
                         </div>
-                        <div className="user-info">
-                          <div className="user-name">{user.name}</div>
-                          <div className="user-email">{user.email}</div>
+                        <div className={style.userInfo}>
+                          <div className={style.userName}>{user.name}</div>
+                          <div className={style.userEmail}>{user.email}</div>
                         </div>
                       </div>
                     ))}
 
                     {filteredAssignedUsers.length === 0 && (
-                      <div className="empty-state">
+                      <div className={style.emptyState}>
                         <UserPlus size={24} />
                         <p>No members assigned yet</p>
                         <span>Drag users from the left to assign them</span>
@@ -660,8 +664,8 @@ const AssignmentDialog = ({ isOpen, onClose, isBookingSub = false }) => {
           )}
         </div>
 
-        <div className="dialog-footer">
-          <div className="footer-info">
+        <div className={style.dialogFooter}>
+          <div className={style.footerInfo}>
             {hasChanges && (
               <span>
                 {isAssignToAll
@@ -670,12 +674,12 @@ const AssignmentDialog = ({ isOpen, onClose, isBookingSub = false }) => {
               </span>
             )}
           </div>
-          <div className="footer-actions">
-            <button className="cancel-btn" onClick={handleClose}>
+          <div className={style.footerActions}>
+            <button className={style.cancelBtn} onClick={handleClose}>
               Cancel
             </button>
             <button
-              className="submit-btn"
+              className={style.submitBtn}
               onClick={handleAssignUsers}
               disabled={!hasChanges || saving}
             >

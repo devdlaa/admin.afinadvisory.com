@@ -1,0 +1,142 @@
+.actionButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 50px;
+  font-family: "Poppins", sans-serif;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  outline: none;
+  white-space: nowrap;
+  width: fit-content;
+
+  &:active:not(.disabled) {
+    transform: translateY(0);
+  }
+}
+
+.icon {
+  flex-shrink: 0;
+}
+
+.spinner {
+  flex-shrink: 0;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.text {
+  font-size: 14px;
+  line-height: 1;
+}
+
+// Sizes
+.small {
+  padding: 6px 14px;
+  gap: 6px;
+
+  .text {
+    font-size: 12px;
+  }
+
+  .icon,
+  .spinner {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+.medium {
+  padding: 8px 18px;
+  gap: 8px;
+
+  .text {
+    font-size: 12px;
+  }
+
+  .icon,
+  .spinner {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+.large {
+  padding: 12px 24px;
+  gap: 10px;
+
+  .text {
+    font-size: 15px;
+  }
+
+  .icon,
+  .spinner {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+// Variants
+.primary {
+  background: #3b82f6;
+  color: #ffffff;
+
+  &:hover:not(.disabled) {
+    background: #2563eb;
+  }
+}
+
+.secondary {
+  background: #e0e7ff;
+  color: #4f46e5;
+
+  &:hover:not(.disabled) {
+    background: #c7d2fe;
+  }
+}
+
+.success {
+  background: #dcfce7;
+  color: #16a34a;
+
+  &:hover:not(.disabled) {
+    background: #bbf7d0;
+  }
+}
+
+.danger {
+  background: #fee2e2;
+  color: #dc2626;
+
+  &:hover:not(.disabled) {
+    background: #fecaca;
+  }
+}
+
+.light {
+  background: #f3f4f6;
+  color: #4b5563;
+  outline: 1px solid rgba(0, 0, 0, 0.065);
+
+  &:hover:not(.disabled) {
+    background: #e5e7eb;
+  }
+}
+
+// Disabled state
+.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  pointer-events: none;
+}

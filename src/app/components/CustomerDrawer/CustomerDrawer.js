@@ -86,6 +86,7 @@ const SelectedCustomersDrawer = () => {
   };
 
   const handleSave = async () => {
+
     if (!selectedCustomers?.uid) return;
 
     // Prepare update data - only send changed fields
@@ -135,6 +136,8 @@ const SelectedCustomersDrawer = () => {
     if (isProfileComplete !== selectedCustomers.isProfileCompleted) {
       updateData.isProfileCompleted = isProfileComplete;
     }
+
+ 
 
     if (Object.keys(updateData).length > 0) {
       try {

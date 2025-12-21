@@ -8,7 +8,10 @@ import {
   resetState,
   setQuickViewData,
   clearQuickViewData,
+  updateAssignmentManagement,
 } from "@/store/slices/servicesSlice";
+
+import { selectPermissions } from "@/store/slices/sessionSlice";
 
 import "./service_bookings.scss";
 import GenericActionBar from "@/app/components/GenericActionBar/GenericActionBar";
@@ -27,7 +30,8 @@ export default function Home() {
   const dispatch = useDispatch();
   const [showFilterDialog, setShowFilterDialog] = useState(false);
   const [filterMode, setFilterMode] = useState("filter");
-  const [isAssignmentBoxActive, setAssignmentBox] = useState(null);
+  const [isAssignmentDialogOpen, setIsAssignmentDialogOpen] = useState(false);
+  const [selectedBookingForAssignment, setSelectedBookingForAssignment] = useState(null);
 
   // Ref to prevent multiple fetches
   const fetchInProgressRef = useRef(false);
@@ -37,6 +41,10 @@ export default function Home() {
   const { loading, bookings, initialized } = useSelector(
     (state) => state.services
   );
+  const permissions = useSelector(selectPermissions);
+
+  // Check if user has permission to assign members
+  const hasAssignPermission = permissions?.includes("bookings.assign_member");
 
   // Memoized handlers to prevent unnecessary re-renders
   const handleFilterClick = useCallback(() => {
@@ -68,6 +76,44 @@ export default function Home() {
     alert(`View full details for: ${booking.service_booking_id}`);
   }, []);
 
+  // Handle opening assignment dialog
+  const handleAssignTeam = useCallback((booking) => {
+    setSelectedBookingForAssignment(booking);
+    setIsAssignmentDialogOpen(true);
+  }, []);
+
+  // Handle closing assignment dialog
+  const handleCloseAssignmentDialog = useCallback(() => {
+    setIsAssignmentDialogOpen(false);
+    setSelectedBookingForAssignment(null);
+  }, []);
+
+  // Assignment dialog configuration
+  const assignmentConfig = {
+    selectedItem: selectedBookingForAssignment,
+    apiEndpoint: "/api/admin/services/assigmnets/assign_members",
+    
+    buildPayload: (itemId, assignmentData) => ({
+      serviceId: itemId,
+      assignmentManagement: assignmentData
+    }),
+    
+    onSuccessDispatch: (data) => {
+      dispatch(updateAssignmentManagement({
+        serviceId: selectedBookingForAssignment.id,
+        assignmentManagement: data.assignmentManagement
+      }));
+    },
+    
+    title: "Assign Team Members to Service",
+    subtitle: "Drag and drop users to manage service assignments",
+    
+    validateItem: (item) => {
+      if (!item?.id) return "No service booking selected";
+      return null;
+    }
+  };
+
   // Initial data fetch - only if not initialized
   useEffect(() => {
     const shouldFetch = !initialized && !loading && !fetchInProgressRef.current;
@@ -98,11 +144,14 @@ export default function Home() {
         gap: "28px",
       }}
     >
+      {/* Assignment Dialog */}
       <AssignmentDialog
-        isOpen={isAssignmentBoxActive}
-        isBookingSub={true}
-        onClose={() => setAssignmentBox(null)}
+        isOpen={isAssignmentDialogOpen}
+        onClose={handleCloseAssignmentDialog}
+        config={assignmentConfig}
+        hasPermission={hasAssignPermission}
       />
+
       {/* Action Bar */}
       <GenericActionBar
         {...servicesActionBarConfig}
@@ -113,9 +162,7 @@ export default function Home() {
       {/* Bookings Table */}
       <ServiceBookingsCards
         onQuickView={handleQuickView}
-        onAssignTeam={(e) => {
-          setAssignmentBox(e);
-        }}
+        onAssignTeam={handleAssignTeam}
       />
 
       {/* Filter Dialog */}

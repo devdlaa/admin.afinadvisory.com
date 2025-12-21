@@ -20,7 +20,7 @@ const CONFIG = {
     "/dashboard/payment-links": ["bookings.create_new_link"],
     "/dashboard/service-pricing": ["service_pricing.access"],
     "/dashboard/marketing/partners": ["influencers.access"],
-    "/dashboard/marketing/coupons": ["coupons.access"],
+    "/dashboard/marketing/coupons": ["coupons.access"],         
     "/dashboard/marketing/comissions": ["commissions.access"],
     "/dashboard/manage-team": ["users.access"],
     // API routes permissions
@@ -41,7 +41,13 @@ const CONFIG = {
     "/api/admin/onboarding/verify-onboarding",
     "/api/verify-turnstile",
     "/api/admin/users/unlock-dashboard",
+
     // TODO : REMOVE THESE AFTER TESTING===============================================================
+    "/api/admin/task-managment/create",
+    "/api/admin/task-managment/customer/create",
+    "/api/admin/task-managment/customer/search",
+    "/api/admin/users/profile-image/upload",
+    "/api/admin/users/profile-image/delete",
   ],
 
   // Default redirect paths
@@ -140,7 +146,6 @@ function getRequiredPermissionsForRoute(pathname) {
         return permissions;
       }
     } else if (pathname.startsWith(route + "/")) {
-   
       return permissions;
     }
   }

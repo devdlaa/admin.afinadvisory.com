@@ -58,6 +58,7 @@ const Sidebar = () => {
       "/dashboard/settings": "settings",
       "/dashboard/manage-team": "users",
       "/dashboard/user-profile": "my-profile",
+      "/dashboard/task-managment": "task-managment",
     };
 
     // Sort paths by length (longest first) to ensure more specific paths are matched first
@@ -186,6 +187,14 @@ const Sidebar = () => {
       path: "/dashboard/service-pricing",
       badge: null,
       permission: "service_pricing.access",
+    },
+      {
+      id: "task-managment",
+      label: "Task Manager",
+      icon: Tag,
+      path: "/dashboard/task-managment",
+      badge: null,
+      permission: "",
     },
   ];
 

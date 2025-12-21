@@ -6,7 +6,7 @@ import {
   createErrorResponse,
 } from "@/utils/resposeHandlers";
 const db = admin.firestore();
-
+import { updateClientInAlgolia } from "@/lib/algoliaSync";
 // Define which fields can be updated by admin (whitelist approach)
 const UPDATEABLE_FIELDS = [
   "firstName",
@@ -215,7 +215,7 @@ export async function POST(req) {
     const parsed = UpdateCustomerSchema.safeParse(requestBody);
 
     if (!parsed.success) {
-      const validationErrors = parsed.error.errors.map((err) => ({
+      const validationErrors = parsed.error.issues.map((err) => ({
         field: err.path.join("."),
         message: err.message,
         code: err.code,
@@ -271,6 +271,16 @@ export async function POST(req) {
 
     // Sanitize update data
     const sanitizedUpdateData = sanitizeUpdateData(updateData, userId);
+
+    const angoliaUpdateFeilds = Object.fromEntries(
+      Object.entries({
+        firstName: sanitizedUpdateData.firstName,
+        lastName: sanitizedUpdateData.lastName,
+        phoneNumber: sanitizedUpdateData.phoneNumber,
+      }).filter(([_, v]) => v !== undefined && v !== null)
+    );
+
+    updateClientInAlgolia(userId, angoliaUpdateFeilds);
 
     // Handle nested address updates (merge with existing)
     if (sanitizedUpdateData.address && currentData.address) {

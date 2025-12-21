@@ -16,7 +16,7 @@ const PaginationSchema = z.object({
 
 export async function POST(req) {
   const startTime = Date.now();
-  
+
   try {
     const session = await auth();
     if (!session || !session.user?.email) {
@@ -27,11 +27,13 @@ export async function POST(req) {
     }
 
     const userEmail = session.user.email.toLowerCase();
+    const userCode = session.user.userCode;
+
     const userRole = session.user.role;
 
     const body = await req.json();
     const parse = PaginationSchema.safeParse(body);
-    
+
     if (!parse.success) {
       return NextResponse.json(
         { success: false, error: parse.error.flatten() },
@@ -48,7 +50,7 @@ export async function POST(req) {
           .collection("service_bookings")
           .doc(cursorDocId)
           .get();
-        
+
         if (lastDocSnap.exists) {
           return query.startAfter(lastDocSnap);
         }
@@ -56,17 +58,17 @@ export async function POST(req) {
       return query;
     };
 
+    const collectionRef = db.collection("service_bookings");
+
     // If assignment feature is disabled OR user is SuperAdmin → return *all* bookings
     if (!FEATURE_ENABLED || userRole === "superAdmin") {
-      let query = db
-        .collection("service_bookings")
-        .orderBy("created_at", "desc")
-        .limit(limit + 1);
+      let query = collectionRef.orderBy("created_at", "desc").limit(limit + 1);
 
       query = await applyCursor(query, cursor);
-      
+
       const snap = await query.get();
       const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      
       const hasMore = docs.length > limit;
       const bookings = hasMore ? docs.slice(0, limit) : docs;
 
@@ -85,38 +87,26 @@ export async function POST(req) {
     }
 
     // ── Assignment feature ENABLED for regular users ──────────────
-    // Strategy: Run separate queries and merge results while maintaining order
-    
-    // We need to fetch more docs from each query to ensure we have enough after merging
-    const queryLimit = limit + 10; // Buffer for merging
+    const queryLimit = limit; 
+    const assignedKeysLookup = ["all"];
+    if (userCode) {
+      assignedKeysLookup.push(`userCode:${userCode}`);
+    }
 
-    // Build base queries
-    let queryAll = db
-      .collection("service_bookings")
-      .where("assignmentManagement.assignToAll", "==", true)
+    let query = collectionRef
+      .where("assignedKeys", "array-contains-any", assignedKeysLookup)
       .orderBy("created_at", "desc")
-      .limit(queryLimit);
-
-    let queryUser = db
-      .collection("service_bookings")
-      .where("assignedKeys", "array-contains", `email:${userEmail}`)
-      .orderBy("created_at", "desc")
-      .limit(queryLimit);
+      .limit(limit + 1);
 
     // Apply cursor to both queries
-    queryAll = await applyCursor(queryAll, cursor);
-    queryUser = await applyCursor(queryUser, cursor);
+    query = await applyCursor(query, cursor);
 
-    // Execute queries in parallel
-    const [snapAll, snapUser] = await Promise.all([
-      queryAll.get(),
-      queryUser.get()
-    ]);
+    const snap = await query.get();
 
     // Merge and deduplicate
-    const allDocs = [...snapAll.docs, ...snapUser.docs];
+    const allDocs = [...snap.docs];
     const docMap = new Map();
-    
+
     for (const doc of allDocs) {
       if (!docMap.has(doc.id)) {
         docMap.set(doc.id, { id: doc.id, ...doc.data() });
@@ -139,17 +129,14 @@ export async function POST(req) {
       success: true,
       resultsCount: bookings.length,
       bookings,
-      hasMore: hasMore || snapAll.docs.length >= queryLimit || snapUser.docs.length >= queryLimit,
+      hasMore: hasMore || snap.docs.length >= queryLimit,
       cursor: bookings.length ? bookings[bookings.length - 1].id : null,
       meta: {
         executionTimeMs: Date.now() - startTime,
         requestedLimit: limit,
-        queryAllResults: snapAll.docs.length,
-        queryUserResults: snapUser.docs.length,
         mergedResults: mergedDocs.length,
       },
     });
-
   } catch (err) {
     console.error("Get services API error:", err);
     return NextResponse.json(

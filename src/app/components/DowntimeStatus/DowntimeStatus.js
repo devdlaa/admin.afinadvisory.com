@@ -25,9 +25,7 @@ const DowntimeStatus = () => {
   const loading = useSelector(selectIsLoadingDowntime);
   const error = useSelector(selectDowntimeError);
 
-  // useEffect(() => {
-  //   loadDowntimeStatus();
-  // }, [dispatch]);
+
 
   const loadDowntimeStatus = async () => {
     try {

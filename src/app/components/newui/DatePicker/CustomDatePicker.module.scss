@@ -1,0 +1,569 @@
+// ============================================================================
+// CustomDatePicker.module.scss - RESPONSIVE MULTI-MODE PICKER
+// ============================================================================
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.datePickerContainer {
+  position: relative;
+  width: 100%;
+
+}
+
+.dateInput {
+  width: 100%;
+  padding: 12px 16px;
+  background: #ffffff;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  outline: none;
+
+  &:hover {
+    border-color: #d1d5db;
+    background: #f3f4f6;
+  }
+
+  &:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+
+  &.disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  // Responsive input
+  @media (max-width: 640px) {
+    padding: 10px 14px;
+    gap: 10px;
+    border-radius: 12px;
+  }
+
+  @media (max-width: 480px) {
+    padding: 8px 12px;
+    gap: 8px;
+  }
+}
+
+.dateIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9ca3af;
+  flex-shrink: 0;
+
+  svg {
+    width: 20px;
+    height: 20px;
+
+    @media (max-width: 640px) {
+      width: 18px;
+      height: 18px;
+    }
+  }
+}
+
+.dateContent {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  flex: 1;
+  min-width: 0; // Allow text truncation
+}
+
+.dateLabel {
+  font-size: 12px;
+  font-weight: 500;
+  color: #9ca3af;
+  text-transform: capitalize;
+
+  @media (max-width: 640px) {
+    font-size: 11px;
+  }
+}
+
+.dateValue {
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+
+  &.placeholder {
+    color: #9ca3af;
+  }
+
+  @media (max-width: 640px) {
+    font-size: 13px;
+  }
+
+  @media (max-width: 480px) {
+    font-size: 12px;
+  }
+}
+
+.calendarPopup {
+  position: fixed;
+  background: #ffffff;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
+  z-index: 10000;
+  padding: 20px;
+  min-width: 320px;
+  max-width: 500px;
+  animation: slideDown 0.2s ease;
+
+  // Responsive popup
+  @media (max-width: 640px) {
+    min-width: 280px;
+    padding: 16px;
+    border-radius: 12px;
+    left: 50% !important;
+    transform: translateX(-50%);
+    max-width: calc(100vw - 32px);
+  }
+
+  @media (max-width: 480px) {
+    min-width: 260px;
+    padding: 12px;
+    max-width: calc(100vw - 24px);
+  }
+}
+
+.calendarHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+
+  @media (max-width: 640px) {
+    margin-bottom: 16px;
+  }
+
+  @media (max-width: 480px) {
+    margin-bottom: 12px;
+  }
+}
+
+.calendarMonth {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f2937;
+
+  @media (max-width: 640px) {
+    font-size: 14px;
+  }
+
+  @media (max-width: 480px) {
+    font-size: 13px;
+  }
+}
+
+.calendarNav {
+  display: flex;
+  gap: 8px;
+
+  @media (max-width: 480px) {
+    gap: 6px;
+  }
+}
+
+.navButton {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  color: #6b7280;
+
+  &:hover {
+    background: #f3f4f6;
+    border-color: #d1d5db;
+    color: #374151;
+  }
+
+  svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  @media (max-width: 640px) {
+    width: 28px;
+    height: 28px;
+
+    svg {
+      width: 16px;
+      height: 16px;
+    }
+  }
+
+  @media (max-width: 480px) {
+    width: 24px;
+    height: 24px;
+
+    svg {
+      width: 14px;
+      height: 14px;
+    }
+  }
+}
+
+.calendarWeekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  margin-bottom: 8px;
+
+  @media (max-width: 480px) {
+    gap: 2px;
+    margin-bottom: 6px;
+  }
+}
+
+.weekday {
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: #9ca3af;
+  padding: 8px 0;
+
+  @media (max-width: 640px) {
+    font-size: 11px;
+    padding: 6px 0;
+  }
+
+  @media (max-width: 480px) {
+    font-size: 10px;
+    padding: 4px 0;
+  }
+}
+
+.calendarDays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+
+  @media (max-width: 480px) {
+    gap: 2px;
+  }
+}
+
+.calendarDay {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+  background: transparent;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  min-height: 36px;
+
+  &:not(.empty):hover {
+    background: #f3f4f6;
+  }
+
+  &.empty {
+    cursor: default;
+  }
+
+  &.today {
+    color: #3b82f6;
+    font-weight: 600;
+  }
+
+  &.selected {
+    background: #3b82f6;
+    color: #ffffff;
+
+    &:hover {
+      background: #2563eb;
+    }
+  }
+
+  @media (max-width: 640px) {
+    font-size: 13px;
+    min-height: 32px;
+    border-radius: 8px;
+  }
+
+  @media (max-width: 480px) {
+    font-size: 12px;
+    min-height: 28px;
+    border-radius: 6px;
+  }
+}
+
+// ============================================================================
+// MONTH PICKER STYLES
+// ============================================================================
+
+.monthGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+
+  @media (max-width: 640px) {
+    gap: 10px;
+  }
+
+  @media (max-width: 480px) {
+    gap: 8px;
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.monthItem {
+  padding: 16px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+
+  &:hover {
+    background: #f3f4f6;
+    border-color: #d1d5db;
+  }
+
+  &.selected {
+    background: #3b82f6;
+    color: #ffffff;
+    border-color: #3b82f6;
+  }
+
+  @media (max-width: 640px) {
+    padding: 12px;
+    font-size: 13px;
+    border-radius: 10px;
+  }
+
+  @media (max-width: 480px) {
+    padding: 10px 8px;
+    font-size: 12px;
+    border-radius: 8px;
+  }
+}
+
+// ============================================================================
+// YEAR PICKER STYLES
+// ============================================================================
+
+.yearGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+
+  @media (max-width: 640px) {
+    gap: 10px;
+  }
+
+  @media (max-width: 480px) {
+    gap: 8px;
+  }
+}
+
+.yearItem {
+  padding: 16px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+
+  &:hover {
+    background: #f3f4f6;
+    border-color: #d1d5db;
+  }
+
+  &.selected {
+    background: #3b82f6;
+    color: #ffffff;
+    border-color: #3b82f6;
+  }
+
+  @media (max-width: 640px) {
+    padding: 12px;
+    font-size: 13px;
+    border-radius: 10px;
+  }
+
+  @media (max-width: 480px) {
+    padding: 10px 8px;
+    font-size: 12px;
+    border-radius: 8px;
+  }
+}
+
+// ============================================================================
+// TIME PICKER STYLES
+// ============================================================================
+
+.timePicker {
+  display: flex;
+  gap: 12px;
+
+  @media (max-width: 640px) {
+    gap: 10px;
+  }
+
+  @media (max-width: 480px) {
+    gap: 8px;
+  }
+}
+
+.timeSection {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  @media (max-width: 480px) {
+    gap: 6px;
+  }
+}
+
+.timeLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+  text-align: center;
+
+  @media (max-width: 640px) {
+    font-size: 11px;
+  }
+
+  @media (max-width: 480px) {
+    font-size: 10px;
+  }
+}
+
+.timeScroll {
+  height: 200px;
+  overflow-y: auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 4px;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: #f3f4f6;
+    border-radius: 3px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 3px;
+
+    &:hover {
+      background: #9ca3af;
+    }
+  }
+
+  @media (max-width: 640px) {
+    height: 180px;
+    border-radius: 6px;
+
+    &::-webkit-scrollbar {
+      width: 4px;
+    }
+  }
+
+  @media (max-width: 480px) {
+    height: 160px;
+    padding: 2px;
+  }
+}
+
+.timeItem {
+  width: 100%;
+  padding: 8px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+  text-align: center;
+
+  &:hover {
+    background: #f3f4f6;
+  }
+
+  &.selected {
+    background: #3b82f6;
+    color: #ffffff;
+  }
+
+  @media (max-width: 640px) {
+    padding: 6px;
+    font-size: 13px;
+  }
+
+  @media (max-width: 480px) {
+    padding: 5px;
+    font-size: 12px;
+    border-radius: 4px;
+  }
+}
+
+.required {
+  color: #e53935;
+  margin-left: 4px;
+}
+
+.labelText {
+  margin-bottom: 18px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #686868;
+
+  @media (max-width: 640px) {
+    margin-bottom: 14px;
+    font-size: 14px;
+  }
+
+  @media (max-width: 480px) {
+    margin-bottom: 12px;
+    font-size: 13px;
+  }
+}

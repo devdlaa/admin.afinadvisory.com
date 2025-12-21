@@ -1,230 +1,138 @@
-import React, { useState } from "react";
-import { CircularProgress } from "@mui/material";
-import { CreditCard, CheckCircle2, Copy } from "lucide-react";
-import { useSelector, useDispatch } from "react-redux";
+import React from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { Wallet, DollarSign, AlertCircle } from "lucide-react";
+import CustomInput from "../TinyLib/CustomInput";
+import {
+  setPaymentType,
+  setPartialAmount,
+} from "@/store/slices/createPaymentLink";
 
-import { createPaymentLink } from "@/store/slices/createPaymentLink";
-// Helper to build coupon object
-function buildCouponObject({ couponData, customDiscount, calculatedAmounts }) {
-  // If admin applied a coupon code
-  if (couponData?.code) {
-    return {
-      code: couponData.code,
-      discount: calculatedAmounts?.discountAmount || 0, // pre-GST discount
-      isValid: true, // we assume valid if code exists
-      coupon_id: couponData.coupon_id || "",
-      influencerId: couponData.influencerId || "", // empty if no influencer
-      discountDetails: couponData.discount || {},
-    };
-  }
-
-  // If admin applied a custom discount
-  if (customDiscount && customDiscount?.value) {
-    return {
-      code: "CUSTOM",
-      discount: calculatedAmounts?.discountAmount || 0, // pre-GST discount
-      isValid: true,
-      coupon_id: "", // no coupon ID
-      influencerId: "", // no influencer
-      discountDetails: {
-        kind: customDiscount.type || "flat",
-        amount: customDiscount.value || 0,
-      },
-    };
-  }
-
-  // Default: no coupon applied
-  return {
-    code: "",
-    discount: 0,
-    isValid: false,
-    coupon_id: "",
-    influencerId: "",
-    discountDetails: {},
-  };
-}
-
-const CreatePaymentLinkStepFive = ({ onClose }) => {
+const CreatePaymentLinkStepFive = () => {
   const dispatch = useDispatch();
-  const [copiedText, setCopiedText] = useState("");
-
   const {
-    selectedCustomer,
-    selectedService,
-    selectedPlan,
-    selectedState,
-    quantity,
-    couponData,
-    customDiscount,
+    paymentType,
+    partialAmount,
     calculatedAmounts,
-    selectedServicePricing,
-    paymentLink,
-    paymentLinkCreated,
-    loading,
-    error,
   } = useSelector((state) => state.paymentLink);
 
-  const paymentDetailsObject = {
-    user: {
-      firstName: selectedCustomer?.firstName,
-      lastName: selectedCustomer?.lastName,
-      mobile: selectedCustomer?.phoneNumber,
-      email: selectedCustomer?.email,
-      accountStatus: selectedCustomer?.accountStatus,
-      address_street: selectedCustomer?.address?.street,
-      address_state: selectedCustomer?.address?.state,
-      uid: selectedCustomer?.uid,
-    },
-    service: {
-      name: selectedService?.name,
-      origin_service_path: selectedService?.slug,
-      serviceId: selectedService?.serviceId,
-      service_db_id: "",
-    },
-    plan: {
-      planId: selectedPlan?.planId,
-      name: selectedPlan?.name,
-      features: [], // array if needed
-      originalPrice: selectedPlan?.originalPrice,
-      offerPrice: selectedPlan?.price,
-    },
-    state: {
-      selectedState: selectedState,
-      stateWisePrice: selectedServicePricing?.isMultiState
-        ? calculatedAmounts?.basePrice
-        : 0,
-      isMultiState: selectedServicePricing?.isMultiState,
-    },
-    quantity: {
-      count: quantity,
-      isMultiPurchase: selectedServicePricing?.isMultiPurchase,
-      maxMultiPurchaseCount: selectedServicePricing?.isMultiPurchase
-        ? selectedServicePricing?.maxMultiPurchaseCount
-        : 1,
-    },
-    coupon: buildCouponObject({
-      couponData,
-      customDiscount,
-      calculatedAmounts,
-    }),
-    payment: {
-      adjustedPlanPrice: calculatedAmounts?.basePrice,
-      quantityAdjustedPrice: calculatedAmounts?.totalPrice,
-      discountAmount: calculatedAmounts?.discountAmount,
-      discountedPrice: calculatedAmounts?.finalAmount,
-      gstRate: 18,
-      gstAmount: calculatedAmounts?.gstAmount,
-      finalPayment: calculatedAmounts?.totalWithGst,
-    },
-    source: "admin_payment_link",
-    IS_KIT: false,
-    isPaymentRetry: false,
-    isPaymentRenew: false,
-    isPaymentRetryNew: false,
-    checkoutSession: {
-      currentOrderId: "",
-      updatedOrderID: null,
-      isHardRetryAllowed: false,
-    },
-  };
+  const totalAmount = calculatedAmounts?.totalWithGst || 0;
 
-  const handleCreatePaymentLink = async () => {
-    dispatch(createPaymentLink(paymentDetailsObject));
-  };
-
-  const copyToClipboard = async (text) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopiedText(text);
-      // Clear the copied status after 2 seconds
-      setTimeout(() => {
-        setCopiedText("");
-      }, 2000);
-    } catch (err) {
-      console.error("Failed to copy:", err);
+  const handlePaymentTypeSelect = (type) => {
+    dispatch(setPaymentType(type));
+    if (type === "full") {
+      dispatch(setPartialAmount(totalAmount));
     }
   };
 
+  const handlePartialAmountChange = (value) => {
+    const amount = parseFloat(value) || 0;
+    dispatch(setPartialAmount(amount));
+  };
+
+  const isPartialAmountValid =
+    partialAmount > 0 && partialAmount <= totalAmount;
+  const isPartialAmountSameAsTotal = partialAmount === totalAmount;
+
   return (
     <div className="step-content">
-      <div className="payment-methods">
-        <div className="payment-method selected">
-          <div className="method-info">
-            <CreditCard size={20} />
-            <div>
-              <h4>Razorpay Payment Link</h4>
-              <p>Secure online payment via Razorpay</p>
-            </div>
-          </div>
-        </div>
-      </div>
+      <div className="payment-type-section">
+        <h3>Select Payment Type</h3>
+        <p className="section-description">
+          Choose how the customer will pay for this service
+        </p>
 
-      {/* Show create button only if payment link is not created */}
-      {!paymentLinkCreated && (
-        <button
-          className="create-link-btn"
-          onClick={handleCreatePaymentLink}
-          disabled={loading}
-        >
-          {loading ?  <CircularProgress color="white" size={18} /> : <CreditCard size={18} />}
-
-          {loading ? (
-            <>
-             
-              Creating Payment Link...
-            </>
-          ) : (
-            "Create Payment Link"
-          )}
-        </button>
-      )}
-
-      {/* Show payment link result if created successfully */}
-      {paymentLinkCreated && paymentLink && (
-        <div className="payment-link-result">
-          <div className="success-message">
-            <CheckCircle2 size={20} />
-            <span>Payment link created successfully!</span>
-          </div>
-
-          <div className="link-container">
-            <label>Payment Link</label>
-            <div className="link-input">
-              <input type="text" value={paymentLink?.short_url} readOnly />
-              <button
-                type="button"
-                onClick={() => copyToClipboard(paymentLink?.short_url)}
-                className="copy-btn"
-                style={{
-                  backgroundColor:
-                    copiedText === paymentLink?.short_url ? "#10b981" : "",
-                  color: copiedText === paymentLink?.short_url ? "white" : "",
-                }}
-              >
-                <Copy size={16} />
-                {copiedText === paymentLink?.short_url ? "Copied!" : "Copy"}
-              </button>
-            </div>
-          </div>
-
-          {/* Additional info message */}
+        <div className="payment-type-grid">
           <div
-            className="info-message"
-            style={{
-              marginTop: "16px",
-              padding: "12px",
-              backgroundColor: "#f0f9ff",
-              border: "1px solid #0ea5e9",
-              borderRadius: "6px",
-            }}
+            className={`payment-type-card ${
+              paymentType === "full" ? "selected" : ""
+            }`}
+            onClick={() => handlePaymentTypeSelect("full")}
           >
-            <p style={{ margin: 0, fontSize: "14px", color: "#0369a1" }}>
-              Payment link has been created. You can copy the link and share it
-              with the customer, or close this dialog.
-            </p>
+            <div className="card-icon">
+              <Wallet size={24} />
+            </div>
+            <div className="card-content">
+              <h4>Full Payment</h4>
+              <p>Customer pays the entire amount</p>
+              <div className="amount-display">
+                ₹{totalAmount.toLocaleString()}
+              </div>
+            </div>
+          </div>
+
+          <div
+            className={`payment-type-card ${
+              paymentType === "partial" ? "selected" : ""
+            }`}
+            onClick={() => handlePaymentTypeSelect("partial")}
+          >
+            <div className="card-icon">
+              <DollarSign size={24} />
+            </div>
+            <div className="card-content">
+              <h4>Partial Payment</h4>
+              <p>Customer pays a portion now</p>
+              <div className="amount-display">Custom Amount</div>
+            </div>
           </div>
         </div>
-      )}
+
+        {paymentType === "partial" && (
+          <div className="partial-payment-config">
+            <div className="amount-info-card">
+              <div className="info-row">
+                <span>Total Amount:</span>
+                <span className="amount">₹{totalAmount.toLocaleString()}</span>
+              </div>
+            </div>
+
+            <CustomInput
+              label="Partial Payment Amount"
+              type="number"
+              placeholder="Enter amount"
+              value={partialAmount || ""}
+              onChange={handlePartialAmountChange}
+              required
+              icon={<DollarSign size={16} />}
+              helperText={`Maximum amount: ₹${totalAmount.toLocaleString()}`}
+            />
+
+            {partialAmount > totalAmount && (
+              <div className="validation-message error">
+                <AlertCircle size={16} />
+                <span>
+                  Partial amount cannot exceed total amount of ₹
+                  {totalAmount.toLocaleString()}
+                </span>
+              </div>
+            )}
+
+            {isPartialAmountSameAsTotal && partialAmount > 0 && (
+              <div className="validation-message warning">
+                <AlertCircle size={16} />
+                <span>
+                  Amount is same as total. Please select "Full Payment" instead.
+                </span>
+              </div>
+            )}
+
+            {isPartialAmountValid && !isPartialAmountSameAsTotal && (
+              <div className="amount-breakdown">
+                <div className="breakdown-row">
+                  <span>Paying Now:</span>
+                  <span className="highlight">
+                    ₹{partialAmount.toLocaleString()}
+                  </span>
+                </div>
+                <div className="breakdown-row">
+                  <span>Remaining:</span>
+                  <span>₹{(totalAmount - partialAmount).toLocaleString()}</span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

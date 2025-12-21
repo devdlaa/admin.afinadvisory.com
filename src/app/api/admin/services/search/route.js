@@ -35,6 +35,7 @@ export async function POST(req) {
     }
 
     const userEmail = session.user.email.toLowerCase();
+    const userCode = session.user.userCode;
     const userRole = session.user.role;
 
     const body = await req.json();
@@ -57,33 +58,20 @@ export async function POST(req) {
       );
     }
 
-    let docs = [];
+    let query = db
+      .collection("service_bookings")
+      .where(matchedField, "==", value);
 
-    // Kill switch / SuperAdmin: return all matching bookings
-    if (!FEATURE_ENABLED || userRole === "superAdmin") {
-      const snapshot = await db
-        .collection("service_bookings")
-        .where(matchedField, "==", value)
-        .get();
-      
-      docs = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
-    } else {
-      // Assignment feature enabled for normal users
-      // Get all matching documents first, then filter in memory
-      const allMatchingDocs = await db
-        .collection("service_bookings")
-        .where(matchedField, "==", value)
-        .get();
+   
+    if (FEATURE_ENABLED && userRole !== "superAdmin") {
+      const visibilityKeys = ["all"];
+      if (userCode) visibilityKeys.push(`userCode:${userCode}`);
 
-      // Filter based on access control
-      docs = allMatchingDocs.docs
-        .map((d) => ({ id: d.id, ...d.data() }))
-        .filter((doc) => {
-          const assignToAll = doc.assignmentManagement?.assignToAll === true;
-          const assignedToUser = doc.assignedKeys?.includes(`email:${userEmail}`);
-          return assignToAll || assignedToUser;
-        });
+      query = query.where("assignedKeys", "array-contains-any", visibilityKeys);
     }
+
+    const snap = await query.get();
+    const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 
     // Sort by created_at DESC (handle Firestore timestamps properly)
     docs.sort((a, b) => {
@@ -100,12 +88,11 @@ export async function POST(req) {
       queryValue: value,
       resultsCount: docs.length,
       bookings: docs,
-      meta: { 
+      meta: {
         executionTimeMs,
-        accessControlEnabled: FEATURE_ENABLED && userRole !== "superAdmin"
+        accessControlEnabled: FEATURE_ENABLED && userRole !== "superAdmin",
       },
     });
-    
   } catch (err) {
     console.error("Search API error:", err);
     return NextResponse.json(

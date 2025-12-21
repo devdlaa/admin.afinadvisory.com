@@ -155,7 +155,7 @@ const CustomersTable = ({ actionButtons = [] }) => {
                       <div className="contact-info">
                         <div className="contact-item">
                           <Mail size={14} />
-                          <span>{customer.email}</span>
+                          <span>{customer.email || "Not Provided"}</span>
                         </div>
                         {customer.phoneNumber && (
                           <div className="contact-item">
@@ -186,16 +186,26 @@ const CustomersTable = ({ actionButtons = [] }) => {
                     </div>
 
                     <div className="table-cell login_mentods">
-                      {customer.loginMethod?.map((loginm, index) => (
+                      {customer?.loginMethod?.length ? (
+                        customer.loginMethod?.map((loginm, index) => (
+                          <div className="login-method">
+                            <span
+                              key={index}
+                              className={`method-badge ${loginm}`}
+                            >
+                              {loginm}
+                            </span>
+                          </div>
+                        ))
+                      ) : (
                         <div className="login-method">
                           <span
-                            key={index}
-                            className={`method-badge ${loginm}`}
+                            className={`method-badge`}
                           >
-                            {loginm}
+                            No User Login
                           </span>
                         </div>
-                      ))}
+                      )}
                     </div>
                     {/* Actions */}
                     <div className="table-cell actions-cell">

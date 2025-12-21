@@ -1,0 +1,89 @@
+.segmentedTabs {
+  display: inline-flex;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 4px;
+  gap: 4px;
+  overflow: hidden;
+  width: 100%;
+
+  // RESPONSIVE: stack vertically on small screens if you want
+  @media (max-width: 480px) {
+    flex-wrap: wrap;
+  }
+}
+
+.tabItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  background: transparent;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.22s ease;
+  border-radius: 10px;
+  white-space: nowrap;
+  flex: 1;
+  justify-content: center;
+  
+    border: none;
+  &:hover {
+    background: #f5f5f5;
+  }
+}
+
+.icon {
+  display: flex;
+  color: grey;
+  
+
+}
+
+/* ----------------------------
+   SIZE VARIANTS  
+   sm / md / lg 
+---------------------------- */
+.sm {
+  .tabItem {
+    padding: 6px 10px;
+    font-size: 0.85rem;
+  }
+  .icon {
+    width: 17px;
+  }
+}
+
+.md {
+  .tabItem {
+    padding: 10px 16px;
+    font-size: 0.9rem;
+  }
+  .icon {
+    width: 20px;
+  }
+}
+
+.lg {
+  .tabItem {
+    padding: 14px 20px;
+    font-size: 1rem;
+  }
+  .icon {
+    width: 24px;
+  }
+}
+
+/* ----------------------------
+   ACTIVE STATE  
+---------------------------- */
+.active {
+  background: #eef2ff;
+  color: #233394;
+  
+  box-shadow: 0 0 0 1px rgba(59, 87, 255, 0.15);
+  .icon{
+      color: #233394;
+  }
+}

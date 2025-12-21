@@ -1,0 +1,241 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  font-family: "Poppins", sans-serif;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  outline: none;
+  white-space: nowrap;
+
+  &:active:not(.disabled) {
+    transform: scale(0.98);
+  }
+}
+
+.icon,
+.spinner {
+  flex-shrink: 0;
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+// Sizes
+.small {
+  padding: 8px 16px;
+  gap: 6px;
+  font-size: 13px;
+  border-radius: 10px;
+
+  .icon,
+  .spinner {
+    width: 16px;
+    height: 16px;
+  }
+
+  &.iconOnly {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+  }
+}
+
+.medium {
+  padding: 10px 20px;
+  gap: 8px;
+  font-size: 14px;
+  border-radius: 10px;
+
+  .icon,
+  .spinner {
+    width: 18px;
+    height: 18px;
+  }
+
+  &.iconOnly {
+    width: 42px;
+    height: 42px;
+    padding: 0;
+  }
+}
+
+.large {
+  padding: 12px 24px;
+  gap: 10px;
+  font-size: 15px;
+  border-radius: 12px;
+
+  .icon,
+  .spinner {
+    width: 20px;
+    height: 20px;
+  }
+
+  &.iconOnly {
+    width: 48px;
+    height: 48px;
+    padding: 0;
+  }
+}
+
+// Border Radius Variants
+.rounded-full {
+  border-radius: 50px;
+}
+
+.rounded-square {
+  border-radius: 4px;
+}
+
+// Variants
+.primary {
+  background: #3b82f6;
+  color: #fff;
+
+  &:hover:not(.disabled) {
+    background: #2563eb;
+  }
+}
+
+.secondary {
+  background: #f3f4f6;
+  color: #374151;
+  border: 1.5px solid #e5e7eb;
+
+  &:hover:not(.disabled) {
+    background: #e5e7eb;
+    border-color: #d1d5db;
+  }
+}
+
+.success {
+  background: #22c55e;
+  color: #fff;
+
+  &:hover:not(.disabled) {
+    background: #16a34a;
+  }
+}
+
+.danger {
+  background: #ef4444;
+  color: #fff;
+
+  &:hover:not(.disabled) {
+    background: #dc2626;
+  }
+}
+
+.warning {
+  background: #f59e0b;
+  color: #fff;
+
+  &:hover:not(.disabled) {
+    background: #d97706;
+  }
+}
+
+.outline {
+  background: #fff;
+  color: #374151;
+  border: 1.5px solid #e5e7eb;
+
+  &:hover:not(.disabled) {
+    background: #f9fafb;
+    border-color: #d1d5db;
+  }
+}
+
+.ghost {
+  background: transparent;
+  color: #6b7280;
+
+  &:hover:not(.disabled) {
+    background: #f3f4f6;
+    color: #374151;
+  }
+}
+
+.link {
+  background: transparent;
+  color: #3b82f6;
+  padding: 0;
+
+  &:hover:not(.disabled) {
+    text-decoration: underline;
+    color: #2563eb;
+    transform: none;
+  }
+}
+
+// States
+.fullWidth {
+  width: 100%;
+}
+
+.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+// Mobile
+@media (max-width: 640px) {
+  .small {
+    padding: 7px 14px;
+    font-size: 12px;
+
+    .icon,
+    .spinner {
+      width: 14px;
+      height: 14px;
+    }
+
+    &.iconOnly {
+      width: 34px;
+      height: 34px;
+    }
+  }
+
+  .medium {
+    padding: 9px 18px;
+    font-size: 13px;
+
+    .icon,
+    .spinner {
+      width: 16px;
+      height: 16px;
+    }
+
+    &.iconOnly {
+      width: 40px;
+      height: 40px;
+    }
+  }
+
+  .large {
+    padding: 11px 22px;
+    font-size: 14px;
+
+    .icon,
+    .spinner {
+      width: 18px;
+      height: 18px;
+    }
+
+    &.iconOnly {
+      width: 46px;
+      height: 46px;
+    }
+  }
+}

@@ -1,0 +1,609 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+
+
+enum EntityType {
+  INDIVIDUAL
+  PRIVATE_LIMITED_COMPANY
+  PUBLIC_LIMITED_COMPANY
+  ONE_PERSON_COMPANY
+  SECTION_8_COMPANY
+  PRODUCER_COMPANY
+  SOLE_PROPRIETORSHIP
+  PARTNERSHIP_FIRM
+  LIMITED_LIABILITY_PARTNERSHIP
+  TRUST
+  SOCIETY
+  COOPERATIVE_SOCIETY
+  FOREIGN_COMPANY
+  GOVERNMENT_COMPANY
+}
+
+enum EntityStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+
+enum EntityRegistrationStatus {
+  ACTIVE
+  INACTIVE
+  EXPIRED
+}
+
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum BillingStatus {
+  NOT_BILLED
+  PARTIALLY_BILLED
+  BILLED
+}
+
+
+
+enum InvoiceStatus {
+  DRAFT
+  ISSUED
+  PAID
+  CANCELLED
+}
+
+
+enum PaymentStatus {
+  PENDING
+  RECEIVED
+  FAILED
+  REFUNDED
+}
+
+
+
+enum EntityGroupType {
+  FAMILY
+  BUSINESS
+  TRUST
+  PARTNERSHIP
+  ORGANIZATION
+  NON_PROFIT
+  COOPERATIVE
+  ASSOCIATION
+  JOINT_VENTURE
+  GOVERNMENT
+  OTHER
+}
+
+enum EntityGroupRole {
+  OWNER
+  CO_OWNER
+  BENEFICIARY
+  MEMBER
+  MANAGING_MEMBER
+  DIRECTOR
+  EXECUTIVE_DIRECTOR
+  NOMINEE_DIRECTOR
+  PARTNER
+  MANAGING_PARTNER
+  TRUSTEE
+  SETTLOR
+  SHAREHOLDER
+  AUTHORIZED_SIGNATORY
+  REPRESENTATIVE
+  EMPLOYEE
+  ADVISOR
+  OBSERVER
+  OTHER
+}
+
+
+enum FrequencyUnit {
+  DAY
+  MONTH
+  YEAR
+}
+
+
+
+
+model Entity {
+  id              String       @id @default(uuid()) @db.Uuid
+  entity_type     EntityType
+  name            String       @db.Char(120)
+  pan             String       @unique @db.Char(10)
+  tan             String?      @db.Char(10)
+  email           String?
+  primary_phone   String
+  secondary_phone String?
+  address_line1   String       @db.Char(200)
+  address_line2   String?      @db.Char(200)
+  city            String       @db.Char(50)
+  state           String       @db.Char(50)
+  pincode         String?      @db.Char(6)
+  is_retainer     Boolean      @default(false)
+  status          EntityStatus @default(INACTIVE)
+  created_at      DateTime     @default(now())
+  updated_at      DateTime     @updatedAt
+
+  registrations EntityRegistration[]
+  tasks         Task[]
+  group_members EntityGroupMember[]
+  invoices      Invoice[]
+  payments      Payment[]
+
+  @@index([name])
+  @@index([status])
+  @@index([pan])
+  @@index([email])
+  @@index([created_at])
+  @@index([is_retainer, status])
+  @@index([status, is_retainer, created_at])
+}
+
+
+model EntityGroup {
+  id         String          @id @default(uuid()) @db.Uuid
+  name       String
+  group_type EntityGroupType
+  created_at DateTime        @default(now())
+
+  members EntityGroupMember[]
+
+  @@index([group_type])
+  @@index([created_at])
+}
+
+
+
+model EntityGroupMember {
+  id              String          @id @default(uuid()) @db.Uuid
+  entity_group_id String          @db.Uuid
+  entity_id       String          @db.Uuid
+  role            EntityGroupRole
+
+  group  EntityGroup @relation(fields: [entity_group_id], references: [id], onDelete: Cascade)
+  entity Entity      @relation(fields: [entity_id], references: [id], onDelete: Cascade)
+
+  @@unique([entity_group_id, entity_id])
+  @@index([entity_group_id])
+  @@index([entity_id])
+  @@index([role])
+}
+
+
+
+model EntityRegistration {
+  id                   String                       @id @default(uuid()) @db.Uuid
+  entity_id            String                       @db.Uuid
+  registration_type_id String                       @db.Uuid
+  registration_number  String
+  state                String
+  effective_from       DateTime
+  effective_to         DateTime?
+  status               EntityRegistrationStatus     @default(INACTIVE)
+  is_primary           Boolean                      @default(false)
+  created_at           DateTime                     @default(now())
+  updated_at           DateTime                     @updatedAt
+
+  settings         EntityRegistrationSetting[]
+  entity           Entity                      @relation(fields: [entity_id], references: [id], onDelete: Cascade)
+  registrationType RegistrationType            @relation(fields: [registration_type_id], references: [id])
+
+  @@unique([entity_id, registration_type_id, registration_number])
+  @@index([status])
+  @@index([entity_id])
+  @@index([registration_type_id])
+  @@index([is_primary])
+  @@index([effective_from, effective_to])
+  @@index([entity_id, status])
+  @@index([registration_type_id, status])
+  @@index([entity_id, status, effective_to])
+}
+
+
+
+model RegistrationType {
+  id          String   @id @default(uuid()) @db.Uuid
+  code        String   @unique
+  name        String
+  description String?
+  is_active   Boolean  @default(false)
+  created_at  DateTime @default(now())
+
+  registrations    EntityRegistration[]
+  compliance_rules ComplianceRule[]
+
+  @@index([is_active])
+  @@index([code])
+}
+
+model EntityRegistrationSetting {
+  id                     String    @id @default(uuid()) @db.Uuid
+  entity_registration_id String    @db.Uuid
+  compliance_rule_id     String    @db.Uuid
+  is_enabled             Boolean   @default(true)
+  effective_from         DateTime
+  effective_to           DateTime?
+  created_at             DateTime  @default(now())
+
+  entityRegistration EntityRegistration @relation(fields: [entity_registration_id], references: [id], onDelete: Cascade)
+  complianceRule     ComplianceRule     @relation(fields: [compliance_rule_id], references: [id], onDelete: Cascade)
+
+  @@unique([entity_registration_id, compliance_rule_id])
+  @@index([entity_registration_id])
+  @@index([compliance_rule_id])
+  @@index([is_enabled])
+  @@index([effective_from, effective_to])
+}
+
+model ComplianceRule {
+  id                      String        @id @default(uuid()) @db.Uuid
+  compliance_code         String        @unique
+  name                    String
+  registration_type_id    String        @db.Uuid
+  applicable_entity_types Json
+  frequency_interval      Int
+  frequency_unit          FrequencyUnit @default(MONTH)
+  due_day                 Int
+  is_active               Boolean       @default(true)
+  created_at              DateTime      @default(now())
+  updated_at              DateTime      @updatedAt
+
+  registrationType RegistrationType            @relation(fields: [registration_type_id], references: [id])
+  settings         EntityRegistrationSetting[]
+  task_templates   TaskTemplate[]
+
+  @@index([registration_type_id])
+  @@index([is_active])
+  @@index([compliance_code])
+  @@index([registration_type_id, is_active])
+}
+
+
+
+
+model AdminUser {
+  id       String @id @default(uuid()) @db.Uuid
+  name     String
+  email    String @unique
+  password String
+
+  roles                AdminUserRole[]
+  departments          AdminUserDepartment[]
+  created_tasks        Task[]                  @relation("task_creator")
+  task_assignments     TaskAssignment[]        @relation("assignee")
+  assigned_tasks       TaskAssignment[]        @relation("assigner")
+  created_task_modules TaskModule[]            @relation("creator")
+  updated_task_modules TaskModule[]            @relation("updater")
+  deleted_task_modules TaskModule[]            @relation("deleter")
+  created_templates    TaskTemplate[]
+  created_modules      BillableModule[]        @relation("module_creator")
+  updated_modules      BillableModule[]        @relation("module_updater")
+  created_invoices     Invoice[]
+  received_payments    Payment[]
+
+  @@index([email])
+  @@index([name])
+}
+
+
+model Department {
+  id   String @id @default(uuid()) @db.Uuid
+  name String @unique
+
+  users AdminUserDepartment[]
+}
+
+
+model Role {
+  id   String @id @default(uuid()) @db.Uuid
+  name String @unique
+
+  users       AdminUserRole[]
+  permissions RolePermission[]
+}
+
+
+model Permission {
+  id   String @id @default(uuid()) @db.Uuid
+  code String @unique
+
+  roles RolePermission[]
+}
+
+
+model AdminUserDepartment {
+  admin_user_id String @db.Uuid
+  department_id String @db.Uuid
+
+  adminUser  AdminUser  @relation(fields: [admin_user_id], references: [id], onDelete: Cascade)
+  department Department @relation(fields: [department_id], references: [id], onDelete: Cascade)
+
+  @@id([admin_user_id, department_id])
+  @@index([admin_user_id])
+  @@index([department_id])
+}
+
+
+model AdminUserRole {
+  admin_user_id String @db.Uuid
+  role_id       String @db.Uuid
+
+  adminUser AdminUser @relation(fields: [admin_user_id], references: [id], onDelete: Cascade)
+  role      Role      @relation(fields: [role_id], references: [id], onDelete: Cascade)
+
+  @@id([admin_user_id, role_id])
+  @@index([admin_user_id])
+  @@index([role_id])
+}
+
+
+model RolePermission {
+  role_id       String @db.Uuid
+  permission_id String @db.Uuid
+
+  role       Role       @relation(fields: [role_id], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permission_id], references: [id], onDelete: Cascade)
+
+  @@id([role_id, permission_id])
+  @@index([role_id])
+  @@index([permission_id])
+}
+
+
+
+
+model Task {
+  id                 String        @id @default(uuid()) @db.Uuid
+  entity_id          String        @db.Uuid
+  created_by         String        @db.Uuid
+  title              String
+  description        String?
+  status             TaskStatus    @default(PENDING)
+  billing_status     BillingStatus @default(NOT_BILLED)
+  start_date         DateTime?
+  end_date           DateTime?
+  due_date           DateTime?
+  priority           String?
+  category           String?
+  compliance_rule_id String?       @db.Uuid
+  is_assigned_to_all Boolean       @default(false)
+  created_at         DateTime      @default(now())
+  updated_at         DateTime      @updatedAt
+
+  entity        Entity           @relation(fields: [entity_id], references: [id], onDelete: Cascade)
+  creator       AdminUser        @relation("task_creator", fields: [created_by], references: [id])
+  assignments   TaskAssignment[]
+  task_modules  TaskModule[]
+  invoice_lines InvoiceLine[]
+
+  @@index([status])
+  @@index([billing_status])
+  @@index([entity_id])
+  @@index([created_by])
+  @@index([due_date])
+  @@index([created_at])
+  @@index([compliance_rule_id])
+  @@index([category])
+  @@index([entity_id, status])
+  @@index([entity_id, status, due_date])
+  @@index([status, billing_status])
+  @@index([status, due_date])
+  @@index([compliance_rule_id, status])
+}
+
+
+
+model TaskAssignment {
+  id                String   @id @default(uuid()) @db.Uuid
+  task_id           String   @db.Uuid
+  admin_user_id     String   @db.Uuid
+  assigned_by       String   @db.Uuid
+  assignment_source String?
+  assigned_at       DateTime @default(now())
+
+  task     Task      @relation(fields: [task_id], references: [id], onDelete: Cascade)
+  assignee AdminUser @relation("assignee", fields: [admin_user_id], references: [id])
+  assigner AdminUser @relation("assigner", fields: [assigned_by], references: [id])
+
+  @@index([task_id])
+  @@index([admin_user_id])
+  @@index([assigned_by])
+  @@index([assigned_at])
+  @@index([admin_user_id, task_id])
+}
+
+
+model TaskTemplate {
+  id                   String   @id @default(uuid()) @db.Uuid
+  compliance_rule_id   String   @db.Uuid
+  created_by           String   @db.Uuid
+  title_template       String
+  description_template String?
+  is_active            Boolean  @default(true)
+  created_at           DateTime @default(now())
+  updated_at           DateTime @updatedAt
+
+  complianceRule ComplianceRule       @relation(fields: [compliance_rule_id], references: [id])
+  creator        AdminUser            @relation(fields: [created_by], references: [id])
+  modules        TaskTemplateModule[]
+
+  @@index([compliance_rule_id])
+  @@index([created_by])
+  @@index([is_active])
+  @@index([compliance_rule_id, is_active])
+}
+
+
+model TaskTemplateModule {
+  id                 String   @id @default(uuid()) @db.Uuid
+  task_template_id   String   @db.Uuid
+  billable_module_id String   @db.Uuid
+  default_quantity   Int      @default(1)
+  is_optional        Boolean  @default(false)
+  created_at         DateTime @default(now())
+
+  taskTemplate   TaskTemplate   @relation(fields: [task_template_id], references: [id], onDelete: Cascade)
+  billableModule BillableModule @relation(fields: [billable_module_id], references: [id])
+
+  @@unique([task_template_id, billable_module_id])
+  @@index([task_template_id])
+  @@index([billable_module_id])
+}
+
+
+model BillableModule {
+  id            String   @id @default(uuid()) @db.Uuid
+  name          String
+  description   String?
+  default_price Decimal  
+  gst_rate      Decimal  
+  sac_code      String?
+  category      String?
+  is_active     Boolean  @default(false)
+  is_deleted    Boolean  @default(false)
+  created_by    String   @db.Uuid
+  updated_by    String?  @db.Uuid
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  creator          AdminUser            @relation("module_creator", fields: [created_by], references: [id])
+  updater          AdminUser?           @relation("module_updater", fields: [updated_by], references: [id])
+  template_modules TaskTemplateModule[]
+  task_modules     TaskModule[]
+
+  @@index([category])
+  @@index([is_active])
+  @@index([is_deleted])
+  @@index([created_by])
+  @@index([is_active, is_deleted])
+  @@index([category, is_active])
+}
+
+
+model TaskModule {
+  id                 String   @id @default(uuid()) @db.Uuid
+  task_id            String   @db.Uuid
+  billable_module_id String   @db.Uuid
+  name               String
+  price              Decimal  
+  gst_rate           Decimal  
+  sac_code           String?
+  quantity           Int
+  is_billed          Boolean  @default(false)
+  created_by         String   @db.Uuid
+  updated_by         String?  @db.Uuid
+  deleted_by         String?  @db.Uuid
+  is_deleted         Boolean  @default(false)
+  created_at         DateTime @default(now())
+  updated_at         DateTime @updatedAt
+
+  task           Task           @relation(fields: [task_id], references: [id], onDelete: Cascade)
+  billableModule BillableModule @relation(fields: [billable_module_id], references: [id])
+  creator        AdminUser      @relation("creator", fields: [created_by], references: [id])
+  updater        AdminUser?     @relation("updater", fields: [updated_by], references: [id])
+  deleter        AdminUser?     @relation("deleter", fields: [deleted_by], references: [id])
+  invoice_lines  InvoiceLine[]
+
+  @@index([task_id])
+  @@index([billable_module_id])
+  @@index([is_billed])
+  @@index([is_deleted])
+  @@index([created_by])
+  @@index([task_id, is_billed])
+  @@index([task_id, is_deleted])
+}
+
+
+
+model Invoice {
+  id             String        @id @default(uuid()) @db.Uuid
+  invoice_number String
+  entity_id      String        @db.Uuid
+  gstin          String?
+  invoice_date   DateTime
+  subtotal       Decimal       
+  gst_amount     Decimal       
+  total_amount   Decimal       
+  status         InvoiceStatus @default(DRAFT)
+  created_by     String        @db.Uuid
+  created_at     DateTime      @default(now())
+
+  entity        Entity        @relation(fields: [entity_id], references: [id])
+  creator       AdminUser     @relation(fields: [created_by], references: [id])
+  invoice_lines InvoiceLine[]
+  payments      Payment[]
+
+  @@unique([invoice_number])
+  @@index([status])
+  @@index([entity_id])
+  @@index([created_by])
+  @@index([invoice_date])
+  @@index([entity_id, status])
+  @@index([entity_id, status, invoice_date])
+  @@index([status, invoice_date])
+}
+
+
+
+model InvoiceLine {
+  id             String   @id @default(uuid()) @db.Uuid
+  invoice_id     String   @db.Uuid
+  task_id        String   @db.Uuid
+  task_module_id String   @db.Uuid
+  description    String?
+  quantity       Int
+  unit_price     Decimal  
+  gst_rate       Decimal  
+  gst_amount     Decimal  
+  line_total     Decimal  
+  created_at     DateTime @default(now())
+
+  invoice    Invoice    @relation(fields: [invoice_id], references: [id], onDelete: Cascade)
+  task       Task       @relation(fields: [task_id], references: [id])
+  taskModule TaskModule @relation(fields: [task_module_id], references: [id])
+
+  @@index([invoice_id])
+  @@index([task_id])
+  @@index([task_module_id])
+}
+
+
+
+model Payment {
+  id               String        @id @default(uuid()) @db.Uuid
+  invoice_id       String        @db.Uuid
+  entity_id        String        @db.Uuid
+  received_by      String        @db.Uuid
+  amount           Decimal       
+  payment_date     DateTime
+  payment_mode     String
+  reference_number String?
+  status           PaymentStatus @default(PENDING)
+  created_at       DateTime      @default(now())
+
+  invoice  Invoice   @relation(fields: [invoice_id], references: [id])
+  entity   Entity    @relation(fields: [entity_id], references: [id])
+  receiver AdminUser @relation(fields: [received_by], references: [id])
+
+  @@index([invoice_id])
+  @@index([entity_id])
+  @@index([received_by])
+  @@index([payment_date])
+  @@index([status])
+  @@index([entity_id, status])
+  @@index([entity_id, payment_date])
+  @@index([invoice_id, status])
+}

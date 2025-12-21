@@ -53,7 +53,9 @@ import {
   unmarkServiceFulfilled,
   fetchBookingData,
   rejectRefund,
+  updateAssignmentManagement,
 } from "@/store/slices/servicesSlice";
+import { selectPermissions } from "@/store/slices/sessionSlice";
 
 // ===== UTILITY FUNCTIONS =====
 
@@ -292,6 +294,10 @@ export default function ServiceBookingPage() {
   const [invoiceDownloading, setInvoiceDownloading] = useState(false);
   const [error, setError] = useState(null);
   const { isOpen, config, openOtpDialog, closeOtpDialog } = useOtpDialog();
+  const permissions = useSelector(selectPermissions);
+
+  // Check if user has permission to assign members
+  const hasAssignPermission = permissions?.includes("bookings.assign_member");
   const user = useSelector((state) => state.session.user);
   // Get service booking ID from URL params
   const params = useParams();
@@ -454,6 +460,34 @@ export default function ServiceBookingPage() {
     }
   };
 
+  // Assignment dialog configuration
+  const assignmentConfig = {
+    selectedItem: bookingData,
+    apiEndpoint: "/api/admin/services/assigmnets/assign_members",
+
+    buildPayload: (itemId, assignmentData) => ({
+      serviceId: itemId,
+      assignmentManagement: assignmentData,
+    }),
+
+    onSuccessDispatch: (data) => {
+      dispatch(
+        updateAssignmentManagement({
+          serviceId: bookingData.id,
+          assignmentManagement: data.assignmentManagement,
+        })
+      );
+    },
+
+    title: "Assign Team Members to Service",
+    subtitle: "Drag and drop users to manage service assignments",
+
+    validateItem: (item) => {
+      if (!item?.id) return "No service booking selected";
+      return null;
+    },
+  };
+
   // Updated copy button component - only shows icons
   const CopyButton = ({ text, fieldName, size = 16 }) => (
     <button
@@ -470,8 +504,9 @@ export default function ServiceBookingPage() {
       <AssignmentDialog
         isOpen={isAssignmentBoxActive}
         onClose={() => setAssignmentBox(false)}
+        config={assignmentConfig}
+        hasPermission={hasAssignPermission}
       />
-
       <OtpDialog
         isOpen={isOpen}
         onClose={closeOtpDialog}

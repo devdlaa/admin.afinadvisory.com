@@ -1,5 +1,5 @@
-.assignment-dialog-backdrop {
-  .error-banner {
+.assignmentDialogBackdrop {
+  .errorBanner {
     display: flex;
     align-items: center;
     gap: 8px;
@@ -39,7 +39,7 @@
     }
   }
 
-  .assignment-dialog {
+  .assignmentDialog {
     background: #ffffff;
     width: 100%;
     max-width: 900px;
@@ -54,14 +54,14 @@
 
     &.no_able {
       max-width: 450px;
-        .dialog-footer{
+        .dialogFooter{
           display: none;
         }
       
-      .assignment-container {
+      .assignmentContainer {
  
         grid-template-columns: 1fr;
-        .available-section{
+        .availableSection{
           display: none;
         }
         .divider{
@@ -83,7 +83,7 @@
     }
   }
 
-  .dialog-header {
+  .dialogHeader {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -92,7 +92,7 @@
     background: #f8fafc;
   }
 
-  .header-content h2 {
+  .headerContent h2 {
     margin: 0;
     font-size: 16px;
     font-weight: 600;
@@ -108,7 +108,7 @@
     line-height: 1.4;
   }
 
-  .close-btn {
+  .closeBtn {
     background: none;
     border: none;
     cursor: pointer;
@@ -119,18 +119,18 @@
     transition: all 0.2s ease;
   }
 
-  .close-btn:hover {
+  .closeBtn:hover {
     background: #f1f5f9;
     color: #475569;
   }
 
-  .dialog-body {
+  .dialogBody {
     padding: 24px;
     overflow: hidden;
     flex: 1;
   }
 
-  .loading-state {
+  .loadingState {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -146,21 +146,21 @@
     animation: spin 1s linear infinite;
   }
 
-  .assignment-container {
+  .assignmentContainer {
     display: grid;
     grid-template-columns: 1fr 1px 1fr;
     gap: 24px;
     height: 500px;
   }
 
-  .user-section {
+  .userSection {
     display: flex;
     flex-direction: column;
     min-height: 0;
     transition: all 0.3s ease;
   }
 
-  .section-header {
+  .sectionHeader {
     display: flex;
     flex-direction: column;
     align-items: unset;
@@ -172,14 +172,14 @@
     }
   }
 
-  .section-title {
+  .sectionTitle {
     display: flex;
     align-items: center;
     gap: 8px;
-    margin-bottom: 12px;
+   
   }
 
-  .section-title h3 {
+  .sectionTitle h3 {
     margin: 0;
     font-size: 14px;
     font-weight: 600;
@@ -195,40 +195,40 @@
     border-radius: 10px;
   }
 
-  .assign-all-toggle {
-    margin-bottom: 12px;
+  .assignAllToggle {
+
     z-index: 5;
   }
 
-  .toggle-btn {
+  .toggleBtn {
     display: flex;
     align-items: center;
     gap: 8px;
     background: none;
     border: 1px solid #e2e8f0;
     border-radius: 8px;
-    padding: 8px 12px;
+    padding: 6px 10px;
     cursor: pointer;
     transition: all 0.2s ease;
     font-family: "Poppins";
-    font-size: 13px;
+    font-size: 12px;
     color: #475569;
     width: 100%;
     justify-content: center;
   }
 
-  .toggle-btn:hover {
+  .toggleBtn:hover {
     border-color: #3b82f6;
     background: rgba(59, 130, 246, 0.02);
   }
 
-  .toggle-btn.active {
+  .toggleBtn.active {
     background: #3b82f6;
     color: white;
     border-color: #3b82f6;
   }
 
-  .cache-controls {
+  .cacheControls {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -236,12 +236,12 @@
     padding: 0 2px;
   }
 
-  .cache-status {
+  .cacheStatus {
     display: flex;
     align-items: center;
   }
 
-  .cache-info {
+  .cacheInfo {
     display: flex;
     align-items: center;
     gap: 4px;
@@ -252,16 +252,16 @@
     border-radius: 4px;
   }
 
-  .cache-info.fresh {
+  .cacheInfo.fresh {
     color: #059669;
     background: #d1fae5;
   }
 
-  .cache-info svg {
+  .cacheInfo svg {
     flex-shrink: 0;
   }
 
-  .refresh-btn {
+  .refreshBtn {
     background: none;
     border: 1px solid #e2e8f0;
     border-radius: 6px;
@@ -274,26 +274,26 @@
     justify-content: center;
   }
 
-  .refresh-btn:hover:not(:disabled) {
+  .refreshBtn:hover:not(:disabled) {
     border-color: #3b82f6;
     color: #3b82f6;
     background: rgba(59, 130, 246, 0.02);
   }
 
-  .refresh-btn:disabled {
+  .refreshBtn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
   }
 
-  .refresh-btn .spinning {
+  .refreshBtn .spinning {
     animation: spin 1s linear infinite;
   }
 
-  .search-wrapper {
+  .searchWrapper {
     position: relative;
   }
 
-  .search-icon {
+  .searchIcon {
     position: absolute;
     left: 12px;
     top: 50%;
@@ -302,7 +302,7 @@
     pointer-events: none;
   }
 
-  .search-input {
+  .searchInput {
     width: 100%;
     padding: 8px 12px 8px 36px;
     border: 1px solid #e2e8f0;
@@ -314,22 +314,22 @@
     transition: all 0.2s ease;
   }
 
-  .search-input::placeholder {
+  .searchInput::placeholder {
     color: #94a3b8;
   }
 
-  .search-input:focus {
+  .searchInput:focus {
     outline: none;
     border-color: #3b82f6;
     box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
   }
 
-  .search-input:disabled {
+  .searchInput:disabled {
     background: #f8fafc;
     color: #94a3b8;
   }
 
-  .limit-warning {
+  .limitWarning {
     display: flex;
     align-items: center;
     gap: 6px;
@@ -343,7 +343,7 @@
     margin-bottom: 12px;
   }
 
-  .users-list {
+  .usersList {
     flex: 1;
     overflow-y: auto;
     border: 2px dashed transparent;
@@ -357,12 +357,12 @@
     }
   }
 
-  .users-list.at-limit {
+  .usersList.at-limit {
     border-color: #f59e0b;
     background: rgba(245, 158, 11, 0.02);
   }
 
-  .all-users-state {
+  .allUsersState {
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -375,27 +375,27 @@
     border: 2px solid #3b82f6;
   }
 
-  .all-users-state svg {
+  .allUsersState svg {
     color: #3b82f6;
     margin-bottom: 16px;
     opacity: 0.8;
   }
 
-  .all-users-state h4 {
+  .allUsersState h4 {
     margin: 0 0 8px 0;
     font-size: 16px;
     font-weight: 600;
     color: #1e40af;
   }
 
-  .all-users-state p {
+  .allUsersState p {
     margin: 0;
     font-size: 14px;
     color: #3730a3;
     opacity: 0.8;
   }
 
-  .user-card {
+  .userCard {
     display: flex;
     align-items: center;
     gap: 12px;
@@ -409,39 +409,39 @@
     position: relative;
   }
 
-  .user-card:last-child {
+  .userCard:last-child {
     margin-bottom: 0;
   }
 
-  .user-card:hover:not(.disabled) {
+  .userCard:hover:not(.disabled) {
     border-color: #cbd5e1;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
     transform: translateY(-1px);
   }
 
-  .user-card:active:not(.disabled) {
+  .userCard:active:not(.disabled) {
     cursor: grabbing;
   }
 
-  .user-card.disabled {
+  .userCard.disabled {
     opacity: 0.6;
     cursor: not-allowed;
   }
 
-  .user-card.assigned {
+  .userCard.assigned {
     border-color: #3b82f6;
     background: rgba(59, 130, 246, 0.02);
   }
 
-  .user-card.available:hover:not(.disabled) .drag-handle {
+  .userCard.available:hover:not(.disabled) .dragHandle {
     color: #3b82f6;
   }
 
-  .user-card.assigned:hover:not(.disabled) .drag-handle {
+  .userCard.assigned:hover:not(.disabled) .dragHandle {
     color: #ef4444;
   }
 
-  .user-avatar {
+  .userAvatar {
     width: 32px;
     height: 32px;
     background: #dbeafe;
@@ -455,17 +455,17 @@
     flex-shrink: 0;
   }
 
-  .user-avatar.assigned {
+  .userAvatar.assigned {
     background: #3b82f6;
     color: #ffffff;
   }
 
-  .user-info {
+  .userInfo {
     flex: 1;
     min-width: 0;
   }
 
-  .user-name {
+  .userName {
     font-size: 13px;
     font-weight: 500;
     color: #0f172a;
@@ -475,7 +475,7 @@
     text-overflow: ellipsis;
   }
 
-  .user-email {
+  .userEmail {
     font-size: 11px;
     font-weight: 400;
     color: #64748b;
@@ -484,13 +484,13 @@
     text-overflow: ellipsis;
   }
 
-  .drag-handle {
+  .dragHandle {
     color: #94a3b8;
     transition: color 0.2s ease;
     flex-shrink: 0;
   }
 
-  .empty-state {
+  .emptyState {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -501,18 +501,18 @@
     height: 100%;
   }
 
-  .empty-state svg {
+  .emptyState svg {
     margin-bottom: 12px;
     opacity: 0.5;
   }
 
-  .empty-state p {
+  .emptyState p {
     margin: 0 0 4px 0;
     font-size: 14px;
     font-weight: 500;
   }
 
-  .empty-state span {
+  .emptyState span {
     font-size: 12px;
     font-weight: 400;
   }
@@ -522,7 +522,7 @@
     background: #e2e8f0;
   }
 
-  .dialog-footer {
+  .dialogFooter {
     padding: 20px 24px;
     border-top: 1px solid #f1f5f9;
     background: #f8fafc;
@@ -531,18 +531,18 @@
     justify-content: space-between;
   }
 
-  .footer-info {
+  .footerInfo {
     font-size: 13px;
     font-weight: 400;
     color: #64748b;
   }
 
-  .footer-actions {
+  .footerActions {
     display: flex;
     gap: 12px;
   }
 
-  .cancel-btn {
+  .cancelBtn {
     padding: 8px 16px;
     background: none;
     border: none;
@@ -555,12 +555,12 @@
     transition: all 0.2s ease;
   }
 
-  .cancel-btn:hover {
+  .cancelBtn:hover {
     color: #374151;
     background: #f1f5f9;
   }
 
-  .submit-btn {
+  .submitBtn {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -578,13 +578,13 @@
     min-width: 140px;
   }
 
-  .submit-btn:hover:not(:disabled) {
+  .submitBtn:hover:not(:disabled) {
     background: #2563eb;
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
   }
 
-  .submit-btn:disabled {
+  .submitBtn:disabled {
     background: #e2e8f0;
     color: #94a3b8;
     cursor: not-allowed;
@@ -603,7 +603,7 @@
 }
 
 @media (max-width: 768px) {
-  .assignment-container {
+  .assignmentContainer {
     grid-template-columns: 1fr;
     grid-template-rows: 1fr auto 1fr;
     height: auto;
@@ -615,19 +615,28 @@
     height: 1px;
   }
 
-  .dialog-footer {
+  .dialogFooter {
     flex-direction: column;
     gap: 12px;
     align-items: stretch;
   }
 
-  .footer-actions {
+  .footerActions {
     width: 100%;
   }
 
-  .cancel-btn,
-  .submit-btn {
+  .cancelBtn,
+  .submitBtn {
     flex: 1;
     justify-content: center;
   }
+}
+
+.headerInner{
+  
+  display: flex;
+  align-items: center;
+
+  justify-content: space-between;
+  margin-bottom: 15px;
 }

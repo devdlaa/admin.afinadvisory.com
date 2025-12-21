@@ -43,7 +43,7 @@ const createErrorResponse = (message, details = null) => ({
 
 export async function POST(req) {
   try {
-    // TODO: Add permission check
+   
     const permissionCheck = await requirePermission(req, "users.access");
     if (permissionCheck) return permissionCheck;
 

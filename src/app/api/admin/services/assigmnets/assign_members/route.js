@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import admin from "@/lib/firebase-admin";
 import { auth } from "@/utils/auth";
 import { z } from "zod";
 import { requirePermission } from "@/lib/requirePermission";
+import { assignMembers } from "@/utils/assignmentManager";
 
 const memberSchema = z.object({
   userCode: z.string().min(1),
@@ -21,12 +21,14 @@ const payloadSchema = z.object({
 
 export async function POST(req) {
   try {
-    // Permission check placeholder
+    // Permission check
     const permissionCheck = await requirePermission(
       req,
       "bookings.assign_member"
     );
     if (permissionCheck) return permissionCheck;
+
+    // Session check
     const session = await auth();
     if (!session || !(session.user?.id || session.user?.uid)) {
       return NextResponse.json(
@@ -36,6 +38,7 @@ export async function POST(req) {
     }
     const currentUserId = session.user?.id ?? session.user?.uid;
 
+    // Validate payload
     const body = await req.json();
     const validation = payloadSchema.safeParse(body);
     if (!validation.success) {
@@ -54,68 +57,29 @@ export async function POST(req) {
       assignmentManagement: { assignToAll, members },
     } = validation.data;
 
-    // ✅ If null/undefined → empty array
-    const normalizedMembers = Array.isArray(members) ? members : [];
+    // Use the shared utility
+    const result = await assignMembers({
+      collectionType: "service_bookings",
+      documentId: serviceId,
+      assignToAll,
+      members: members || [],
+      currentUserId,
+    });
 
-    const firestore = admin.firestore();
-    const serviceRef = firestore.collection("service_bookings").doc(serviceId);
-
-    const updatedAssignmentManagement = await firestore.runTransaction(
-      async (tx) => {
-        const serviceSnap = await tx.get(serviceRef);
-        if (!serviceSnap.exists) throw new Error("Service not found");
-
-        const now = new Date().toISOString();
-        const assignment = {
-          assignToAll,
-          members: normalizedMembers.map((m) => ({
-            userCode: m.userCode,
-            name: m.name,
-            email: m.email,
-            AssignedAt: now,
-            AssignedBy: currentUserId,
-            isEmailSentAlready: !m.sendEmail,
-          })),
-        };
-
-        if (assignment.members.length > 10) {
-          throw new Error("Maximum of 10 members allowed");
-        }
-
-        // ✅ Build flattened keys for fast querying (used by dashboard API)
-        const assignedKeys = assignToAll
-          ? [] // if everyone can view, no need to list specific users
-          : normalizedMembers.flatMap((m) => [
-              `email:${m.email}`,
-              `userCode:${m.userCode}`,
-            ]);
-
-        // ✅ Update both assignmentManagement and assignedKeys atomically
-        tx.update(serviceRef, {
-          assignmentManagement: assignment,
-          assignedKeys, // <-- new field
-        });
-
-        return assignment;
-      }
-    );
-
-    // Send emails if needed (unchanged)
-    updatedAssignmentManagement.members.forEach((m, i) => {
-      const original = normalizedMembers[i];
-      if (original && original.sendEmail && !m.isEmailSentAlready) {
-        console.log(`Send email to ${m.email} (${m.name})`);
-      }
+    // Send emails if needed
+    result.membersToEmail.forEach((member) => {
+      console.log(`Send email to ${member.email} (${member.name})`);
+      // TODO: Implement actual email sending logic
     });
 
     return NextResponse.json({
       success: true,
-      message: "Task assigned successfully",
-      assignmentManagement: updatedAssignmentManagement,
+      message: "Service booking assigned successfully",
+      assignmentManagement: result.assignment,
     });
   } catch (err) {
-    console.error("Assign Task Error:", err);
-    const status = err.message === "Service not found" ? 404 : 400;
+    console.error("Assign Service Booking Error:", err);
+    const status = err.message.includes("not found") ? 404 : 400;
     return NextResponse.json(
       { success: false, message: err.message },
       { status }

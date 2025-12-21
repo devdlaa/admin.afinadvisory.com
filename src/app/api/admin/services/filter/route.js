@@ -97,6 +97,7 @@ export async function POST(req) {
     }
 
     const userEmail = session.user.email.toLowerCase();
+    const userCode = session.user.userCode;
     const userRole = session.user.role;
 
     const body = await req.json();
@@ -140,12 +141,10 @@ export async function POST(req) {
       // nothing special, keep full collection
     } else {
       // ── Assignment feature enabled → restricted documents ──────
-      query = query.where(
-        Filter.or(
-          Filter.where("assignmentManagement.assignToAll", "==", true),
-          Filter.where("assignedKeys", "array-contains", `email:${userEmail}`)
-        )
-      );
+      const visibilityKeys = ["all"];
+      if (userCode) visibilityKeys.push(`userCode:${userCode}`);
+
+      query = query.where("assignedKeys", "array-contains-any", visibilityKeys);
     }
 
     // ── Date filter ─────────────────────────────────────────────

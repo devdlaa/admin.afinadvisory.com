@@ -17,13 +17,25 @@ import {
   resetPaymentLink,
 } from "@/store/slices/createPaymentLink";
 
+
+
+
 import CreatePaymentLinkStepOne from "../CreatePaymentLink/CreatePaymentLinkStepOne";
 import CreatePaymentLinkStepTwo from "../CreatePaymentLink/CreatePaymentLinkStepTwo";
 import CreatePaymentLinkStepThree from "../CreatePaymentLink/CreatePaymentLinkStepThree";
 import CreatePaymentLinkStepFour from "../CreatePaymentLink/CreatePaymentLinkStepFour";
 import CreatePaymentLinkStepFive from "../CreatePaymentLink/CreatePaymentLinkStepFive";
 
+
 import "./BookingPaymentModal.scss";
+
+
+
+
+  
+  
+
+
 
 const BookingPaymentModal = ({ isOpen, onClose }) => {
   const dispatch = useDispatch();
