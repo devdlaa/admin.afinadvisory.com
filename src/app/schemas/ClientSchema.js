@@ -1,7 +1,7 @@
 // @/schemas/UserSchema.js
 import { z } from "zod";
 
-import { INDIAN_STATES } from "@/utils/utils";
+import { INDIAN_STATES } from "@/utils/server/utils";
 
 // Base field validators (reusable)
 const nameValidator = z

@@ -11,7 +11,7 @@ import {
   Download,
 } from "lucide-react";
 import { CircularProgress } from "@mui/material";
-import { truncateText } from "@/utils/utils";
+import { truncateText } from "@/utils/server/utils";
 import "./GenericActionBar.scss";
 
 const GenericActionBar = ({

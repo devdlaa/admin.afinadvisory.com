@@ -1,6 +1,6 @@
 import { useState } from "react";
 import styles from "./ChargesSummary.module.scss";
-import { formatCurrency } from "@/utils/utils";
+import { formatCurrency } from "@/utils/server/utils";
 import CustomInput from "./CustomInput";
 
 const ChargesSummary = ({

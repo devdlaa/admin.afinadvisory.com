@@ -22,7 +22,7 @@ import {
   handleEditCloseInfluencer,
   setInfluencerDrawer,
 } from "@/store/slices/influencersSlice";
-import { removeEmptyFields } from "@/utils/utils";
+import { removeEmptyFields } from "@/utils/server/utils";
 
 const InfluencerDrawer = () => {
   const dispatch = useDispatch();

@@ -7,7 +7,7 @@ import {
   AlertOctagon,
   CircleCheck,
 } from "lucide-react";
-import { formatDate, truncateText } from "@/utils/utils";
+import { formatDate, truncateText } from "@/utils/server/utils";
 import { statusConfig }   from "@/app/constants/bookings";
 import "./BookingCard.scss";
 

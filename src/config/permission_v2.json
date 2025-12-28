@@ -1,0 +1,507 @@
+{
+    "availablePermissions": [
+        {
+            "id": "admin_users.access",
+            "label": "Access Admin Users (Read only)",
+            "category": "Admin Users"
+        },
+        {
+            "id": "admin_users.create",
+            "label": "Create Admin Users",
+            "category": "Admin Users"
+        },
+        {
+            "id": "admin_users.update",
+            "label": "Update Admin Users",
+            "category": "Admin Users"
+        },
+        {
+            "id": "admin_users.delete",
+            "label": "Delete Admin Users",
+            "category": "Admin Users"
+        },
+        {
+            "id": "admin_users.manage",
+            "label": "Manage Admin User Operations",
+            "category": "Admin Users"
+        },
+        {
+            "id": "roles.access",
+            "label": "Access Roles",
+            "category": "Roles"
+        },
+        {
+            "id": "roles.manage",
+            "label": "Manage Roles & Permissions",
+            "category": "Roles"
+        },
+        {
+            "id": "departments.access",
+            "label": "Access Departments",
+            "category": "Departments"
+        },
+        {
+            "id": "departments.manage",
+            "label": "Create/Update/Delete Departments",
+            "category": "Departments"
+        },
+        {
+            "id": "departments.delete",
+            "label": "Delete Departments",
+            "category": "TDepartments"
+        },
+        {
+            "id": "task_category.access",
+            "label": "Access Task Categories (Read only)",
+            "category": "Task Categories"
+        },
+        {
+            "id": "task_category.delete",
+            "label": "Delete Task Categories",
+            "category": "Task Categories"
+        },
+        {
+            "id": "task_category.manage",
+            "label": "Create/Update/Delete Task Categories",
+            "category": "Task Categories"
+        },
+        {
+            "id": "billable_modules.access",
+            "label": "Access Billable Modules (Read only)",
+            "category": "Billable Modules"
+        },
+        {
+            "id": "billable_modules.manage",
+            "label": "Create/Update/Delete Billable Modules",
+            "category": "Billable Modules"
+        },
+        {
+            "id": "billable_modules.delete",
+            "label": "Delete Billable Module",
+            "category": "Billable Module"
+        },
+        {
+            "id": "billable_module_categories.access",
+            "label": "Access Billable Module Categories (Read only)",
+            "category": "Billable Module Categories"
+        },
+        {
+            "id": "billable_module_categories.manage",
+            "label": "Create/Update Billable Module Categories",
+            "category": "Billable Module Categories"
+        },
+        {
+            "id": "billable_module_categories.delete",
+            "label": "Delete Billable Module Categories",
+            "category": "Billable Module Categories"
+        },
+        {
+            "id": "registration_types.access",
+            "label": "Access Registration Types (Read only)",
+            "category": "Registration Types"
+        },
+        {
+            "id": "registration_types.manage",
+            "label": "Create/Update/Delete Registration Types",
+            "category": "Registration Types"
+        },
+        {
+            "id": "task_templates.access",
+            "label": "Access Task Templates (Read only)",
+            "category": "Task Templates"
+        },
+        {
+            "id": "task_templates.manage",
+            "label": "Create/Update Task Templates",
+            "category": "Task Templates"
+        },
+        {
+            "id": "task_templates.delete",
+            "label": "Delete Task Templates",
+            "category": "Task Templates"
+        },
+        {
+            "id": "entity_groups.access",
+            "label": "Access Entity Groups (Read only)",
+            "category": "Entity Groups"
+        },
+        {
+            "id": "entity_groups.manage",
+            "label": "Create/Update/Delete Groups & Manage Members",
+            "category": "Entity Groups"
+        },
+        {
+            "id": "entities.access",
+            "label": "Access Entities (Read only)",
+            "category": "Entities"
+        },
+        {
+            "id": "entities.delete",
+            "label": "Delete Entities",
+            "category": "Entities"
+        },
+        {
+            "id": "entities.manage",
+            "label": "Create/Update Entities",
+            "category": "Entities"
+        },
+        {
+            "id": "entity_registrations.access",
+            "label": "Access Entity Registrations (Read only)",
+            "category": "Entity Registrations"
+        },
+        {
+            "id": "entity_registrations.delete",
+            "label": "Delete Entities Registrations",
+            "category": "Entities Registrations"
+        },
+        {
+            "id": "entity_registrations.manage",
+            "label": "Add / Update Entity Registrations",
+            "category": "Entity Registrations"
+        },
+        {
+            "id": "tasks.access",
+            "label": "Access Tasks (Read only)",
+            "category": "Tasks"
+        },
+        {
+            "id": "tasks.manage",
+            "label": "Create/Update/Delete Tasks",
+            "category": "Tasks"
+        },
+        {
+            "id": "tasks.delete",
+            "label": "Delete Tasks",
+            "category": "Tasks"
+        },
+        {
+            "id": "task_assignments.manage",
+            "label": "Assign or Reassign Tasks to Users",
+            "category": "Task Assignments"
+        },
+        {
+            "id": "compliance_rules.access",
+            "label": "Access Compliance Rules (Read only)",
+            "category": "Compliance Rules"
+        },
+        {
+            "id": "compliance_rules.create",
+            "label": "Create Compliance Rules",
+            "category": "Compliance Rules"
+        },
+        {
+            "id": "compliance_rules.update",
+            "label": "Update Compliance Rules",
+            "category": "Compliance Rules"
+        },
+        {
+            "id": "compliance_rules.delete",
+            "label": "Delete Compliance Rules",
+            "category": "Compliance Rules"
+        },
+        {
+            "id": "bookings.access",
+            "label": "Access Bookings",
+            "category": "Bookings"
+        },
+        {
+            "id": "bookings.create_new_link",
+            "label": "Create New Payment Link",
+            "category": "Bookings"
+        },
+        {
+            "id": "payment_link.access",
+            "label": "Access to Payment Links",
+            "category": "Bookings"
+        },
+        {
+            "id": "bookings.reject_refund",
+            "label": "Reject Booking Refunds",
+            "category": "Bookings"
+        },
+        {
+            "id": "bookings.initiate_refund",
+            "label": "Initiate Booking Refunds",
+            "category": "Bookings"
+        },
+        {
+            "id": "bookings.assign_member",
+            "label": "Assign Members to Bookings",
+            "category": "Bookings"
+        },
+        {
+            "id": "bookings.mark_fulfilled",
+            "label": "Mark Bookings As Fulfilled",
+            "category": "Bookings"
+        },
+        {
+            "id": "bookings.unmark_fulfilled",
+            "label": "Un-Mark Bookings As Fulfilled",
+            "category": "Bookings"
+        },
+        {
+            "id": "service_pricing.access",
+            "label": "Access Service Pricing ",
+            "category": "Service Pricing"
+        },
+        {
+            "id": "service_pricing.update",
+            "label": "Update Service Pricing",
+            "category": "Service Pricing"
+        },
+        {
+            "id": "payments.access",
+            "label": "Access Payments ",
+            "category": "Payments"
+        },
+        {
+            "id": "influencers.access",
+            "label": "Access Influencers ",
+            "category": "Influencers"
+        },
+        {
+            "id": "influencers.create",
+            "label": "Create Influencers",
+            "category": "Influencers"
+        },
+        {
+            "id": "influencers.update",
+            "label": "Update Influencers",
+            "category": "Influencers"
+        },
+        {
+            "id": "influencers.delete",
+            "label": "Delete Influencers",
+            "category": "Influencers"
+        },
+        {
+            "id": "customers.access",
+            "label": "Access Customers ",
+            "category": "Customers"
+        },
+        {
+            "id": "customers.create",
+            "label": "Create Customers",
+            "category": "Customers"
+        },
+        {
+            "id": "customers.update",
+            "label": "Update Customers",
+            "category": "Customers"
+        },
+        {
+            "id": "commissions.access",
+            "label": "Access Commissions ",
+            "category": "Commissions"
+        },
+        {
+            "id": "commissions.update_paid_status",
+            "label": "Update Paid Status",
+            "category": "Commissions"
+        },
+        {
+            "id": "coupons.access",
+            "label": "Access Coupons ",
+            "category": "Coupons"
+        },
+        {
+            "id": "coupons.create",
+            "label": "Create Coupons",
+            "category": "Coupons"
+        },
+        {
+            "id": "coupons.update",
+            "label": "Update Coupons",
+            "category": "Coupons"
+        },
+        {
+            "id": "coupons.delete",
+            "label": "Delete Coupons",
+            "category": "Coupons"
+        }
+    ],
+    "roleDefaults": {
+        "VIEW_ONLY": [
+            "tasks.access"
+        ],
+        "MANAGER": [
+            "bookings.access",
+            "admin_users.access",
+            "admin_users.create",
+            "admin_users.update",
+            "departments.access",
+            "departments.manage",
+            "task_category.access",
+            "task_category.manage",
+            "billable_modules.access",
+            "billable_modules.manage",
+            "billable_module_categories.access",
+            "billable_module_categories.manage",
+            "registration_types.access",
+            "registration_types.manage",
+            "task_templates.access",
+            "task_templates.manage",
+            "entity_groups.access",
+            "entity_groups.manage",
+            "entities.access",
+            "entities.manage",
+            "entity_registrations.access",
+            "entity_registrations.manage",
+            "tasks.access",
+            "tasks.manage",
+            "task_assignments.manage",
+            "compliance_rules.access",
+            "compliance_rules.create",
+            "compliance_rules.update"
+        ],
+        "ADMIN": [
+            "admin_users.access",
+            "admin_users.create",
+            "admin_users.update",
+            "departments.access",
+            "departments.manage",
+            "task_category.access",
+            "task_category.manage",
+            "billable_modules.access",
+            "billable_modules.manage",
+            "billable_module_categories.access",
+            "billable_module_categories.manage",
+            "registration_types.access",
+            "registration_types.manage",
+            "task_templates.access",
+            "task_templates.manage",
+            "entity_groups.access",
+            "entity_groups.manage",
+            "entities.access",
+            "entities.manage",
+            "entity_registrations.access",
+            "entity_registrations.manage",
+            "tasks.access",
+            "tasks.manage",
+            "task_assignments.manage",
+            "compliance_rules.access",
+            "compliance_rules.create",
+            "compliance_rules.update"
+        ],
+        "WEBSITE_MANAGER": [
+            "bookings.access",
+            "bookings.create_new_link",
+            "payment_link.access",
+            "bookings.reject_refund",
+            "bookings.initiate_refund",
+            "bookings.assign_member",
+            "bookings.mark_fulfilled",
+            "bookings.unmark_fulfilled",
+            "service_pricing.access",
+            "service_pricing.update",
+            "payments.access",
+            "influencers.access",
+            "influencers.create",
+            "influencers.update",
+            "influencers.delete",
+            "customers.access",
+            "customers.create",
+            "customers.update",
+            "commissions.access",
+            "commissions.update_paid_status",
+            "coupons.access",
+            "coupons.create",
+            "coupons.update",
+            "coupons.delete"
+        ],
+        "SUPER_ADMIN": [
+            "admin_users.access",
+            "admin_users.create",
+            "admin_users.update",
+            "admin_users.delete",
+            "admin_users.manage",
+            "roles.access",
+            "roles.manage",
+            "departments.access",
+            "departments.manage",
+            "departments.delete",
+            "task_category.access",
+            "task_category.manage",
+            "task_category.delete",
+            "billable_modules.access",
+            "billable_modules.manage",
+            "billable_modules.delete",
+            "billable_module_categories.access",
+            "billable_module_categories.manage",
+            "billable_module_categories.delete",
+            "registration_types.access",
+            "registration_types.manage",
+            "task_templates.access",
+            "task_templates.manage",
+            "task_templates.delete",
+            "entity_groups.access",
+            "entity_groups.manage",
+            "entities.access",
+            "entities.manage",
+            "entities.delete",
+            "entity_registrations.access",
+            "entity_registrations.manage",
+            "entity_registrations.delete",
+            "tasks.access",
+            "tasks.manage",
+            "tasks.delete",
+            "task_assignments.manage",
+            "compliance_rules.access",
+            "compliance_rules.create",
+            "compliance_rules.update",
+            "compliance_rules.delete",
+            "bookings.access",
+            "bookings.create_new_link",
+            "payment_link.access",
+            "bookings.reject_refund",
+            "bookings.initiate_refund",
+            "bookings.assign_member",
+            "bookings.mark_fulfilled",
+            "bookings.unmark_fulfilled",
+            "service_pricing.access",
+            "service_pricing.update",
+            "payments.access",
+            "influencers.access",
+            "influencers.create",
+            "influencers.update",
+            "influencers.delete",
+            "customers.access",
+            "customers.create",
+            "customers.update",
+            "commissions.access",
+            "commissions.update_paid_status",
+            "coupons.access",
+            "coupons.create",
+            "coupons.update",
+            "coupons.delete"
+        ]
+    },
+    "roles": [
+        {
+            "id": "VIEW_ONLY",
+            "label": "View Only",
+            "description": "Read-only access to allowed sections"
+        },
+        {
+            "id": "MANAGER",
+            "label": "Manager",
+            "description": "Manage teams, tasks, entities, and registrations"
+        },
+        {
+            "id": "ADMIN",
+            "label": "Admin",
+            "description": "Administrative access to manage core system modules"
+        },
+        {
+            "id": "WEBSITE_MANAGER",
+            "label": "Website Manager",
+            "description": "Manage bookings, customers, payments, coupons, and web operations"
+        },
+        {
+            "id": "SUPER_ADMIN",
+            "label": "Super Admin",
+            "description": "Full unrestricted access to the entire system"
+        }
+    ]
+}

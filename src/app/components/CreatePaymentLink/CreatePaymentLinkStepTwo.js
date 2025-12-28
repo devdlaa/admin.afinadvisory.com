@@ -20,7 +20,7 @@ import {
   fetchServicePricing,
 } from "@/store/slices/createPaymentLink";
 
-import { INDIAN_STATES } from "@/utils/utils";
+import { INDIAN_STATES } from "@/utils/server/utils";
 
 const PricingCard = ({
   plan,

@@ -21,7 +21,7 @@ import {
   CheckCircle,
 } from "lucide-react";
 import "./AddInfluencerDialog.scss";
-import { generateInfluencerUsername } from "@/utils/utils";
+import { generateInfluencerUsername } from "@/utils/server/utils";
 
 // Import Redux actions
 import {

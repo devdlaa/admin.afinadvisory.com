@@ -8,12 +8,16 @@ import {
 
 import {
   AdminUserCreateSchema,
-  AdminUserUpdateSchema,
+  AdminUserListSchema,
   AdminUserLoginSchema,
+  AdminUserSearchSchema,
+  AdminUserUpdateSchema,
+  ResendOnboardingInviteSchema,
 } from "./core/adminUser.schema.js";
 
 import {
   RegistrationTypeCreateSchema,
+  RegistrationTypeListSchema,
   RegistrationTypeUpdateSchema,
 } from "./core/registrationType.schema.js";
 
@@ -36,6 +40,7 @@ import {
   EntityGroupMemberAddSchema,
   EntityGroupTypeEnum,
   EntityGroupRoleEnum,
+  EntityGroupMemberListSchema,
 } from "./core/entityGroup.schema.js";
 
 import {
@@ -118,12 +123,16 @@ export const schemas = Object.freeze({
   adminUser: {
     create: AdminUserCreateSchema,
     update: AdminUserUpdateSchema,
+    list: AdminUserListSchema,
+    search: AdminUserSearchSchema,
+    resendOnboardinLink: ResendOnboardingInviteSchema,
     login: AdminUserLoginSchema,
   },
 
   registrationType: {
     create: RegistrationTypeCreateSchema,
     update: RegistrationTypeUpdateSchema,
+    list: RegistrationTypeListSchema,
   },
 
   billableModule: {
@@ -137,15 +146,11 @@ export const schemas = Object.freeze({
     update: DepartmentUpdateSchema,
   },
 
-  role: {
-    create: RoleCreateSchema,
-    update: RoleUpdateSchema,
-  },
-
   entityGroup: {
     create: EntityGroupCreateSchema,
     update: EntityGroupUpdateSchema,
     addMember: EntityGroupMemberAddSchema,
+    lastMembers: EntityGroupMemberListSchema,
     enums: {
       type: EntityGroupTypeEnum,
       role: EntityGroupRoleEnum,

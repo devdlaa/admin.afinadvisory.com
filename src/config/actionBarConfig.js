@@ -67,7 +67,7 @@ import {
   exportServiceBookingsToExcel,
   exportCustomersToExcel,
   exportInfluencersToExcel
-} from "@/utils/utils";
+} from "@/utils/server/utils";
 
 // Services/Bookings Configuration
 export const servicesActionBarConfig = {

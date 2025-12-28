@@ -16,7 +16,7 @@ import {
   matchesTabFilter,
   calculateTabCounts,
   sortBookings,
-} from "@/utils/ui/bookingFilters";
+} from "@/utils/client/ui/bookingFilters";
 
 import BookingCard from "./BookingCard";
 import TabsBar from "./TabsBar";
