@@ -55,6 +55,7 @@ const PERIOD_LABEL_MAP = {
   QUARTERLY: "QUARTER",
   HALFYEARLY: "HALFYEAR",
   YEARLY: "YEAR",
+  EXPIRY_BASED : "LICENSE_TERM"
 };
 
 /**
@@ -65,6 +66,8 @@ const PERIOD_LABEL_MAP = {
 // Cron generates tasks when current month ∈ anchor_months
 // Indian FY = April–March, so:
 //  Q1 ends Jun, Q2 ends Sep, Q3 ends Dec, Q4 ends Mar
+
+// TODO - HANDLE NEW FEILD IN CREATE AND UPDATE AND LIST SERVICE AND APIS anchor_overrides
 
 export const createComplianceRule = async (data, admin_id) => {
   return prisma.$transaction(async (tx) => {

@@ -8,8 +8,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-
-
 enum AdminUserAppRole {
   SUPER_ADMIN
   ADMIN
@@ -18,15 +16,11 @@ enum AdminUserAppRole {
   VIEW_ONLY
 }
 
-
-
-
 enum EntityStatus {
   ACTIVE
   INACTIVE
   SUSPENDED
 }
-
 
 enum AdminUserStatus{
   ACTIVE
@@ -40,7 +34,6 @@ enum EntityRegistrationStatus {
   EXPIRED
 }
 
-
 enum TaskStatus {
   PENDING
   IN_PROGRESS
@@ -49,13 +42,12 @@ enum TaskStatus {
   ON_HOLD
   PENDING_CLIENT_INPUT
 }
+
 enum TaskPriority {
  LOW
-MEDIUM
+NORMAL
 HIGH
 }
-
-
 
 enum FrequencyUnit {
   DAY
@@ -63,17 +55,11 @@ enum FrequencyUnit {
   YEAR
 }
 
-
 enum TASK_SOURCE {
   CRON_SYSTEM_GEN
   MANUALLY
   IMPORT
 }
-
-
-
-
-
 
 enum EntityGroupType {
   FAMILY
@@ -110,7 +96,6 @@ enum EntityGroupRole {
   OBSERVER
   OTHER
 }
-
 
 
 
@@ -172,35 +157,24 @@ enum EntityType {
   GOVERNMENT_COMPANY
 }
 
-
-
-
 model Entity {
   id              String       @id @default(uuid()) @db.Uuid
-
   entity_type     EntityType
   name            String       @db.Char(120)
-
-  pan String? @unique
-
-
+  pan             String?      @unique
   email           String
   primary_phone   String
-  
-  contact_person  String?    @db.Char(100)
+  contact_person  String?      @db.Char(100)
   secondary_phone String?
-
   address_line1   String?      @db.Char(200)
   address_line2   String?      @db.Char(200)
-  city            String?       @db.Char(50)
-  state           String?       @db.Char(50)
+  city            String?      @db.Char(50)
+  state           String?      @db.Char(50)
   pincode         String?      @db.Char(6)
   status          EntityStatus @default(INACTIVE)
-
   created_by      String       @db.Uuid
   updated_by      String?      @db.Uuid
   deleted_by      String?      @db.Uuid
-
   created_at      DateTime     @default(now())
   updated_at      DateTime     @updatedAt
   deleted_at      DateTime?
@@ -213,7 +187,6 @@ model Entity {
   tasks           Task[]
   group_members   EntityGroupMember[]
 
-
   @@index([name])
   @@index([pan])
   @@index([email])
@@ -222,8 +195,6 @@ model Entity {
   @@index([deleted_at])
   @@index([status, created_at])
 }
-
-
 
 model EntityGroup {
   id         String          @id @default(uuid()) @db.Uuid
@@ -236,8 +207,6 @@ model EntityGroup {
   @@index([group_type])
   @@index([created_at])
 }
-
-
 
 model EntityGroupMember {
   id              String          @id @default(uuid()) @db.Uuid
@@ -254,36 +223,29 @@ model EntityGroupMember {
   @@index([role])
 }
 
-
-
 model EntityRegistration {
   id                   String                       @id @default(uuid()) @db.Uuid
   entity_id            String                       @db.Uuid
   registration_type_id String                       @db.Uuid
   registration_number  String
   state                IndianState
-
   effective_from       DateTime?
   effective_to         DateTime?
   status               EntityRegistrationStatus     @default(INACTIVE)
   is_primary           Boolean                      @default(false)
-
-  created_by           String                   @db.Uuid
-  updated_by           String?                  @db.Uuid
-  deleted_by           String?                  @db.Uuid
+  created_by           String                       @db.Uuid
+  updated_by           String?                      @db.Uuid
+  deleted_by           String?                      @db.Uuid
   deleted_at           DateTime?
-
   created_at           DateTime                     @default(now())
   updated_at           DateTime                     @updatedAt
 
-
   entity           Entity                      @relation(fields: [entity_id], references: [id], onDelete: Cascade)
   registrationType RegistrationType            @relation(fields: [registration_type_id], references: [id])
-
-  creator              AdminUser          @relation("er_creator", fields: [created_by], references: [id])
-  updater              AdminUser?         @relation("er_updater", fields: [updated_by], references: [id])
-  deleter              AdminUser?         @relation("er_deleter", fields: [deleted_by], references: [id])
-
+  creator          AdminUser                   @relation("er_creator", fields: [created_by], references: [id])
+  updater          AdminUser?                  @relation("er_updater", fields: [updated_by], references: [id])
+  deleter          AdminUser?                  @relation("er_deleter", fields: [deleted_by], references: [id])
+  tasks            Task[]                      @relation("TaskRegistration")
 
   @@unique([entity_id, registration_type_id, registration_number])
   @@index([status])
@@ -297,18 +259,14 @@ model EntityRegistration {
   @@index([entity_id, status, effective_to])
 }
 
-
-
 model RegistrationType {
   id                String   @id @default(uuid()) @db.Uuid
   code              String   @unique @db.VarChar(50)
   name              String?
   description       String?
   is_active         Boolean  @default(false)
-
   validation_regex  String?
   validation_hint   String?
-
   created_at        DateTime @default(now())
 
   registrations     EntityRegistration[]
@@ -318,45 +276,31 @@ model RegistrationType {
   @@index([code])
 }
 
-
-
 model ComplianceRule {
   id                   String        @id @default(uuid()) @db.Uuid
   compliance_code      String        @unique
   name                 String
-
   registration_type_id String        @db.Uuid
-  registrationType     RegistrationType @relation(fields: [registration_type_id], references: [id])
-
-
-
-  // MONTHLY | QUARTERLY | HALFYEARLY | YEARLY
   frequency_type       String         
-
-  // months in which cron should trigger this rule
-  // e.g. [1,2,3...12] or [3,6,9,12] or [3]
-  anchor_months        Json           
-
-  // MONTH | QUARTER | HALFYEAR | YEAR  (for naming/period label)
+  anchor_months        Json
+  anchor_overrides     Json? 
+  auto_task_generation_enabled Boolean @default(true)     
+  renewal_window_days_before_expiry Int?   // e.g. 120
+  post_expiry_grace_days            Int?   // optional late window  
   period_label_type    String         
-
-  // due date mechanics
-  due_day              Int            // 1–31
-  due_month_offset     Int            // -1,0,+1,+4 etc
+  due_day              Int            
+  due_month_offset     Int            
   grace_days           Int            @default(0)
-
   is_active            Boolean        @default(true)
-
-  // --------- EXISTING AUDIT FIELDS STAY ---------
   created_by           String         @db.Uuid
   updated_by           String?        @db.Uuid
   created_at           DateTime       @default(now())
   updated_at           DateTime       @updatedAt
 
-  creator              AdminUser      @relation("cr_creator", fields: [created_by], references: [id])
-  updater              AdminUser?     @relation("cr_updater", fields: [updated_by], references: [id])
-
-  task_templates       TaskTemplate[]
+  registrationType RegistrationType @relation(fields: [registration_type_id], references: [id])
+  creator          AdminUser        @relation("cr_creator", fields: [created_by], references: [id])
+  updater          AdminUser?       @relation("cr_updater", fields: [updated_by], references: [id])
+  task_templates   TaskTemplate[]
 
   @@index([registration_type_id])
   @@index([is_active])
@@ -364,85 +308,64 @@ model ComplianceRule {
   @@index([registration_type_id, is_active])
 }
 
-
-
 model AdminUser { 
-  id       String @id @default(uuid()) @db.Uuid 
-  name     String 
-  email    String @unique 
-  password String? 
-  
-
-  user_code        String    @unique 
-  status           AdminUserStatus @default(INACTIVE)
-  date_of_joining  DateTime  @default(now())
-  onboarding_completed     Boolean   @default(false)
-  admin_role  AdminUserAppRole @default(EMPLOYEE)
-
-  phone            String    @unique 
-  alternate_phone  String?  
-  last_invite_sent_at      DateTime?
-
-  address_line1   String?      @db.Char(200)
-  address_line2   String?      @db.Char(200)
-  city            String?       @db.Char(50)
-  state           IndianState?       
-  pincode         String?      @db.Char(6)
-
-
-  totp_secret              String?
-  last_login_at            DateTime?
-  password_set_at          DateTime?
-  last_password_reset_request_at          DateTime?
-  two_fa_verified_at DateTime? 
-  
-
-  departments          AdminUserDepartment[] 
-  created_tasks        Task[]                  @relation("task_creator") 
-  task_assignments     TaskAssignment[]        @relation("assignee") 
-  assigned_tasks       TaskAssignment[]        @relation("assigner") 
-  created_task_modules TaskModule[]            @relation("creator") 
-  updated_task_modules TaskModule[]            @relation("updater") 
-  deleted_task_modules TaskModule[]            @relation("deleter") 
-  created_templates    TaskTemplate[] 
-  auth_provider   String   @default("credentials")  
-  provider_id     String?  
-  created_modules      BillableModule[]        @relation("module_creator") 
-  updated_modules      BillableModule[]        @relation("module_updater") 
-
-
+  id                              String              @id @default(uuid()) @db.Uuid 
+  name                            String 
+  email                           String              @unique 
+  password                        String? 
+  user_code                       String              @unique 
+  status                          AdminUserStatus     @default(INACTIVE)
+  date_of_joining                 DateTime            @default(now())
+  onboarding_completed            Boolean             @default(false)
+  admin_role                      AdminUserAppRole    @default(EMPLOYEE)
+  phone                           String              @unique 
+  alternate_phone                 String?  
+  last_invite_sent_at             DateTime?
+  address_line1                   String?             @db.Char(200)
+  address_line2                   String?             @db.Char(200)
+  city                            String?             @db.Char(50)
+  state                           IndianState?       
+  pincode                         String?             @db.Char(6)
+  totp_secret                     String?
+  last_login_at                   DateTime?
+  password_set_at                 DateTime?
+  last_password_reset_request_at  DateTime?
+  two_fa_verified_at              DateTime? 
+  auth_provider                   String              @default("credentials")  
+  provider_id                     String?  
+  created_by                      String?             @db.Uuid 
+  updated_by                      String?             @db.Uuid 
+  deleted_by                      String?             @db.Uuid 
+  deleted_at                      DateTime? 
  
-  created_by String?  @db.Uuid 
-  updated_by String?  @db.Uuid 
-  deleted_by String?  @db.Uuid 
-  deleted_at DateTime? 
- 
-  creator    AdminUser? @relation("admin_creator", fields: [created_by], references: [id]) 
-  updater    AdminUser? @relation("admin_updater", fields: [updated_by], references: [id]) 
-  deleter    AdminUser? @relation("admin_deleter", fields: [deleted_by], references: [id]) 
- 
-  // Add these opposite relation fields: 
-  created_admins       AdminUser[]             @relation("admin_creator") 
-  updated_admins       AdminUser[]             @relation("admin_updater") 
-  deleted_admins       AdminUser[]             @relation("admin_deleter") 
-   
-  created_entities     Entity[]                @relation("entity_creator") 
-  updated_entities     Entity[]                @relation("entity_updater") 
-  deleted_entities     Entity[]                @relation("entity_deleter") 
-   
-  created_registrations EntityRegistration[]   @relation("er_creator") 
-  updated_registrations EntityRegistration[]   @relation("er_updater") 
-  deleted_registrations EntityRegistration[]   @relation("er_deleter") 
-   
-
-   
-  created_rules        ComplianceRule[]        @relation("cr_creator") 
-  updated_rules        ComplianceRule[]        @relation("cr_updater") 
-   
-  last_activity_tasks  Task[]                  @relation 
-  updated_tasks        Task[]                  @relation("task_updator") 
-   
-
+  creator                  AdminUser?              @relation("admin_creator", fields: [created_by], references: [id]) 
+  updater                  AdminUser?              @relation("admin_updater", fields: [updated_by], references: [id]) 
+  deleter                  AdminUser?              @relation("admin_deleter", fields: [deleted_by], references: [id]) 
+  created_admins           AdminUser[]             @relation("admin_creator") 
+  updated_admins           AdminUser[]             @relation("admin_updater") 
+  deleted_admins           AdminUser[]             @relation("admin_deleter") 
+  created_entities         Entity[]                @relation("entity_creator") 
+  updated_entities         Entity[]                @relation("entity_updater") 
+  deleted_entities         Entity[]                @relation("entity_deleter") 
+  created_registrations    EntityRegistration[]    @relation("er_creator") 
+  updated_registrations    EntityRegistration[]    @relation("er_updater") 
+  deleted_registrations    EntityRegistration[]    @relation("er_deleter") 
+  created_rules            ComplianceRule[]        @relation("cr_creator") 
+  updated_rules            ComplianceRule[]        @relation("cr_updater") 
+  departments              AdminUserDepartment[] 
+  created_tasks            Task[]                  @relation("task_creator") 
+  task_assignments         TaskAssignment[]        @relation("assignee") 
+  assigned_tasks           TaskAssignment[]        @relation("assigner") 
+  created_task_modules     TaskModule[]            @relation("creator") 
+  updated_task_modules     TaskModule[]            @relation("updater") 
+  deleted_task_modules     TaskModule[]            @relation("deleter") 
+  created_templates        TaskTemplate[]          @relation("TaskTemplateCreatedBy")
+  updated_templates        TaskTemplate[]          @relation("TaskTemplateUpdatedBy")
+  created_modules          BillableModule[]        @relation("module_creator") 
+  updated_modules          BillableModule[]        @relation("module_updater") 
+  last_activity_tasks      Task[]                  @relation("last_activity_admin")
+  updated_tasks            Task[]                  @relation("task_updator") 
+  permissions              AdminUserPermission[]
  
   @@index([email]) 
   @@index([name])
@@ -451,7 +374,6 @@ model AdminUser {
   @@index([status])
 }
 
-
 model AdminUserCounter {
   id            String   @id @default(uuid()) @db.Uuid
   current_count Int      @default(0)
@@ -459,7 +381,6 @@ model AdminUserCounter {
   
   @@map("admin_user_counter")
 }
-
 
 model Department {
   id   String @id @default(uuid()) @db.Uuid
@@ -482,11 +403,6 @@ model AdminUserPermission {
   @@index([permission_id])
 }
 
-
-
-
-
-
 model AdminUserDepartment {
   admin_user_id String @db.Uuid
   department_id String @db.Uuid
@@ -499,75 +415,59 @@ model AdminUserDepartment {
   @@index([department_id])
 }
 
-
 model Permission {
   id   String @id @default(uuid()) @db.Uuid
   code String @unique
+  
+  adminUserPermissions AdminUserPermission[]
 }
-
-
-
-
-
-
 
 model TaskCategory {
   id          String   @id @default(uuid()) @db.Uuid
   name        String   @unique @db.VarChar(50)
   description String?
   is_active   Boolean  @default(true)
-
   created_at  DateTime @default(now())
 
   tasks       Task[]
 }
 
-
 model Task {
-  id                 String        @id @default(uuid()) @db.Uuid
-  entity_id          String        @db.Uuid
+  id                     String        @id @default(uuid()) @db.Uuid
+  entity_id              String        @db.Uuid
+  title                  String
+  description            String?
+  status                 TaskStatus    @default(PENDING)
+  priority               TaskPriority  @default(NORMAL)
+  start_date             DateTime?
+  end_date               DateTime?
+  due_date               DateTime?
+  task_category_id       String?       @db.Uuid
+  compliance_rule_id     String?       @db.Uuid
+  task_source            TASK_SOURCE
+  period_start           DateTime?
+  period_end             DateTime?
+  financial_year         String?
+  period_label           String?
+  is_assigned_to_all     Boolean       @default(false)
+  entity_registration_id String?       @db.Uuid
+  last_activity_at       DateTime?
+  last_activity_by       String?       @db.Uuid
+  created_at             DateTime      @default(now())
+  created_by             String        @db.Uuid
+  updated_at             DateTime      @updatedAt
+  updated_by             String        @db.Uuid
 
-  title              String
-  description        String?
-  status             TaskStatus    @default(PENDING)
-  priority           TaskPriority    @default(NORMAL)
+  entity              Entity              @relation(fields: [entity_id], references: [id], onDelete: Cascade)
+  creator             AdminUser           @relation("task_creator", fields: [created_by], references: [id])
+  updator             AdminUser           @relation("task_updator", fields: [updated_by], references: [id])
+  category            TaskCategory?       @relation(fields: [task_category_id], references: [id])
+  registration        EntityRegistration? @relation("TaskRegistration", fields: [entity_registration_id], references: [id])
+  last_activity_admin AdminUser?         @relation("last_activity_admin", fields: [last_activity_by], references: [id])
+  assignments         TaskAssignment[]
+  task_modules        TaskModule[]
 
-  start_date         DateTime?
-  end_date           DateTime?
-  due_date           DateTime?
-
-  task_category_id String? @db.Uuid
-  compliance_rule_id String?       @db.Uuid
-
-  task_source  TASK_SOURCE
-
-  period_start   DateTime?
-  period_end     DateTime?
-  financial_year String?
-  period_label   String?
-
-
-  is_assigned_to_all Boolean       @default(false)
-  entity_registration_id   String?
-
-  created_at         DateTime      @default(now())
-  created_by         String        @db.Uuid
-  updated_at         DateTime      @updatedAt
-  updated_by         String        @db.Uuid
-
-
-
-
-  
-  entity        Entity           @relation(fields: [entity_id], references: [id], onDelete: Cascade)
-  creator       AdminUser        @relation("task_creator", fields: [created_by], references: [id])
-  updator       AdminUser        @relation("task_updator", fields: [updated_by], references: [id])
-  category      TaskCategory?    @relation(fields: [task_category_id], references: [id])
-  registration EntityRegistration? @relation(fields: [entity_registration_id], references: [id])
-  assignments   TaskAssignment[]
-  task_modules  TaskModule[]
-
-
+  @@unique([entity_id, entity_registration_id, compliance_rule_id, period_start, period_end])
   @@index([status])
   @@index([entity_id])
   @@index([created_by])
@@ -579,10 +479,7 @@ model Task {
   @@index([entity_id, status, due_date])
   @@index([status, due_date])
   @@index([compliance_rule_id, status])
-  @@unique([entity_id, entity_registration_id, compliance_rule_id, period_start, period_end])
 }
-
-
 
 model TaskAssignment {
   id                String   @id @default(uuid()) @db.Uuid
@@ -603,21 +500,20 @@ model TaskAssignment {
   @@index([admin_user_id, task_id])
 }
 
-
 model TaskTemplate {
   id                   String   @id @default(uuid()) @db.Uuid
   compliance_rule_id   String   @db.Uuid
   created_by           String   @db.Uuid
   updated_by           String   @db.Uuid
   title_template       String   @db.VarChar(180)
-  description_template String? 
+  description_template String?
   is_active            Boolean  @default(true)
   created_at           DateTime @default(now())
   updated_at           DateTime @updatedAt
 
-  complianceRule ComplianceRule       @relation(fields: [compliance_rule_id], references: [id])
-  creator        AdminUser            @relation(fields: [created_by], references: [id])
-  upadtor        AdminUser            @relation(fields: [updated_by], references: [id])
+  complianceRule ComplianceRule @relation(fields: [compliance_rule_id], references: [id])
+  creator        AdminUser      @relation("TaskTemplateCreatedBy", fields: [created_by], references: [id])
+  updater        AdminUser      @relation("TaskTemplateUpdatedBy", fields: [updated_by], references: [id])
   modules        TaskTemplateModule[]
 
   @@unique([compliance_rule_id, title_template])
@@ -627,8 +523,6 @@ model TaskTemplate {
   @@index([is_active])
   @@index([compliance_rule_id, is_active])
 }
-
-
 
 model TaskTemplateModule {
   id                 String   @id @default(uuid()) @db.Uuid
@@ -645,8 +539,6 @@ model TaskTemplateModule {
   @@index([billable_module_id])
 }
 
-
-
 model BillableModuleCategory {
   id          String   @id @default(uuid()) @db.Uuid
   name        String   @unique @db.VarChar(50)
@@ -655,12 +547,11 @@ model BillableModuleCategory {
   modules     BillableModule[]
 }
 
-
 model BillableModule {
   id            String   @id @default(uuid()) @db.Uuid
   name          String
   description   String?
-  category_id   String? @db.Uuid
+  category_id   String?  @db.Uuid
   is_deleted    Boolean  @default(false)
   created_by    String   @db.Uuid
   updated_by    String?  @db.Uuid
@@ -669,18 +560,14 @@ model BillableModule {
 
   creator          AdminUser            @relation("module_creator", fields: [created_by], references: [id])
   updater          AdminUser?           @relation("module_updater", fields: [updated_by], references: [id])
-  category BillableModuleCategory?      @relation(fields: [category_id], references: [id])
-
+  category         BillableModuleCategory? @relation(fields: [category_id], references: [id])
   template_modules TaskTemplateModule[]
   task_modules     TaskModule[]
-
 
   @@index([category_id])
   @@index([is_deleted])
   @@index([created_by])
-
 }
-
 
 model TaskModule {
   id                 String   @id @default(uuid()) @db.Uuid
@@ -694,12 +581,12 @@ model TaskModule {
   is_deleted         Boolean  @default(false)
   created_at         DateTime @default(now())
   updated_at         DateTime @updatedAt
+  
   task           Task           @relation(fields: [task_id], references: [id], onDelete: Cascade)
   billableModule BillableModule @relation(fields: [billable_module_id], references: [id])
   creator        AdminUser      @relation("creator", fields: [created_by], references: [id])
   updater        AdminUser?     @relation("updater", fields: [updated_by], references: [id])
   deleter        AdminUser?     @relation("deleter", fields: [deleted_by], references: [id])
-
 
   @@index([task_id])
   @@index([billable_module_id])
@@ -707,45 +594,4 @@ model TaskModule {
   @@index([created_by])
   @@index([task_id, is_deleted])
   @@index([billable_module_id, is_deleted])
-}
-
-
-  
-
-
-
-
-
-model Expense {
-  id              String   @id @default(uuid()) @db.Uuid
-
-  task_id         String   @db.Uuid
-  description     String
-  amount          Decimal
-  expense_date    DateTime
-
-  expense_bearer  ExpenseBearer   @default(CLIENT)   // from your enum
-  is_recoverable  Boolean         @default(true)
-
-  government_reference  String?   // challan no / SRN / ARN
-  attachment_url        String?   // proof / challan pdf
-
-  // billing + recovery lifecycle
-  is_invoiced     Boolean         @default(false)
-  invoiced_at     DateTime?
-  invoice_line_id String?         @db.Uuid
-
-  is_reimbursed   Boolean         @default(false)
-  reimbursed_at   DateTime?
-
-  created_at      DateTime @default(now())
-  updated_at      DateTime @updatedAt
-
-  task        Task        @relation(fields: [task_id], references: [id], onDelete: Cascade)
-  invoiceLine InvoiceLine? @relation(fields: [invoice_line_id], references: [id])
-
-  @@index([task_id])
-  @@index([is_recoverable])
-  @@index([is_invoiced])
-  @@index([invoice_line_id])
 }
