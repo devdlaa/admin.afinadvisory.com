@@ -1,62 +1,55 @@
 import { schemas } from "@/schemas";
+
 import {
   createAdminUser,
   listAdminUsers,
-} from "@/services_backup/admin/admin-user.service";
-import { createAdminUser } from "@/services/admin/admin-user.service";
-import { createSuccessResponse, handleApiError } from "@/utils/server/apiResponse";
+} from "@/services/admin/admin-user.service";
+import {
+  createSuccessResponse,
+  createErrorResponse,
+  handleApiError,
+} from "@/utils/server/apiResponse";
 import { SEND_EMAIL } from "@/utils/server/sendemail";
-import { auth } from "@/utils/server/auth";
+import { requirePermission } from "@/utils/server/requirePermission";
 
 const FRONTEND_URL = process.env.NEXT_PUBLIC_WEB_URL;
 const SUPPORT_EMAIL = process.env.SERVICE_EMAIL;
 
 export async function POST(req) {
   try {
-    // TODO : AUTH VALIDATION & PERMISSION CHECK
-    // const session = await auth();
-    // if (!session?.user) {
-    //   return createErrorResponse(
-    //     "Unauthorized - Please login to continue",
-    //     401,
-    //     "AUTH_REQUIRED"
-    //   );
-    // }
+    const [permissionError, session] = await requirePermission(
+      req,
+      "admin_users.create"
+    );
 
-    // // Permission check - uncomment and configure based on your permission mapping
-    // const permissionCheck = await requirePermission(request, "business.manage");
-    // if (permissionCheck) return permissionCheck;
+    if (permissionError) return permissionError;
 
-    const session = {
-      username: "admin",
-      user_id: 1221,
-    };
+    if (!session?.user) {
+      return createErrorResponse(
+        "Unauthorized - Please login to continue",
+        401,
+        "AUTH_REQUIRED"
+      );
+    }
 
     const body = schemas.adminUser.create.parse(await req.json());
 
-    // Create user and get onboarding token
-    const { user, onboardingToken } = await createAdminUser(
-      body,
-      session.user_id
-    );
+    const { user, onboardingToken } = await createAdminUser(body, session.id);
 
-    // Generate invitation link
     const inviteLink = `${FRONTEND_URL}/user-onboarding?token=${onboardingToken}`;
 
-    // Send invitation email
     const emailResult = await SEND_EMAIL({
       to: user.email,
       type: "SEND_USER_INVITE_LINK",
       variables: {
         recipientName: user.name,
-        inviterName: session.username,
+        inviterName: session.name,
         inviteLink,
         expiryHours: 24,
         supportEmail: SUPPORT_EMAIL,
       },
     });
 
-    // TODO: Handle email failure if needed
     if (!emailResult.success) {
       console.error("Failed to send invitation email:", emailResult.error);
     }
@@ -73,6 +66,11 @@ export async function POST(req) {
 
 export async function GET(req) {
   try {
+    // Optional permission hook, adjust permission as your policy requires
+    const [permissionError] = await requirePermission(req, "admin_users.access");
+
+    if (permissionError) return permissionError;
+
     const { searchParams } = new URL(req.url);
 
     const filters = schemas.adminUser.list.parse({

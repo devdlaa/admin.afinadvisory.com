@@ -1,37 +1,85 @@
 import { z } from "zod";
 
-/**
- * CREATE service module
- * (formerly billable module)
- */
+export const BillableModuleUpdateSchema = z
+  .object({
+    name: z
+      .string()
+      .min(1, "Module name cannot be empty")
+      .max(255, "Module name must not exceed 255 characters")
+      .trim()
+      .regex(
+        /^[A-Za-z0-9\- ]+$/,
+        "Module name can only contain letters, numbers, spaces, and hyphens"
+      )
+      .optional(),
+
+    description: z.string().optional().nullable(),
+
+    category_id: z
+      .string()
+      .uuid("Invalid category ID format")
+      .optional()
+      .nullable(),
+  })
+  .refine(
+    (data) =>
+      data.name !== undefined ||
+      data.description !== undefined ||
+      data.category_id !== undefined,
+    {
+      message: "At least one field must be provided to update",
+      path: ["_root"],
+    }
+  );
+
 export const BillableModuleCreateSchema = z.object({
-  name: z.string().min(1).max(200).trim(),
-  description: z.string().max(500).optional().nullable(),
-
-  // purely classification now
-  category_id: z.string().uuid().optional().nullable(),
-
-  is_active: z.boolean().default(true),
+  name: z
+    .string()
+    .min(1, "Module name is required")
+    .max(255, "Module name must not exceed 255 characters")
+    .trim()
+    .regex(
+      /^[A-Za-z0-9\- ]+$/,
+      "Module name can only contain letters, numbers, spaces, and hyphens"
+    ),
+  description: z.string().optional().nullable(),
+  category_id: z.string().uuid("Invalid category ID format"),
 });
 
-/**
- * UPDATE service module
- */
-export const BillableModuleUpdateSchema = z.object({
-  name: z.string().min(1).max(200).trim().optional(),
-  description: z.string().max(500).optional().nullable(),
-  category_id: z.string().uuid().optional().nullable(),
-  is_active: z.boolean().optional(),
-});
-
-/**
- * QUERY service modules
- */
 export const BillableModuleQuerySchema = z.object({
-  category_id: z.string().uuid().optional(),
-  is_active: z.boolean().optional(),
+  page: z.coerce.number().int().positive().optional().default(1),
+  page_size: z.coerce.number().int().positive().max(100).optional().default(10),
+  category_id: z.string().uuid("Invalid category ID format").optional(),
   search: z.string().optional(),
-
-  page: z.coerce.number().min(1).default(1),
-  limit: z.coerce.number().min(1).max(100).default(20),
 });
+
+export const BillableModuleCreateCategorySchema = z.object({
+  name: z
+    .string()
+    .min(1, "Name is required")
+    .max(50, "Name must not exceed 50 characters")
+    .trim(),
+  description: z.string().optional().nullable(),
+});
+
+export const BillableModuleListCategoriesSchema = z.object({
+  page: z.coerce.number().int().positive().optional().default(1),
+  page_size: z.coerce.number().int().positive().max(20).optional().default(10),
+  search: z.string().optional(),
+});
+
+export const BillableModuleUpdateCategorySchema = z
+  .object({
+    name: z
+      .string()
+      .min(1, "Name cannot be empty")
+      .max(50, "Name must not exceed 50 characters")
+      .trim()
+      .optional(),
+
+    description: z.string().optional().nullable(),
+  })
+  .refine((data) => data.name !== undefined || data.description !== undefined, {
+    message: "At least one field must be provided to update",
+    path: ["_root"], 
+  });

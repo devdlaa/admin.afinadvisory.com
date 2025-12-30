@@ -14,74 +14,40 @@ export const EntityGroupTypeEnum = z.enum([
   "OTHER",
 ]);
 
-export const EntityGroupRoleEnum = z.enum([
-  "OWNER",
-  "CO_OWNER",
-  "BENEFICIARY",
-  "MEMBER",
-  "MANAGING_MEMBER",
-  "DIRECTOR",
-  "EXECUTIVE_DIRECTOR",
-  "NOMINEE_DIRECTOR",
-  "PARTNER",
-  "MANAGING_PARTNER",
-  "TRUSTEE",
-  "SETTLOR",
-  "SHAREHOLDER",
-  "AUTHORIZED_SIGNATORY",
-  "REPRESENTATIVE",
-  "EMPLOYEE",
-  "ADVISOR",
-  "OBSERVER",
-  "OTHER",
-]);
-
 export const EntityGroupCreateSchema = z.object({
-  name: z.string().min(1).max(200).trim(),
+  name: z.string().min(1).max(100).trim(),
   group_type: EntityGroupTypeEnum,
 });
 
-export const EntityGroupUpdateSchema = z.object({
-  name: z.string().min(1).max(200).trim().optional(),
-  group_type: EntityGroupTypeEnum.optional(),
-});
+export const EntityGroupUpdateSchema = z
+  .object({
+    name: z.string().min(1).max(100).trim().optional(),
+    group_type: EntityGroupTypeEnum.optional(),
+  })
+  .refine((data) => data.name !== undefined || data.group_type !== undefined, {
+    message: "At least one field must be provided to update",
+    path: ["_root"],
+  });
 
-export const EntityGroupMemberAddSchema = z.object({
-  entity_group_id: z.string().uuid(),
-  entity_id: z.string().uuid(),
-  role: EntityGroupRoleEnum,
-});
-
-export const EntityGroupMemberBulkAddSchema = z.object({
+// Zod schema for sync members payload
+export const EntityGroupMemberSyncSchema = z.object({
   entity_group_id: z.string().uuid(),
   members: z
     .array(
       z.object({
-        entity_id: z.string().uuid(),
-        role: EntityGroupRoleEnum,
+        entity_id: z.string().uuid("Invalid entity ID"),
+        role: z.string().min(1, "Role is required"),
       })
     )
-    .min(1, "At least one member required"),
+    .nonempty("Members array cannot be empty"),
 });
 
-export const EntityGroupMemberListSchema = z.object({
-  page: z
-    .coerce.number()
-    .int()
-    .positive()
-    .default(1)
-    .optional(),
+export const EntityGroupListSchema = z.object({
+  page: z.coerce.number().int().positive().default(1).optional(),
 
-  page_size: z
-    .coerce.number()
-    .int()
-    .positive()
-    .max(50)
-    .default(10)
-    .optional(),
-});
+  page_size: z.coerce.number().int().positive().max(50).default(10).optional(),
 
+  group_type: EntityGroupTypeEnum.optional(),
 
-export const EntityGroupMemberUpdateSchema = z.object({
-  role: EntityGroupRoleEnum,
+  search: z.string().trim().min(1).optional(),
 });

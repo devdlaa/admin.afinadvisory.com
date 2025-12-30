@@ -1,28 +1,29 @@
-// Upload API
 import { supabase } from "@/lib/supabaseClient";
 import { requirePermission } from "@/utils/server/requirePermission";
 import {
   createSuccessResponse,
   createErrorResponse,
 } from "@/utils/resposeHandlers";
+import { uuidSchema } from "@/schemas";
 
 const BUCKET = process.env.SUPERBASE_STORAGE_BUCKET_emp_images;
 
-export async function POST(req) {
+export async function POST(req, { params }) {
   try {
-    const permissionCheck = await requirePermission(
+    const [permissionError] = await requirePermission(
       req,
-      "users.profile_image.profile_image"
+      "admin_users.manage"
     );
-    if (permissionCheck) return permissionCheck;
+    if (permissionError) return permissionError;
+
+    const userId = uuidSchema.parse(params.id);
 
     const formData = await req.formData();
     const file = formData.get("file");
-    const userId = formData.get("userId");
 
-    if (!file || !userId) {
+    if (!file) {
       return createErrorResponse(
-        "Missing file or userId",
+        "Missing file",
         400,
         "MISSING_REQUIRED_FIELDS"
       );
@@ -37,11 +38,12 @@ export async function POST(req) {
 
     if (error) throw error;
 
-    const publicUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${filePath}`;
+    const publicUrl =
+      `${process.env.NEXT_PUBLIC_SUPABASE_URL}` +
+      `/storage/v1/object/public/${BUCKET}/${filePath}`;
 
     return createSuccessResponse("Profile image uploaded successfully", {
       url: publicUrl,
-      filePath,
     });
   } catch (err) {
     return createErrorResponse(

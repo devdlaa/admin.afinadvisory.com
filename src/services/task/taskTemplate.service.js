@@ -2,7 +2,7 @@ import { PrismaClient } from "@prisma/client";
 import {
   NotFoundError,
   ConflictError,
-  BadRequestError
+  BadRequestError,
 } from "../../utils/server/errors.js";
 
 const prisma = new PrismaClient();
@@ -25,8 +25,8 @@ export const createTaskTemplate = async (data, created_by) => {
     const complianceRule = await tx.complianceRule.findFirst({
       where: {
         id: data.compliance_rule_id,
-        is_active: true
-      }
+        is_active: true,
+      },
     });
 
     if (!complianceRule) {
@@ -36,8 +36,8 @@ export const createTaskTemplate = async (data, created_by) => {
     const existingTemplate = await tx.taskTemplate.findFirst({
       where: {
         compliance_rule_id: data.compliance_rule_id,
-        title_template: title
-      }
+        title_template: title,
+      },
     });
 
     if (existingTemplate) {
@@ -52,24 +52,24 @@ export const createTaskTemplate = async (data, created_by) => {
         title_template: title,
         description_template: data.description_template?.trim() || null,
         is_active: data.is_active ?? true,
-        created_by
+        created_by,
       },
       include: {
         complianceRule: true,
         creator: {
-          select: { id: true, name: true, email: true }
-        }
-      }
+          select: { id: true, name: true, email: true },
+        },
+      },
     });
 
     return template;
   });
 };
 
-export const updateTaskTemplate = async (template_id, data) => {
+export const updateTaskTemplate = async (template_id, data, updated_by) => {
   return prisma.$transaction(async (tx) => {
     const template = await tx.taskTemplate.findUnique({
-      where: { id: template_id }
+      where: { id: template_id },
     });
 
     if (!template) {
@@ -97,8 +97,8 @@ export const updateTaskTemplate = async (template_id, data) => {
           where: {
             compliance_rule_id:
               data.compliance_rule_id ?? template.compliance_rule_id,
-            title_template: title
-          }
+            title_template: title,
+          },
         });
 
         if (existingTemplate) {
@@ -117,8 +117,8 @@ export const updateTaskTemplate = async (template_id, data) => {
       const complianceRule = await tx.complianceRule.findFirst({
         where: {
           id: data.compliance_rule_id,
-          is_active: true
-        }
+          is_active: true,
+        },
       });
 
       if (!complianceRule) {
@@ -135,19 +135,20 @@ export const updateTaskTemplate = async (template_id, data) => {
           data.description_template !== undefined
             ? data.description_template.trim() || null
             : undefined,
-        is_active: data.is_active ?? undefined
+        is_active: data.is_active ?? undefined,
+        updated_by: updated_by,
       },
       include: {
         complianceRule: true,
         creator: {
-          select: { id: true, name: true, email: true }
+          select: { id: true, name: true, email: true },
         },
         modules: {
           include: {
-            billableModule: true
-          }
-        }
-      }
+            billableModule: true,
+          },
+        },
+      },
     });
 
     return updatedTemplate;
@@ -158,7 +159,7 @@ export const deleteTaskTemplate = async (template_id) => {
   return prisma.$transaction(async (tx) => {
     const template = await tx.taskTemplate.findUnique({
       where: { id: template_id },
-      include: { modules: true }
+      include: { modules: true },
     });
 
     if (!template) {
@@ -167,12 +168,12 @@ export const deleteTaskTemplate = async (template_id) => {
 
     if (template.modules.length > 0) {
       await tx.taskTemplateModule.deleteMany({
-        where: { task_template_id: template_id }
+        where: { task_template_id: template_id },
       });
     }
 
     await tx.taskTemplate.delete({
-      where: { id: template_id }
+      where: { id: template_id },
     });
 
     return { message: "Task template deleted successfully" };
@@ -185,25 +186,25 @@ export const getTaskTemplateById = async (template_id) => {
     include: {
       complianceRule: {
         include: {
-          registrationType: true
-        }
+          registrationType: true,
+        },
       },
       creator: {
-        select: { id: true, name: true, email: true }
+        select: { id: true, name: true, email: true },
       },
       modules: {
         include: {
           billableModule: {
             include: {
-              category: true
-            }
-          }
+              category: true,
+            },
+          },
         },
         orderBy: {
-          created_at: "asc"
-        }
-      }
-    }
+          created_at: "asc",
+        },
+      },
+    },
   });
 
   if (!template) {
@@ -216,13 +217,16 @@ export const getTaskTemplateById = async (template_id) => {
 export const listTaskTemplates = async (filters = {}) => {
   // pagination normalization
   const page = Number(filters.page) > 0 ? Number(filters.page) : 1;
-  const pageSize = Number(filters.page_size) > 0 ? Number(filters.page_size) : 10;
+  const pageSize =
+    Number(filters.page_size) > 0 ? Number(filters.page_size) : 10;
 
   // boolean normalization for is_active
   let isActive;
   if (filters.is_active !== undefined) {
-    if (filters.is_active === true || filters.is_active === "true") isActive = true;
-    if (filters.is_active === false || filters.is_active === "false") isActive = false;
+    if (filters.is_active === true || filters.is_active === "true")
+      isActive = true;
+    if (filters.is_active === false || filters.is_active === "false")
+      isActive = false;
   }
 
   const where = {};
@@ -240,15 +244,15 @@ export const listTaskTemplates = async (filters = {}) => {
       {
         title_template: {
           contains: filters.search.trim(),
-          mode: "insensitive"
-        }
+          mode: "insensitive",
+        },
       },
       {
         description_template: {
           contains: filters.search.trim(),
-          mode: "insensitive"
-        }
-      }
+          mode: "insensitive",
+        },
+      },
     ];
   }
 
@@ -258,20 +262,20 @@ export const listTaskTemplates = async (filters = {}) => {
       include: {
         complianceRule: {
           include: {
-            registrationType: true
-          }
+            registrationType: true,
+          },
         },
         creator: {
-          select: { id: true, name: true, email: true }
+          select: { id: true, name: true, email: true },
         },
-        _count: { select: { modules: true } }
+        _count: { select: { modules: true } },
       },
       orderBy: { created_at: "desc" },
       skip: (page - 1) * pageSize,
-      take: pageSize
+      take: pageSize,
     }),
 
-    prisma.taskTemplate.count({ where })
+    prisma.taskTemplate.count({ where }),
   ]);
 
   const totalPages = Math.ceil(total / pageSize);
@@ -283,15 +287,7 @@ export const listTaskTemplates = async (filters = {}) => {
       page_size: pageSize,
       total_items: total,
       total_pages: totalPages,
-      has_more: page < totalPages
-    }
+      has_more: page < totalPages,
+    },
   };
-};
-
-export {
-  createTaskTemplate,
-  updateTaskTemplate,
-  deleteTaskTemplate,
-  getTaskTemplateById,
-  listTaskTemplates
 };

@@ -1,81 +1,74 @@
-import { schemas } from "@/schemas";
+import { schemas, uuidSchema } from "@/schemas";
 
-import {   getComplianceRuleById,
-  updateComplianceRule, } from "@/services_backup/entity/compliance-rule.service";
-import { createSuccessResponse, handleApiError } from "@/utils/server/apiResponse";
-// import { auth } from "@/utils/auth";
+import {
+  getComplianceRuleById,
+  updateComplianceRule,
+} from "@/services/entity/compliance-rule.service";
 
-/**
- * GET /api/compliance-rules/:id
- * Get compliance rule by ID with full details
- */
+import {
+  createSuccessResponse,
+  createErrorResponse,
+  handleApiError,
+} from "@/utils/server/apiResponse";
+
+import { requirePermission } from "@/utils/server/requirePermission";
+
 export async function GET(req, { params }) {
   try {
-    const rule = await getComplianceRuleById(params.id);
+    const [permissionError] = await requirePermission(
+      req,
+      "compliance_rules.access"
+    );
+    if (permissionError) return permissionError;
+
+    const rule_id = uuidSchema.parse(params.id);
+
+    const rule = await getComplianceRuleById(rule_id);
+
     return createSuccessResponse(
       "Compliance rule retrieved successfully",
       rule
     );
-  } catch (e) {
-    return handleApiError(e);
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
-/**
- * PUT /api/compliance-rules/:id
- * Update compliance rule (partial update allowed)
- * 
- * Body (all optional except those being updated):
- * {
- *   "name": "Updated name",
- *   "registration_type_id": "new-uuid",
- *   "frequency_type": "MONTHLY",
- *   "due_day": 15,
- *   "due_month_offset": 0,
- *   "grace_days": 5,
- *   "is_active": false
- * }
- * 
- * Note: 
- * - compliance_code CANNOT be updated
- * - If frequency_type changes, anchor_months and period_label_type auto-update
- */
-export async function PUT(req, { params }) {
+export async function PATCH(req, { params }) {
   try {
-    // TODO: AUTH VALIDATION & PERMISSION CHECK
-    const session = { user_id: "admin-user-id" };
+    const [permissionError, session] = await requirePermission(
+      req,
+      "compliance_rules.manage"
+    );
+    if (permissionError) return permissionError;
+
+    const rule_id = uuidSchema.parse(params.id);
 
     const body = await req.json();
-    const validatedData = schemas.complianceRule.update.parse(body);
-    
-    const rule = await updateComplianceRule(
-      params.id,
-      validatedData,
-      session.user_id
+    const validated = schemas.complianceRule.update.parse(body);
+
+    const updated = await updateComplianceRule(
+      rule_id,
+      validated,
+      session.user.id
     );
 
     return createSuccessResponse(
       "Compliance rule updated successfully",
-      rule
+      updated
     );
-  } catch (e) {
-    return handleApiError(e);
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
-/**
- * DELETE /api/compliance-rules/:id
- * Delete compliance rule (if you want hard delete)
- * Currently not implemented - use disable instead
- */
-export async function DELETE(req, { params }) {
-  try {
-    return createSuccessResponse(
-      "Delete not allowed. Use disable endpoint instead.",
-      null,
-      405
-    );
-  } catch (e) {
-    return handleApiError(e);
-  }
+//
+// DELETE → politely forbidden (disabled instead)
+//
+export async function DELETE() {
+  return createErrorResponse(
+    "Deletion not allowed. Disable the rule instead.",
+    405,
+    "METHOD_NOT_ALLOWED"
+  );
 }

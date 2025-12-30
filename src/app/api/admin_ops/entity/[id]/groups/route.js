@@ -1,14 +1,26 @@
-import { getEntityGroups } from "@/services_backup/entity/entity-group-member.service";
-import { createSuccessResponse, handleApiError } from "@/utils/server/apiResponse";
+import { uuidSchema } from "@/schemas";
 
-/**
- * GET /api/entities/:id/groups
- * Get entity's groups
- */
+import { getEntityGroupsByEntityId } from "@/services/entity/entity-group.service";
+import {
+  createSuccessResponse,
+  handleApiError,
+} from "@/utils/server/apiResponse";
+
+import { requirePermission } from "@/utils/server/requirePermission";
+
 export async function GET(req, { params }) {
   try {
-    const groups = await getEntityGroups(params.id);
-    return createSuccessResponse("Entity groups retrieved successfully", groups);
+    const [permissionError] = await requirePermission(req, "entities.access");
+    if (permissionError) return permissionError;
+
+    const entity_id = uuidSchema.parse(params.id);
+
+    const groups = await getEntityGroupsByEntityId(entity_id);
+
+    return createSuccessResponse(
+      "Entity groups retrieved successfully",
+      groups
+    );
   } catch (e) {
     return handleApiError(e);
   }

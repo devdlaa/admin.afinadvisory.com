@@ -5,16 +5,18 @@ export async function requirePermission(req, required) {
   const session = await auth();
 
   if (!session) {
-    return new NextResponse("Unauthorized", { status: 401 });
+    const res = new NextResponse("Unauthorized", { status: 401 });
+    return [res, null];
   }
 
   const userPermissions = session.user?.permissions || [];
-
   const requiredArray = Array.isArray(required) ? required : [required];
-  const hasAll = requiredArray.every((perm) => userPermissions.includes(perm));
+  const hasAll = requiredArray.every((perm) =>
+    userPermissions.includes(perm)
+  );
 
   if (!hasAll) {
-    return NextResponse.json(
+    const res = NextResponse.json(
       {
         success: false,
         error: {
@@ -28,7 +30,9 @@ export async function requirePermission(req, required) {
       },
       { status: 403 }
     );
+
+    return [res, session];
   }
 
-  return null;
+  return [null, session];
 }

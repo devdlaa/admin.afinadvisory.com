@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { AppError } from "./errors";
+import { ZodError } from "zod";
 
 export const createSuccessResponse = (message, data = null, meta = null) => {
   return NextResponse.json({
@@ -38,6 +39,15 @@ export const createErrorResponse = (
 ============================ */
 
 export const handleApiError = (error) => {
+  if (error instanceof ZodError) {
+    return createErrorResponse(
+      "Validation failed",
+      400,
+      "VALIDATION_ERROR",
+      error.errors
+    );
+  }
+
   if (error instanceof AppError) {
     return createErrorResponse(
       error.message,
@@ -49,9 +59,5 @@ export const handleApiError = (error) => {
 
   console.error(error);
 
-  return createErrorResponse(
-    "Internal Server Error",
-    500,
-    "INTERNAL_ERROR"
-  );
+  return createErrorResponse("Internal Server Error", 500, "INTERNAL_ERROR");
 };

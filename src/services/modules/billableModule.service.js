@@ -31,7 +31,6 @@ export const createBillableModule = async (data, created_by) => {
       const categoryExists = await tx.billableModuleCategory.findFirst({
         where: {
           id: data.category_id,
-          is_active: true,
         },
       });
 
@@ -56,9 +55,7 @@ export const createBillableModule = async (data, created_by) => {
       data: {
         name: trimmedName,
         description: data.description ?? null,
-
         category_id: data.category_id ?? null,
-        is_active: data.is_active ?? true,
         created_by,
       },
       include: {
@@ -123,7 +120,6 @@ export const updateBillableModule = async (module_id, data, updated_by) => {
       const categoryExists = await tx.billableModuleCategory.findFirst({
         where: {
           id: data.category_id,
-          is_active: true,
         },
       });
 
@@ -137,11 +133,7 @@ export const updateBillableModule = async (module_id, data, updated_by) => {
       data: {
         name: trimmedName ?? undefined,
         description: data.description ?? undefined,
-
-        // removed monetary attributes entirely
-
         category_id: data.category_id ?? undefined,
-        is_active: data.is_active ?? undefined,
         updated_by,
       },
       include: {
@@ -193,7 +185,6 @@ export const deleteBillableModule = async (module_id, deleted_by) => {
       where: { id: module_id },
       data: {
         is_deleted: true,
-        is_active: false,
         updated_by: deleted_by,
       },
     });
@@ -238,20 +229,7 @@ export const listBillableModules = async (filters = {}) => {
   const pageSize =
     Number(filters.page_size) > 0 ? Number(filters.page_size) : 10;
 
-  // boolean coercion
-  let isActive;
-  if (filters.is_active !== undefined) {
-    if (filters.is_active === true || filters.is_active === "true")
-      isActive = true;
-    if (filters.is_active === false || filters.is_active === "false")
-      isActive = false;
-  }
-
   const where = { is_deleted: false };
-
-  if (isActive !== undefined) {
-    where.is_active = isActive;
-  }
 
   if (filters.category_id) {
     where.category_id = filters.category_id;
@@ -297,12 +275,4 @@ export const listBillableModules = async (filters = {}) => {
       has_more: page < totalPages,
     },
   };
-};
-
-export {
-  createBillableModule,
-  updateBillableModule,
-  deleteBillableModule,
-  getBillableModuleById,
-  listBillableModules,
 };

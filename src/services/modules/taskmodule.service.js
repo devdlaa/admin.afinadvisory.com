@@ -8,7 +8,11 @@ const prisma = new PrismaClient();
  * - purely informational attachments
  * - no pricing, invoices, GST or quantities
  */
-export const syncTaskModules = async (task_id, billable_module_ids, admin_id) => {
+export const syncTaskModules = async (
+  task_id,
+  billable_module_ids,
+  admin_id
+) => {
   if (!Array.isArray(billable_module_ids)) {
     throw new ValidationError("billable_module_ids must be an array");
   }
@@ -93,16 +97,26 @@ export const syncTaskModules = async (task_id, billable_module_ids, admin_id) =>
  * No financial data exists anymore
  */
 export const updateTaskModule = async (task_module_id, data, admin_id) => {
-  const module = await prisma.taskModule.findUnique({
-    where: { id: task_module_id },
+  // 1) verify module belongs to same task and is active
+  const existing = await prisma.taskModule.findFirst({
+    where: {
+      id: task_module_id,
+      task_id: data.task_id, 
+      is_deleted: false,
+    },
   });
 
-  if (!module || module.is_deleted) {
-    throw new NotFoundError("Task module not found");
+  if (!existing) {
+    throw new NotFoundError("Task module not found for this task");
   }
 
-  const updated = await prisma.taskModule.update({
-    where: { id: task_module_id },
+  // 2) perform update but again scoped by both ids
+  const result = await prisma.taskModule.updateMany({
+    where: {
+      id: task_module_id,
+      task_id: data.task_id,
+      is_deleted: false,
+    },
     data: {
       name: data.name ?? undefined,
       remark: data.remark ?? undefined,
@@ -110,7 +124,15 @@ export const updateTaskModule = async (task_module_id, data, admin_id) => {
     },
   });
 
-  return updated;
+  // 3) updateMany returns count, so refetch if needed
+  if (result.count === 0) {
+    throw new NotFoundError("Task module update failed");
+  }
+
+  // 4) return fresh record
+  return prisma.taskModule.findUnique({
+    where: { id: task_module_id },
+  });
 };
 
 /**
@@ -126,26 +148,5 @@ export const listTaskModules = async (task_id) => {
       billableModule: true,
     },
     orderBy: { created_at: "asc" },
-  });
-};
-
-/**
- * Soft delete a single task module
- */
-export const deleteTaskModule = async (task_module_id, admin_id) => {
-  const module = await prisma.taskModule.findUnique({
-    where: { id: task_module_id },
-  });
-
-  if (!module || module.is_deleted) {
-    throw new NotFoundError("Task module not found");
-  }
-
-  return prisma.taskModule.update({
-    where: { id: task_module_id },
-    data: {
-      is_deleted: true,
-      deleted_by: admin_id,
-    },
   });
 };

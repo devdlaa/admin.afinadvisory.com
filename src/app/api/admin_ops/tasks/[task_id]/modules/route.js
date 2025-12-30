@@ -1,126 +1,65 @@
-// app/api/tasks/[task_id]/modules/route.js
 
-import { NextResponse } from "next/server";
-import { z } from "zod";
+
+import { syncTaskModules,listTaskModules } from "@/services/modules/taskmodule.service";
+
+import { schemas } from "@/schemas";
+
 import {
-  syncTaskModules,
-  listTaskModules,
-} from "@/services/taskModule.service";
+  createSuccessResponse,
+  handleApiError,
+} from "@/utils/server/apiResponse";
 
-// Zod validation schema for task_id
-const taskIdSchema = z.string().uuid("Invalid task ID format");
+import { requirePermission } from "@/utils/server/requirePermission";
 
-// Zod validation schema for POST (sync modules)
-const syncModulesSchema = z.object({
-  billable_module_ids: z
-    .array(z.string().uuid("Invalid module ID format"))
-    .min(0, "Module IDs must be an array"),
-});
-
-// POST - Sync task modules (replace all modules with provided list)
 export async function POST(request, { params }) {
   try {
-    // Validate task ID
-    const task_id = taskIdSchema.parse(params.task_id);
+    const [permissionError, session] = await requirePermission(
+      request,
+      "tasks.manage"
+    );
+    if (permissionError) return permissionError;
+
+    // ✔ validate task_id with centralized schema
+    const { task_id } = schemas.taskModule.delete.parse({
+      task_id: params.task_id,
+    });
 
     const body = await request.json();
 
-    // Validate request body
-    const validatedData = syncModulesSchema.parse(body);
-
-    // TODO: Get user ID from session/auth
-    const admin_id =
-      request.headers.get("x-user-id") ||
-      "00000000-0000-0000-0000-000000000000";
-
-    // Sync modules
-    const result = await syncTaskModules(
+    const validated = schemas.taskModule.bulkCreate.parse({
       task_id,
-      validatedData.billable_module_ids,
-      admin_id
+      modules: body.modules,
+    });
+
+    const result = await syncTaskModules(
+      validated.task_id,
+      validated.modules,
+      session.user.id
     );
 
-    return NextResponse.json(
-      {
-        success: true,
-        data: result,
-        message: "Task modules synced successfully",
-      },
-      { status: 200 }
-    );
+    return createSuccessResponse("Task modules synced successfully", result);
   } catch (error) {
-    // Zod validation errors
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Validation failed",
-          details: error.errors,
-        },
-        { status: 400 }
-      );
-    }
-
-    // Custom errors from service
-    if (error.statusCode) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: error.message,
-        },
-        { status: error.statusCode }
-      );
-    }
-
-    // Generic server error
-    console.error("Error syncing task modules:", error);
-    return NextResponse.json(
-      {
-        success: false,
-        error: "Internal server error",
-      },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }
 
-// GET - List all active modules for a task
+
 export async function GET(request, { params }) {
   try {
-    // Validate task ID
-    const task_id = taskIdSchema.parse(params.task_id);
+    const [permissionError] = await requirePermission(request, "tasks.access");
+    if (permissionError) return permissionError;
 
-    // Get modules
+    const { task_id } = schemas.taskModule.delete.parse({
+      task_id: params.task_id,
+    });
+
     const modules = await listTaskModules(task_id);
 
-    return NextResponse.json(
-      {
-        success: true,
-        data: modules,
-      },
-      { status: 200 }
+    return createSuccessResponse(
+      "Task modules retrieved successfully",
+      modules
     );
   } catch (error) {
-    // Zod validation errors
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Invalid task ID",
-          details: error.errors,
-        },
-        { status: 400 }
-      );
-    }
-
-    // Generic server error
-    console.error("Error listing task modules:", error);
-    return NextResponse.json(
-      {
-        success: false,
-        error: "Internal server error",
-      },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }

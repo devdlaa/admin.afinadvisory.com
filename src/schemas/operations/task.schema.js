@@ -15,57 +15,123 @@ export const TaskStatusEnum = z.enum([
 /**
  * Priority helper (optional but recommended)
  */
-export const TaskPriorityEnum = z.enum([
-  "LOW",
-  "NORMAL",
-  "HIGH",
-  "CRITICAL",
-]).default("NORMAL");
+export const TaskPriorityEnum = z
+  .enum(["LOW", "NORMAL", "HIGH"])
+  .default("NORMAL");
 
-/**
- * CREATE TASK
- * No billing fields anymore
- */
-export const TaskCreateSchema = z
+export const createTaskSchema = z
   .object({
-    entity_id: z.string().uuid("Invalid entity ID"),
+    entity_id: z.string().uuid("Invalid entity ID format"),
 
-    entity_registration_id: z.string().uuid().optional().nullable(),
+    entity_registration_id: z
+      .string()
+      .uuid("Invalid registration ID format")
+      .optional()
+      .nullable(),
 
-    title: z.string().min(1).max(500).trim(),
-    description: z.string().max(5000).optional().nullable(),
+    title: z
+      .string()
+      .min(1, "Title is required")
+      .max(255, "Title too long")
+      .trim(),
+
+    description: z.string().max(800).optional().nullable(),
 
     status: TaskStatusEnum.default("PENDING"),
-    priority: TaskPriorityEnum,
 
-    task_category_id: z.string().uuid().optional().nullable(),
-    compliance_rule_id: z.string().uuid().optional().nullable(),
+    priority: TaskPriorityEnum,
 
     start_date: z.coerce.date().optional().nullable(),
     end_date: z.coerce.date().optional().nullable(),
     due_date: z.coerce.date().optional().nullable(),
 
-    // compliance period fields
+    task_category_id: z.string().uuid("Invalid category ID format"),
+
+    compliance_rule_id: z
+      .string()
+      .uuid("Invalid compliance rule ID format")
+      .optional()
+      .nullable(),
+
     period_start: z.coerce.date().optional().nullable(),
     period_end: z.coerce.date().optional().nullable(),
+
     financial_year: z.string().optional().nullable(),
     period_label: z.string().optional().nullable(),
-
-    is_assigned_to_all: z.boolean().default(false),
-    assignee_ids: z.array(z.string().uuid()).optional(),
   })
+  // end >= start
   .refine(
     (data) =>
       !data.end_date || !data.start_date || data.end_date >= data.start_date,
     { message: "End date must be after start date", path: ["end_date"] }
+  )
+  // due date not in past
+  .refine((data) => !data.due_date || data.due_date >= new Date(), {
+    message: "Due date cannot be in the past",
+    path: ["due_date"],
+  });
+
+/**
+ * QUERY TASKS / LISTING
+ * Supports filtering + pagination
+ */
+
+export const listTasksSchema = z
+  .object({
+    page: z.coerce.number().int().positive().optional().default(1),
+
+    page_size: z.coerce
+      .number()
+      .int()
+      .positive()
+      .max(50)
+      .optional()
+      .default(20),
+
+    entity_id: z.string().uuid("Invalid entity ID").optional(),
+    status: TaskStatusEnum.optional(),
+    priority: TaskPriorityEnum.optional(),
+
+    task_category_id: z.string().uuid("Invalid category ID").optional(),
+    compliance_rule_id: z.string().uuid("Invalid category ID").optional(),
+
+    registration_type_id: z
+      .string()
+      .uuid("Invalid registration type ID")
+      .optional(),
+
+    created_by: z.string().uuid("Invalid user ID").optional(),
+    assigned_to: z.string().uuid("Invalid user ID").optional(),
+
+    due_date_from: z.string().datetime().optional(),
+    due_date_to: z.string().datetime().optional(),
+
+    search: z.string().optional(),
+
+    sort_by: z
+      .enum(["due_date", "priority", "created_at"])
+      .default("created_at")
+      .optional(),
+
+    sort_order: z.enum(["asc", "desc"]).default("desc").optional(),
+  })
+  // ensure valid date window
+  .refine(
+    (data) =>
+      !data.due_date_from ||
+      !data.due_date_to ||
+      new Date(data.due_date_from) <= new Date(data.due_date_to),
+    { message: "due_date_from must be before or equal to due_date_to" }
   );
 
 /**
  * UPDATE TASK
  */
+
 export const TaskUpdateSchema = z
   .object({
     title: z.string().min(1).max(500).trim().optional(),
+
     description: z.string().max(5000).optional().nullable(),
 
     status: TaskStatusEnum.optional(),
@@ -74,54 +140,45 @@ export const TaskUpdateSchema = z
     task_category_id: z.string().uuid().optional().nullable(),
     entity_registration_id: z.string().uuid().optional().nullable(),
 
+    compliance_rule_id: z.string().uuid().optional().nullable(),
+
     start_date: z.coerce.date().optional().nullable(),
     end_date: z.coerce.date().optional().nullable(),
     due_date: z.coerce.date().optional().nullable(),
 
-    // period fields allowed only for manual tasks (service layer enforces)
     period_start: z.coerce.date().optional().nullable(),
     period_end: z.coerce.date().optional().nullable(),
     financial_year: z.string().optional().nullable(),
     period_label: z.string().optional().nullable(),
-
-    is_assigned_to_all: z.boolean().optional(),
   })
+  // end >= start
   .refine(
     (data) =>
       !data.end_date || !data.start_date || data.end_date >= data.start_date,
     { message: "End date must be after start date", path: ["end_date"] }
-  );
+  )
+  // due date not in past
+  .refine((data) => !data.due_date || data.due_date >= new Date(), {
+    message: "Due date cannot be in the past",
+    path: ["due_date"],
+  });
 
 /**
- * QUERY TASKS / LISTING
- * Supports filtering + pagination
+ * BULK STATUS UPDATE
  */
-export const TaskQuerySchema = z.object({
-  entity_id: z.string().uuid().optional(),
-  entity_registration_id: z.string().uuid().optional(),
-  compliance_rule_id: z.string().uuid().optional(),
-  task_category_id: z.string().uuid().optional(),
+export const TaskBulkStatusUpdateSchema = z.object({
+  task_ids: z
+    .array(z.string().uuid("Invalid task ID format"))
+    .min(1, "At least one task ID is required"),
+  status: TaskStatusEnum,
+});
 
-  status: TaskStatusEnum.optional(),
-  priority: TaskPriorityEnum.optional(),
-
-  assigned_to: z.string().uuid().optional(),
-
-  registration_type_id: z.string().uuid().optional(),
-
-  // date range filtering
-  due_date_from: z.coerce.date().optional(),
-  due_date_to: z.coerce.date().optional(),
-
-  search: z.string().optional(),
-
-  // pagination
-  page: z.coerce.number().min(1).default(1),
-  limit: z.coerce.number().min(1).max(100).default(20),
-
-  sort_by: z
-    .enum(["due_date", "priority", "created_at"])
-    .default("created_at")
-    .optional(),
-  sort_order: z.enum(["asc", "desc"]).default("desc").optional(),
+/**
+ * BULK PRIORITY UPDATE
+ */
+export const TaskBulkPriorityUpdateSchema = z.object({
+  task_ids: z
+    .array(z.string().uuid("Invalid task ID format"))
+    .min(1, "At least one task ID is required"),
+  priority: TaskPriorityEnum,
 });

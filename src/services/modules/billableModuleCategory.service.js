@@ -43,7 +43,6 @@ export const createBillableModuleCategory = async (data) => {
       data: {
         name: formattedName,
         description: data.description?.trim() || null,
-        is_active: data.is_active ?? true,
       },
     });
 
@@ -101,7 +100,6 @@ export const updateBillableModuleCategory = async (category_id, data) => {
           data.description !== undefined
             ? data.description.trim() || null
             : undefined,
-        is_active: data.is_active ?? undefined,
       },
     });
 
@@ -136,7 +134,7 @@ export const deleteBillableModuleCategory = async (category_id) => {
       where: { id: category_id },
     });
 
-    return { message: "Billable module category deleted successfully" };
+    return { category_id: category_id };
   });
 };
 
@@ -167,20 +165,7 @@ export const listBillableModuleCategories = async (filters = {}) => {
   const pageSize =
     Number(filters.page_size) > 0 ? Number(filters.page_size) : 10;
 
-  // boolean normalization for is_active
-  let isActive;
-  if (filters.is_active !== undefined) {
-    if (filters.is_active === true || filters.is_active === "true")
-      isActive = true;
-    if (filters.is_active === false || filters.is_active === "false")
-      isActive = false;
-  }
-
   const where = {};
-
-  if (isActive !== undefined) {
-    where.is_active = isActive;
-  }
 
   if (filters.search && filters.search.trim()) {
     where.OR = [
@@ -233,12 +218,4 @@ export const listBillableModuleCategories = async (filters = {}) => {
       has_more: page < totalPages,
     },
   };
-};
-
-export {
-  createBillableModuleCategory,
-  updateBillableModuleCategory,
-  deleteBillableModuleCategory,
-  getBillableModuleCategoryById,
-  listBillableModuleCategories,
 };

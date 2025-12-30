@@ -1,117 +1,94 @@
 import { PrismaClient } from "@prisma/client";
-import {
-  NotFoundError,
-  ConflictError,
-  ValidationError,
-} from "../../utils/server/errors.js";
+import { NotFoundError, ValidationError } from "../../utils/server/errors.js";
 
 const prisma = new PrismaClient();
 
-export const addMemberToGroup = async (data) => {
+export const syncGroupMembers = async (entity_group_id, members) => {
   return prisma.$transaction(async (tx) => {
+    // ensure group exists
     const group = await tx.entityGroup.findUnique({
-      where: { id: data.entity_group_id },
+      where: { id: entity_group_id },
     });
+
     if (!group) {
       throw new NotFoundError("Entity group not found");
     }
 
-    const entity = await tx.entity.findFirst({
+    // extract incoming entity IDs
+    const incomingIds = members.map((m) => m.entity_id);
+
+    // validate entities exist
+    const entities = await tx.entity.findMany({
       where: {
-        id: data.entity_id,
+        id: { in: incomingIds },
         deleted_at: null,
       },
     });
-    if (!entity) {
-      throw new NotFoundError("Entity not found");
+
+    if (entities.length !== incomingIds.length) {
+      throw new ValidationError("One or more entities not found or inactive");
     }
 
-    // Check if already a member
-    const existingMember = await tx.entityGroupMember.findUnique({
-      where: {
-        entity_group_id_entity_id: {
-          entity_group_id: data.entity_group_id,
-          entity_id: data.entity_id,
-        },
-      },
+    // fetch existing members
+    const existing = await tx.entityGroupMember.findMany({
+      where: { entity_group_id },
+      select: { entity_id: true },
     });
-    if (existingMember) {
-      throw new ConflictError("Entity is already a member of this group");
-    }
 
-    // Add member
-    try {
-      return await tx.entityGroupMember.create({
-        data: {
-          entity_group_id: data.entity_group_id,
-          entity_id: data.entity_id,
-          role: data.role,
-        },
-        include: {
-          entity: {
-            select: {
-              id: true,
-              name: true,
-              entity_type: true,
-              email: true,
-              primary_phone: true,
-            },
-          },
-          group: true,
+    const existingIds = existing.map((m) => m.entity_id);
+
+    // find differences
+    const toAdd = incomingIds.filter((id) => !existingIds.includes(id));
+    const toRemove = existingIds.filter((id) => !incomingIds.includes(id));
+
+    // remove those not in list anymore
+    if (toRemove.length > 0) {
+      await tx.entityGroupMember.deleteMany({
+        where: {
+          entity_group_id,
+          entity_id: { in: toRemove },
         },
       });
-    } catch (err) {
-      if (err.code === "P2002") {
-        throw new ConflictError("Entity is already a member of this group");
-      }
-      throw err;
     }
-  });
-};
 
-export const removeMemberFromGroup = async (id) => {
-  const member = await prisma.entityGroupMember.findUnique({
-    where: { id },
-  });
+    // add new members
+    if (toAdd.length > 0) {
+      await tx.entityGroupMember.createMany({
+        data: toAdd.map((entity_id) => ({
+          entity_group_id,
+          entity_id,
+        })),
+        skipDuplicates: true,
+      });
+    }
 
-  if (!member) {
-    throw new NotFoundError("Group member not found");
-  }
-
-  return prisma.entityGroupMember.delete({
-    where: { id },
-  });
-};
-
-export const updateMemberRole = async (id, role) => {
-  const member = await prisma.entityGroupMember.findUnique({
-    where: { id },
-  });
-
-  if (!member) {
-    throw new NotFoundError("Group member not found");
-  }
-
-  return prisma.entityGroupMember.update({
-    where: { id },
-    data: { role },
-    include: {
-      entity: {
-        select: {
-          id: true,
-          name: true,
-          entity_type: true,
-          email: true,
-          primary_phone: true,
+    // return final synced members
+    const finalMembers = await tx.entityGroupMember.findMany({
+      where: { entity_group_id },
+      include: {
+        entity: {
+          select: {
+            id: true,
+            name: true,
+            entity_type: true,
+            email: true,
+            primary_phone: true,
+            status: true,
+          },
         },
       },
-      group: true,
-    },
+      orderBy: { entity: { name: "asc" } },
+    });
+
+    return {
+      message: "Group members synced successfully",
+      count: finalMembers.length,
+      members: finalMembers,
+    };
   });
 };
 
-export const listGroupMembers = async (entity_group_id, filters = {}) => {
-  // verify group exists
+export const listGroupMembers = async (entity_group_id) => {
   const group = await prisma.entityGroup.findUnique({
     where: { id: entity_group_id },
   });
@@ -119,11 +96,6 @@ export const listGroupMembers = async (entity_group_id, filters = {}) => {
   if (!group) {
     throw new NotFoundError("Entity group not found");
   }
-
-  // pagination normalization
-  const page = Number(filters.page) > 0 ? Number(filters.page) : 1;
-  const pageSize =
-    Number(filters.page_size) > 0 ? Number(filters.page_size) : 10;
 
   const where = { entity_group_id };
 
@@ -144,94 +116,13 @@ export const listGroupMembers = async (entity_group_id, filters = {}) => {
         },
       },
       orderBy: { entity: { name: "asc" } },
-      skip: (page - 1) * pageSize,
-      take: pageSize,
     }),
 
     prisma.entityGroupMember.count({ where }),
   ]);
 
-  const totalPages = Math.ceil(total / pageSize);
-
   return {
     data: items,
-    pagination: {
-      page,
-      page_size: pageSize,
-      total_items: total,
-      total_pages: totalPages,
-      has_more: page < totalPages,
-    },
+    total: total,
   };
-};
-
-export const getEntityGroups = async (entity_id) => {
-  const entity = await prisma.entity.findFirst({
-    where: {
-      id: entity_id,
-      deleted_at: null,
-    },
-  });
-
-  if (!entity) {
-    throw new NotFoundError("Entity not found");
-  }
-
-  return prisma.entityGroupMember.findMany({
-    where: { entity_id },
-    include: {
-      group: true,
-    },
-  });
-};
-
-export const bulkAddMembers = async (entity_group_id, members) => {
-  return prisma.$transaction(async (tx) => {
-    // Check if group exists
-    const group = await tx.entityGroup.findUnique({
-      where: { id: entity_group_id },
-    });
-    if (!group) {
-      throw new NotFoundError("Entity group not found");
-    }
-
-    // Validate all entities exist
-    const entityIds = members.map((m) => m.entity_id);
-    const entities = await tx.entity.findMany({
-      where: {
-        id: { in: entityIds },
-        deleted_at: null,
-      },
-    });
-
-    if (entities.length !== entityIds.length) {
-      throw new ValidationError("One or more entities not found");
-    }
-
-    // Check for existing members
-    const existingMembers = await tx.entityGroupMember.findMany({
-      where: {
-        entity_group_id,
-        entity_id: { in: entityIds },
-      },
-    });
-
-    if (existingMembers.length > 0) {
-      const existingIds = existingMembers.map((m) => m.entity_id);
-      throw new ConflictError(
-        `Some entities are already members: ${existingIds.join(", ")}`
-      );
-    }
-
-    // Bulk create
-    const created = await tx.entityGroupMember.createMany({
-      data: members.map((m) => ({
-        entity_group_id,
-        entity_id: m.entity_id,
-        role: m.role,
-      })),
-    });
-
-    return created;
-  });
 };

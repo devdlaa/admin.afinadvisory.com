@@ -1,126 +1,92 @@
-// app/api/tasks/[task_id]/assignments/route.js
+import {
+  syncTaskAssignments,
+  getAssignmentsByTaskId,
+} from "@/services/task/assignment.service";
 
-import { NextResponse } from "next/server";
-import { z } from "zod";
+import { schemas } from "@/schemas";
 
+import {
+  createSuccessResponse,
+  createErrorResponse,
+  handleApiError,
+} from "@/utils/server/apiResponse";
 
-import { syncTaskAssignments,getAssignmentsByTaskId } from "@/services/task/assignment.service";
+import { requirePermission } from "@/utils/server/requirePermission";
 
-// Zod validation schema for task_id
-const taskIdSchema = z.string().uuid("Invalid task ID format");
-
-// Zod validation schema for POST (sync assignments)
-const syncAssignmentsSchema = z.object({
-  user_ids: z
-    .array(z.string().uuid("Invalid user ID format"))
-    .optional()
-    .default([]),
-  assigned_to_all: z.boolean().optional().default(false),
-});
-
-// POST - Sync task assignments
+// POST → Sync task assignments
 export async function POST(request, { params }) {
   try {
-    // Validate task ID
-    const task_id = taskIdSchema.parse(params.task_id);
+    const [permissionError, session] = await requirePermission(
+      request,
+      "task_assignments.manage"
+    );
+    if (permissionError) return permissionError;
+
+    // validate task_id using central schema
+    const { task_id } = schemas.taskAssignment.taskId.parse({
+      task_id: params.task_id,
+    });
 
     const body = await request.json();
 
-    // Validate request body
-    const validatedData = syncAssignmentsSchema.parse(body);
-
-    // TODO: Get user ID from session/auth
-    const updated_by = request.headers.get("x-user-id") || "00000000-0000-0000-0000-000000000000";
-
-    // Sync assignments
-    const result = await syncTaskAssignments(
+    // validate sync payload using central schema
+    const validated = schemas.taskAssignment.sync.parse({
       task_id,
-      validatedData.user_ids,
-      validatedData.assigned_to_all,
-      updated_by
+      ...body,
+    });
+
+    const result = await syncTaskAssignments(
+      validated.task_id,
+      validated.user_ids,
+      validated.assigned_to_all,
+      session.user.id
     );
 
-    return NextResponse.json(
-      {
-        success: true,
-        data: result,
-        message: result.message,
-      },
-      { status: 200 }
+    return createSuccessResponse(
+      "Task assignments synced successfully",
+      result
     );
   } catch (error) {
-    // Zod validation errors
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Validation failed",
-          details: error.errors,
-        },
-        { status: 400 }
+    if (error?.name === "ZodError") {
+      return createErrorResponse(
+        "Validation failed",
+        400,
+        "VALIDATION_ERROR",
+        error.errors
       );
     }
 
-    // Custom errors from service
-    if (error.statusCode) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: error.message,
-        },
-        { status: error.statusCode }
-      );
-    }
-
-    // Generic server error
-    console.error("Error syncing task assignments:", error);
-    return NextResponse.json(
-      {
-        success: false,
-        error: "Internal server error",
-      },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }
 
-// GET - Get all assignments for a task
+// GET → Get all assignments for a task
 export async function GET(request, { params }) {
   try {
-    // Validate task ID
-    const task_id = taskIdSchema.parse(params.task_id);
+    const [permissionError] = await requirePermission(request, "tasks.access");
+    if (permissionError) return permissionError;
 
-    // Get assignments
+    // validate task_id via schema
+    const { task_id } = schemas.taskAssignment.taskId.parse({
+      task_id: params.task_id,
+    });
+
     const assignments = await getAssignmentsByTaskId(task_id);
 
-    return NextResponse.json(
-      {
-        success: true,
-        data: assignments,
-      },
-      { status: 200 }
+    return createSuccessResponse(
+      "Task assignments retrieved successfully",
+      assignments
     );
   } catch (error) {
-    // Zod validation errors
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Invalid task ID",
-          details: error.errors,
-        },
-        { status: 400 }
+    if (error?.name === "ZodError") {
+      return createErrorResponse(
+        "Invalid task ID",
+        400,
+        "VALIDATION_ERROR",
+        error.errors
       );
     }
 
-    // Generic server error
-    console.error("Error fetching task assignments:", error);
-    return NextResponse.json(
-      {
-        success: false,
-        error: "Internal server error",
-      },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }

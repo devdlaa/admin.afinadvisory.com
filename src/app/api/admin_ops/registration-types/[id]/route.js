@@ -1,57 +1,93 @@
-import { schemas } from "@/schemas";
 import {
   getRegistrationTypeById,
   updateRegistrationType,
   deleteRegistrationType,
-} from "@/services_backup/entity/registration-type.service";
-import { createSuccessResponse, handleApiError } from "@/utils/server/apiResponse";
+} from "@/services/entity/registration-type.service";
 
-/**
- * GET /api/registration-types/:id
- * Get registration type by ID
- */
-export async function GET(req, { params }) {
+import { schemas, uuidSchema } from "@/schemas";
+
+import {
+  createSuccessResponse,
+  createErrorResponse,
+  handleApiError,
+} from "@/utils/server/apiResponse";
+
+import { requirePermission } from "@/utils/server/requirePermission";
+
+// GET → single registration type
+export async function GET(request, { params }) {
   try {
-    const regType = await getRegistrationTypeById(params.id);
+    const [permissionError] = await requirePermission(
+      request,
+      "registration_types.access"
+    );
+    if (permissionError) return permissionError;
+
+    const id = uuidSchema.parse(params.id);
+
+    const regType = await getRegistrationTypeById(id);
+
     return createSuccessResponse(
       "Registration type retrieved successfully",
       regType
     );
-  } catch (e) {
-    return handleApiError(e);
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
-/**
- * PUT /api/registration-types/:id
- * Update registration type
- */
-export async function PUT(req, { params }) {
+// PUT → update registration type
+export async function PUT(request, { params }) {
   try {
-    const body = schemas.registrationType.update.parse(await req.json());
-    const regType = await updateRegistrationType(params.id, body);
+    const [permissionError] = await requirePermission(
+      request,
+      "registration_types.manage"
+    );
+    if (permissionError) return permissionError;
+
+    const id = uuidSchema.parse(params.id);
+
+    const body = await request.json();
+
+    const validated = schemas.registrationType.update.parse(body);
+
+    if (Object.keys(validated).length === 0) {
+      return createErrorResponse(
+        "At least one field must be provided for update",
+        400,
+        "NO_FIELDS"
+      );
+    }
+
+    const regType = await updateRegistrationType(id, validated);
 
     return createSuccessResponse(
       "Registration type updated successfully",
       regType
     );
-  } catch (e) {
-    return handleApiError(e);
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
-/**
- * DELETE /api/registration-types/:id
- * Delete registration type
- */
-export async function DELETE(req, { params }) {
+// DELETE → delete registration type
+export async function DELETE(request, { params }) {
   try {
-    const regType = await deleteRegistrationType(params.id);
+    const [permissionError] = await requirePermission(
+      request,
+      "registration_types.manage"
+    );
+    if (permissionError) return permissionError;
+
+    const id = uuidSchema.parse(params.id);
+
+    const regType = await deleteRegistrationType(id);
+
     return createSuccessResponse(
       "Registration type deleted successfully",
       regType
     );
-  } catch (e) {
-    return handleApiError(e);
+  } catch (error) {
+    return handleApiError(error);
   }
 }

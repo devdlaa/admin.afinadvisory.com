@@ -70,14 +70,44 @@ export const ComplianceRuleCreateSchema = z.object({
  * Update compliance rule schema
  * Cannot update compliance_code once created
  */
-export const ComplianceRuleUpdateSchema = ComplianceRuleCreateSchema.omit({
-  compliance_code: true, // Cannot update compliance_code
-}).partial();
+export const ComplianceRuleUpdateSchema = z
+  .object({
+    compliance_code: z
+      .string()
+      .min(1, "Compliance code is required")
+      .max(100, "Compliance code must not exceed 100 characters")
+      .trim()
+      .transform((val) => val.toUpperCase())
+      .refine((val) => /^[A-Z0-9]+(_[A-Z0-9]+)*$/.test(val), {
+        message:
+          "Compliance code must contain only uppercase letters, digits and underscores, " +
+          "and must not start or end with an underscore",
+      })
+      .optional(),
+
+    name: z.string().min(1).max(255).trim().optional(),
+
+    registration_type_id: z.string().uuid().optional(),
+
+    frequency_type: FrequencyTypeEnum.optional(),
+
+    due_day: z.number().int().min(1).max(31).optional(),
+
+    due_month_offset: z.number().int().min(-3).max(12).optional(),
+
+    grace_days: z.number().int().min(0).optional(),
+
+    is_active: z.boolean().optional(),
+  })
+  .refine((data) => Object.values(data).some((v) => v !== undefined), {
+    message: "At least one field must be provided to update",
+    path: ["_root"],
+  });
 
 /**
  * Filter schema for listing compliance rules
  */
-export const ComplianceRuleFilterSchema = z.object({
+export const ComplianceRuleListSchema = z.object({
   registration_type_id: z.string().uuid().optional(),
   frequency_type: FrequencyTypeEnum.optional(),
   is_active: z
@@ -86,9 +116,3 @@ export const ComplianceRuleFilterSchema = z.object({
     .optional(),
   search: z.string().optional(),
 });
-
-export default {
-  create: ComplianceRuleCreateSchema,
-  update: ComplianceRuleUpdateSchema,
-  filter: ComplianceRuleFilterSchema,
-};

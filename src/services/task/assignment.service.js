@@ -124,9 +124,10 @@ export const syncTaskAssignments = async (
 export const bulkAssignUnownedTasks = async (
   task_ids,
   user_ids,
-  updated_by
+  assigned_by
 ) => {
   return prisma.$transaction(async (tx) => {
+    // 1) fetch tasks
     const tasks = await tx.task.findMany({
       where: {
         id: { in: task_ids },
@@ -141,20 +142,20 @@ export const bulkAssignUnownedTasks = async (
       throw new NotFoundError("No tasks found for given IDs");
     }
 
-    // find tasks that already have assignments
-    const assigned = await tx.taskAssignment.findMany({
+    // 2) find tasks that already have assignments
+    const existingAssignments = await tx.taskAssignment.findMany({
       where: {
         task_id: { in: task_ids },
       },
       select: { task_id: true },
     });
 
-    const alreadyAssignedTaskIds = new Set(assigned.map((a) => a.task_id));
+    const alreadyAssigned = new Set(existingAssignments.map((a) => a.task_id));
 
+    // 3) determine eligibility
     const eligibleTaskIds = tasks
       .filter(
-        (t) =>
-          t.is_assigned_to_all === true || !alreadyAssignedTaskIds.has(t.id)
+        (t) => t.is_assigned_to_all === true || !alreadyAssigned.has(t.id)
       )
       .map((t) => t.id);
 
@@ -162,15 +163,42 @@ export const bulkAssignUnownedTasks = async (
       (id) => !eligibleTaskIds.includes(id)
     );
 
-    // bulk assign eligible
-    for (const taskId of eligibleTaskIds) {
-      await syncTaskAssignments(taskId, user_ids, false, updated_by);
+    if (eligibleTaskIds.length === 0) {
+      return {
+        updated_task_ids: [],
+        skipped_task_ids: skippedTaskIds,
+        message: "No eligible tasks for assignment",
+      };
     }
+
+    // 4) hard sync in bulk
+    // delete existing assignments for eligible tasks (if any)
+    await tx.taskAssignment.deleteMany({
+      where: {
+        task_id: { in: eligibleTaskIds },
+      },
+    });
+
+    const now = new Date();
+
+    // 5) create cartesian pairs
+    await tx.taskAssignment.createMany({
+      data: eligibleTaskIds.flatMap((task_id) =>
+        user_ids.map((admin_user_id) => ({
+          task_id,
+          admin_user_id,
+          assigned_by,
+          assigned_at: now,
+          assignment_source: "BULK_ASSIGNMENT",
+        }))
+      ),
+      skipDuplicates: true,
+    });
 
     return {
       updated_task_ids: eligibleTaskIds,
       skipped_task_ids: skippedTaskIds,
-      message: "Bulk assignment completed with safe rules",
+      message: "Bulk assignment completed",
     };
   });
 };
@@ -209,12 +237,12 @@ export const getAssignmentCountsPerUser = async () => {
     select: { id: true, name: true, email: true },
   });
 
-  const userMap = Object.fromEntries(users.map((u) => [u.id, u]));
+  const map = new Map(users.map((u) => [u.id, u]));
 
   return rows.map((r) => ({
     admin_user_id: r.admin_user_id,
-    name: userMap[r.admin_user_id]?.name ?? "Unknown",
-    email: userMap[r.admin_user_id]?.email ?? null,
+    name: map.get(r.admin_user_id)?.name ?? "Unknown",
+    email: map.get(r.admin_user_id)?.email ?? null,
     assignment_count: r._count.admin_user_id,
   }));
 };

@@ -1,7 +1,10 @@
 import { schemas } from "@/schemas";
-import { createEntityRegistration } from "@/services_backup/entity/entity-registration.service";
-import { createSuccessResponse, handleApiError } from "@/utils/server/apiResponse";
-// import { auth } from "@/utils/auth";
+import { createEntityRegistration } from "@/services/entity/entity-registration.service";
+import {
+  createSuccessResponse,
+  handleApiError,
+} from "@/utils/server/apiResponse";
+import { requirePermission } from "@/utils/server/requirePermission";
 
 /**
  * POST /api/entity-registrations
@@ -9,13 +12,24 @@ import { createSuccessResponse, handleApiError } from "@/utils/server/apiRespons
  */
 export async function POST(req) {
   try {
-    // TODO: AUTH VALIDATION & PERMISSION CHECK
-    const session = { user_id: "admin-user-id" };
+    // Permission gate
+    const [permissionError, session] = await requirePermission(
+      req,
+      "entity_registrations.manage"
+    );
+    if (permissionError) return permissionError;
 
+    // validate payload with central schema
     const body = schemas.entityRegistration.create.parse(await req.json());
-    const registration = await createEntityRegistration(body, session.user_id);
 
-    return createSuccessResponse("Entity registration created successfully", registration, 201);
+    // service writes created_by from session
+    const registration = await createEntityRegistration(body, session.user.id);
+
+    return createSuccessResponse(
+      "Entity registration created successfully",
+      registration,
+      201
+    );
   } catch (e) {
     return handleApiError(e);
   }

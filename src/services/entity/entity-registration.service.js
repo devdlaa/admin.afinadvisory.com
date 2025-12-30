@@ -1,8 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import {
   NotFoundError,
-  ConflictError,
-  ValidationError,
+  ConflictError
 } from "../../utils/server/errors.js";
 
 const prisma = new PrismaClient();
@@ -108,19 +107,19 @@ export const deleteEntityRegistration = async (id, admin_id) => {
       throw new NotFoundError("Entity registration not found");
     }
 
-    // ✅ NEW GUARD: Check for active settings before deleting
-    const activeSettings = await tx.entityRegistrationSetting.count({
-      where: {
-        entity_registration_id: id,
-        deleted_at: null,
-      },
-    });
+    // // ✅ NEW GUARD: Check for active settings before deleting
+    // const activeSettings = await tx.entityRegistrationSetting.count({
+    //   where: {
+    //     entity_registration_id: id,
+    //     deleted_at: null,
+    //   },
+    // });
 
-    if (activeSettings > 0) {
-      throw new ValidationError(
-        "Cannot delete entity registration with active compliance settings. Delete settings first."
-      );
-    }
+    // if (activeSettings > 0) {
+    //   throw new ValidationError(
+    //     "Cannot delete entity registration with active compliance settings. Delete settings first."
+    //   );
+    // }
 
     return tx.entityRegistration.update({
       where: { id },
@@ -134,8 +133,7 @@ export const deleteEntityRegistration = async (id, admin_id) => {
   });
 };
 
-export const listEntityRegistrations = async (entity_id, filters = {}) => {
-  // ensure entity exists
+export const listEntityRegistrations = async (entity_id) => {
   const entity = await prisma.entity.findFirst({
     where: { id: entity_id, deleted_at: null },
   });
@@ -144,95 +142,25 @@ export const listEntityRegistrations = async (entity_id, filters = {}) => {
     throw new NotFoundError("Entity not found");
   }
 
-  // pagination
-  const page = Number(filters.page) > 0 ? Number(filters.page) : 1;
-  const pageSize =
-    Number(filters.page_size) > 0 ? Number(filters.page_size) : 20;
-
-  const where = {
-    entity_id,
-    deleted_at: null,
-  };
-
-  // status filter
-  if (filters.status) {
-    where.status = filters.status;
-  }
-
-  // primary true/false
-  if (filters.is_primary !== undefined) {
-    if (filters.is_primary === true || filters.is_primary === "true")
-      where.is_primary = true;
-    if (filters.is_primary === false || filters.is_primary === "false")
-      where.is_primary = false;
-  }
-
-  // registration type filter
-  if (filters.registration_type_id) {
-    where.registration_type_id = filters.registration_type_id;
-  }
-
-  // state filter
-  if (filters.state) {
-    where.state = filters.state;
-  }
-
-  // search by registration number
-  if (filters.search && filters.search.trim()) {
-    where.registration_number = {
-      contains: filters.search.trim(),
-      mode: "insensitive",
-    };
-  }
-
-  // date filters
-  const today = new Date();
-
-  // expired registrations
-  if (filters.expired === true || filters.expired === "true") {
-    where.effective_to = { lt: today };
-  }
-
-  // expiring soon (next N days)
-  if (filters.expiring_in_days) {
-    const n = Number(filters.expiring_in_days);
-    if (!isNaN(n) && n > 0) {
-      const upcoming = new Date();
-      upcoming.setDate(upcoming.getDate() + n);
-
-      where.effective_to = { gte: today, lte: upcoming };
-    }
-  }
-
-  // not yet effective
-  if (filters.future === true || filters.future === "true") {
-    where.effective_from = { gt: today };
-  }
-
-  const [items, total] = await Promise.all([
-    prisma.entityRegistration.findMany({
-      where,
-      include: {
-        registrationType: true,
-      },
-      orderBy: [{ is_primary: "desc" }, { effective_from: "desc" }],
-      skip: (page - 1) * pageSize,
-      take: pageSize,
-    }),
-
-    prisma.entityRegistration.count({ where }),
-  ]);
-
-  const totalPages = Math.ceil(total / pageSize);
+  // straight fetch, no pagination or fancy filters
+  const registrations = await prisma.entityRegistration.findMany({
+    where: {
+      entity_id,
+      deleted_at: null,
+    },
+    include: {
+      registrationType: true,
+    },
+    orderBy: [
+      { is_primary: "desc" },
+      { effective_from: "desc" },
+      { created_at: "desc" },
+    ],
+  });
 
   return {
-    data: items,
-    pagination: {
-      page,
-      page_size: pageSize,
-      total_items: total,
-      total_pages: totalPages,
-      has_more: page < totalPages,
-    },
+    entity_id,
+    count: registrations.length,
+    registrations,
   };
 };

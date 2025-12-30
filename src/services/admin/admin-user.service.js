@@ -157,10 +157,10 @@ export const createAdminUser = async (data, created_by) => {
 /* -------------------------------------------------------------------
    UPDATE ADMIN USER  (❌ permissions NOT updated here)
 ------------------------------------------------------------------- */
-export const updateAdminUser = async (user_id, data, updated_by) => {
+export const updateAdminUser = async (id, data, updated_by) => {
   return prisma.$transaction(async (tx) => {
     const user = await tx.adminUser.findUnique({
-      where: { id: user_id },
+      where: { id: id },
     });
     if (!user) throw new NotFoundError("User not found");
     if (user.deleted_at)
@@ -205,7 +205,7 @@ export const updateAdminUser = async (user_id, data, updated_by) => {
     }
 
     const updatedUser = await tx.adminUser.update({
-      where: { id: user_id },
+      where: { id: id },
       data: {
         name: data.name,
         email: data.email,
@@ -242,10 +242,10 @@ export const updateAdminUser = async (user_id, data, updated_by) => {
   });
 };
 
-export const deleteAdminUser = async (user_id, deleted_by) => {
+export const deleteAdminUser = async (id, deleted_by) => {
   return prisma.$transaction(async (tx) => {
     const user = await tx.adminUser.findUnique({
-      where: { id: user_id },
+      where: { id: id },
     });
 
     if (!user) throw new NotFoundError("User not found");
@@ -253,12 +253,12 @@ export const deleteAdminUser = async (user_id, deleted_by) => {
 
     // 1) revoke all direct permissions
     await tx.adminUserPermission.deleteMany({
-      where: { admin_user_id: user_id },
+      where: { admin_user_id: id },
     });
 
     // 2) soft delete the user
     const deletedUser = await tx.adminUser.update({
-      where: { id: user_id },
+      where: { id: id },
       data: {
         deleted_by,
         deleted_at: new Date(),
@@ -326,9 +326,9 @@ export const listAdminUsers = async (filters = {}) => {
 /* -------------------------------------------------------------------
    GET SINGLE USER (includes permissions)
 ------------------------------------------------------------------- */
-export const getAdminUserById = async (user_id) => {
+export const getAdminUserById = async (id) => {
   const user = await prisma.adminUser.findFirst({
-    where: { id: user_id, deleted_at: null },
+    where: { id: id, deleted_at: null },
     include: {
       departments: { include: { department: true } },
       permissions: { include: { permission: true } },
@@ -339,10 +339,10 @@ export const getAdminUserById = async (user_id) => {
   return user;
 };
 
-export const resendOnboardingInvite = async (user_id, resent_by) => {
+export const resendOnboardingInvite = async (id, resent_by) => {
   return prisma.$transaction(async (tx) => {
     const user = await tx.adminUser.findUnique({
-      where: { id: user_id },
+      where: { id },
     });
 
     if (!user || user.deleted_at) {
@@ -377,7 +377,7 @@ export const resendOnboardingInvite = async (user_id, resent_by) => {
     const onboardingTokenExpiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24);
 
     await tx.adminUser.update({
-      where: { id: user_id },
+      where: { id: id },
       data: {
         onboarding_token_hash: onboardingTokenHash,
         onboarding_token_expires_at: onboardingTokenExpiresAt,
@@ -394,9 +394,9 @@ export const resendOnboardingInvite = async (user_id, resent_by) => {
   });
 };
 
-export const generatePasswordResetToken = async (email, updated_by) => {
+export const generatePasswordResetToken = async (id, updated_by) => {
   const user = await prisma.adminUser.findUnique({
-    where: { email },
+    where: { id },
     select: {
       id: true,
       email: true,
@@ -465,9 +465,9 @@ export const generatePasswordResetToken = async (email, updated_by) => {
   };
 };
 
-export const generateOnboardingResetToken = async (email, requested_by) => {
+export const generateOnboardingResetToken = async (id, requested_by) => {
   const user = await prisma.adminUser.findUnique({
-    where: { email },
+    where: { id },
     select: {
       id: true,
       email: true,
@@ -542,16 +542,4 @@ export const generateOnboardingResetToken = async (email, requested_by) => {
     name: user.name,
     resetToken,
   };
-};
-
-export {
-  generateUserCode,
-  createAdminUser,
-  updateAdminUser,
-  deleteAdminUser,
-  listAdminUsers,
-  resendOnboardingInvite,
-  getAdminUserById,
-  generatePasswordResetToken,
-  generateOnboardingResetToken,
 };

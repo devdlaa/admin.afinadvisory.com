@@ -8,6 +8,7 @@ import {
 
 import {
   AdminUserCreateSchema,
+  AdminUserIdSchema,
   AdminUserListSchema,
   AdminUserLoginSchema,
   AdminUserSearchSchema,
@@ -25,6 +26,9 @@ import {
   BillableModuleCreateSchema,
   BillableModuleUpdateSchema,
   BillableModuleQuerySchema,
+  BillableModuleCreateCategorySchema,
+  BillableModuleListCategoriesSchema,
+  BillableModuleUpdateCategorySchema,
 } from "./core/billableModule.schema.js";
 
 import {
@@ -32,34 +36,35 @@ import {
   DepartmentUpdateSchema,
 } from "./core/department.schema.js";
 
-import { RoleCreateSchema, RoleUpdateSchema } from "./core/role.schema.js";
-
 import {
   EntityGroupCreateSchema,
   EntityGroupUpdateSchema,
-  EntityGroupMemberAddSchema,
   EntityGroupTypeEnum,
   EntityGroupRoleEnum,
-  EntityGroupMemberListSchema,
+  EntityGroupMemberSyncSchema,
+  EntityGroupListSchema,
 } from "./core/entityGroup.schema.js";
 
 import {
   TaskCreateSchema,
   TaskUpdateSchema,
-  TaskQuerySchema,
   TaskStatusEnum,
-  BillingStatusEnum,
+  TaskPriorityEnum,
+  listTasksSchema,
+  TaskBulkStatusUpdateSchema,
+  TaskBulkPriorityUpdateSchema,
 } from "./operations/task.schema.js";
 
 import {
-  TaskAssignmentCreateSchema,
-  TaskAssignmentBulkSchema,
+  TaskAssignmentTaskIdSchema,
+  TaskAssignmentSyncSchema,
+  BulkAssignTaskSchema,
 } from "./operations/taskAssignment.schema.js";
 
 import {
-  TaskModuleCreateSchema,
   TaskModuleUpdateSchema,
   TaskModuleBulkCreateSchema,
+  TaskModuleDeleteSchema,
 } from "./operations/taskModule.schema.js";
 
 import {
@@ -70,6 +75,7 @@ import {
 
 import {
   ComplianceRuleCreateSchema,
+  ComplianceRuleListSchema,
   ComplianceRuleUpdateSchema,
   FrequencyUnitEnum,
 } from "./compliance/complianceRule.schema.js";
@@ -78,31 +84,14 @@ import {
   TaskTemplateCreateSchema,
   TaskTemplateUpdateSchema,
   TaskTemplateModuleSchema,
+  TaskTemplateListSchema,
 } from "./compliance/taskTemplate.schema.js";
 
 import {
-  EntityRegistrationSettingCreateSchema,
-  EntityRegistrationSettingUpdateSchema,
-} from "./compliance/entityRegistrationSetting.schema.js";
-
-import {
-  InvoiceCreateSchema,
-  InvoiceUpdateSchema,
-  InvoiceQuerySchema,
-  InvoiceStatusEnum,
-} from "./billing/invoice.schema.js";
-
-import {
-  InvoiceLineCreateSchema,
-  InvoiceLineUpdateSchema,
-} from "./billing/invoiceLine.schema.js";
-
-import {
-  PaymentCreateSchema,
-  PaymentUpdateSchema,
-  PaymentQuerySchema,
-  PaymentStatusEnum,
-} from "./billing/payment.schema.js";
+  createTaskCategorySchema,
+  listTaskCategoriesSchema,
+  updateTaskCategorySchema,
+} from "./core/taskCategory.schema.js";
 
 // ============================================================================
 // Structured Export Object
@@ -125,7 +114,7 @@ export const schemas = Object.freeze({
     update: AdminUserUpdateSchema,
     list: AdminUserListSchema,
     search: AdminUserSearchSchema,
-    resendOnboardinLink: ResendOnboardingInviteSchema,
+    user_id: AdminUserIdSchema,
     login: AdminUserLoginSchema,
   },
 
@@ -139,6 +128,11 @@ export const schemas = Object.freeze({
     create: BillableModuleCreateSchema,
     update: BillableModuleUpdateSchema,
     query: BillableModuleQuerySchema,
+    category: {
+      create: BillableModuleCreateCategorySchema,
+      update: BillableModuleUpdateCategorySchema,
+      list: BillableModuleListCategoriesSchema,
+    },
   },
 
   department: {
@@ -149,33 +143,41 @@ export const schemas = Object.freeze({
   entityGroup: {
     create: EntityGroupCreateSchema,
     update: EntityGroupUpdateSchema,
-    addMember: EntityGroupMemberAddSchema,
-    lastMembers: EntityGroupMemberListSchema,
+    syncMember: EntityGroupMemberSyncSchema,
+    list: EntityGroupListSchema,
     enums: {
       type: EntityGroupTypeEnum,
       role: EntityGroupRoleEnum,
     },
   },
 
-  // Operations
+  taskCategory: {
+    create: createTaskCategorySchema,
+    list: listTaskCategoriesSchema,
+    update: updateTaskCategorySchema,
+  },
+
   task: {
     create: TaskCreateSchema,
     update: TaskUpdateSchema,
-    query: TaskQuerySchema,
+    query: listTasksSchema,
+    bulkStatus: TaskBulkStatusUpdateSchema,
+    bulkPriority: TaskBulkPriorityUpdateSchema,
     enums: {
       status: TaskStatusEnum,
-      billingStatus: BillingStatusEnum,
+      priority: TaskPriorityEnum,
     },
   },
 
   taskAssignment: {
-    create: TaskAssignmentCreateSchema,
-    bulk: TaskAssignmentBulkSchema,
+    taskId: TaskAssignmentTaskIdSchema,
+    sync: TaskAssignmentSyncSchema,
+    bulk: BulkAssignTaskSchema,
   },
 
   taskModule: {
-    create: TaskModuleCreateSchema,
     update: TaskModuleUpdateSchema,
+    delete: TaskModuleDeleteSchema,
     bulkCreate: TaskModuleBulkCreateSchema,
   },
 
@@ -191,6 +193,7 @@ export const schemas = Object.freeze({
   complianceRule: {
     create: ComplianceRuleCreateSchema,
     update: ComplianceRuleUpdateSchema,
+    list: ComplianceRuleListSchema,
     enums: {
       frequencyUnit: FrequencyUnitEnum,
     },
@@ -199,42 +202,15 @@ export const schemas = Object.freeze({
   taskTemplate: {
     create: TaskTemplateCreateSchema,
     update: TaskTemplateUpdateSchema,
-    module: TaskTemplateModuleSchema,
-  },
-
-  entityRegistrationSetting: {
-    create: EntityRegistrationSettingCreateSchema,
-    update: EntityRegistrationSettingUpdateSchema,
-  },
-
-  // Billing
-  invoice: {
-    create: InvoiceCreateSchema,
-    update: InvoiceUpdateSchema,
-    query: InvoiceQuerySchema,
-    enums: {
-      status: InvoiceStatusEnum,
-    },
-  },
-
-  invoiceLine: {
-    create: InvoiceLineCreateSchema,
-    update: InvoiceLineUpdateSchema,
-  },
-
-  payment: {
-    create: PaymentCreateSchema,
-    update: PaymentUpdateSchema,
-    query: PaymentQuerySchema,
-    enums: {
-      status: PaymentStatusEnum,
-    },
+    list: TaskTemplateListSchema,
+    modules : TaskTemplateModuleSchema
   },
 });
+
+// Zod validation schema for UUID
+export const uuidSchema = z.string().uuid("Invalid category ID format");
 
 export const enums = {
   entity: schemas.entity.enums,
   task: schemas.task.enums,
-  invoice: schemas.invoice.enums,
-  payment: schemas.payment.enums,
 };

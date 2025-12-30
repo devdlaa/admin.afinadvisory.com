@@ -1,29 +1,37 @@
-import { NextResponse } from "next/server";
-
 import { getAssignmentCountsPerUser } from "@/services/task/assignment.service";
 
-// GET - Get assignment counts per user (reporting)
+import {
+  createSuccessResponse,
+  createErrorResponse,
+  handleApiError,
+} from "@/utils/server/apiResponse";
+
+import { requirePermission } from "@/utils/server/requirePermission";
+
 export async function GET(request) {
   try {
-    // Get assignment counts
+    const [permissionError] = await requirePermission(
+      request,
+      "task_assignments.manage"
+    );
+    if (permissionError) return permissionError;
+
     const counts = await getAssignmentCountsPerUser();
 
-    return NextResponse.json(
-      {
-        success: true,
-        data: counts,
-      },
-      { status: 200 }
+    return createSuccessResponse(
+      "Assignment counts retrieved successfully",
+      counts
     );
   } catch (error) {
-    // Generic server error
-    console.error("Error fetching assignment counts:", error);
-    return NextResponse.json(
-      {
-        success: false,
-        error: "Internal server error",
-      },
-      { status: 500 }
-    );
+    if (error?.name === "ZodError") {
+      return createErrorResponse(
+        "Validation failed",
+        400,
+        "VALIDATION_ERROR",
+        error.errors
+      );
+    }
+
+    return handleApiError(error);
   }
 }

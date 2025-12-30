@@ -1,47 +1,67 @@
 import { schemas } from "@/schemas";
 
-import { createEntityGroup,listEntityGroups } from "@/services_backup/entity/entity-group.service";
-import { createSuccessResponse, handleApiError } from "@/utils/server/apiResponse";
+import {
+  createEntityGroup,
+  listEntityGroups,
+} from "@/services/entity/entity-group.service";
 
-/**
- * POST /api/entity-groups
- * Create entity group
- */
-export async function POST(req) {
+import {
+  createSuccessResponse,
+  handleApiError,
+} from "@/utils/server/apiResponse";
+
+import { requirePermission } from "@/utils/server/requirePermission";
+
+// POST → create entity group
+export async function POST(request) {
   try {
-    const body = schemas.entityGroup.create.parse(await req.json());
-    const group = await createEntityGroup(body);
+    const [permissionError] = await requirePermission(
+      request,
+      "entity_groups.manage"
+    );
+    if (permissionError) return permissionError;
+
+    const body = await request.json();
+
+    const validated = schemas.entityGroup.create.parse(body);
+
+    const group = await createEntityGroup(validated);
 
     return createSuccessResponse(
       "Entity group created successfully",
       group,
       201
     );
-  } catch (e) {
-    return handleApiError(e);
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
-/**
- * GET /api/entity-groups
- * List entity groups
- */
-export async function GET(req) {
+// GET → list entity groups
+export async function GET(request) {
   try {
-    const { searchParams } = new URL(req.url);
+    const [permissionError] = await requirePermission(
+      request,
+      "entity_groups.access"
+    );
+    if (permissionError) return permissionError;
 
-    const filters = {
-      group_type: searchParams.get("group_type") || undefined,
-      search: searchParams.get("search") || undefined,
-    };
+    const { searchParams } = new URL(request.url);
 
-    const groups = await listEntityGroups(filters);
+    const validated = schemas.entityGroup.list.parse({
+      search: searchParams.get("search") ?? undefined,
+      group_type: searchParams.get("group_type") ?? undefined,
+      page: searchParams.get("page") ?? undefined,
+      page_size: searchParams.get("page_size") ?? undefined,
+    });
+
+    const groups = await listEntityGroups(validated);
 
     return createSuccessResponse(
       "Entity groups retrieved successfully",
       groups
     );
-  } catch (e) {
-    return handleApiError(e);
+  } catch (error) {
+    return handleApiError(error);
   }
 }

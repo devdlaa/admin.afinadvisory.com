@@ -139,6 +139,6 @@ export const AdminUserListSchema = z.object({
   limit: z.coerce.number().int().nonnegative().max(20).default(20).optional(),
 });
 
-export const ResendOnboardingInviteSchema = z.object({
-  user_id: z.string().uuid("Invalid user ID"),
+export const AdminUserIdSchema = z.object({
+  id: z.string().uuid("Invalid user ID"),
 });

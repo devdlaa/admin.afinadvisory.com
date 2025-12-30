@@ -1,23 +1,30 @@
-import { NextResponse } from "next/server";
-import { listTemplateModules } from "@/services/taskTemplateModule.service";
 import { z } from "zod";
+import { listTemplateModules } from "@/services/task/taskTemplateModule.service";
+import {
+  createSuccessResponse,
+  handleApiError,
+} from "@/utils/server/apiResponse";
 
 const uuidSchema = z.string().uuid("Invalid task template id");
-
-export async function GET(request, { params }) {
+import { requirePermission } from "@/utils/server/requirePermission";
+export async function GET(_req, { params }) {
   try {
+    const [permissionError] = await requirePermission(
+      request,
+      "task_templates.access"
+    );
+    if (permissionError) return permissionError;
+
     const task_template_id = uuidSchema.parse(params.id);
 
-    const modules = await listTemplateModules({ task_template_id });
+    const modules = await listTemplateModules(task_template_id);
 
-    return NextResponse.json({
-      success: true,
-      data: modules,
-    });
-  } catch (err) {
-    return NextResponse.json(
-      { success: false, error: err.message },
-      { status: 400 }
+    return createSuccessResponse(
+      "Template modules retrieved successfully",
+      modules
     );
+  } catch (err) {
+    // Service-level or unexpected error
+    return handleApiError(err);
   }
 }

@@ -1,48 +1,76 @@
-import { schemas } from "@/schemas";
+import { schemas, uuidSchema } from "@/schemas";
+
 import {
-  getEntityGroupById,
   updateEntityGroup,
   deleteEntityGroup,
-} from "@/services_backup/entity/entity-group.service";
-import { createSuccessResponse, handleApiError } from "@/utils/server/apiResponse";
+  getEntityGroupById,
+} from "@/services/entity/entity-group.service";
 
-/**
- * GET /api/entity-groups/:id
- * Get entity group by ID
- */
-export async function GET(req, { params }) {
+import {
+  createSuccessResponse,
+  createErrorResponse,
+  handleApiError,
+} from "@/utils/server/apiResponse";
+
+import { requirePermission } from "@/utils/server/requirePermission";
+
+// GET → single entity group
+export async function GET(request, { params }) {
   try {
-    const group = await getEntityGroupById(params.id);
+    const [permissionError] = await requirePermission(
+      request,
+      "entity_groups.access"
+    );
+    if (permissionError) return permissionError;
+
+    const entity_group_id = uuidSchema.parse(params.id);
+
+    const group = await getEntityGroupById(entity_group_id);
+
     return createSuccessResponse("Entity group retrieved successfully", group);
-  } catch (e) {
-    return handleApiError(e);
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
-/**
- * PUT /api/entity-groups/:id
- * Update entity group
- */
-export async function PUT(req, { params }) {
+// PUT → update entity group
+export async function PUT(request, { params }) {
   try {
-    const body = schemas.entityGroup.update.parse(await req.json());
-    const group = await updateEntityGroup(params.id, body);
+    const [permissionError] = await requirePermission(
+      request,
+      "entity_groups.manage"
+    );
+    if (permissionError) return permissionError;
+
+    const entity_group_id = uuidSchema.parse(params.id);
+
+    const body = await request.json();
+
+    const validated = schemas.entityGroup.update.parse(body);
+
+    const group = await updateEntityGroup(entity_group_id, validated);
 
     return createSuccessResponse("Entity group updated successfully", group);
-  } catch (e) {
-    return handleApiError(e);
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
-/**
- * DELETE /api/entity-groups/:id
- * Delete entity group
- */
-export async function DELETE(req, { params }) {
+// DELETE → delete entity group
+export async function DELETE(request, { params }) {
   try {
-    const group = await deleteEntityGroup(params.id);
+    const [permissionError] = await requirePermission(
+      request,
+      "entity_groups.manage"
+    );
+    if (permissionError) return permissionError;
+
+    const entity_group_id = uuidSchema.parse(params.id);
+
+    const group = await deleteEntityGroup(entity_group_id);
+
     return createSuccessResponse("Entity group deleted successfully", group);
-  } catch (e) {
-    return handleApiError(e);
+  } catch (error) {
+    return handleApiError(error);
   }
 }

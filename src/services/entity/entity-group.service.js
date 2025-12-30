@@ -116,8 +116,7 @@ export const listEntityGroups = async (filters = {}) => {
   };
 };
 
-
-export const getEntityGroupById = async (id) => {
+export const getEntityGroupsByEntityId = async (id) => {
   const group = await prisma.entityGroup.findUnique({
     where: { id },
     include: {

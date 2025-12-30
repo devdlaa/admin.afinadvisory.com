@@ -181,8 +181,8 @@ model Entity {
   entity_type     EntityType
   name            String       @db.Char(120)
 
-  pan             String?       @unique @db.Char(10)
-  tan             String?      @db.Char(10)
+  pan String? @unique
+
 
   email           String
   primary_phone   String
@@ -195,8 +195,6 @@ model Entity {
   city            String?       @db.Char(50)
   state           String?       @db.Char(50)
   pincode         String?      @db.Char(6)
-
-  is_retainer     Boolean      @default(false)
   status          EntityStatus @default(INACTIVE)
 
   created_by      String       @db.Uuid
@@ -222,8 +220,7 @@ model Entity {
   @@index([status])
   @@index([created_at])
   @@index([deleted_at])
-  @@index([is_retainer, status])
-  @@index([status, is_retainer, created_at])
+  @@index([status, created_at])
 }
 
 
@@ -529,38 +526,44 @@ model TaskCategory {
 model Task {
   id                 String        @id @default(uuid()) @db.Uuid
   entity_id          String        @db.Uuid
-  created_by         String        @db.Uuid
-  updated_by         String        @db.Uuid
+
   title              String
   description        String?
   status             TaskStatus    @default(PENDING)
+  priority           TaskPriority    @default(NORMAL)
+
   start_date         DateTime?
   end_date           DateTime?
   due_date           DateTime?
-  priority           TaskPriority    @default(NORMAL)
-  entity_registration_id   String?
-  registration EntityRegistration? @relation(fields: [entity_registration_id], references: [id])
+
+  task_category_id String? @db.Uuid
+  compliance_rule_id String?       @db.Uuid
+
   task_source  TASK_SOURCE
 
-  is_assigned_to_all Boolean       @default(false)
-  created_at         DateTime      @default(now())
-  updated_at         DateTime      @updatedAt
   period_start   DateTime?
   period_end     DateTime?
   financial_year String?
   period_label   String?
 
-  has_activity       Boolean   @default(false)
-  last_activity_at   DateTime?
-  last_activity_by   String?   @db.Uuid
-  task_category_id String? @db.Uuid
-  compliance_rule_id String?       @db.Uuid
 
-  lastActor          AdminUser? @relation(fields: [last_activity_by],references: [id])
+  is_assigned_to_all Boolean       @default(false)
+  entity_registration_id   String?
+
+  created_at         DateTime      @default(now())
+  created_by         String        @db.Uuid
+  updated_at         DateTime      @updatedAt
+  updated_by         String        @db.Uuid
+
+
+
+
+  
   entity        Entity           @relation(fields: [entity_id], references: [id], onDelete: Cascade)
   creator       AdminUser        @relation("task_creator", fields: [created_by], references: [id])
   updator       AdminUser        @relation("task_updator", fields: [updated_by], references: [id])
   category      TaskCategory?    @relation(fields: [task_category_id], references: [id])
+  registration EntityRegistration? @relation(fields: [entity_registration_id], references: [id])
   assignments   TaskAssignment[]
   task_modules  TaskModule[]
 
@@ -605,19 +608,22 @@ model TaskTemplate {
   id                   String   @id @default(uuid()) @db.Uuid
   compliance_rule_id   String   @db.Uuid
   created_by           String   @db.Uuid
+  updated_by           String   @db.Uuid
   title_template       String   @db.VarChar(180)
-  description_template String?
+  description_template String? 
   is_active            Boolean  @default(true)
   created_at           DateTime @default(now())
   updated_at           DateTime @updatedAt
 
   complianceRule ComplianceRule       @relation(fields: [compliance_rule_id], references: [id])
   creator        AdminUser            @relation(fields: [created_by], references: [id])
+  upadtor        AdminUser            @relation(fields: [updated_by], references: [id])
   modules        TaskTemplateModule[]
 
   @@unique([compliance_rule_id, title_template])
   @@index([compliance_rule_id])
   @@index([created_by])
+  @@index([updated_by])
   @@index([is_active])
   @@index([compliance_rule_id, is_active])
 }
@@ -645,7 +651,6 @@ model BillableModuleCategory {
   id          String   @id @default(uuid()) @db.Uuid
   name        String   @unique @db.VarChar(50)
   description String?
-  is_active   Boolean  @default(true)
 
   modules     BillableModule[]
 }
@@ -656,7 +661,6 @@ model BillableModule {
   name          String
   description   String?
   category_id   String? @db.Uuid
-  is_active     Boolean  @default(true)
   is_deleted    Boolean  @default(false)
   created_by    String   @db.Uuid
   updated_by    String?  @db.Uuid
@@ -672,11 +676,9 @@ model BillableModule {
 
 
   @@index([category_id])
-  @@index([category_id, is_active])
-  @@index([is_active])
   @@index([is_deleted])
   @@index([created_by])
-  @@index([is_active, is_deleted])
+
 }
 
 

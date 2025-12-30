@@ -1,120 +1,84 @@
-// app/api/tasks/bulk/route.js
-
-import { NextResponse } from "next/server";
-import { z } from "zod";
 import {
-  bulkUpdateTaskStatus,
   bulkUpdateTaskPriority,
-} from "@/services/task.service";
+  bulkUpdateTaskStatus,
+} from "@/services/task/task.service";
 
-// Zod validation schema for bulk status update
-const bulkStatusSchema = z.object({
-  task_ids: z
-    .array(z.string().uuid("Invalid task ID format"))
-    .min(1, "At least one task ID is required"),
-  status: z.enum([
-    "PENDING",
-    "IN_PROGRESS",
-    "COMPLETED",
-    "CANCELLED",
-    "ON_HOLD",
-    "PENDING_CLIENT_INPUT",
-  ]),
-});
+import { schemas } from "@/schemas";
 
-// Zod validation schema for bulk priority update
-const bulkPrioritySchema = z.object({
-  task_ids: z
-    .array(z.string().uuid("Invalid task ID format"))
-    .min(1, "At least one task ID is required"),
-  priority: z.enum(["LOW", "MEDIUM", "HIGH",]),
-});
+import {
+  createSuccessResponse,
+  createErrorResponse,
+  handleApiError,
+} from "@/utils/server/apiResponse";
 
-// POST - Bulk update tasks
+import { requirePermission } from "@/utils/server/requirePermission";
+
+// POST → bulk update tasks (status or priority based on query param)
 export async function POST(request) {
   try {
+    const [permissionError, session] = await requirePermission(
+      request,
+      "tasks.manage"
+    );
+    if (permissionError) return permissionError;
+
     const { searchParams } = new URL(request.url);
-    const action = searchParams.get("action");
+    const action = searchParams.get("action"); // "status" | "priority"
 
     const body = await request.json();
 
-    // TODO: Get user ID from session/auth
-    const updated_by =
-      request.headers.get("x-user-id") ||
-      "00000000-0000-0000-0000-000000000000";
+    const updated_by = session.user.id;
 
     let result;
 
     if (action === "status") {
-      // Validate for status update
-      const validatedData = bulkStatusSchema.parse(body);
+      // validate payload
+      const validated = schemas.task.bulkStatus.parse(body);
 
-      // Bulk update status
       result = await bulkUpdateTaskStatus(
-        validatedData.task_ids,
-        validatedData.status,
+        validated.task_ids,
+        validated.status,
         updated_by
       );
-    } else if (action === "priority") {
-      // Validate for priority update
-      const validatedData = bulkPrioritySchema.parse(body);
 
-      // Bulk update priority
-      result = await bulkUpdateTaskPriority(
-        validatedData.task_ids,
-        validatedData.priority,
-        updated_by
-      );
-    } else {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Invalid action. Use ?action=status or ?action=priority",
-        },
-        { status: 400 }
+      return createSuccessResponse(
+        "Task statuses updated successfully",
+        result
       );
     }
 
-    return NextResponse.json(
-      {
-        success: true,
-        data: result,
-        message: result.message,
-      },
-      { status: 200 }
+    if (action === "priority") {
+      // validate payload
+      const validated = schemas.task.bulkPriority.parse(body);
+
+      result = await bulkUpdateTaskPriority(
+        validated.task_ids,
+        validated.priority,
+        updated_by
+      );
+
+      return createSuccessResponse(
+        "Task priorities updated successfully",
+        result
+      );
+    }
+
+    // invalid action
+    return createErrorResponse(
+      "Invalid action. Use ?action=status or ?action=priority",
+      400,
+      "INVALID_ACTION"
     );
   } catch (error) {
-    // Zod validation errors
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Validation failed",
-          details: error.errors,
-        },
-        { status: 400 }
+    if (error?.name === "ZodError") {
+      return createErrorResponse(
+        "Validation failed",
+        400,
+        "VALIDATION_ERROR",
+        error.errors
       );
     }
 
-    // Custom errors from service
-    if (error.statusCode) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: error.message,
-        },
-        { status: error.statusCode }
-      );
-    }
-
-    // Generic server error
-    console.error("Error bulk updating tasks:", error);
-    return NextResponse.json(
-      {
-        success: false,
-        error: "Internal server error",
-      },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }

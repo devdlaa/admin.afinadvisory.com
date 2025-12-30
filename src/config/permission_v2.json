@@ -167,7 +167,7 @@
         },
         {
             "id": "tasks.manage",
-            "label": "Create/Update/Delete Tasks",
+            "label": "Create/Update Tasks",
             "category": "Tasks"
         },
         {
@@ -319,6 +319,11 @@
             "id": "coupons.delete",
             "label": "Delete Coupons",
             "category": "Coupons"
+        },
+        {
+            "id": "firm.access",
+            "label": "Access Task Managment Dashboard",
+            "category": "Firm"
         }
     ],
     "roleDefaults": {
@@ -353,9 +358,11 @@
             "task_assignments.manage",
             "compliance_rules.access",
             "compliance_rules.create",
-            "compliance_rules.update"
+            "compliance_rules.update",
+            "firm.access"
         ],
         "ADMIN": [
+            "firm.access",
             "admin_users.access",
             "admin_users.create",
             "admin_users.update",
@@ -385,6 +392,7 @@
             "compliance_rules.update"
         ],
         "WEBSITE_MANAGER": [
+            "firm.access",
             "bookings.access",
             "bookings.create_new_link",
             "payment_link.access",
@@ -411,6 +419,7 @@
             "coupons.delete"
         ],
         "SUPER_ADMIN": [
+            "firm.access",
             "admin_users.access",
             "admin_users.create",
             "admin_users.update",

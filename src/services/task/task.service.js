@@ -69,11 +69,8 @@ export const createTask = async (data, created_by) => {
     const task = await tx.task.create({
       data: {
         entity_id: data.entity_id,
-        entity_registration_id: data.entity_registration_id ?? null,
-
         title: data.title,
         description: data.description ?? null,
-
         status: data.status ?? "PENDING",
         priority: data.priority ?? "LOW",
 
@@ -88,11 +85,10 @@ export const createTask = async (data, created_by) => {
 
         period_start: data.period_start ? new Date(data.period_start) : null,
         period_end: data.period_end ? new Date(data.period_end) : null,
-
         financial_year: data.financial_year ?? null,
         period_label: data.period_label ?? null,
-
-        is_assigned_to_all: false,
+        entity_registration_id: data.entity_registration_id ?? null,
+        is_assigned_to_all: data.is_assigned_to_all ?? false,
 
         created_by,
         updated_by: created_by,
@@ -476,19 +472,6 @@ export const listTasks = async (filters = {}) => {
  */
 export const bulkUpdateTaskStatus = async (task_ids, status, updated_by) => {
   return prisma.$transaction(async (tx) => {
-    const validStatuses = [
-      "PENDING",
-      "IN_PROGRESS",
-      "COMPLETED",
-      "CANCELLED",
-      "ON_HOLD",
-      "PENDING_CLIENT_INPUT",
-    ];
-
-    if (!validStatuses.includes(status)) {
-      throw new ValidationError("Invalid task status");
-    }
-
     // fetch tasks first
     const tasks = await tx.task.findMany({
       where: { id: { in: task_ids } },

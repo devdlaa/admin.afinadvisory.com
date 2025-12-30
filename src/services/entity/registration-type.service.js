@@ -22,9 +22,10 @@ const normalizeAndValidateCode = (code) => {
     throw new ValidationError("Code must not exceed 50 characters");
   }
 
-  if (!/^[A-Z]+$/.test(normalized)) {
+  // Allow A–Z, 0–9, underscore, hyphen
+  if (!/^[A-Z0-9_-]+$/.test(normalized)) {
     throw new ValidationError(
-      "Code may contain only uppercase English letters (A–Z)"
+      "Code may contain only A–Z, digits, hyphen (-), or underscore (_)"
     );
   }
 
@@ -55,42 +56,49 @@ export const createRegistrationType = async (data) => {
 };
 
 export const updateRegistrationType = async (id, data) => {
-  const regType = await prisma.registrationType.findUnique({
-    where: { id },
-  });
+  return prisma.$transaction(async (tx) => {
+    const regType = await tx.registrationType.findUnique({
+      where: { id },
+    });
 
-  if (!regType) {
-    throw new NotFoundError("Registration type not found");
-  }
+    if (!regType) {
+      throw new NotFoundError("Registration type not found");
+    }
 
-  let updatedCode;
+    // CODE normalize + uniqueness checks
+    let updatedCode;
 
-  if (data.code) {
-    updatedCode = normalizeAndValidateCode(data.code);
+    if (data.code !== undefined) {
+      updatedCode = normalizeAndValidateCode(data.code);
 
-    if (updatedCode !== regType.code) {
-      const codeExists = await prisma.registrationType.findUnique({
-        where: { code: updatedCode },
-      });
+      if (updatedCode !== regType.code) {
+        const codeExists = await tx.registrationType.findUnique({
+          where: { code: updatedCode },
+        });
 
-      if (codeExists) {
-        throw new ConflictError(
-          "Registration type with this code already exists"
-        );
+        if (codeExists) {
+          throw new ConflictError(
+            "Registration type with this code already exists"
+          );
+        }
       }
     }
-  }
 
-  return prisma.registrationType.update({
-    where: { id },
-    data: {
-      code: updatedCode,
-      name: data.name ?? undefined,
-      description: data.description ?? undefined,
-      is_active: data.is_active ?? undefined,
-      validation_regex: data.validation_regex ?? undefined,
-      validation_hint: data.validation_hint ?? undefined,
-    },
+    // Update
+    return tx.registrationType.update({
+      where: { id },
+      data: {
+        code: updatedCode ?? undefined,
+        name: data.name ?? undefined,
+        description: data.description ?? undefined,
+
+        // single, explicit activation flag
+        is_active: data.is_active ?? undefined,
+
+        validation_regex: data.validation_regex ?? undefined,
+        validation_hint: data.validation_hint ?? undefined,
+      },
+    });
   });
 };
 
@@ -222,26 +230,4 @@ export const getRegistrationTypeById = async (id) => {
   }
 
   return regType;
-};
-
-export const toggleActiveStatus = async (id) => {
-  const regType = await prisma.registrationType.findUnique({
-    where: { id },
-    select: { is_active: true },
-  });
-
-  if (!regType) {
-    throw new NotFoundError("Registration type not found");
-  }
-
-  const updated = await prisma.registrationType.update({
-    where: { id },
-    data: { is_active: !regType.is_active },
-    select: {
-      id: true,
-      is_active: true,
-    },
-  });
-
-  return updated;
 };

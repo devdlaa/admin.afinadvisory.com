@@ -1,41 +1,35 @@
-import { NextResponse } from "next/server";
-import { z } from "zod";
-import { syncTemplateModules } from "@/services/taskTemplateModule.service";
+import { schemas, uuidSchema } from "@/schemas";
 
-const uuidSchema = z.string().uuid("Invalid task template id");
+import { syncTemplateModules } from "@/services/task/taskTemplateModule.service";
 
-const syncSchema = z.object({
-  modules: z
-    .array(
-      z.object({
-        billable_module_id: z.string().uuid(),
-        is_optional: z.boolean().optional(),
-      })
-    )
-    .default([]),
-});
+import {
+  createSuccessResponse,
+  handleApiError,
+} from "@/utils/server/apiResponse";
+
+import { requirePermission } from "@/utils/server/requirePermission";
 
 export async function POST(request, { params }) {
   try {
+    const [permissionError] = await requirePermission(
+      request,
+      "task_templates.manage"
+    );
+    if (permissionError) return permissionError;
+
     const task_template_id = uuidSchema.parse(params.id);
 
     const body = await request.json();
-    const { modules } = syncSchema.parse(body);
+
+    const { modules } = schemas.taskTemplate.modules.parse(body);
 
     const result = await syncTemplateModules(task_template_id, modules);
 
-    return NextResponse.json(
-      {
-        success: true,
-        message: "Template modules synced successfully",
-        data: result,
-      },
-      { status: 200 }
+    return createSuccessResponse(
+      "Template modules synced successfully",
+      result
     );
-  } catch (err) {
-    return NextResponse.json(
-      { success: false, error: err.message },
-      { status: 400 }
-    );
+  } catch (e) {
+    return handleApiError(e);
   }
 }

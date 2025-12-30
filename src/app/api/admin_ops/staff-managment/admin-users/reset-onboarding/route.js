@@ -1,42 +1,31 @@
-import { z } from "zod";
-import { createSuccessResponse, handleApiError } from "@/utils/server/apiResponse";
-import { generateOnboardingResetToken } from "@/services_backup/admin/admin-user.service";
+import { schemas } from "@/schemas";
+
+import {
+  createSuccessResponse,
+  handleApiError,
+} from "@/utils/server/apiResponse";
+
+import { requirePermission } from "@/utils/server/requirePermission";
+
+import { generateOnboardingResetToken } from "@/services/admin/admin-user.service";
 import { SEND_EMAIL } from "@/utils/server/sendemail";
-// import { auth } from "@/utils/auth";
 
 const FRONTEND_URL = process.env.NEXT_PUBLIC_WEB_URL;
 const SUPPORT_EMAIL = process.env.SERVICE_EMAIL;
 
-// Validation schema
-const OnboardingResetRequestSchema = z.object({
-  email: z.string().email("Please provide a valid email").trim().toLowerCase(),
-});
-
 export async function POST(req) {
   try {
-    // TODO: AUTH VALIDATION & PERMISSION CHECK
-    // const session = await auth();
-    // if (!session?.user) {
-    //   return createErrorResponse(
-    //     "Unauthorized - Please login to continue",
-    //     401,
-    //     "AUTH_REQUIRED"
-    //   );
-    // }
-    // const permissionCheck = await requirePermission(req, "users.reset_onboarding");
-    // if (permissionCheck) return permissionCheck;
+    // permission: users.reset_onboarding
+    const [permissionError, session] = await requirePermission(
+      req,
+      "admin_users.manage"
+    );
+    if (permissionError) return permissionError;
 
-    const session = {
-      username: "admin",
-      user_id: "admin-user-id", // TODO: Replace with actual user ID from session
-    };
-
-    const body = OnboardingResetRequestSchema.parse(await req.json());
-
-    // Generate onboarding reset token
+    const admin_user_id = uuidSchema.parse(await req.json());
     const result = await generateOnboardingResetToken(
-      body.email,
-      session.user_id
+      admin_user_id,
+      session.user.id
     );
 
     if (!result) {
@@ -47,7 +36,8 @@ export async function POST(req) {
 
     const resetLink = `${FRONTEND_URL}/user-onboarding?token=${result.resetToken}`;
 
-    const emailResult = await SEND_EMAIL({
+    // attempt best-effort email send (ZOHO SMTP WILL RETRY-3 TIMES ALREADY)
+    SEND_EMAIL({
       to: result.email,
       type: "SEND_USER_ONBOARDING_RESET_LINK",
       variables: {
@@ -56,19 +46,14 @@ export async function POST(req) {
         expiryHours: 24,
         supportEmail: SUPPORT_EMAIL,
       },
+    }).catch((err) => {
+      console.error("Failed to send onboarding email:", err);
     });
-
-    if (!emailResult.success) {
-      console.error(
-        "Failed to send onboarding reset email:",
-        emailResult.error
-      );
-    }
 
     return createSuccessResponse(
       "If the email exists, an onboarding reset link has been sent."
     );
-  } catch (e) {
-    return handleApiError(e);
+  } catch (error) {
+    return handleApiError(error);
   }
 }

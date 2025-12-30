@@ -130,35 +130,29 @@ export const syncTemplateModules = async (task_template_id, modules) => {
 };
 
 /**
- * List template modules
+ * List all modules for a specific task template
  */
-export const listTemplateModules = async (filters = {}) => {
-  const where = {};
-
-  if (filters.task_template_id) {
-    where.task_template_id = filters.task_template_id;
-  }
-
-  if (filters.billable_module_id) {
-    where.billable_module_id = filters.billable_module_id;
-  }
-
-  if (filters.is_optional !== undefined) {
-    where.is_optional = filters.is_optional;
-  }
-
+export const listTemplateModules = async (task_template_id) => {
   return prisma.taskTemplateModule.findMany({
-    where,
+    where: {
+      task_template_id,
+    },
     include: {
       taskTemplate: {
-        select: { id: true, title_template: true, is_active: true },
+        select: {
+          id: true,
+          title_template: true,
+          is_active: true,
+        },
       },
       billableModule: {
-        include: { category: true },
+        include: {
+          category: true,
+        },
       },
     },
-    orderBy: { created_at: "asc" },
+    orderBy: {
+      created_at: "asc",
+    },
   });
 };
-
-export { syncTemplateModules, listTemplateModules };

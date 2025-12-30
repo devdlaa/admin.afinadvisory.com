@@ -1,53 +1,31 @@
-import { schemas } from "@/schemas";
+import { uuidSchema } from "@/schemas";
+
+import { listGroupMembers } from "@/services/entity/entity-group-member.service";
 
 import {
-  addMemberToGroup,
-  listGroupMembers,
-} from "@/services/entity/entity-group-member.service";
-import { createSuccessResponse, handleApiError } from "@/utils/server/apiResponse";
+  createSuccessResponse,
+  handleApiError,
+} from "@/utils/server/apiResponse";
 
-/**
- * POST /api/entity-groups/:id/members
- * Add member to group
- */
-export async function POST(req, { params }) {
+import { requirePermission } from "@/utils/server/requirePermission";
+
+export async function GET(request, { params }) {
   try {
-    const body = await req.json();
+    const [permissionError] = await requirePermission(
+      request,
+      "entity_groups.access"
+    );
+    if (permissionError) return permissionError;
 
-    const validated = schemas.entityGroup.addMember.parse({
-      entity_group_id: params.id,
-      entity_id: body.entity_id,
-      role: body.role,
-    });
+    const entity_group_id = uuidSchema.parse(params.id);
 
-    const member = await addMemberToGroup(validated);
-
-    return createSuccessResponse("Member added successfully", member, 201);
-  } catch (e) {
-    return handleApiError(e);
-  }
-}
-
-/**
- * GET /api/entity-groups/:id/members
- * List group members
- */
-export async function GET(req, { params }) {
-  try {
-    const { searchParams } = new URL(req.url);
-
-    const filters = schemas.entityGroup.listMembers.parse({
-      page: searchParams.get("page") ?? undefined,
-      page_size: searchParams.get("page_size") ?? undefined,
-    });
-
-    const members = await listGroupMembers(params.id, filters);
+    const members = await listGroupMembers(entity_group_id);
 
     return createSuccessResponse(
       "Group members retrieved successfully",
       members
     );
-  } catch (e) {
-    return handleApiError(e);
+  } catch (error) {
+    return handleApiError(error);
   }
 }

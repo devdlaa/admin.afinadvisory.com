@@ -134,9 +134,6 @@ export const createComplianceRule = async (data, admin_id) => {
   });
 };
 
-/**
- * Update compliance rule
- */
 export const updateComplianceRule = async (id, data, admin_id) => {
   return prisma.$transaction(async (tx) => {
     const rule = await tx.complianceRule.findUnique({
@@ -147,14 +144,33 @@ export const updateComplianceRule = async (id, data, admin_id) => {
       throw new NotFoundError("Compliance rule not found");
     }
 
-    // ❌ Do NOT allow compliance_code updates
+    // --------------------------------------------
+    // 1) COMPLIANCE CODE UPDATE using shared helper
+    // --------------------------------------------
+    let updatedComplianceCode;
+
     if (data.compliance_code !== undefined) {
-      throw new ValidationError(
-        "Compliance code cannot be updated once created"
+      updatedComplianceCode = normalizeAndValidateComplianceCode(
+        data.compliance_code
       );
+
+      // uniqueness only if changed
+      if (updatedComplianceCode !== rule.compliance_code) {
+        const exists = await tx.complianceRule.findUnique({
+          where: { compliance_code: updatedComplianceCode },
+        });
+
+        if (exists) {
+          throw new ConflictError(
+            "Compliance rule with this compliance code already exists"
+          );
+        }
+      }
     }
 
-    // Validate registration type if provided
+    // --------------------------------------------
+    // 2) Registration type validation
+    // --------------------------------------------
     if (data.registration_type_id) {
       const registrationType = await tx.registrationType.findUnique({
         where: { id: data.registration_type_id },
@@ -165,7 +181,9 @@ export const updateComplianceRule = async (id, data, admin_id) => {
       }
     }
 
-    // Auto-update anchor_months and period_label_type if frequency_type changes
+    // --------------------------------------------
+    // 3) Auto frequency → anchors & labels
+    // --------------------------------------------
     let anchor_months;
     let period_label_type;
 
@@ -174,123 +192,55 @@ export const updateComplianceRule = async (id, data, admin_id) => {
       period_label_type = PERIOD_LABEL_MAP[data.frequency_type];
     }
 
+    // --------------------------------------------
+    // 4) Prevent disable if active templates exist
+    // --------------------------------------------
+    if (data.is_active === false && rule.is_active === true) {
+      const activeTemplates = await tx.taskTemplate.count({
+        where: {
+          compliance_rule_id: id,
+          is_active: true,
+        },
+      });
+
+      if (activeTemplates > 0) {
+        throw new ValidationError(
+          `Cannot disable compliance rule. It has ${activeTemplates} active task template(s). Please disable those templates first.`
+        );
+      }
+    }
+
+    // --------------------------------------------
+    // 5) Final update
+    // --------------------------------------------
     const updatedRule = await tx.complianceRule.update({
       where: { id },
       data: {
+        compliance_code: updatedComplianceCode ?? undefined,
+
         name: data.name ?? undefined,
         registration_type_id: data.registration_type_id ?? undefined,
 
-        // Auto-update if frequency_type changes
         frequency_type: data.frequency_type ?? undefined,
         anchor_months: anchor_months ?? undefined,
         period_label_type: period_label_type ?? undefined,
 
-        // User fields
         due_day: data.due_day ?? undefined,
         due_month_offset: data.due_month_offset ?? undefined,
         grace_days: data.grace_days ?? undefined,
+
         is_active: data.is_active ?? undefined,
 
         updated_by: admin_id,
       },
       include: {
         registrationType: true,
-        creator: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-        updater: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
+        creator: { select: { id: true, name: true, email: true } },
+        updater: { select: { id: true, name: true, email: true } },
       },
     });
 
     return updatedRule;
-  });
-};
-
-/**
- * Disable compliance rule
- */
-export const disableComplianceRule = async (id, admin_id) => {
-  return prisma.$transaction(async (tx) => {
-    const rule = await tx.complianceRule.findUnique({
-      where: { id },
-    });
-
-    if (!rule) {
-      throw new NotFoundError("Compliance rule not found");
-    }
-
-    if (!rule.is_active) {
-      throw new ValidationError("Compliance rule is already disabled");
-    }
-
-    // Check for active task templates
-    const activeTemplates = await tx.taskTemplate.count({
-      where: {
-        compliance_rule_id: id,
-        is_active: true,
-      },
-    });
-
-    if (activeTemplates > 0) {
-      throw new ValidationError(
-        `Cannot disable compliance rule. It has ${activeTemplates} active task template(s). Please disable those templates first.`
-      );
-    }
-
-    const disabledRule = await tx.complianceRule.update({
-      where: { id },
-      data: {
-        is_active: false,
-        updated_by: admin_id,
-      },
-      include: {
-        registrationType: true,
-      },
-    });
-
-    return disabledRule;
-  });
-};
-
-/**
- * Enable compliance rule
- */
-export const enableComplianceRule = async (id, admin_id) => {
-  return prisma.$transaction(async (tx) => {
-    const rule = await tx.complianceRule.findUnique({
-      where: { id },
-    });
-
-    if (!rule) {
-      throw new NotFoundError("Compliance rule not found");
-    }
-
-    if (rule.is_active) {
-      throw new ValidationError("Compliance rule is already enabled");
-    }
-
-    const enabledRule = await tx.complianceRule.update({
-      where: { id },
-      data: {
-        is_active: true,
-        updated_by: admin_id,
-      },
-      include: {
-        registrationType: true,
-      },
-    });
-
-    return enabledRule;
   });
 };
 
@@ -331,9 +281,6 @@ export const getComplianceRuleById = async (id) => {
   return rule;
 };
 
-/**
- * List compliance rules with filters
- */
 /**
  * List compliance rules with filters + pagination
  */
@@ -405,13 +352,4 @@ export const listComplianceRules = async (filters = {}) => {
       has_more: page < totalPages,
     },
   };
-};
-
-export {
-  createComplianceRule,
-  updateComplianceRule,
-  disableComplianceRule,
-  enableComplianceRule,
-  getComplianceRuleById,
-  listComplianceRules,
 };

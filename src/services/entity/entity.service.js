@@ -10,9 +10,6 @@ const prisma = new PrismaClient();
 // PAN format: ABCDE1234F (5 letters + 4 digits + 1 letter)
 const PAN_REGEX = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
 
-// TAN format: ABCD12345E (4 letters + 5 digits + 1 letter)
-const TAN_REGEX = /^[A-Z]{4}[0-9]{5}[A-Z]{1}$/;
-
 const validatePAN = (pan) => {
   if (!PAN_REGEX.test(pan)) {
     throw new ValidationError(
@@ -21,50 +18,36 @@ const validatePAN = (pan) => {
   }
 };
 
-const validateTAN = (tan) => {
-  if (tan && !TAN_REGEX.test(tan)) {
-    throw new ValidationError(
-      "Invalid TAN format. Expected format: ABCD12345E (4 letters + 5 digits + 1 letter)"
-    );
-  }
-};
-
-export const createEntity = async (data, created_by) => {
+const createEntity = async (data, created_by) => {
   return prisma.$transaction(async (tx) => {
-    // Validate PAN format
-    validatePAN(data.pan);
+    // normalize optional PAN
+    const pan = data.pan ? data.pan.toUpperCase() : null;
 
-    // Validate TAN format (if provided)
-    validateTAN(data.tan);
+    // conditional PAN validation
+    if (data.entity_type !== "UN_REGISTRED") {
+      if (!pan) {
+        throw new ValidationError("PAN is required for this entity type");
+      }
 
-    // Check if PAN already exists
-    const panExists = await tx.entity.findUnique({
-      where: { pan: data.pan },
-    });
-    if (panExists) {
-      throw new ConflictError("Entity with this PAN already exists");
+      validatePAN(pan);
     }
 
-    // If TAN is provided, check uniqueness
-    if (data.tan) {
-      const tanExists = await tx.entity.findFirst({
-        where: {
-          tan: data.tan,
-          deleted_at: null,
-        },
+    // uniqueness enforcement only if PAN exists
+    if (pan) {
+      const panExists = await tx.entity.findUnique({
+        where: { pan },
       });
-      if (tanExists) {
-        throw new ConflictError("Entity with this TAN already exists");
+
+      if (panExists) {
+        throw new ConflictError("Entity with this PAN already exists");
       }
     }
 
-    // Create entity
     const entity = await tx.entity.create({
       data: {
         entity_type: data.entity_type,
         name: data.name,
-        pan: data.pan,
-        tan: data.tan ?? null,
+        pan, // may be null for UN_REGISTRED
         email: data.email,
         primary_phone: data.primary_phone,
         contact_person: data.contact_person ?? null,
@@ -80,11 +63,7 @@ export const createEntity = async (data, created_by) => {
       },
       include: {
         creator: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
+          select: { id: true, name: true, email: true },
         },
       },
     });
@@ -93,86 +72,63 @@ export const createEntity = async (data, created_by) => {
   });
 };
 
-export const updateEntity = async (entity_id, data, updated_by) => {
+const updateEntity = async (entity_id, data, updated_by) => {
   return prisma.$transaction(async (tx) => {
-    // Fetch existing entity
     const entity = await tx.entity.findUnique({
       where: { id: entity_id },
       include: {
         registrations: {
-          where: {
-            deleted_at: null,
-            status: "ACTIVE",
-          },
+          where: { deleted_at: null, status: "ACTIVE" },
         },
       },
     });
 
-    if (!entity) {
-      throw new NotFoundError("Entity not found");
-    }
-
-    if (entity.deleted_at) {
+    if (!entity) throw new NotFoundError("Entity not found");
+    if (entity.deleted_at)
       throw new ValidationError("Cannot update deleted entity");
+
+    const nextType = data.entity_type ?? entity.entity_type;
+    const nextPAN = data.pan?.toUpperCase() ?? entity.pan;
+
+    // enforce conditional PAN rule
+    if (nextType !== "UN_REGISTRED" && !nextPAN) {
+      throw new ValidationError("PAN is required for this entity type");
     }
 
-    // Validate PAN format (if being updated)
-    if (data.pan) {
-      validatePAN(data.pan);
+    // validate PAN only when present
+    if (nextPAN) {
+      validatePAN(nextPAN);
     }
 
-    // Validate TAN format (if being updated)
-    if (data.tan !== undefined) {
-      validateTAN(data.tan);
-    }
-
-    // Check PAN uniqueness (if changed)
-    if (data.pan && data.pan !== entity.pan) {
+    // uniqueness check if PAN changed
+    if (nextPAN && nextPAN !== entity.pan) {
       const panExists = await tx.entity.findUnique({
-        where: { pan: data.pan },
+        where: { pan: nextPAN },
       });
+
       if (panExists) {
         throw new ConflictError("Entity with this PAN already exists");
       }
     }
 
-    // Check TAN uniqueness (if provided and changed)
-    if (data.tan && data.tan !== entity.tan) {
-      const tanExists = await tx.entity.findFirst({
-        where: {
-          tan: data.tan,
-          deleted_at: null,
-          id: { not: entity_id },
-        },
-      });
-      if (tanExists) {
-        throw new ConflictError("Entity with this TAN already exists");
-      }
-    }
-
-    // Handle is_retainer toggle with validation
+    // retainer toggle constraint stays as you wrote
     if (
       data.is_retainer !== undefined &&
-      data.is_retainer !== entity.is_retainer
+      data.is_retainer !== entity.is_retainer &&
+      !data.is_retainer &&
+      entity.registrations.length > 0
     ) {
-      // If disabling retainer, check for active registrations
-      if (!data.is_retainer && entity.is_retainer) {
-        if (entity.registrations.length > 0) {
-          throw new ValidationError(
-            "Cannot disable retainer status. Entity has active registrations. Please deactivate registrations first."
-          );
-        }
-      }
+      throw new ValidationError(
+        "Cannot disable retainer status. Entity has active registrations. Please deactivate registrations first."
+      );
     }
 
-    // Update entity
     const updatedEntity = await tx.entity.update({
       where: { id: entity_id },
       data: {
         entity_type: data.entity_type ?? undefined,
         name: data.name ?? undefined,
-        pan: data.pan ?? undefined,
-        tan: data.tan ?? undefined,
+        pan: nextPAN ?? undefined,
         email: data.email ?? undefined,
         primary_phone: data.primary_phone ?? undefined,
         contact_person: data.contact_person ?? undefined,
@@ -187,20 +143,8 @@ export const updateEntity = async (entity_id, data, updated_by) => {
         updated_by,
       },
       include: {
-        creator: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-        updater: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
+        creator: { select: { id: true, name: true, email: true } },
+        updater: { select: { id: true, name: true, email: true } },
       },
     });
 
@@ -211,7 +155,7 @@ export const updateEntity = async (entity_id, data, updated_by) => {
 /**
  * Soft delete an entity
  */
-export const deleteEntity = async (entity_id, deleted_by) => {
+const deleteEntity = async (entity_id, deleted_by) => {
   return prisma.$transaction(async (tx) => {
     const entity = await tx.entity.findUnique({
       where: { id: entity_id },
@@ -254,7 +198,7 @@ export const deleteEntity = async (entity_id, deleted_by) => {
 /**
  * List entities with filters
  */
-export const listEntities = async (filters = {}) => {
+const listEntities = async (filters = {}) => {
   // pagination normalization
   const page = Number(filters.page) > 0 ? Number(filters.page) : 1;
   const pageSize =
@@ -347,7 +291,7 @@ export const listEntities = async (filters = {}) => {
 /**
  * Get entity by ID
  */
-export const getEntityById = async (entity_id) => {
+const getEntityById = async (entity_id) => {
   const entity = await prisma.entity.findFirst({
     where: {
       id: entity_id,
@@ -394,61 +338,10 @@ export const getEntityById = async (entity_id) => {
   return entity;
 };
 
-/**
- * Toggle retainer status
- */
-export const toggleRetainerStatus = async (
-  entity_id,
-  is_retainer,
-  updated_by
-) => {
-  return prisma.$transaction(async (tx) => {
-    const entity = await tx.entity.findUnique({
-      where: { id: entity_id },
-    });
-
-    if (!entity) {
-      throw new NotFoundError("Entity not found");
-    }
-
-    if (entity.deleted_at) {
-      throw new ValidationError("Cannot update deleted entity");
-    }
-
-    // If disabling retainer, check for active registrations
-    if (!is_retainer && entity.is_retainer) {
-      const activeRegistrations = await tx.entityRegistration.count({
-        where: {
-          entity_id,
-          deleted_at: null,
-          status: "ACTIVE",
-        },
-      });
-
-      if (activeRegistrations > 0) {
-        throw new ValidationError(
-          "Cannot disable retainer status. Entity has active registrations. Please deactivate registrations first."
-        );
-      }
-    }
-
-    const updatedEntity = await tx.entity.update({
-      where: { id: entity_id },
-      data: {
-        is_retainer,
-        updated_by,
-      },
-    });
-
-    return updatedEntity;
-  });
-};
-
 export {
   createEntity,
   updateEntity,
   deleteEntity,
   listEntities,
   getEntityById,
-  toggleRetainerStatus,
 };

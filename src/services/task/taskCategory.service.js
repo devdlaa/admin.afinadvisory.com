@@ -97,7 +97,7 @@ export const updateTaskCategory = async (category_id, data) => {
           data.description !== undefined
             ? data.description.trim() || null
             : undefined,
-        is_active: data.is_active ?? undefined,
+        is_active: data.is_active ?? false,
       },
     });
 

@@ -1,22 +1,7 @@
 import { z } from "zod";
 
 /**
- * Create a task module
- * Purely informational service attachment
- */
-export const TaskModuleCreateSchema = z.object({
-  task_id: z.string().uuid(),
-  billable_module_id: z.string().uuid(),
-
-  // name is optional because we usually copy from billable module
-  name: z.string().min(1).max(200).trim().optional(),
-
-  // free-text remark only
-  remark: z.string().max(1000).optional().nullable(),
-});
-
-/**
- * Update a task module
+ * Update a task module (override fields on TaskModule row)
  */
 export const TaskModuleUpdateSchema = z.object({
   name: z.string().min(1).max(200).trim().optional(),
@@ -24,13 +9,16 @@ export const TaskModuleUpdateSchema = z.object({
 });
 
 /**
- * Bulk add task modules
+ * Delete / detach module from task
+ */
+export const TaskModuleDeleteSchema = z.object({
+  task_id: z.string().uuid(),
+});
+
+/**
+ * Bulk add task modules to a task
  */
 export const TaskModuleBulkCreateSchema = z.object({
   task_id: z.string().uuid(),
-  modules: z
-    .array(
-      TaskModuleCreateSchema.omit({ task_id: true })
-    )
-    .min(1),
+  modules: z.array(TaskModuleCreateSchema.omit({ task_id: true })).min(1),
 });

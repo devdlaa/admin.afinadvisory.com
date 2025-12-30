@@ -1,16 +1,26 @@
-import { getEntityRegistrations } from "@/services_backup/entity/entity-registration.service";
-import { createSuccessResponse, handleApiError } from "@/utils/server/apiResponse";
+import { uuidSchema } from "@/schemas";
 
-/**
- * GET /api/entities/:id/registrations
- * Get entity's registrations
- */
+import { listEntityRegistrations } from "@/services/entity/entity-registration.service";
+
+import {
+  createSuccessResponse,
+  handleApiError,
+} from "@/utils/server/apiResponse";
+
+import { requirePermission } from "@/utils/server/requirePermission";
+
 export async function GET(req, { params }) {
   try {
-    const registrations = await getEntityRegistrations(params.id);
+    const [permissionError] = await requirePermission(req, "entities.access");
+    if (permissionError) return permissionError;
+
+    const entity_id = uuidSchema.parse(params.entity_id);
+
+    const data = await listEntityRegistrations(entity_id);
+
     return createSuccessResponse(
       "Entity registrations retrieved successfully",
-      registrations
+      data
     );
   } catch (e) {
     return handleApiError(e);

@@ -1,37 +1,52 @@
-import { schemas } from "@/schemas";
-
 import {
   createRegistrationType,
   listRegistrationTypes,
 } from "@/services/entity/registration-type.service";
-import { createSuccessResponse, handleApiError } from "@/utils/server/apiResponse";
 
-/**
- * POST /api/registration-types
- * Create registration type
- */
-export async function POST(req) {
+import { schemas } from "@/schemas";
+
+import {
+  createSuccessResponse,
+  handleApiError,
+} from "@/utils/server/apiResponse";
+
+import { requirePermission } from "@/utils/server/requirePermission";
+
+
+export async function POST(request) {
   try {
-    const body = schemas.registrationType.create.parse(await req.json());
-    const regType = await createRegistrationType(body);
+    const [permissionError] = await requirePermission(
+      request,
+      "registration_types.manage"
+    );
+    if (permissionError) return permissionError;
+
+    const body = await request.json();
+
+    const validated = schemas.registrationType.create.parse(body);
+
+    const regType = await createRegistrationType(validated);
 
     return createSuccessResponse(
       "Registration type created successfully",
       regType,
       201
     );
-  } catch (e) {
-    return handleApiError(e);
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
-/**
- * GET /api/registration-types
- * List registration types
- */
-export async function GET(req) {
+
+export async function GET(request) {
   try {
-    const { searchParams } = new URL(req.url);
+    const [permissionError] = await requirePermission(
+      request,
+      "registration_types.access"
+    );
+    if (permissionError) return permissionError;
+
+    const { searchParams } = new URL(request.url);
 
     const filters = schemas.registrationType.list.parse({
       is_active: searchParams.get("is_active") ?? undefined,
@@ -46,7 +61,7 @@ export async function GET(req) {
       "Registration types retrieved successfully",
       regTypes
     );
-  } catch (e) {
-    return handleApiError(e);
+  } catch (error) {
+    return handleApiError(error);
   }
 }
