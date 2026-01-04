@@ -38,7 +38,7 @@
         text-align: left;
         padding: 16px 20px;
         font-weight: 600;
-        color: black;
+        color: rgb(54, 54, 54);
         font-size: 13px;
         text-transform: uppercase;
         letter-spacing: 0.5px;
@@ -63,7 +63,7 @@
 
     tbody {
       tr {
-                display: table-row !important;
+        display: table-row !important;
         border-bottom: 1px solid var(--border-color);
         transition: background-color 0.2s ease;
 

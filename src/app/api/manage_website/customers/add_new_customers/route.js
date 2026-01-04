@@ -297,9 +297,7 @@ export async function POST(req) {
       // Clean up Firebase Auth user if Firestore fails
       try {
         await auth.deleteUser(userRecord.uid);
-        console.log(
-          `🧹 Cleaned up Firebase Auth user ${userRecord.uid} after Firestore failure`
-        );
+       
       } catch (cleanupError) {
         console.error("Failed to cleanup Firebase Auth user:", cleanupError);
       }

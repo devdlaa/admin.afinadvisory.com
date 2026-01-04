@@ -1,124 +1,260 @@
 "use client";
 import { useState, useEffect } from "react";
-import "./Sidebar.scss";
 import {
-  Home,
   Users,
-  Settings,
-  ChevronDown,
-  User,
-  HelpCircle,
   LogOut,
   Calendar,
   Tag,
   IndianRupee,
   Megaphone,
   TicketPercent,
-  ChevronLeft,
-  ChevronRight,
-  Shield,
-  BarChart3,
-  FileText,
-  Bell,
+  ChevronDown,
   WalletCardsIcon,
-  Rss,
-  UsersRound,
   Link,
   ShieldAlert,
   ClipboardList,
+  UsersRound,
+  Home,
+  Briefcase,
+  CheckSquare,
+  Globe,
+  LayoutDashboard,
 } from "lucide-react";
-import { signOut } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 
-import Image from "next/image";
-import Permission from "../Permission";
 import { useRouter, usePathname } from "next/navigation";
+import styles from "./Sidebar.module.scss";
 
+// ============================================================================
+// SIDEBAR CONFIG - Updated with nested structure
+// ============================================================================
+const SIDEBAR_CONFIG = {
+  sections: [
+    {
+      id: "task-management",
+      title: "Task Management",
+      items: [
+        {
+          id: "task-home",
+          label: "Dashboard",
+          icon: LayoutDashboard,
+          path: "/dashboard/task-managment/home",
+        },
+        {
+          id: "task-clients",
+          label: "Clients",
+          icon: Briefcase,
+          path: "/dashboard/task-managment/clients",
+        },
+        {
+          id: "task-tasks",
+          label: "Tasks",
+          icon: CheckSquare,
+          path: "/dashboard/task-managment/tasks",
+        },
+      ],
+    },
+    {
+      id: "website-management",
+      title: "Website Management",
+      items: [
+        {
+          id: "website-management-dropdown",
+          label: "Website",
+          icon: Globe,
+          path: "/dashboard/website",
+          children: [
+            {
+              id: "customers",
+              label: "Customers",
+              icon: Users,
+              path: "/dashboard/customers",
+            },
+            {
+              id: "services_bookings",
+              label: "Manage Bookings",
+              icon: Calendar,
+              path: "/dashboard/service-bookings",
+            },
+            {
+              id: "payments",
+              label: "Payments & Settlements",
+              icon: IndianRupee,
+              path: "/dashboard/payments",
+            },
+            {
+              id: "payments-links",
+              label: "Payment Links",
+              icon: Link,
+              path: "/dashboard/payment-links",
+            },
+            {
+              id: "pricing",
+              label: "Service Pricing",
+              icon: Tag,
+              path: "/dashboard/service-pricing",
+            },
+          ],
+        },
+      ],
+    },
+
+    {
+      id: "marketing",
+      title: "Marketing",
+      items: [
+        {
+          id: "marketing-dropdown",
+          label: "Marketing",
+          icon: Megaphone,
+          path: "/dashboard/marketing",
+          children: [
+            {
+              id: "partners",
+              label: "Brand Partners",
+              icon: Megaphone,
+              path: "/dashboard/marketing/partners",
+            },
+            {
+              id: "coupons",
+              label: "Coupons",
+              icon: TicketPercent,
+              path: "/dashboard/marketing/coupons",
+            },
+            {
+              id: "comissions",
+              label: "Commission Records",
+              icon: WalletCardsIcon,
+              path: "/dashboard/marketing/comissions",
+            },
+            {
+              id: "join-list",
+              label: "Influencer Join List",
+              icon: ClipboardList,
+              path: "/dashboard/marketing/partner-programm-join-list",
+            },
+          ],
+        },
+      ],
+    },
+    {
+      id: "account",
+      title: "Account",
+      items: [
+        {
+          id: "my-profile",
+          label: "My Profile",
+          icon: UsersRound,
+          path: "/dashboard/user-profile",
+        },
+        {
+          id: "users",
+          label: "Manage Team",
+          icon: ShieldAlert,
+          path: "/dashboard/manage-team",
+        },
+      ],
+    },
+  ],
+};
+
+import { getExistingProfileImageUrl as getProfileImageUrl } from "@/utils/shared/shared_util";
+
+// Get user initials
+const getUserInitials = (name) => {
+  if (!name) return "U";
+  const parts = name.trim().split(" ");
+  if (parts.length >= 2) {
+    return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+  }
+  return name.substring(0, 2).toUpperCase();
+};
+
+// ============================================================================
+// SIDEBAR COMPONENT
+// ============================================================================
 const Sidebar = () => {
-  const [activeItem, setActiveItem] = useState("dashboard");
+  const [activeItem, setActiveItem] = useState("");
   const [loggingOut, setLoggingOut] = useState(false);
   const [expandedItems, setExpandedItems] = useState({});
+  const [profileImageUrl, setProfileImageUrl] = useState(null);
+  const [imageLoading, setImageLoading] = useState(true);
+
   const router = useRouter();
   const pathname = usePathname();
+  const { data: session, status } = useSession();
 
+  const user = session?.user;
+  const isSessionLoading = status === "loading";
+
+  // Fetch profile image
   useEffect(() => {
-    // Enhanced path detection logic
-    const pathToItemMap = {
-      "/dashboard/customers": "customers",
-      "/dashboard/service-bookings": "services_bookings",
-      "/dashboard/payments": "payments",
-      "/dashboard/payment-links": "payments-links",
-      "/dashboard/service-pricing": "pricing",
-      "/dashboard/marketing/partners": "partners",
-      "/dashboard/marketing/coupons": "coupons",
-      "/dashboard/marketing/comissions": "comissions",
-      "/dashboard/marketing/partner-programm-join-list": "join-list",
-      "/dashboard/analytics": "analytics",
-      "/dashboard/reports": "reports",
-      "/dashboard/profile": "profile",
-      "/dashboard/settings": "settings",
-      "/dashboard/manage-team": "users",
-      "/dashboard/user-profile": "my-profile",
-      "/dashboard/task-managment": "task-managment",
-    };
+    if (user?.id) {
+      setImageLoading(true);
+      getProfileImageUrl(user.id).then((url) => {
+        setProfileImageUrl(url);
+        setImageLoading(false);
+      });
+    } else {
+      setImageLoading(false);
+    }
+  }, [user?.id]);
 
-    // Sort paths by length (longest first) to ensure more specific paths are matched first
-    const sortedPaths = Object.keys(pathToItemMap).sort(
-      (a, b) => b.length - a.length
+  // Set active item based on pathname and auto-expand parent
+  useEffect(() => {
+    const allItems = SIDEBAR_CONFIG.sections.flatMap(
+      (section) => section.items
     );
 
-    let matchedItemId = null;
+    // Flatten all items including children
+    const flattenItems = (items) => {
+      return items.reduce((acc, item) => {
+        acc.push(item);
+        if (item.children) {
+          acc.push(...item.children);
+        }
+        return acc;
+      }, []);
+    };
 
-    // Find the first path that matches (most specific due to sorting)
-    for (const path of sortedPaths) {
-      if (
-        pathname === path ||
-        (pathname.startsWith(path + "/") && path !== "/dashboard")
-      ) {
-        matchedItemId = pathToItemMap[path];
-        break;
-      }
-    }
+    const allFlatItems = flattenItems(allItems);
 
-    // Fallback to dashboard if no match found
-    if (!matchedItemId) {
-      matchedItemId = "customers";
-    }
+    // Sort by path length to match most specific path first
+    const sortedItems = [...allFlatItems].sort(
+      (a, b) => b.path.length - a.path.length
+    );
 
-    setActiveItem(matchedItemId);
+    const matchedItem = sortedItems.find(
+      (item) => pathname === item.path || pathname.startsWith(item.path + "/")
+    );
 
-    // Auto-expand marketing section if any marketing child is active
-    if (["partners", "coupons", "comissions"].includes(matchedItemId)) {
-      setExpandedItems((prev) => ({ ...prev, marketing: true }));
+    if (matchedItem) {
+      setActiveItem(matchedItem.id);
+
+      // Auto-expand parent if this is a child item
+      allItems.forEach((item) => {
+        if (item.children?.some((child) => child.id === matchedItem.id)) {
+          setExpandedItems((prev) => ({ ...prev, [item.id]: true }));
+        }
+      });
     }
   }, [pathname]);
 
-  function handleSignOut() {
+  const handleSignOut = () => {
     try {
       setLoggingOut(true);
-      signOut({
-        redirect: true,
-        callbackUrl: "/login",
-      });
+      signOut({ redirect: true, callbackUrl: "/login" });
     } catch (error) {
       setLoggingOut(false);
-      console.error("Logout error:");
+      console.error("Logout error:", error);
     }
-  }
-
-  const toggleExpanded = (itemId) => {
-    setExpandedItems((prev) => ({
-      ...prev,
-      [itemId]: !prev[itemId],
-    }));
   };
 
   const handleNavigation = (item) => {
-    if (item.children && item.children.length > 0) {
-      toggleExpanded(item.id);
+    if (item.children?.length) {
+      setExpandedItems((prev) => ({ ...prev, [item.id]: !prev[item.id] }));
     } else {
       setActiveItem(item.id);
-
-      // Handle external links
       if (item.path.startsWith("http")) {
         window.open(item.path, "_blank");
       } else {
@@ -127,162 +263,51 @@ const Sidebar = () => {
     }
   };
 
-  // Helper function to check if item should be active
-  const isItemActive = (item) => {
-    // Direct match
+  const isActive = (item) => {
     if (activeItem === item.id) return true;
-
-    // Check if any child is active (for parent items)
     if (item.children) {
       return item.children.some((child) => activeItem === child.id);
     }
-
     return false;
   };
 
-  // Helper function to check if any child is active
-  const hasActiveChild = (item) => {
-    if (!item.children) return false;
-    return item.children.some((child) => activeItem === child.id);
-  };
-
-  // Define menu items
-  const menuItems = [
-    {
-      id: "customers",
-      label: "Customers",
-      icon: Users,
-      path: "/dashboard/customers",
-      badge: null,
-      permission: "customers.access",
-    },
-    {
-      id: "services_bookings",
-      label: "Manage Bookings",
-      icon: Calendar,
-      path: "/dashboard/service-bookings",
-      badge: null,
-      permission: "bookings.access",
-    },
-    {
-      id: "payments",
-      label: "Payments & Settlements",
-      icon: IndianRupee,
-      path: "/dashboard/payments",
-      badge: null,
-      permission: "payments.access",
-    },
-    {
-      id: "payments-links",
-      label: "Payments Links",
-      icon: Link,
-      path: "/dashboard/payment-links",
-      badge: null,
-      permission: "payment_link.access",
-    },
-    {
-      id: "pricing",
-      label: "Service Pricing",
-      icon: Tag,
-      path: "/dashboard/service-pricing",
-      badge: null,
-      permission: "service_pricing.access",
-    },
-      {
-      id: "task-managment",
-      label: "Task Manager",
-      icon: Tag,
-      path: "/dashboard/task-managment",
-      badge: null,
-      permission: "",
-    },
-  ];
-
-  const marketingItems = [
-    {
-      id: "partners",
-      label: "Brand Partners",
-      icon: Megaphone,
-      path: "/dashboard/marketing/partners",
-      permission: "influencers.access",
-    },
-    {
-      id: "coupons",
-      label: "Coupons",
-      icon: TicketPercent,
-      path: "/dashboard/marketing/coupons",
-      permission: "coupons.access",
-    },
-    {
-      id: "comissions",
-      label: "Comissions Records",
-      icon: WalletCardsIcon,
-      path: "/dashboard/marketing/comissions",
-      permission: "commissions.access",
-    },
-    {
-      id: "join-list",
-      label: "Influncer Join List",
-      icon: ClipboardList,
-      path: "/dashboard/marketing/partner-programm-join-list",
-      permission: "influencers.access",
-    },
-  ];
-
-  const bottomMenuItems = [
-    {
-      id: "my-profile",
-      label: "My Profile",
-      icon: UsersRound,
-      path: "/dashboard/user-profile",
-    },
-    {
-      id: "users",
-      label: "Manage Team",
-      icon: ShieldAlert,
-      path: "/dashboard/manage-team",
-      permission: "users.access",
-    },
-  ];
-
   const renderMenuItem = (item, isChild = false) => {
-    const IconComponent = item.icon;
-    const hasChildren = item.children && item.children.length > 0;
+    const Icon = item.icon;
+    const hasChildren = item.children?.length > 0;
     const isExpanded = expandedItems[item.id];
-    const isActive = isItemActive(item);
-    const childActive = hasActiveChild(item);
+    const active = isActive(item);
 
     return (
       <div key={item.id}>
         <div
-          className={`menu-item ${isActive ? "active" : ""} ${
-            isChild ? "menu-item-child" : ""
-          } ${hasChildren && childActive && !isActive ? "child-active" : ""}`}
+          className={`${styles.menuItem} ${active ? styles.active : ""} ${
+            isChild ? styles.menuItemChild : ""
+          }`}
           onClick={() => handleNavigation(item)}
-          data-tooltip={item.label}
         >
-          <div className="menu-item-content">
-            {IconComponent && (
-              <div className="menu-item-icon-wrapper">
-                <IconComponent size={44} className="menu-item-icon" />
+          <div className={styles.menuItemContent}>
+            {Icon && (
+              <div className={styles.menuItemIconWrapper}>
+                <Icon size={18} className={styles.menuItemIcon} />
               </div>
             )}
-
-            <span className="menu-item-label">{item.label}</span>
+            <span className={styles.menuItemLabel}>{item.label}</span>
             {item.badge && (
-              <span className="menu-item-badge">{item.badge}</span>
+              <span className={styles.menuItemBadge}>{item.badge}</span>
             )}
           </div>
           {hasChildren && (
             <ChevronDown
               size={16}
-              className={`chevron-icon ${isExpanded ? "expanded" : ""}`}
+              className={`${styles.chevronIcon} ${
+                isExpanded ? styles.expanded : ""
+              }`}
             />
           )}
         </div>
 
         {hasChildren && isExpanded && (
-          <div className="children-container">
+          <div className={styles.childrenContainer}>
             {item.children.map((child) => renderMenuItem(child, true))}
           </div>
         )}
@@ -291,86 +316,62 @@ const Sidebar = () => {
   };
 
   return (
-    <div className={`sidebar-container`}>
-      {/* Logo */}
-      <div className="sidebar_logo">
-        <Image
-          src={"/assets/svg/afin_admin_logo.svg"}
-          alt="afinthrive advisory admin dashboard"
-          width={80}
-          height={60}
-        />
+    <div className={styles.sidebarContainer}>
+      {/* User Profile with Skeleton Loading */}
+      <div className={styles.userProfile}>
+        {isSessionLoading || imageLoading ? (
+          <>
+            <div className={styles.userAvatarSkeleton} />
+            <div className={styles.userInfo}>
+              <div className={styles.userNameSkeleton} />
+              <div className={styles.userEmailSkeleton} />
+            </div>
+            <div className={styles.chevronSkeleton} />
+          </>
+        ) : user ? (
+          <>
+            <div className={styles.userAvatar}>
+              {profileImageUrl ? (
+                <img src={profileImageUrl} alt={user.name || "User"} />
+              ) : (
+                <div className={styles.avatarInitials}>
+                  {getUserInitials(user.name)}
+                </div>
+              )}
+            </div>
+            <div className={styles.userInfo}>
+              <div className={styles.userName}>{user.name || "User"}</div>
+              <div className={styles.userEmail}>{user.email || ""}</div>
+            </div>
+            <ChevronDown size={16} className={styles.userProfileChevron} />
+          </>
+        ) : null}
       </div>
 
       {/* Navigation */}
-      <div className="sidebar-navigation">
-        {/* Management Section */}
-        <div className="nav-section">
-          <h4 className="nav-section-title">Management</h4>
-          {menuItems.map((item) => (
-            <Permission
-              key={item.id}
-              permission={item?.permission}
-              role={item?.role}
-              disable={item.disable}
-              fallback={null}
-            >
-              {renderMenuItem(item)}
-            </Permission>
-          ))}
-        </div>
-
-        {/* Marketing Section */}
-        <div className="nav-section">
-          <h4 className="nav-section-title">Marketing</h4>
-
-          {marketingItems.map((item) => (
-            <Permission
-              key={item.id}
-              permission={item?.permission}
-              role={item?.role}
-              disable={item.disable}
-              fallback={null}
-            >
-              {renderMenuItem(item)}
-            </Permission>
-          ))}
-        </div>
+      <div className={styles.sidebarNavigation}>
+        {SIDEBAR_CONFIG.sections.map((section) => (
+          <div key={section.id} className={styles.navSection}>
+            <h4 className={styles.navSectionTitle}>{section.title}</h4>
+            {section.items.map((item) => renderMenuItem(item))}
+          </div>
+        ))}
       </div>
 
-      {/* Footer */}
-      <div className="sidebar-footer">
-        {/* Account Section */}
-        <div className="nav-section">
-          <h4 className="nav-section-title">Account</h4>
-
-          {bottomMenuItems.map((item) => (
-            <Permission
-              key={item.id}
-              permission={item?.permission}
-              role={item?.role}
-              disable={item.disable}
-              fallback={null}
-            >
-              {renderMenuItem(item)}
-            </Permission>
-          ))}
-        </div>
-
-        <div className="logout-section">
-          <button
-            className="logout-button"
-            onClick={handleSignOut}
-            disabled={loggingOut}
-          >
-            {loggingOut ? (
-              <div className="logout-spinner"></div>
-            ) : (
-              <LogOut size={18} className="logout-icon" />
-            )}
-            <span>{loggingOut ? "Signing out..." : "Sign Out"}</span>
-          </button>
-        </div>
+      {/* Logout Button */}
+      <div className={styles.sidebarFooter}>
+        <button
+          className={styles.logoutButton}
+          onClick={handleSignOut}
+          disabled={loggingOut}
+        >
+          {loggingOut ? (
+            <div className={styles.logoutSpinner} />
+          ) : (
+            <LogOut size={18} />
+          )}
+          <span>{loggingOut ? "Signing out..." : "Sign Out"}</span>
+        </button>
       </div>
     </div>
   );

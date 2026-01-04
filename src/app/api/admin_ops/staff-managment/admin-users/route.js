@@ -34,7 +34,10 @@ export async function POST(req) {
 
     const body = schemas.adminUser.create.parse(await req.json());
 
-    const { user, onboardingToken } = await createAdminUser(body, session.id);
+    const { user, onboardingToken } = await createAdminUser(
+      body,
+      session?.user?.id
+    );
 
     const inviteLink = `${FRONTEND_URL}/user-onboarding?token=${onboardingToken}`;
 
@@ -43,7 +46,7 @@ export async function POST(req) {
       type: "SEND_USER_INVITE_LINK",
       variables: {
         recipientName: user.name,
-        inviterName: session.name,
+        inviterName: session?.user?.name,
         inviteLink,
         expiryHours: 24,
         supportEmail: SUPPORT_EMAIL,
@@ -51,7 +54,7 @@ export async function POST(req) {
     });
 
     if (!emailResult.success) {
-      console.error("Failed to send invitation email:", emailResult.error);
+      console.error("Failed to send invitation email:");
     }
 
     return createSuccessResponse(
@@ -66,8 +69,10 @@ export async function POST(req) {
 
 export async function GET(req) {
   try {
-    // Optional permission hook, adjust permission as your policy requires
-    const [permissionError] = await requirePermission(req, "admin_users.access");
+    const [permissionError] = await requirePermission(
+      req,
+      "admin_users.access"
+    );
 
     if (permissionError) return permissionError;
 
@@ -75,7 +80,6 @@ export async function GET(req) {
 
     const filters = schemas.adminUser.list.parse({
       status: searchParams.get("status") || undefined,
-      department_id: searchParams.get("department_id") || undefined,
       search: searchParams.get("search") || undefined,
       page: searchParams.get("page") || undefined,
       limit: searchParams.get("limit") || undefined,

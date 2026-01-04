@@ -1,4 +1,4 @@
-import { schemas } from "@/schemas";
+import { uuidSchema } from "@/schemas";
 
 import { resendOnboardingInvite } from "@/services/admin/admin-user.service";
 
@@ -21,8 +21,10 @@ export async function POST(req) {
     );
     if (permissionError) return permissionError;
 
+    const uid = await req.json();
 
-    const admin_user_id = uuidSchema.parse(await req.json());
+    const admin_user_id = uuidSchema.parse(uid);
+
     // service generates new onboarding token
     const { email, name, onboardingToken } = await resendOnboardingInvite(
       admin_user_id,
@@ -37,7 +39,7 @@ export async function POST(req) {
       type: "SEND_USER_INVITE_LINK",
       variables: {
         recipientName: name,
-        inviterName: session.user.name ?? "Admin",
+        inviterName: session?.user?.name,
         inviteLink,
         expiryHours: 24,
         supportEmail: SUPPORT_EMAIL,
@@ -50,6 +52,7 @@ export async function POST(req) {
       email,
     });
   } catch (error) {
+    console.log(error);
     return handleApiError(error);
   }
 }

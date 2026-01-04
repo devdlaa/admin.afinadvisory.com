@@ -70,10 +70,7 @@ export async function DELETE(req) {
     influencerData = influencerDoc.data();
     authUid = influencerData.authUid;
 
-    // STEP 2: CRITICAL SECURITY CHECK - Check for commission records
-    console.log(
-      `🔍 Checking for commission records for influencer: ${influencerId}`
-    );
+  
 
     const commissionQuery = await db
       .collection("commissions")
@@ -105,15 +102,13 @@ export async function DELETE(req) {
       try {
         await admin.auth().deleteUser(authUid);
         authDeleted = true;
-        console.log(`✅ Deleted Auth user: ${authUid}`);
+       
       } catch (authError) {
         console.error("Failed to delete Auth user:", authError);
 
         // If auth user not found, it's okay to continue
         if (authError.code === "auth/user-not-found") {
-          console.log(
-            `⚠️ Auth user ${authUid} not found, continuing with Firestore deletion`
-          );
+        
         } else {
           // For other auth errors, return error without deleting Firestore
           return createErrorResponse(

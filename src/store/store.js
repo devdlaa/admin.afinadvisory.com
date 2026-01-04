@@ -10,10 +10,10 @@ import paymentLinkReducer from "./slices/createPaymentLink";
 import paymentLinksPageReducer from "./slices/paymentLinksPageSlice";
 import sessionReducer from "./slices/sessionSlice";
 import toastMiddleware from "./toastMiddleware";
-
+import entityReducer from "./slices/entitySlice"; 
 export const store = configureStore({
   reducer: {
-    session : sessionReducer,
+    session: sessionReducer,
     user: userReducer,
     influencers: partnerReducer,
     services: serviceReducer,
@@ -23,7 +23,8 @@ export const store = configureStore({
     payments: paymentsReducers,
     paymentLink: paymentLinkReducer,
     paymentLinks: paymentLinksPageReducer,
+    entity: entityReducer,
   },
   middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware().concat(toastMiddleware), 
+    getDefaultMiddleware().concat(toastMiddleware),
 });

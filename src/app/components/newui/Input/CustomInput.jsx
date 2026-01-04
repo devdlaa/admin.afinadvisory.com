@@ -96,7 +96,8 @@ const CustomInput = ({
 
   const validation = validateInput(value);
   const showError = !validation.isValid;
-  const showSuccess = (touched || forceTouched) && validation.isValid && value.trim();
+  const showSuccess =
+    (touched || forceTouched) && validation.isValid && value.trim();
   const hasValue = value && value.length > 0;
 
   const handleBlur = () => {
@@ -116,11 +117,7 @@ const CustomInput = ({
     onChange(newValue);
   };
 
-  const containerClasses = [
-    styles.inputContainer,
-    styles[size],
-    rootClassName,
-  ]
+  const containerClasses = [styles.inputContainer, styles[size], rootClassName]
     .filter(Boolean)
     .join(" ");
 

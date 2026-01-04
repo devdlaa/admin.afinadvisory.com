@@ -1,112 +1,113 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { motion } from "framer-motion";
+
+import {
+  getExistingProfileImageUrl,
+} from "@/utils/shared/shared_util";
 import {
   Edit,
   User,
   Phone,
-  Calendar,
-  Building2,
-  Briefcase,
   MapPin,
   X,
   AlertCircle,
+  Camera,
+  Trash2,
+  Upload,
 } from "lucide-react";
 
-import { updateUser, clearUpdateError } from "@/store/slices/userSlice";
+import {
+  updateUser,
+  clearUpdateError,
+  uploadProfileImage,
+  deleteProfileImage,
+} from "@/store/slices/userSlice";
 import "./EditUserDialog.scss";
-// For <input type="date">
-const toInputFormat = (isoDate) => {
-  if (!isoDate) return "";
-  const date = new Date(isoDate);
-  const year = date.getUTCFullYear();
-  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
-  const day = String(date.getUTCDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`; // ✅ format required by input[type=date]
-};
 
-// For display purposes
-const toDisplayFormat = (isoDate) => {
-  if (!isoDate) return "";
-  const date = new Date(isoDate);
-  const day = String(date.getUTCDate()).padStart(2, "0");
-  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
-  const year = date.getUTCFullYear();
-  return `${day}-${month}-${year}`; // ✅ nice for showing in UI
-};
-const EditUserDialog = ({ open, onClose, user, departments = [] }) => {
+// Indian States from Prisma schema
+const INDIAN_STATES = [
+  { value: "ANDHRA_PRADESH", label: "Andhra Pradesh" },
+  { value: "ARUNACHAL_PRADESH", label: "Arunachal Pradesh" },
+  { value: "ASSAM", label: "Assam" },
+  { value: "BIHAR", label: "Bihar" },
+  { value: "CHHATTISGARH", label: "Chhattisgarh" },
+  { value: "GOA", label: "Goa" },
+  { value: "GUJARAT", label: "Gujarat" },
+  { value: "HARYANA", label: "Haryana" },
+  { value: "HIMACHAL_PRADESH", label: "Himachal Pradesh" },
+  { value: "JHARKHAND", label: "Jharkhand" },
+  { value: "KARNATAKA", label: "Karnataka" },
+  { value: "KERALA", label: "Kerala" },
+  { value: "MADHYA_PRADESH", label: "Madhya Pradesh" },
+  { value: "MAHARASHTRA", label: "Maharashtra" },
+  { value: "MANIPUR", label: "Manipur" },
+  { value: "MEGHALAYA", label: "Meghalaya" },
+  { value: "MIZORAM", label: "Mizoram" },
+  { value: "NAGALAND", label: "Nagaland" },
+  { value: "ODISHA", label: "Odisha" },
+  { value: "PUNJAB", label: "Punjab" },
+  { value: "RAJASTHAN", label: "Rajasthan" },
+  { value: "SIKKIM", label: "Sikkim" },
+  { value: "TAMIL_NADU", label: "Tamil Nadu" },
+  { value: "TELANGANA", label: "Telangana" },
+  { value: "TRIPURA", label: "Tripura" },
+  { value: "UTTAR_PRADESH", label: "Uttar Pradesh" },
+  { value: "UTTARAKHAND", label: "Uttarakhand" },
+  { value: "WEST_BENGAL", label: "West Bengal" },
+  {
+    value: "ANDAMAN_AND_NICOBAR_ISLANDS",
+    label: "Andaman and Nicobar Islands",
+  },
+  { value: "CHANDIGARH", label: "Chandigarh" },
+  {
+    value: "DADRA_AND_NAGAR_HAVELI_AND_DAMAN_AND_DIU",
+    label: "Dadra and Nagar Haveli and Daman and Diu",
+  },
+  { value: "DELHI", label: "Delhi" },
+  { value: "JAMMU_AND_KASHMIR", label: "Jammu and Kashmir" },
+  { value: "LADAKH", label: "Ladakh" },
+  { value: "LAKSHADWEEP", label: "Lakshadweep" },
+  { value: "PUDUCHERRY", label: "Puducherry" },
+];
+
+const EditUserDialog = ({ open, onClose, user }) => {
   const dispatch = useDispatch();
-  const { updating, updateError } = useSelector((state) => state.user);
+  const { updating, updateError, uploadingImage, uploadImageError } =
+    useSelector((state) => state.user);
 
   const [activeTab, setActiveTab] = useState("general");
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
-    alternatePhone: "",
-    department: "",
-    designation: "",
-    dateOfJoining: "",
-    line1: "",
+    alternate_phone: "",
+    address_line1: "",
+    address_line2: "",
     city: "",
     pincode: "",
     state: "",
+    uid: "",
   });
 
   const [errors, setErrors] = useState({});
-
-  const indianStates = [
-    "Andhra Pradesh",
-    "Arunachal Pradesh",
-    "Assam",
-    "Bihar",
-    "Chhattisgarh",
-    "Goa",
-    "Gujarat",
-    "Haryana",
-    "Himachal Pradesh",
-    "Jharkhand",
-    "Karnataka",
-    "Kerala",
-    "Madhya Pradesh",
-    "Maharashtra",
-    "Manipur",
-    "Meghalaya",
-    "Mizoram",
-    "Nagaland",
-    "Odisha",
-    "Punjab",
-    "Rajasthan",
-    "Sikkim",
-    "Tamil Nadu",
-    "Telangana",
-    "Tripura",
-    "Uttar Pradesh",
-    "Uttarakhand",
-    "West Bengal",
-    "Andaman and Nicobar Islands",
-    "Chandigarh",
-    "Dadra and Nagar Haveli and Daman and Diu",
-    "Delhi",
-    "Jammu and Kashmir",
-    "Ladakh",
-    "Lakshadweep",
-    "Puducherry",
-  ];
+  const [profileImageUrl, setProfileImageUrl] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     if (user) {
       setFormData({
         name: user.name || "",
         phone: user.phone || "",
-        alternatePhone: user.alternatePhone || "",
-        department: user.department || "",
-        designation: user.designation || "",
-        dateOfJoining: user.dateOfJoining || "",
-        line1: user?.address?.line1 || "",
-        city: user?.address?.city || "",
-        pincode: user?.address?.pincode || "",
-        state: user?.address?.state || "",
+        alternate_phone: user.alternate_phone || "",
+        address_line1: user.address_line1 || "",
+        address_line2: user.address_line2 || "",
+        city: user.city || "",
+        pincode: user.pincode || "",
+        state: user.state || "",
       });
+
+      setImagePreview(null);
     }
   }, [user]);
 
@@ -124,6 +125,78 @@ const EditUserDialog = ({ open, onClose, user, departments = [] }) => {
     }
   };
 
+  const handleImageSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      setErrors((prev) => ({
+        ...prev,
+        image: "Please select a valid image file",
+      }));
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setErrors((prev) => ({
+        ...prev,
+        image: "Image size must be less than 5MB",
+      }));
+      return;
+    }
+
+    // Create preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreview(reader.result);
+    };
+    reader.readAsDataURL(file);
+
+    // Upload image
+    handleImageUpload(file);
+  };
+
+  const handleImageUpload = async (file) => {
+    try {
+      await dispatch(uploadProfileImage({ userId: user.id, file })).unwrap();
+      setErrors((prev) => ({ ...prev, image: "" }));
+    } catch (err) {
+      console.error("Failed to upload image:", err);
+      setImagePreview(null);
+    }
+  };
+
+  const handleImageDelete = async () => {
+    if (!profileImageUrl && !imagePreview) return;
+
+    try {
+      await dispatch(deleteProfileImage({ userId: user.id })).unwrap();
+      setProfileImageUrl(null);
+      setImagePreview(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    } catch (err) {
+      console.error("Failed to delete image:", err);
+    }
+  };
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    let cancelled = false;
+
+    getExistingProfileImageUrl(user.id).then((url) => {
+      if (!cancelled) setProfileImageUrl(url);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
+
   const validateForm = () => {
     const newErrors = {};
 
@@ -134,13 +207,11 @@ const EditUserDialog = ({ open, onClose, user, departments = [] }) => {
       newErrors.phone = "Please enter a valid phone number";
     }
     if (
-      formData.alternatePhone &&
-      !/^[+]?[1-9]\d{9,14}$/.test(formData.alternatePhone.replace(/\s/g, ""))
+      formData.alternate_phone &&
+      !/^[+]?[1-9]\d{9,14}$/.test(formData.alternate_phone.replace(/\s/g, ""))
     ) {
-      newErrors.alternatePhone = "Please enter a valid alternate phone number";
+      newErrors.alternate_phone = "Please enter a valid alternate phone number";
     }
-    if (!formData.dateOfJoining)
-      newErrors.dateOfJoining = "Date of joining is required";
     if (formData.pincode && !/^\d{6}$/.test(formData.pincode)) {
       newErrors.pincode = "Please enter a valid 6-digit pincode";
     }
@@ -150,7 +221,7 @@ const EditUserDialog = ({ open, onClose, user, departments = [] }) => {
   };
 
   const handleClose = () => {
-    if (!updating) {
+    if (!updating && !uploadingImage) {
       dispatch(clearUpdateError());
       onClose();
     }
@@ -164,19 +235,9 @@ const EditUserDialog = ({ open, onClose, user, departments = [] }) => {
     // Build diff object: only send changed fields
     const updatedFields = {};
 
-    // Compare top-level fields (non-address)
+    // Compare all fields
     Object.keys(formData).forEach((key) => {
-      if (
-        key === "line1" ||
-        key === "city" ||
-        key === "pincode" ||
-        key === "state"
-      ) {
-        // skip here, we handle below
-        return;
-      }
-
-      const oldVal = user[key] ?? ""; // normalize undefined → ""
+      const oldVal = user[key] ?? "";
       const newVal = formData[key] ?? "";
 
       if (newVal !== oldVal) {
@@ -184,23 +245,8 @@ const EditUserDialog = ({ open, onClose, user, departments = [] }) => {
       }
     });
 
-    // Now handle nested address
-    if (formData.line1 !== (user.address?.line1 ?? "")) {
-      updatedFields.line1 = formData.line1;
-    }
-    if (formData.city !== (user.address?.city ?? "")) {
-      updatedFields.city = formData.city;
-    }
-    if (formData.pincode !== (user.address?.pincode ?? "")) {
-      updatedFields.pincode = formData.pincode;
-    }
-    if (formData.state !== (user.address?.state ?? "")) {
-      updatedFields.state = formData.state;
-    }
-
     // If nothing changed, just exit
     if (Object.keys(updatedFields).length === 0) {
-
       handleClose();
       return;
     }
@@ -213,19 +259,21 @@ const EditUserDialog = ({ open, onClose, user, departments = [] }) => {
         })
       ).unwrap();
 
-      onClose(); // Close dialog on success
+      onClose();
     } catch (err) {
       console.error("Update failed:", err);
     }
   };
 
   const handleBackdropClick = (e) => {
-    if (e.target === e.currentTarget && !updating) {
+    if (e.target === e.currentTarget && !updating && !uploadingImage) {
       onClose();
     }
   };
 
   if (!open || !user) return null;
+
+  const currentImageUrl = imagePreview || profileImageUrl;
 
   return (
     <div className="eu-dialog-backdrop" onClick={handleBackdropClick}>
@@ -238,7 +286,7 @@ const EditUserDialog = ({ open, onClose, user, departments = [] }) => {
           <button
             className="eu-close-button"
             onClick={handleClose}
-            disabled={updating}
+            disabled={updating || uploadingImage}
             aria-label="Close dialog"
           >
             <X size={20} />
@@ -247,10 +295,10 @@ const EditUserDialog = ({ open, onClose, user, departments = [] }) => {
 
         <div className="eu-edit-content">
           {/* Error Display */}
-          {updateError && (
+          {(updateError || uploadImageError) && (
             <div className="eu-error-banner">
               <AlertCircle size={16} />
-              <span>{updateError}</span>
+              <span>{updateError || uploadImageError}</span>
               <button
                 onClick={() => dispatch(clearUpdateError())}
                 className="eu-error-close"
@@ -266,7 +314,7 @@ const EditUserDialog = ({ open, onClose, user, departments = [] }) => {
                 activeTab === "general" ? "eu-tab-active" : ""
               }`}
               onClick={() => setActiveTab("general")}
-              disabled={updating}
+              disabled={updating || uploadingImage}
             >
               General Info
             </button>
@@ -275,21 +323,100 @@ const EditUserDialog = ({ open, onClose, user, departments = [] }) => {
                 activeTab === "address" ? "eu-tab-active" : ""
               }`}
               onClick={() => setActiveTab("address")}
-              disabled={updating}
+              disabled={updating || uploadingImage}
             >
               Address Details
             </button>
           </div>
 
           <form onSubmit={handleSubmit} className="eu-edit-form">
-            {/* User Header */}
+            {/* User Header with Profile Image */}
             <div className="eu-user-header">
+              <div className="eu-profile-image-section">
+                <div className="eu-profile-image-container">
+                  {currentImageUrl ? (
+                    <img
+                      src={currentImageUrl}
+                      alt={user.name}
+                      className="eu-profile-image"
+                    />
+                  ) : (
+                    <div className="eu-profile-avatar">
+                      {user.name
+                        .split(" ")
+                        .map((n) => n[0])
+                        .join("")
+                        .toUpperCase()}
+                    </div>
+                  )}
+
+                  {uploadingImage && (
+                    <div className="eu-image-uploading-overlay">
+                      <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{
+                          duration: 1,
+                          repeat: Infinity,
+                          ease: "linear",
+                        }}
+                        className="eu-loading-spinner"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <div className="eu-profile-image-actions">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageSelect}
+                    style={{ display: "none" }}
+                    disabled={uploadingImage}
+                  />
+                  <button
+                    type="button"
+                    className="eu-image-action-btn eu-upload-btn"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadingImage}
+                  >
+                    {uploadingImage ? (
+                      <>
+                        <Upload size={14} />
+                        Uploading...
+                      </>
+                    ) : (
+                      <>
+                        <Camera size={14} />
+                        {currentImageUrl ? "Change" : "Upload"}
+                      </>
+                    )}
+                  </button>
+
+                  {currentImageUrl && (
+                    <button
+                      type="button"
+                      className="eu-image-action-btn eu-delete-btn"
+                      onClick={handleImageDelete}
+                      disabled={uploadingImage}
+                    >
+                      <Trash2 size={14} />
+                      Remove
+                    </button>
+                  )}
+                </div>
+
+                {errors.image && (
+                  <span className="eu-error-text">{errors.image}</span>
+                )}
+              </div>
+
               <div className="eu-user-meta">
                 <span>
                   <h3>{user.name}</h3>
                   <p>{user.email}</p>
                 </span>
-                <span className="eu-employee-code">{user.userCode}</span>
+                <span className="eu-employee-code">{user.user_code}</span>
               </div>
             </div>
 
@@ -351,83 +478,18 @@ const EditUserDialog = ({ open, onClose, user, departments = [] }) => {
                         <input
                           type="tel"
                           className={`eu-form-input ${
-                            errors.alternatePhone ? "eu-error" : ""
+                            errors.alternate_phone ? "eu-error" : ""
                           }`}
-                          value={formData.alternatePhone}
+                          value={formData.alternate_phone}
                           onChange={(e) =>
-                            handleInputChange("alternatePhone", e.target.value)
+                            handleInputChange("alternate_phone", e.target.value)
                           }
                           placeholder="+91 87654 32109"
                           disabled={updating}
                         />
-                        {errors.alternatePhone && (
+                        {errors.alternate_phone && (
                           <span className="eu-error-text">
-                            {errors.alternatePhone}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Work Information Section */}
-                  <div className="eu-form-section">
-                    <h4 className="eu-section-title">
-                      <Briefcase size={16} />
-                      Work Information
-                    </h4>
-
-                    <div className="eu-form-grid">
-                      <div className="eu-form-group">
-                        <label className="eu-form-label">Department</label>
-                        <select
-                          className="eu-form-select"
-                          value={formData.department}
-                          onChange={(e) =>
-                            handleInputChange("department", e.target.value)
-                          }
-                          disabled={updating}
-                        >
-                          <option value="">Select Department</option>
-                          {departments.map((dept) => (
-                            <option key={dept} value={dept}>
-                              {dept}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div className="eu-form-group">
-                        <label className="eu-form-label">Designation</label>
-                        <input
-                          type="text"
-                          className="eu-form-input"
-                          value={formData.designation}
-                          onChange={(e) =>
-                            handleInputChange("designation", e.target.value)
-                          }
-                          placeholder="Enter designation"
-                          disabled={updating}
-                        />
-                      </div>
-
-                      <div className="eu-form-group">
-                        <label className="eu-form-label">
-                          Date of Joining <span className="eu-required"></span>
-                        </label>
-                        <input
-                          type="date"
-                          className={`eu-form-input ${
-                            errors.dateOfJoining ? "eu-error" : ""
-                          }`}
-                          value={toInputFormat(formData.dateOfJoining)}
-                          onChange={(e) =>
-                            handleInputChange("dateOfJoining", e.target.value)
-                          }
-                          disabled={updating}
-                        />
-                        {errors.dateOfJoining && (
-                          <span className="eu-error-text">
-                            {errors.dateOfJoining}
+                            {errors.alternate_phone}
                           </span>
                         )}
                       </div>
@@ -445,15 +507,29 @@ const EditUserDialog = ({ open, onClose, user, departments = [] }) => {
 
                   <div className="eu-form-grid">
                     <div className="eu-form-group">
-                      <label className="eu-form-label">Address Line</label>
+                      <label className="eu-form-label">Address Line 1</label>
                       <input
                         type="text"
                         className="eu-form-input"
-                        value={formData.line1}
+                        value={formData.address_line1}
                         onChange={(e) =>
-                          handleInputChange("line1", e.target.value)
+                          handleInputChange("address_line1", e.target.value)
                         }
-                        placeholder="Enter address line"
+                        placeholder="Enter address line 1"
+                        disabled={updating}
+                      />
+                    </div>
+
+                    <div className="eu-form-group">
+                      <label className="eu-form-label">Address Line 2</label>
+                      <input
+                        type="text"
+                        className="eu-form-input"
+                        value={formData.address_line2}
+                        onChange={(e) =>
+                          handleInputChange("address_line2", e.target.value)
+                        }
+                        placeholder="Enter address line 2"
                         disabled={updating}
                       />
                     </div>
@@ -502,9 +578,9 @@ const EditUserDialog = ({ open, onClose, user, departments = [] }) => {
                         disabled={updating}
                       >
                         <option value="">Select State</option>
-                        {indianStates.map((state) => (
-                          <option key={state} value={state}>
-                            {state}
+                        {INDIAN_STATES.map((state) => (
+                          <option key={state.value} value={state.value}>
+                            {state.label}
                           </option>
                         ))}
                       </select>
@@ -520,11 +596,15 @@ const EditUserDialog = ({ open, onClose, user, departments = [] }) => {
                 type="button"
                 className="eu-cancel-btn"
                 onClick={handleClose}
-                disabled={updating}
+                disabled={updating || uploadingImage}
               >
                 Cancel
               </button>
-              <button type="submit" className="eu-save-btn" disabled={updating}>
+              <button
+                type="submit"
+                className="eu-save-btn"
+                disabled={updating || uploadingImage}
+              >
                 {updating && (
                   <motion.div
                     animate={{ rotate: 360 }}

@@ -11,7 +11,7 @@ export default function LockedRoute() {
   const [code, setCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const router = useRouter();
+
   const { data: session, update } = useSession();
 
   const handleSubmit = async (e) => {
@@ -20,13 +20,16 @@ export default function LockedRoute() {
     setError("");
 
     try {
-      const response = await fetch("/api/admin/users/unlock-dashboard", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ code }),
-      });
+      const response = await fetch(
+        "/api/admin_ops/staff-managment/admin-users/unlock-dashboard",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ code }),
+        }
+      );
 
       const data = await response.json();
 
@@ -35,10 +38,8 @@ export default function LockedRoute() {
         return;
       }
 
-      // ✅ Update session on client side to unlock dashboard
       await update({ isDashboardLocked: false });
 
-      // ✅ Navigate to dashboard - middleware will handle the redirect logic
       window.location.href = "/dashboard";
     } catch (error) {
       setError("Network error. Please try again.");

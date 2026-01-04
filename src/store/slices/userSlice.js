@@ -1,61 +1,46 @@
 // store/usersSlice.js
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 
+// Base API path
+const API_BASE = "/api/admin_ops/staff-managment/admin-users";
+
 // Async thunks for API calls
 export const fetchUsers = createAsyncThunk(
   "users/fetchUsers",
-  async ({ cursor = null, pageSize = 20 } = {}) => {
-    const response = await fetch("/api/admin/users/get_users", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ cursor, pageSize }),
-    });
+  async ({ status, search, page = 1, limit = 20 } = {}) => {
+    const params = new URLSearchParams();
+    if (status) params.append("status", status);
+    if (search) params.append("search", search);
+    params.append("page", page);
+    params.append("limit", limit);
+
+    const response = await fetch(`${API_BASE}?${params.toString()}`);
 
     if (!response.ok) {
       throw new Error("Failed to fetch users");
     }
 
-    return await response.json();
-  }
-);
+    const re = await response.json();
 
-export const searchUsers = createAsyncThunk(
-  "users/searchUsers",
-  async (searchValue) => {
-    const response = await fetch("/api/admin/users/search", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ value: searchValue }),
-    });
 
-    if (!response.ok) {
-      throw new Error("Failed to search users");
-    }
-
-    return await response.json();
+    return re?.data || [];
   }
 );
 
 export const updateUser = createAsyncThunk(
   "users/updateUser",
   async ({ userId, userData }) => {
-    const response = await fetch("/api/admin/users/update", {
-      method: "PATCH",
+    const response = await fetch(`${API_BASE}/${userId}`, {
+      method: "PUT",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ userId, ...userData }),
+      body: JSON.stringify(userData),
     });
 
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(
-        errorData.errors?.[0]?.message || "Failed to update user"
-      );
+      throw new Error(errorData.message || "Failed to update user");
     }
 
     const result = await response.json();
@@ -63,93 +48,101 @@ export const updateUser = createAsyncThunk(
   }
 );
 
-// New async thunk for updating user permissions and role
-export const updateUserPermissions = createAsyncThunk(
-  "users/updateUserPermissions",
-  async ({ userId, role, permissions }) => {
-    const updateData = {};
-
-    if (role !== undefined) updateData.role = role;
-    if (permissions !== undefined) updateData.permissions = permissions;
-
-    const response = await fetch("/api/admin/users/alter-permissions", {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ userId, ...updateData }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(
-        errorData.errors?.[0]?.message || "Failed to update permissions"
-      );
-    }
-
-    const result = await response.json();
-    return { userId, updateData, result };
-  }
-);
-
-// Async thunk for resending invitation
-export const resendInvite = createAsyncThunk(
-  "users/resendInvite",
-  async ({ email }, { rejectWithValue }) => {
+export const toggleUserStatus = createAsyncThunk(
+  "users/toggleUserStatus",
+  async (userId, { rejectWithValue }) => {
     try {
-      const response = await fetch("/api/admin/users/resend-invite", {
+      const response = await fetch(`${API_BASE}/toggle-status`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(userId),
       });
 
       const result = await response.json();
 
       if (!response.ok || !result.success) {
-        return rejectWithValue(
-          result.errors || [{ message: "Failed to resend invite" }]
-        );
+        return rejectWithValue(result.error || "Failed to toggle user status");
       }
 
-      return result; // contains success + data
+      return {
+        userId,
+        updatedUser: result.data,
+      };
     } catch (err) {
-      return rejectWithValue([{ message: err.message || "Network error" }]);
+      return rejectWithValue(err.message || "Network error");
     }
   }
 );
 
-// Async thunk for inviting new user
+// Update user permissions
+export const updateUserPermissions = createAsyncThunk(
+  "users/updateUserPermissions",
+  async ({ userId, permissionCodes }) => {
+    const response = await fetch(`${API_BASE}/${userId}/permissions`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ permissionCodes }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || "Failed to update permissions");
+    }
+
+    const result = await response.json();
+    return { userId, permissionCodes, result };
+  }
+);
+
+// Resend invitation
+export const resendInvite = createAsyncThunk(
+  "users/resendInvite",
+  async ({ userId }, { rejectWithValue }) => {
+    try {
+      const response = await fetch(`${API_BASE}/resend-invite`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(userId),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        return rejectWithValue(result.message || "Failed to resend invite");
+      }
+
+      return result;
+    } catch (err) {
+      return rejectWithValue(err.message || "Network error");
+    }
+  }
+);
+
+// Invite new user
 export const inviteUser = createAsyncThunk(
   "users/inviteUser",
   async (userData, { rejectWithValue }) => {
     try {
-      // Normalize dateOfJoining to YYYY-MM-DD if present
       let normalizedData = { ...userData };
 
-      if (userData.dateOfJoining) {
-        const date = new Date(userData.dateOfJoining);
-        // Ensure valid date before formatting
-        if (!isNaN(date)) {
-          normalizedData.dateOfJoining = date.toISOString().split("T")[0];
-        }
-      }
-
-      // Remove empty optional fields to avoid validation issues
+      // Remove empty optional fields
       Object.keys(normalizedData).forEach((key) => {
         if (
           normalizedData[key] === "" ||
           normalizedData[key] === null ||
           normalizedData[key] === undefined
         ) {
-          if (key !== "permissions") {
-            // Keep permissions array even if empty
+          if (key !== "permission_codes") {
             delete normalizedData[key];
           }
         }
       });
 
-      const response = await fetch("/api/admin/users/invite", {
-        // Fixed endpoint
+      const response = await fetch(`${API_BASE}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -160,134 +153,159 @@ export const inviteUser = createAsyncThunk(
       const responseData = await response.json();
 
       if (!response.ok) {
-        // Handle different error formats from the improved API
-        if (responseData.errors && Array.isArray(responseData.errors)) {
-          // Multiple errors - return the formatted error object
-          return rejectWithValue({
-            message: responseData.message || "Failed to invite user",
-            errors: responseData.errors,
-            status: response.status,
-          });
-        } else {
-          // Single error or unexpected format
-          return rejectWithValue({
-            message:
-              responseData.message ||
-              responseData.error ||
-              "Failed to invite user",
-            errors: [
-              {
-                field: "general",
-                message: responseData.message || "An error occurred",
-              },
-            ],
-            status: response.status,
-          });
-        }
+        return rejectWithValue({
+          message: responseData.message || "Failed to invite user",
+          status: response.status,
+        });
       }
 
       return responseData;
     } catch (error) {
-      console.error("Network or parsing error:");
       return rejectWithValue({
         message: "Network error - please check your connection",
-        errors: [
-          {
-            field: "network",
-            message: "Failed to connect to server",
-          },
-        ],
         status: 0,
       });
     }
   }
 );
 
-// Async thunk for fetching permissions data
+// Fetch permissions data
 export const fetchPermissions = createAsyncThunk(
   "users/fetchPermissions",
   async () => {
-    const response = await fetch("/api/admin/users/get_defaults");
+    const response = await fetch(`${API_BASE}/get_defaults`);
 
     if (!response.ok) {
       throw new Error("Failed to fetch permissions");
     }
-
-    return await response.json();
+    const data = await response.json();
+   
+    return data;
   }
 );
 
+// Reset user onboarding
 export const resetUserOnboarding = createAsyncThunk(
-  "users/resetUserOnboarding", //resetUserPassword
-  async ({ email }, { rejectWithValue }) => {
+  "users/resetUserOnboarding",
+  async ({ userId }, { rejectWithValue }) => {
     try {
-      const response = await fetch("/api/admin/users/reset-onboarding", {
+      const response = await fetch(`${API_BASE}/reset-onboarding`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify(userId),
       });
 
       const result = await response.json();
 
       if (!response.ok || !result.success) {
         return rejectWithValue(
-          result.errors || [{ message: "Failed to send onboarding reset link" }]
+          result.message || "Failed to send onboarding reset link"
         );
       }
 
       return result;
     } catch (err) {
-      return rejectWithValue([{ message: err.message || "Network error" }]);
+      return rejectWithValue(err.message || "Network error");
     }
   }
 );
 
+// Delete user
 export const deleteUser = createAsyncThunk(
   "users/deleteUser",
   async ({ userId }, { rejectWithValue }) => {
     try {
-      const response = await fetch("/api/admin/users/delete", {
+      const response = await fetch(`${API_BASE}/${userId}`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: userId, confirmDelete: true }),
       });
 
       const result = await response.json();
 
       if (!response.ok || !result.success) {
-        return rejectWithValue(
-          result.errors || [
-            { message: result.message || "Failed to delete user" },
-          ]
-        );
+        return rejectWithValue(result.message || "Failed to delete user");
       }
 
-      return result; // contains deletedUser + operations
+      return { userId, result };
     } catch (err) {
-      return rejectWithValue([{ message: err.message || "Network error" }]);
+      return rejectWithValue(err.message || "Network error");
     }
   }
 );
 
+// Send password reset link
 export const sendPasswordResetLink = createAsyncThunk(
   "users/sendPasswordResetLink",
-  async (email, { rejectWithValue }) => {
-    const payload = email?.email ? { email: email?.email } : null;
+  async ({ userId }, { rejectWithValue }) => {
     try {
-      const res = await fetch("/api/admin/users/reset-pwd-link", {
+      const res = await fetch(`${API_BASE}/pwd-reset-link`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(userId),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        // Server returned error status
         return rejectWithValue(data.message || "Failed to send reset link");
       }
 
-      return data; // success payload
+      return data;
+    } catch (err) {
+      return rejectWithValue(err.message || "Network error");
+    }
+  }
+);
+
+// Upload profile image
+export const uploadProfileImage = createAsyncThunk(
+  "users/uploadProfileImage",
+  async ({ userId, file }, { rejectWithValue }) => {
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch(
+        `${API_BASE}/${userId}/profile-image/upload`,
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        return rejectWithValue(result.message || "Failed to upload image");
+      }
+
+      return { userId, url: result.data.url };
+    } catch (err) {
+      return rejectWithValue(err.message || "Network error");
+    }
+  }
+);
+
+// Delete profile image
+export const deleteProfileImage = createAsyncThunk(
+  "users/deleteProfileImage",
+  async ({ userId }, { rejectWithValue }) => {
+    try {
+      const response = await fetch(
+        `${API_BASE}/${userId}/profile-image/delete`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        return rejectWithValue(result.message || "Failed to delete image");
+      }
+
+      return { userId };
     } catch (err) {
       return rejectWithValue(err.message || "Network error");
     }
@@ -298,18 +316,15 @@ const usersSlice = createSlice({
   name: "users",
   initialState: {
     users: [],
-    searchResults: [],
     selectedUser: null,
     permissionsData: null,
-    isSearchMode: false,
     searchTerm: "",
-    selectedDepartment: "",
     selectedRole: "",
     selectedStatus: "",
     currentPage: 1,
-    itemsPerPage: 10,
-    hasMore: false,
-    nextCursor: null,
+    itemsPerPage: 40,
+    totalItems: 0,
+    totalPages: 0,
     loading: false,
     error: null,
     updating: false,
@@ -318,33 +333,25 @@ const usersSlice = createSlice({
     permissionsError: null,
     inviting: false,
     inviteError: null,
-    inviteErrors: [],
     reinviting: false,
     reinviteError: null,
-    reinvitingResults: null,
     sentReinvite: false,
-    // onboarding-init-states
     resettingOnboarding: false,
     resetOnboardingError: null,
-    resetOnboardingResults: null,
     sentOnboardingReset: false,
-
-    // password reset-link init-states
     resettingPassword: false,
     resetPasswordError: null,
-    resetPasswordResults: null,
     sentPasswordReset: false,
-
     deleting: false,
     deleteError: null,
-    deletedUser: null,
+    uploadingImage: false,
+    uploadImageError: null,
+    togglingStatus: false,
+    toggleStatusError: null,
   },
   reducers: {
     setSearchTerm: (state, action) => {
       state.searchTerm = action.payload;
-    },
-    setSelectedDepartment: (state, action) => {
-      state.selectedDepartment = action.payload;
       state.currentPage = 1;
     },
     setSelectedRole: (state, action) => {
@@ -366,18 +373,9 @@ const usersSlice = createSlice({
     },
     clearFilters: (state) => {
       state.searchTerm = "";
-      state.selectedDepartment = "";
       state.selectedRole = "";
       state.selectedStatus = "";
       state.currentPage = 1;
-    },
-    clearSearch: (state) => {
-      state.isSearchMode = false;
-      state.searchResults = [];
-      state.searchTerm = "";
-    },
-    setSearchMode: (state, action) => {
-      state.isSearchMode = action.payload;
     },
     clearUpdateError: (state) => {
       state.updateError = null;
@@ -390,10 +388,15 @@ const usersSlice = createSlice({
     },
     clearResetPasswordError: (state) => {
       state.resetPasswordError = null;
-    },
-    clearResetPasswordResults: (state) => {
-      state.resetPasswordResults = null;
       state.sentPasswordReset = false;
+    },
+    clearReinviteError: (state) => {
+      state.reinviteError = null;
+      state.sentReinvite = false;
+    },
+    clearResetOnboardingError: (state) => {
+      state.resetOnboardingError = null;
+      state.sentOnboardingReset = false;
     },
   },
   extraReducers: (builder) => {
@@ -405,81 +408,42 @@ const usersSlice = createSlice({
       })
       .addCase(fetchUsers.fulfilled, (state, action) => {
         state.loading = false;
-
-        const newUsers = action.payload?.data?.users || [];
-        const { hasMore, nextCursor } = action.payload?.data?.pagination || {};
-
-        // If cursor is null, replace users. Otherwise, append.
-        if (action.meta.arg?.cursor === null) {
-          state.users = newUsers;
-        } else {
-          state.users = [...state.users, ...newUsers];
-        }
-
-        state.hasMore = hasMore ?? false;
-        state.nextCursor = nextCursor ?? null;
+        state.users = action.payload?.data || [];
+        state.totalItems = action.payload?.pagination?.total_items || 0;
+        state.totalPages = action.payload?.pagination?.total_pages || 0;
+        state.currentPage = action.payload?.pagination?.page || 1;
       })
       .addCase(fetchUsers.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error.message;
       })
 
+      // Delete user
       .addCase(deleteUser.pending, (state) => {
         state.deleting = true;
         state.deleteError = null;
-        state.deletedUser = null;
       })
-
       .addCase(deleteUser.fulfilled, (state, action) => {
         state.deleting = false;
-        state.deletedUser = action.payload.data.deletedUser;
-
-        const deletedId = action.payload.data.deletedUser.userId;
-
-        // Remove from users list
+        const deletedId = action.payload.userId;
         state.users = state.users.filter((u) => u.id !== deletedId);
-
-        // Remove from search results
-        state.searchResults = state.searchResults.filter(
-          (u) => u.id !== deletedId
-        );
-
-        // Clear selected user if it matches
         if (state.selectedUser?.id === deletedId) {
           state.selectedUser = null;
         }
       })
-
       .addCase(deleteUser.rejected, (state, action) => {
         state.deleting = false;
-        state.deleteError =
-          action?.payload?.[0]?.message || "Failed to delete user";
+        state.deleteError = action.payload || "Failed to delete user";
       })
 
-      // Search users
-      .addCase(searchUsers.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(searchUsers.fulfilled, (state, action) => {
-        state.loading = false;
-        state.searchResults = action.payload.data?.users || [];
-        state.isSearchMode = true;
-      })
-      .addCase(searchUsers.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.error.message || "Somwthing Went Worng!";
-      })
-
+      // Send password reset link
       .addCase(sendPasswordResetLink.pending, (state) => {
         state.resettingPassword = true;
         state.resetPasswordError = null;
-        state.resetPasswordResults = null;
         state.sentPasswordReset = false;
       })
-      .addCase(sendPasswordResetLink.fulfilled, (state, action) => {
+      .addCase(sendPasswordResetLink.fulfilled, (state) => {
         state.resettingPassword = false;
-        state.resetPasswordResults = action.payload;
         state.sentPasswordReset = true;
       })
       .addCase(sendPasswordResetLink.rejected, (state, action) => {
@@ -487,66 +451,26 @@ const usersSlice = createSlice({
         state.resetPasswordError = action.payload || "Something went wrong";
       })
 
-      // Update user (general)
+      // Update user
       .addCase(updateUser.pending, (state) => {
         state.updating = true;
         state.updateError = null;
       })
       .addCase(updateUser.fulfilled, (state, action) => {
         state.updating = false;
-        const { userId, userData } = action?.payload;
+        const { userId, result } = action.payload;
+        const updatedUser = result.data;
 
-        const mergeUser = (existingUser) => {
-          const updated = {
-            ...existingUser,
-            ...userData,
-            updatedAt: new Date().toISOString(),
-          };
-
-          if (
-            userData.line1 !== undefined ||
-            userData.city !== undefined ||
-            userData.pincode !== undefined ||
-            userData.state !== undefined
-          ) {
-            updated.address = {
-              ...existingUser.address,
-              line1: userData.line1 ?? existingUser.address?.line1 ?? "",
-              city: userData.city ?? existingUser.address?.city ?? "",
-              pincode: userData.pincode ?? existingUser.address?.pincode ?? "",
-              state: userData.state ?? existingUser.address?.state ?? "",
-            };
-
-            delete updated.line1;
-            delete updated.city;
-            delete updated.pincode;
-            delete updated.state;
-          }
-
-          return updated;
-        };
-
-        // Update in users array
         const userIndex = state.users.findIndex((user) => user.id === userId);
         if (userIndex !== -1) {
-          state.users[userIndex] = mergeUser(state.users[userIndex]);
+          state.users[userIndex] = {
+            ...state.users[userIndex],
+            ...updatedUser,
+          };
         }
 
-        // Update in search results
-        if (state.isSearchMode) {
-          const searchUserIndex = state.searchResults.findIndex(
-            (user) => user.id === userId
-          );
-          if (searchUserIndex !== -1) {
-            state.searchResults[searchUserIndex] = mergeUser(
-              state.searchResults[searchUserIndex]
-            );
-          }
-        }
-
-        // Update selected user if it's the same user
-        if (state.selectedUser && state.selectedUser.id === userId) {
-          state.selectedUser = mergeUser(state.selectedUser);
+        if (state.selectedUser?.id === userId) {
+          state.selectedUser = { ...state.selectedUser, ...updatedUser };
         }
       })
       .addCase(updateUser.rejected, (state, action) => {
@@ -554,52 +478,20 @@ const usersSlice = createSlice({
         state.updateError = action.error.message;
       })
 
-      // Reset user password
+      // Reset user onboarding
       .addCase(resetUserOnboarding.pending, (state) => {
         state.resettingOnboarding = true;
         state.resetOnboardingError = null;
         state.sentOnboardingReset = false;
       })
-      .addCase(resetUserOnboarding.fulfilled, (state, action) => {
+      .addCase(resetUserOnboarding.fulfilled, (state) => {
         state.resettingOnboarding = false;
         state.sentOnboardingReset = true;
-        state.resetOnboardingResults = action.payload.message;
-
-        const { email } = action.payload.data;
-
-        // Update user timestamps in all relevant arrays
-        const updateUserTimestamps = (user) => ({
-          ...user,
-          lastOnboardingResetRequestAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        });
-
-        // Update in users array
-        const userIndex = state.users.findIndex((u) => u.email === email);
-        if (userIndex !== -1) {
-          state.users[userIndex] = updateUserTimestamps(state.users[userIndex]);
-        }
-
-        // Update in search results
-        const searchIndex = state.searchResults.findIndex(
-          (u) => u.email === email
-        );
-        if (searchIndex !== -1) {
-          state.searchResults[searchIndex] = updateUserTimestamps(
-            state.searchResults[searchIndex]
-          );
-        }
-
-        // Update selected user
-        if (state.selectedUser && state.selectedUser.email === email) {
-          state.selectedUser = updateUserTimestamps(state.selectedUser);
-        }
       })
       .addCase(resetUserOnboarding.rejected, (state, action) => {
         state.resettingOnboarding = false;
         state.resetOnboardingError =
-          action?.payload?.[0]?.message ||
-          "Failed to send onboarding reset link";
+          action.payload || "Failed to send onboarding reset link";
       })
 
       // Update user permissions
@@ -609,51 +501,24 @@ const usersSlice = createSlice({
       })
       .addCase(updateUserPermissions.fulfilled, (state, action) => {
         state.updating = false;
+        const { userId, result } = action.payload;
+        const updatedPermissions = result.data;
 
-        const { result } = action.payload;
-        const { userId, changes, timestamp } = result.data;
+        const updateUserInList = (user) => ({
+          ...user,
+          permissions: updatedPermissions,
+          updated_at: new Date().toISOString(),
+        });
 
-        // Build updated user object based on API response
-        const updateUserPermissions = (user) => {
-          const updatedUser = {
-            ...user,
-            role: changes?.role ? changes.role.to : user.role,
-            permissions: changes?.permissions
-              ? changes.permissions.to.map((p) => p)
-              : user.permissions,
-            updatedAt: timestamp || new Date().toISOString(),
-          };
-
-          return updatedUser;
-        };
-
-        // Update in users array
         const userIndex = state.users.findIndex((user) => user.id === userId);
-
         if (userIndex !== -1) {
-          state.users[userIndex] = updateUserPermissions(
-            state.users[userIndex]
-          );
+          state.users[userIndex] = updateUserInList(state.users[userIndex]);
         }
 
-        // Update in search results
-        if (state.isSearchMode) {
-          const searchUserIndex = state.searchResults.findIndex(
-            (user) => user.id === userId
-          );
-          if (searchUserIndex !== -1) {
-            state.searchResults[searchUserIndex] = updateUserPermissions(
-              state.searchResults[searchUserIndex]
-            );
-          }
-        }
-
-        // Update selected user if it's the same user
-        if (state.selectedUser && state.selectedUser.id === userId) {
-          state.selectedUser = updateUserPermissions(state.selectedUser);
+        if (state.selectedUser?.id === userId) {
+          state.selectedUser = updateUserInList(state.selectedUser);
         }
       })
-
       .addCase(updateUserPermissions.rejected, (state, action) => {
         state.updating = false;
         state.updateError = action.error.message;
@@ -669,107 +534,58 @@ const usersSlice = createSlice({
         state.inviteError = null;
 
         const result = action.payload;
-
-        // Only add to local state if we have valid response data
         if (result.success && result.data) {
-          // Create new user object for local state
-          const newUser = {
-            id: result.data.userId,
-            userCode: result.data.userCode,
-            name: action.meta.arg.name,
-            email: action.meta.arg.email,
-            phone: action.meta.arg.phone,
-            alternatePhone: action.meta.arg.alternatePhone || "",
-            department: action.meta.arg.department || "",
-            designation: action.meta.arg.designation || "",
-            role: action.meta.arg.role,
-            permissions: action.meta.arg.permissions || [],
-            dateOfJoining: action.meta.arg.dateOfJoining,
-            status: result.data.status || "pending",
-            twoFactorEnabled: false,
-            invitedBy: "Admin User",
-            emailSent: result.data.emailSent,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          };
-
-          // Add to beginning of users array
-          state.users.unshift(newUser);
+          state.users.unshift(result.data);
         }
       })
-
       .addCase(inviteUser.rejected, (state, action) => {
         state.inviting = false;
+        state.inviteError = action.payload?.message || "Failed to invite user";
+      })
+      // Toggle ACTIVE / INACTIVE
+      .addCase(toggleUserStatus.pending, (state) => {
+        state.togglingStatus = true;
+        state.toggleStatusError = null;
+      })
+      .addCase(toggleUserStatus.fulfilled, (state, action) => {
+        state.togglingStatus = false;
 
-        // Handle different error payload formats
-        if (action.payload) {
-          // Structured error from rejectWithValue
-          state.inviteError = action.payload.message || "Failed to invite user";
-          state.inviteErrors = action.payload.errors || [];
-        } else {
-          // Fallback for unexpected errors
-          state.inviteError =
-            action.error?.message || "An unexpected error occurred";
-          state.inviteErrors = [
-            {
-              field: "unknown",
-              message: state.inviteError,
-            },
-          ];
+        const { userId, updatedUser } = action.payload;
+
+
+        
+        // update in list
+        const idx = state.users.findIndex((u) => u.id === userId?.userId);
+        if (idx !== -1) {
+          state.users[idx] = { ...state.users[idx], ...updatedUser };
+        }
+
+        // update selected user if open
+        if (state.selectedUser?.id === userId?.userId) {
+          state.selectedUser = { ...state.selectedUser, ...updatedUser };
         }
       })
+      .addCase(toggleUserStatus.rejected, (state, action) => {
+        state.togglingStatus = false;
+        state.toggleStatusError =
+          action.payload || "Failed to toggle user status";
+      })
 
+      // Resend invite
       .addCase(resendInvite.pending, (state) => {
         state.reinviting = true;
         state.reinviteError = null;
         state.sentReinvite = false;
       })
-      .addCase(resendInvite.fulfilled, (state, action) => {
+      .addCase(resendInvite.fulfilled, (state) => {
         state.reinviting = false;
         state.sentReinvite = true;
-
-        const { email, emailSent, sentAt } = action.payload.data;
-
-        // Update user in users list
-        const userIndex = state.users.findIndex((u) => u.email === email);
-        if (userIndex !== -1) {
-          state.users[userIndex] = {
-            ...state.users[userIndex],
-            emailSent: emailSent ?? true,
-            lastInvitationSentAt: sentAt,
-            isInvitationLinkResent: true,
-          };
-        }
-
-        // Update in searchResults if present
-        const searchIndex = state.searchResults.findIndex(
-          (u) => u.email === email
-        );
-        if (searchIndex !== -1) {
-          state.searchResults[searchIndex] = {
-            ...state.searchResults[searchIndex],
-            emailSent: emailSent ?? true,
-            lastInvitationSentAt: sentAt,
-            isInvitationLinkResent: true,
-          };
-        }
-
-        // Update selectedUser if it matches
-        if (state.selectedUser && state.selectedUser.email === email) {
-          state.selectedUser = {
-            ...state.selectedUser,
-            emailSent: emailSent ?? true,
-            lastInvitationSentAt: sentAt,
-            isInvitationLinkResent: true,
-          };
-        }
       })
       .addCase(resendInvite.rejected, (state, action) => {
         state.reinviting = false;
-
-        state.reinviteError =
-          action?.payload[0]?.message || "Failed to resend invite";
+        state.reinviteError = action.payload || "Failed to resend invite";
       })
+
       // Fetch permissions
       .addCase(fetchPermissions.pending, (state) => {
         state.permissionsLoading = true;
@@ -777,31 +593,75 @@ const usersSlice = createSlice({
       })
       .addCase(fetchPermissions.fulfilled, (state, action) => {
         state.permissionsLoading = false;
-        state.permissionsData = action.payload.data;
+        state.permissionsData = action.payload?.data;
       })
       .addCase(fetchPermissions.rejected, (state, action) => {
         state.permissionsLoading = false;
         state.permissionsError = action.error.message;
+      })
+
+      // Upload profile image
+      .addCase(uploadProfileImage.pending, (state) => {
+        state.uploadingImage = true;
+        state.uploadImageError = null;
+      })
+      .addCase(uploadProfileImage.fulfilled, (state, action) => {
+        state.uploadingImage = false;
+        const { userId, url } = action.payload;
+
+        const userIndex = state.users.findIndex((user) => user.id === userId);
+        if (userIndex !== -1) {
+          state.users[userIndex].profile_image_url = url;
+        }
+
+        if (state.selectedUser?.id === userId) {
+          state.selectedUser.profile_image_url = url;
+        }
+      })
+      .addCase(uploadProfileImage.rejected, (state, action) => {
+        state.uploadingImage = false;
+        state.uploadImageError = action.payload || "Failed to upload image";
+      })
+
+      // Delete profile image
+      .addCase(deleteProfileImage.pending, (state) => {
+        state.uploadingImage = true;
+        state.uploadImageError = null;
+      })
+      .addCase(deleteProfileImage.fulfilled, (state, action) => {
+        state.uploadingImage = false;
+        const { userId } = action.payload;
+
+        const userIndex = state.users.findIndex((user) => user.id === userId);
+        if (userIndex !== -1) {
+          state.users[userIndex].profile_image_url = null;
+        }
+
+        if (state.selectedUser?.id === userId) {
+          state.selectedUser.profile_image_url = null;
+        }
+      })
+      .addCase(deleteProfileImage.rejected, (state, action) => {
+        state.uploadingImage = false;
+        state.uploadImageError = action.payload || "Failed to delete image";
       });
   },
 });
 
 export const {
   setSearchTerm,
-  setSelectedDepartment,
   setSelectedRole,
   setSelectedStatus,
   setCurrentPage,
   setSelectedUser,
   clearSelectedUser,
   clearFilters,
-  clearSearch,
-  setSearchMode,
   clearUpdateError,
   clearPermissionsError,
   clearInviteError,
   clearResetPasswordError,
-  clearResetPasswordResults,
+  clearReinviteError,
+  clearResetOnboardingError,
 } = usersSlice.actions;
 
 export default usersSlice.reducer;

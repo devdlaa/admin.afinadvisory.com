@@ -45,9 +45,11 @@ const UsersTable = ({
   onPageChange,
   totalUsers,
   resettingOnboarding,
-  onOmboardingResetLinkSend,
+  onOnboardingResetLinkSend,
   onResetPwdLinkSend,
   resettingPassword,
+  onToggleAccountStatus,
+  togglingStatus,
 }) => {
   const [sortField, setSortField] = useState("name");
   const [sortDirection, setSortDirection] = useState("asc");
@@ -73,6 +75,10 @@ const UsersTable = ({
     inviting,
     loading,
     updating,
+    resetPasswordError,
+    sentPasswordReset,
+    resetOnboardingError,
+    sentOnboardingReset,
   } = useSelector((state) => state.user);
 
   useEffect(() => {
@@ -84,6 +90,26 @@ const UsersTable = ({
       setOpen(true);
     }
   }, [reinviting, reinviteError, sentReinvite]);
+
+  useEffect(() => {
+    if (resettingPassword === false && resetPasswordError) {
+      setAlert(<Alert severity="warning">{resetPasswordError}</Alert>);
+      setOpen(true);
+    } else if (resettingPassword === false && sentPasswordReset) {
+      setAlert(<Alert severity="success">Password Reset Link Sent!</Alert>);
+      setOpen(true);
+    }
+  }, [resettingPassword, resetPasswordError, sentPasswordReset]);
+
+  useEffect(() => {
+    if (resettingOnboarding === false && resetOnboardingError) {
+      setAlert(<Alert severity="warning">{resetOnboardingError}</Alert>);
+      setOpen(true);
+    } else if (resettingOnboarding === false && sentOnboardingReset) {
+      setAlert(<Alert severity="success">Onboarding Reset Link Sent!</Alert>);
+      setOpen(true);
+    }
+  }, [resettingOnboarding, resetOnboardingError, sentOnboardingReset]);
 
   const handleClose = () => {
     setOpen(false);
@@ -118,12 +144,16 @@ const UsersTable = ({
 
   const getStatusBadge = (status) => {
     const statusConfig = {
-      active: { icon: CheckCircle, class: "status-active", label: "Active" },
-      pending: { icon: Clock, class: "status-pending", label: "Pending" },
-      disabled: { icon: XCircle, class: "status-disabled", label: "Disabled" },
+      ACTIVE: { icon: CheckCircle, class: "status-active", label: "Active" },
+      INACTIVE: { icon: Clock, class: "status-pending", label: "Inactive" },
+      SUSPENDED: {
+        icon: XCircle,
+        class: "status-disabled",
+        label: "Suspended",
+      },
     };
 
-    const config = statusConfig[status] || statusConfig.disabled;
+    const config = statusConfig[status] || statusConfig.INACTIVE;
     const Icon = config.icon;
 
     return (
@@ -135,10 +165,18 @@ const UsersTable = ({
   };
 
   const getRoleBadge = (role) => {
+    const roleLabels = {
+      SUPER_ADMIN: "Super Admin",
+      ADMIN: "Admin",
+      MANAGER: "Manager",
+      EMPLOYEE: "Employee",
+      VIEW_ONLY: "View Only",
+    };
+
     return (
-      <span className={`role-badge role-${role}`}>
+      <span className={`role-badge role-${role?.toLowerCase()}`}>
         <Shield size={12} />
-        {role.charAt(0).toUpperCase() + role.slice(1)}
+        {roleLabels[role] || role}
       </span>
     );
   };
@@ -186,7 +224,19 @@ const UsersTable = ({
       showConfirmDialog(
         "Reset Onboarding Flow",
         `Are you sure you want to reset the onboarding flow for ${selectedUser.name} (${selectedUser.email})? This will restart their entire onboarding process.`,
-        onOmboardingResetLinkSend,
+        onOnboardingResetLinkSend,
+        selectedUser
+      );
+    }
+    handleMenuClose();
+  };
+
+  const handleAccountToggle = () => {
+    if (selectedUser) {
+      showConfirmDialog(
+        "Account Status Update",
+        `Are you sure you want to update the account status for ${selectedUser.name} (${selectedUser.email})? This will Make the account Inactive or Active according to the current Status.`,
+        onToggleAccountStatus,
         selectedUser
       );
     }
@@ -208,31 +258,6 @@ const UsersTable = ({
       return aValue < bValue ? 1 : -1;
     }
   });
-
-  const renderPagination = () => {
-    const pages = [];
-    const maxVisiblePages = 5;
-    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
-    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
-
-    if (endPage - startPage < maxVisiblePages - 1) {
-      startPage = Math.max(1, endPage - maxVisiblePages + 1);
-    }
-
-    for (let i = startPage; i <= endPage; i++) {
-      pages.push(
-        <button
-          key={i}
-          className={`pagination-btn ${currentPage === i ? "active" : ""}`}
-          onClick={() => onPageChange(i)}
-        >
-          {i}
-        </button>
-      );
-    }
-
-    return pages;
-  };
 
   return (
     <>
@@ -316,22 +341,22 @@ const UsersTable = ({
                     }`}
                   />
                 </th>
-                <th onClick={() => handleSort("role")} className="sortable">
+                <th
+                  onClick={() => handleSort("admin_role")}
+                  className="sortable"
+                >
                   <span>Role</span>
                   <div
                     className={`sort-indicator ${
-                      sortField === "role" ? sortDirection : ""
+                      sortField === "admin_role" ? sortDirection : ""
                     }`}
                   />
                 </th>
-                <th
-                  onClick={() => handleSort("department")}
-                  className="sortable"
-                >
-                  <span>Department</span>
+                <th onClick={() => handleSort("phone")} className="sortable">
+                  <span>Phone</span>
                   <div
                     className={`sort-indicator ${
-                      sortField === "department" ? sortDirection : ""
+                      sortField === "phone" ? sortDirection : ""
                     }`}
                   />
                 </th>
@@ -343,7 +368,6 @@ const UsersTable = ({
                     }`}
                   />
                 </th>
-
                 <th>Actions</th>
               </tr>
             </thead>
@@ -360,7 +384,7 @@ const UsersTable = ({
                     <div className="user-info">
                       <div className="user-details">
                         <div className="user-name">{user.name}</div>
-                        <div className="user-code">{user.employeeCode}</div>
+                        <div className="user-code">{user.user_code}</div>
                       </div>
                     </div>
                   </td>
@@ -369,12 +393,14 @@ const UsersTable = ({
                       <span className="email">{user.email}</span>
                     </div>
                   </td>
-                  <td>{getRoleBadge(user.role)}</td>
+                  <td>{getRoleBadge(user.admin_role)}</td>
                   <td className="department-cell">
-                    <span className="department">
-                      {user.department || "Not assigned"}
-                    </span>
-                    <span className="designation">{user.designation}</span>
+                    <span className="department">{user.phone}</span>
+                    {user.alternate_phone && (
+                      <span className="designation">
+                        {user.alternate_phone}
+                      </span>
+                    )}
                   </td>
                   <td>{getStatusBadge(user.status)}</td>
 
@@ -415,51 +441,70 @@ const UsersTable = ({
                         <Key size={16} style={{ marginRight: 8 }} />
                         <span>Permissions</span>
                       </MenuItem>
-                      {selectedUser?.status === "pending" && (
-                        <MenuItem
-                          disabled={reinviting}
-                          onClick={() => handleMenuAction(onResendInvite)}
-                          className="dropdown-item"
-                        >
-                          {reinviting ? (
-                            <CircularProgress size={16} />
-                          ) : (
-                            <Mail size={16} style={{ marginRight: 8 }} />
-                          )}
-
-                          <span>Resend Invite</span>
-                        </MenuItem>
-                      )}
-                      <MenuItem
-                        onClick={handlePasswordReset}
-                        className="dropdown-item"
-                        disabled={resettingPassword}
-                      >
-                        {resettingPassword ? (
-                          <CircularProgress size={16} />
-                        ) : (
-                          <LockKeyholeOpen
-                            size={16}
-                            style={{ marginRight: 8 }}
-                          />
-                        )}
-
-                        <span>Password Reset Link</span>
-                      </MenuItem>
 
                       <MenuItem
-                        onClick={handleOnboardingReset}
+                        onClick={handleAccountToggle}
                         className="dropdown-item"
-                        disabled={resettingOnboarding}
+                        disabled={togglingStatus}
                       >
-                        {resettingOnboarding ? (
+                        {togglingStatus ? (
                           <CircularProgress size={16} />
                         ) : (
                           <UserRound size={16} style={{ marginRight: 8 }} />
                         )}
-
-                        <span>Onboarding Reset Flow</span>
+                        <span>Account Status</span>
                       </MenuItem>
+                      {selectedUser?.status === "INACTIVE" &&
+                        !selectedUser?.onboarding_completed && (
+                          <MenuItem
+                            disabled={reinviting}
+                            onClick={() => handleMenuAction(onResendInvite)}
+                            className="dropdown-item"
+                          >
+                            {reinviting ? (
+                              <CircularProgress size={16} />
+                            ) : (
+                              <Mail size={16} style={{ marginRight: 8 }} />
+                            )}
+                            <span>Resend Invite</span>
+                          </MenuItem>
+                        )}
+                      {selectedUser?.status === "ACTIVE" &&
+                        selectedUser?.onboarding_completed && (
+                          <>
+                            <MenuItem
+                              onClick={handlePasswordReset}
+                              className="dropdown-item"
+                              disabled={resettingPassword}
+                            >
+                              {resettingPassword ? (
+                                <CircularProgress size={16} />
+                              ) : (
+                                <LockKeyholeOpen
+                                  size={16}
+                                  style={{ marginRight: 8 }}
+                                />
+                              )}
+                              <span>Password Reset Link</span>
+                            </MenuItem>
+
+                            <MenuItem
+                              onClick={handleOnboardingReset}
+                              className="dropdown-item"
+                              disabled={resettingOnboarding}
+                            >
+                              {resettingOnboarding ? (
+                                <CircularProgress size={16} />
+                              ) : (
+                                <UserRound
+                                  size={16}
+                                  style={{ marginRight: 8 }}
+                                />
+                              )}
+                              <span>Onboarding Reset Flow</span>
+                            </MenuItem>
+                          </>
+                        )}
 
                       <MenuItem
                         onClick={() => handleMenuAction(onDelete)}

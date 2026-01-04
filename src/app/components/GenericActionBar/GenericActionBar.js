@@ -232,13 +232,75 @@ const GenericActionBar = ({
     return (
       <div className="generic-ab__pagination">
         <div className="generic-ab__pagination-info">
-          <span>
-            {currentPageSize > 0 &&
-              `Page ${currentPage} (${currentPageSize} items)  `}
-            | {totalCached} Total
-            {isSearchActive && ` (Search Results)`}
-            {isFilterActive && ` (Filtered)`}
-          </span>
+          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+            {currentPageSize > 0 && (
+              <span
+                style={{
+                  background: "#ced5f1",
+                  color: "#0732a8",
+                  padding: "4px 10px",
+                  borderRadius: "9999px",
+                  fontSize: "12px",
+                }}
+              >
+                Page {currentPage}
+              </span>
+            )}
+
+            {currentPageSize > 0 && (
+              <span
+                style={{
+                  background: "#ced5f1",
+                  color: "#0732a8",
+                  padding: "4px 10px",
+                  borderRadius: "9999px",
+                  fontSize: "12px",
+                }}
+              >
+                {currentPageSize} items
+              </span>
+            )}
+
+            <span
+              style={{
+                background: "#e8f5e9",
+                color: "#1b5e20",
+                padding: "4px 10px",
+                borderRadius: "9999px",
+                fontSize: "12px",
+              }}
+            >
+              {totalCached} total
+            </span>
+
+            {isSearchActive && (
+              <span
+                style={{
+                  background: "#fff3cd",
+                  color: "#7a5b00",
+                  padding: "4px 10px",
+                  borderRadius: "9999px",
+                  fontSize: "12px",
+                }}
+              >
+                Search results
+              </span>
+            )}
+
+            {isFilterActive && (
+              <span
+                style={{
+                  background: "#fde2e2",
+                  color: "#7a0000",
+                  padding: "4px 10px",
+                  borderRadius: "9999px",
+                  fontSize: "12px",
+                }}
+              >
+                Filtered
+              </span>
+            )}
+          </div>
           {(isSearchActive || isFilterActive) && (
             <div className="generic-ab__pagination-active-filters">
               {isSearchActive && (
@@ -254,15 +316,17 @@ const GenericActionBar = ({
                 </span>
               )}
               {isFilterActive && (
-                <span className="generic-ab__pagination-filter-tag">
+                <span
+                  style={{
+                    background: "#c1edc1",
+                    color: "#023b0c",
+                    padding: "4px 12px",
+                    borderRadius: "14px",
+                    fontSize: "12px",
+                  }}
+                  className="generic-ab__pagination-filter-tag"
+                >
                   Filter Active
-                  <button
-                    onClick={handleClearFilter}
-                    className="generic-ab__pagination-clear-tag-btn"
-                    type="button"
-                  >
-                    <X size={12} />
-                  </button>
                 </span>
               )}
             </div>

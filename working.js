@@ -11,8 +11,6 @@ const REGISTRATION_TYPES = [
   "SHOP_ESTABLISHMENT_REGISTRATION",
   "FSSAI_LICENSE",
   "STARTUP_DPIIT_RECOGNITION",
-
-  // ----------------------------------------- REGISTRATION TYEPS WITH WILD COMPLIANCES --------------------------------------
   "DIN_DIRECTOR_IDENTIFICATION_NUMBER",
   "TRUST_OR_SOCIETY_REGISTRATION",
   "SEZ_OR_EOU_REGISTRATION",
@@ -444,11 +442,154 @@ const FSSAI_LICENSE = [
     name: "FSSAI License Renewal",
     registration_type_code: "FSSAI_LICENSE",
     frequency_type: "EXPIRY_BASED",
-    anchor_months: [],
-    period_label_type: "LICENSE_TERM",
     due_day: 0,
     due_month_offset: 0,
     grace_days: 0,
     anchor_overrides: null,
+    auto_task_generation_enabled: false,
+    renewal_window_days_before_expiry: 120,
+    post_expiry_grace_days: 60,
+  },
+];
+
+const DIN_DIRECTOR_IDENTIFICATION_NUMBER = [
+  {
+    compliance_code: "DIN_ANNUAL_KYC_DIR3",
+    name: "DIN Annual KYC (DIR-3 KYC)",
+    registration_type_code: "DIN_DIRECTOR_IDENTIFICATION_NUMBER",
+    frequency_type: "YEARLY",
+    due_day: 30,
+    due_month_offset: 6,
+    grace_days: 0,
+    anchor_overrides: null,
+    auto_task_generation_enabled: true,
+  },
+];
+
+const TRUST_OR_SOCIETY_REGISTRATION = [
+  {
+    compliance_code: "TRUST_SOCIETY_REGISTRATION_RENEWAL",
+    name: "Trust/Society Registration Renewal",
+    registration_type_code: "TRUST_OR_SOCIETY_REGISTRATION",
+    frequency_type: "EXPIRY_BASED",
+    due_day: 0,
+    due_month_offset: 0,
+    grace_days: 0,
+    anchor_overrides: null,
+    auto_task_generation_enabled: false,
+    renewal_window_days_before_expiry: 90,
+    post_expiry_grace_days: 30,
+  },
+];
+
+const COOPERATIVE_SOCIETY_REGISTRATION = [
+  {
+    compliance_code: "COOP_SOCIETY_REGISTRATION_RENEWAL",
+    name: "Co-operative Society Registration Renewal",
+    registration_type_code: "COOPERATIVE_SOCIETY_REGISTRATION",
+    frequency_type: "EXPIRY_BASED",
+    due_day: 0,
+    due_month_offset: 0,
+    grace_days: 0,
+    anchor_overrides: null,
+    auto_task_generation_enabled: false,
+    renewal_window_days_before_expiry: 90,
+    post_expiry_grace_days: 30,
+  },
+];
+
+const LABOUR_WELFARE_FUND_REGISTRATION = [
+  {
+    compliance_code: "LWF_REGISTRATION_RENEWAL",
+    name: "Labour Welfare Fund Registration Renewal",
+    registration_type_code: "LABOUR_WELFARE_FUND_REGISTRATION",
+    frequency_type: "EXPIRY_BASED",
+    due_day: 0,
+    due_month_offset: 0,
+    grace_days: 0,
+    anchor_overrides: null,
+    auto_task_generation_enabled: false,
+    renewal_window_days_before_expiry: 60,
+    post_expiry_grace_days: 30,
+  },
+];
+
+const POLLUTION_CONTROL_BOARD_CONSENT = [
+  {
+    compliance_code: "PCB_CONSENT_RENEWAL",
+    name: "Pollution Control Board Consent Renewal",
+    registration_type_code: "POLLUTION_CONTROL_BOARD_CONSENT",
+    frequency_type: "EXPIRY_BASED",
+    due_day: 0,
+    due_month_offset: 0,
+    grace_days: 0,
+    anchor_overrides: null,
+    auto_task_generation_enabled: false,
+    renewal_window_days_before_expiry: 120,
+    post_expiry_grace_days: 60,
+  },
+];
+
+const IMPORTER_EXPORTER_MEMBERSHIP_CERTIFICATE = [
+  {
+    compliance_code: "IEMC_MEMBERSHIP_RENEWAL",
+    name: "Importer Exporter Membership Certificate Renewal",
+    registration_type_code: "IMPORTER_EXPORTER_MEMBERSHIP_CERTIFICATE",
+    frequency_type: "EXPIRY_BASED",
+    due_day: 0,
+    due_month_offset: 0,
+    grace_days: 0,
+    anchor_overrides: null,
+    auto_task_generation_enabled: false,
+    renewal_window_days_before_expiry: 90,
+    post_expiry_grace_days: 30,
+  },
+];
+
+const TRADE_LICENSE = [
+  {
+    compliance_code: "TRADE_LICENSE_RENEWAL",
+    name: "Trade License Renewal",
+    registration_type_code: "TRADE_LICENSE",
+    frequency_type: "EXPIRY_BASED",
+    due_day: 0,
+    due_month_offset: 0,
+    grace_days: 0,
+    anchor_overrides: null,
+    auto_task_generation_enabled: false,
+    renewal_window_days_before_expiry: 30,
+    post_expiry_grace_days: 30,
+  },
+];
+
+const FACTORY_LICENSE = [
+  {
+    compliance_code: "FACTORY_LICENSE_RENEWAL",
+    name: "Factory License Renewal",
+    registration_type_code: "FACTORY_LICENSE",
+    frequency_type: "EXPIRY_BASED",
+    due_day: 0,
+    due_month_offset: 0,
+    grace_days: 0,
+    anchor_overrides: null,
+    auto_task_generation_enabled: false,
+    renewal_window_days_before_expiry: 120,
+    post_expiry_grace_days: 60,
+  },
+];
+
+const MSME_UDYAM_REGISTRATION = [
+  {
+    compliance_code: "UDYAM_PROFILE_UPDATE_REMINDER",
+    name: "Udyam Registration – Profile Update / Reconfirmation Reminder",
+    registration_type_code: "MSME_UDYAM_REGISTRATION",
+    frequency_type: "YEARLY",
+    anchor_months: [3],
+    period_label_type: "FINANCIAL_YEAR",
+    due_day: 30,
+    due_month_offset: 1,
+    grace_days: 0,
+    anchor_overrides: null,
+    auto_task_generation_enabled: false,
   },
 ];

@@ -273,8 +273,38 @@ const toastMiddleware = () => (next) => (action) => {
         // No toast for regular filtering - it's expected to be silent
         break;
 
-      // Add more slice action mappings here ⬆️
-      default:
+      // Fetch Entities - No toast (silent background operation)
+      case "entity/fetchEntities/fulfilled":
+        // No toast - fetching is expected to be silent
+        break;
+
+      // Quick Search Entities - No toast (silent background operation)
+      case "entity/quickSearchEntities/fulfilled":
+        // No toast - search is expected to be silent
+        break;
+
+      // Fetch Entity By ID - No toast (silent background operation)
+      case "entity/fetchEntityById/fulfilled":
+        // No toast - fetching single entity is expected to be silent
+        break;
+
+      // Create Entity
+      case "entity/createEntity/fulfilled":
+        const newEntity = action.payload;
+        const entityName = newEntity?.name || "Entity";
+        showSuccess(`${entityName} created successfully`);
+        break;
+
+      // Update Entity
+      case "entity/updateEntity/fulfilled":
+        const updatedEntity = action.payload;
+        const updatedEntityName = updatedEntity?.name || "Entity";
+        showSuccess(`${updatedEntityName} updated successfully`);
+        break;
+
+      // Delete Entity
+      case "entity/deleteEntity/fulfilled":
+        showSuccess("Entity deleted successfully");
         break;
     }
   }
@@ -393,6 +423,19 @@ const toastMiddleware = () => (next) => (action) => {
         }
         break;
 
+      case "users/toggleUserStatus/rejected":
+        const toggleStatusError = action.payload;
+        if (Array.isArray(toggleStatusError) && toggleStatusError[0]?.message) {
+          showError(toggleStatusError[0].message);
+        } else {
+          showError(
+            toggleStatusError?.message ||
+              action.error?.message ||
+              "Failed to Update Account Status"
+          );
+        }
+        break;
+
       case "users/fetchPermissions/rejected":
         showError("Failed to load permissions data");
         break;
@@ -433,7 +476,6 @@ const toastMiddleware = () => (next) => (action) => {
         break;
 
       case "customers/updateCustomer/rejected":
-        
         const updateCustomerError = action.payload?.message?.details?.errors;
 
         if (updateCustomerError?.includes("not found")) {
@@ -632,6 +674,88 @@ const toastMiddleware = () => (next) => (action) => {
           showError("Failed to filter bookings. Please try again.");
         }
         break;
+      case "entity/fetchEntities/rejected":
+        showError("Failed to load entities. Please refresh and try again.");
+        break;
+
+      case "entity/quickSearchEntities/rejected":
+        const quickSearchError =
+          action.error?.message || action.payload?.message;
+        if (quickSearchError?.includes("Invalid search")) {
+          showError(
+            "Invalid search format. Please check your input and try again."
+          );
+        } else {
+          showError("Entity search failed. Please try again.");
+        }
+        break;
+
+      case "entity/fetchEntityById/rejected":
+        const fetchByIdError = action.error?.message || action.payload?.message;
+        if (fetchByIdError?.includes("not found")) {
+          showError("Entity not found. Please refresh the page.");
+        } else {
+          showError(fetchByIdError || "Failed to fetch entity");
+        }
+        break;
+
+      case "entity/createEntity/rejected":
+        const createError = action.payload;
+        if (
+          createError?.code === "DUPLICATE_ENTRY" ||
+          createError?.message?.includes("already exists")
+        ) {
+          showError(`Entity creation failed: ${createError.message}`);
+        } else if (createError?.code === "VALIDATION_ERROR") {
+          showError(`Invalid data: ${createError.message}`);
+        } else {
+          showError(
+            createError?.message ||
+              action.error?.message ||
+              "Failed to create entity"
+          );
+        }
+        break;
+
+      case "entity/updateEntity/rejected":
+        const updateEntityError = action.payload;
+        if (updateEntityError?.message?.includes("not found")) {
+          showError("Entity not found. Please refresh the page.");
+        } else if (
+          updateEntityError?.message?.includes("duplicate") ||
+          updateEntityError?.message?.includes("already exists")
+        ) {
+          showError("Update failed: Data already exists for another entity");
+        } else if (updateEntityError?.code === "VALIDATION_ERROR") {
+          showError("Invalid data provided. Please check your input.");
+        } else {
+          showError(
+            updateEntityError?.message ||
+              action.error?.message ||
+              "Failed to update entity"
+          );
+        }
+        break;
+
+      case "entity/deleteEntity/rejected":
+        const deleteEntityError = action.payload;
+        if (deleteEntityError?.message?.includes("not found")) {
+          showError("Entity not found. Please refresh the page.");
+        } else if (
+          deleteEntityError?.message?.includes("associated") ||
+          deleteEntityError?.message?.includes("dependent")
+        ) {
+          showError(
+            "Cannot delete entity: Has associated data or dependencies"
+          );
+        } else {
+          showError(
+            deleteEntityError?.message ||
+              action.error?.message ||
+              "Failed to delete entity"
+          );
+        }
+        break;
 
       // Default error handler for all slices
       default:
@@ -681,7 +805,17 @@ const toastMiddleware = () => (next) => (action) => {
               : null) ||
             "Operation failed";
           showError(errMsg);
+        } else if (action.type.startsWith("entity/")) {
+          const errMsg =
+            action.error?.message ||
+            action.payload?.message ||
+            (Array.isArray(action.payload)
+              ? action.payload[0]?.message
+              : null) ||
+            "Entity operation failed";
+          showError(errMsg);
         }
+
         break;
     }
   }
@@ -706,6 +840,10 @@ const toastMiddleware = () => (next) => (action) => {
 
       case "users/sendPasswordResetLink/pending":
         showInfo("Sending Password reset link...");
+        break;
+
+      case "users/toggleUserStatus/pending":
+        showInfo("Updating Account Status...");
         break;
 
       case "users/updateUserPermissions/pending":
@@ -738,6 +876,25 @@ const toastMiddleware = () => (next) => (action) => {
 
       case "commissions/updateStatus/pending":
         showInfo("Updating commission status...");
+        break;
+
+      case "entity/createEntity/pending":
+        showInfo("Creating entity...");
+        break;
+
+      case "entity/updateEntity/pending":
+        showInfo("Updating entity...");
+        break;
+
+      case "entity/deleteEntity/pending":
+        showInfo("Deleting entity...");
+        break;
+
+      // No pending messages for these operations (they should be fast/silent)
+      case "entity/fetchEntities/pending":
+      case "entity/quickSearchEntities/pending":
+      case "entity/fetchEntityById/pending":
+        // No toast - these operations should be silent while pending
         break;
 
       // ===== INFLUENCERS SLICE PENDING =====

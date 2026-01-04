@@ -16,7 +16,8 @@ import { requirePermission } from "@/utils/server/requirePermission";
 // GET /api/admin-users/:id
 export async function GET(req, { params }) {
   try {
-    const admin_user_id = uuidSchema.parse(params.id);
+    const p = await params;
+    const admin_user_id = uuidSchema.parse(p.id);
 
     const [permissionError] = await requirePermission(
       req,
@@ -34,14 +35,15 @@ export async function GET(req, { params }) {
 
 export async function PUT(req, { params }) {
   try {
-    const admin_user_id = uuidSchema.parse(params.id);
-
+   const p = await params;
+    const admin_user_id = uuidSchema.parse(p.id);
     const [permissionError, session] = await requirePermission(
       req,
       "admin_users.manage"
     );
     if (permissionError) return permissionError;
 
+ 
     const body = schemas.adminUser.update.parse(await req.json());
 
     const updated = await updateAdminUser(admin_user_id, body, session.user.id);
@@ -61,6 +63,8 @@ export async function DELETE(req, { params }) {
       "admin_users.manage"
     );
     if (permissionError) return permissionError;
+
+ 
 
     const deleted = await deleteAdminUser(admin_user_id, session.user.id);
 

@@ -1,7 +1,7 @@
-// app/api/tasks/[id]/route.js
-
 import { z } from "zod";
+
 import { getTaskById, updateTask, deleteTask } from "@/services/task.service";
+
 import { schemas } from "@/schemas";
 
 import {
@@ -14,7 +14,7 @@ import { requirePermission } from "@/utils/server/requirePermission";
 
 const uuidSchema = z.string().uuid("Invalid task ID format");
 
-// GET - Get a single task by ID
+// -------------------- GET --------------------
 export async function GET(request, { params }) {
   try {
     const [permissionError] = await requirePermission(request, "tasks.access");
@@ -39,7 +39,7 @@ export async function GET(request, { params }) {
   }
 }
 
-// PATCH - Update a task
+// -------------------- PATCH --------------------
 export async function PATCH(request, { params }) {
   try {
     const [permissionError, session] = await requirePermission(
@@ -79,10 +79,9 @@ export async function PATCH(request, { params }) {
   }
 }
 
-// DELETE - Soft delete a task
+// -------------------- DELETE (Soft delete) --------------------
 export async function DELETE(request, { params }) {
   try {
-    // ✅ NEW: permission check
     const [permissionError, session] = await requirePermission(
       request,
       "tasks.delete"
@@ -93,10 +92,7 @@ export async function DELETE(request, { params }) {
 
     const result = await deleteTask(task_id, session.user.id);
 
-    return createSuccessResponse(
-      result.message || "Task deleted successfully",
-      result.task
-    );
+    return createSuccessResponse("Task deleted successfully", result.task);
   } catch (error) {
     if (error instanceof z.ZodError) {
       return createErrorResponse(

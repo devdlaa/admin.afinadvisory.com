@@ -370,6 +370,12 @@
     border-radius: 12px;
     font-size: 12px;
     font-weight: 500;
+
+
+
+    .pagination-clear-tag-btn{
+      background-color: red;
+    }
   }
 
   &__clear-tag-btn {
@@ -492,6 +498,9 @@
   display: flex;
   align-items: center;
   background-color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   svg{
     width: 18px;
     height: 18px;

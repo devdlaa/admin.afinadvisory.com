@@ -1,4 +1,4 @@
-import { schemas } from "@/schemas";
+import { uuidSchema } from "@/schemas";
 
 import {
   createSuccessResponse,
@@ -15,7 +15,7 @@ const SUPPORT_EMAIL = process.env.SERVICE_EMAIL;
 
 export async function POST(req) {
   try {
-    // permission: users.reset_onboarding
+  
     const [permissionError, session] = await requirePermission(
       req,
       "admin_users.manage"
@@ -27,6 +27,7 @@ export async function POST(req) {
       admin_user_id,
       session.user.id
     );
+ 
 
     if (!result) {
       return createSuccessResponse(
@@ -47,7 +48,7 @@ export async function POST(req) {
         supportEmail: SUPPORT_EMAIL,
       },
     }).catch((err) => {
-      console.error("Failed to send onboarding email:", err);
+      console.error("Failed to send onboarding email:");
     });
 
     return createSuccessResponse(

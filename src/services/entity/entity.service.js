@@ -7,7 +7,6 @@ import {
 
 const prisma = new PrismaClient();
 
-// PAN format: ABCDE1234F (5 letters + 4 digits + 1 letter)
 const PAN_REGEX = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
 
 const validatePAN = (pan) => {
@@ -47,7 +46,7 @@ const createEntity = async (data, created_by) => {
       data: {
         entity_type: data.entity_type,
         name: data.name,
-        pan, // may be null for UN_REGISTRED
+        pan,
         email: data.email,
         primary_phone: data.primary_phone,
         contact_person: data.contact_person ?? null,
@@ -57,7 +56,7 @@ const createEntity = async (data, created_by) => {
         city: data.city ?? null,
         state: data.state ?? null,
         pincode: data.pincode ?? null,
-        is_retainer: data.is_retainer ?? false,
+
         status: data.status ?? "ACTIVE",
         created_by,
       },
@@ -76,11 +75,6 @@ const updateEntity = async (entity_id, data, updated_by) => {
   return prisma.$transaction(async (tx) => {
     const entity = await tx.entity.findUnique({
       where: { id: entity_id },
-      include: {
-        registrations: {
-          where: { deleted_at: null, status: "ACTIVE" },
-        },
-      },
     });
 
     if (!entity) throw new NotFoundError("Entity not found");
@@ -111,18 +105,6 @@ const updateEntity = async (entity_id, data, updated_by) => {
       }
     }
 
-    // retainer toggle constraint stays as you wrote
-    if (
-      data.is_retainer !== undefined &&
-      data.is_retainer !== entity.is_retainer &&
-      !data.is_retainer &&
-      entity.registrations.length > 0
-    ) {
-      throw new ValidationError(
-        "Cannot disable retainer status. Entity has active registrations. Please deactivate registrations first."
-      );
-    }
-
     const updatedEntity = await tx.entity.update({
       where: { id: entity_id },
       data: {
@@ -138,7 +120,6 @@ const updateEntity = async (entity_id, data, updated_by) => {
         city: data.city ?? undefined,
         state: data.state ?? undefined,
         pincode: data.pincode ?? undefined,
-        is_retainer: data.is_retainer ?? undefined,
         status: data.status ?? undefined,
         updated_by,
       },
@@ -159,11 +140,6 @@ const deleteEntity = async (entity_id, deleted_by) => {
   return prisma.$transaction(async (tx) => {
     const entity = await tx.entity.findUnique({
       where: { id: entity_id },
-      include: {
-        registrations: {
-          where: { deleted_at: null },
-        },
-      },
     });
 
     if (!entity) {
@@ -172,13 +148,6 @@ const deleteEntity = async (entity_id, deleted_by) => {
 
     if (entity.deleted_at) {
       throw new ValidationError("Entity already deleted");
-    }
-
-    // Check if entity has active registrations
-    if (entity.registrations.length > 0) {
-      throw new ValidationError(
-        "Cannot delete entity with active registrations. Please delete registrations first."
-      );
     }
 
     // Soft delete
@@ -218,14 +187,6 @@ const listEntities = async (filters = {}) => {
     where.entity_type = filters.entity_type;
   }
 
-  // Boolean coercion for is_retainer
-  if (filters.is_retainer !== undefined) {
-    if (filters.is_retainer === true || filters.is_retainer === "true")
-      where.is_retainer = true;
-    else if (filters.is_retainer === false || filters.is_retainer === "false")
-      where.is_retainer = false;
-  }
-
   // Filter by state
   if (filters.state) {
     where.state = filters.state;
@@ -259,9 +220,6 @@ const listEntities = async (filters = {}) => {
         },
         _count: {
           select: {
-            registrations: {
-              where: { deleted_at: null },
-            },
             tasks: true,
           },
         },
@@ -312,17 +270,7 @@ const getEntityById = async (entity_id) => {
           email: true,
         },
       },
-      registrations: {
-        where: { deleted_at: null },
-        include: {
-          registrationType: true,
-        },
-      },
-      group_members: {
-        include: {
-          group: true,
-        },
-      },
+
       _count: {
         select: {
           tasks: true,

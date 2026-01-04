@@ -18,20 +18,16 @@ import {
 
 import {
   fetchUsers,
-  searchUsers,
   setSearchTerm,
-  setSelectedDepartment,
   setSelectedRole,
   setSelectedStatus,
   setCurrentPage,
   clearFilters,
-  clearSearch,
-  setSearchMode,
   fetchPermissions,
   resendInvite,
   resetUserOnboarding,
-  sendPasswordResetLink
-  
+  sendPasswordResetLink,
+  toggleUserStatus,
 } from "@/store/slices/userSlice";
 
 import InviteUserDialog from "../../components/InviteUserDialog/InviteUserDialog";
@@ -42,33 +38,28 @@ import UsersTable from "../../components/UsersTable/UsersTable";
 
 import "./UsersPage.scss";
 
-const roles = ["admin", "user", "superAdmin"];
-const statuses = ["active", "pending", "disabled"];
-
 const UsersPage = () => {
   const dispatch = useDispatch();
   const {
     users,
-    searchResults,
-    isSearchMode,
     searchTerm,
-    selectedDepartment,
     selectedRole,
     selectedStatus,
     currentPage,
     itemsPerPage,
-    hasMore,
-    nextCursor,
+    totalItems,
+    totalPages,
     loading,
     error,
     permissionsData,
     permissionsLoading,
     permissionsError,
-    resettingOnboarding, 
-    resettingPassword
+    resettingOnboarding,
+    resettingPassword,
+    togglingStatus,
   } = useSelector((state) => state.user);
 
-  // Dialog states (keeping local as they don't need global state)
+  // Dialog states
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [permissionsDialogOpen, setPermissionsDialogOpen] = useState(false);
@@ -78,110 +69,53 @@ const UsersPage = () => {
 
   // Load initial users on component mount
   useEffect(() => {
-    dispatch(fetchUsers({ cursor: null, pageSize: itemsPerPage }));
+    dispatch(fetchUsers({ page: 1, limit: itemsPerPage }));
     if (!permissionsData) {
       dispatch(fetchPermissions());
     }
   }, [dispatch, itemsPerPage]);
 
-  // Filter logic for local filtering
-  const getFilteredData = (dataToFilter) => {
-    return dataToFilter?.filter((user) => {
-      const matchesDepartment =
-        !selectedDepartment || user.department === selectedDepartment;
-      const matchesRole = !selectedRole || user.role === selectedRole;
-      const matchesStatus = !selectedStatus || user.status === selectedStatus;
+  // Fetch users when filters change
+  useEffect(() => {
+    const filters = {
+      page: currentPage,
+      limit: itemsPerPage,
+    };
 
-      return matchesDepartment && matchesRole && matchesStatus;
-    });
-  };
+    if (selectedStatus) filters.status = selectedStatus;
+    if (searchTerm) filters.search = searchTerm;
 
-  // Get current display data based on search mode
-  const displayUsers = useMemo(() => {
-    const dataToFilter = isSearchMode ? searchResults : users;
-    return getFilteredData(dataToFilter);
-  }, [
-    users,
-    searchResults,
-    isSearchMode,
-    selectedDepartment,
-    selectedRole,
-    selectedStatus,
-  ]);
-
-  // Pagination for display data
-  const totalPages = Math.ceil(displayUsers?.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedUsers = displayUsers?.slice(
-    startIndex,
-    startIndex + itemsPerPage
-  );
+    dispatch(fetchUsers(filters));
+  }, [dispatch, currentPage, itemsPerPage, selectedStatus, searchTerm]);
 
   // Handle search functionality
-  const handleSearch = async () => {
+  const handleSearch = () => {
     if (!searchInput.trim()) return;
 
-    dispatch(setSearchTerm(searchInput));
-
-    // First search in existing users
-    const localMatches = users.filter((user) => {
-      const term = searchInput.toLowerCase();
-      return (
-        user.name?.toLowerCase().includes(term) ||
-        user.email?.toLowerCase().includes(term) ||
-        user.employeeCode?.toLowerCase().includes(term) ||
-        user.phone?.includes(searchInput) ||
-        user.userCode?.toLowerCase().includes(term)
-      );
-    });
-
-    if (localMatches.length > 0) {
-      dispatch(setSearchMode(true));
-    }
-
-    // Always make API call for comprehensive search
-    try {
-      await dispatch(searchUsers(searchInput.trim())).unwrap();
-      dispatch(setCurrentPage(1));
-    } catch (err) {
-      console.error("Search failed:");
-    }
+    dispatch(setSearchTerm(searchInput.trim()));
+    dispatch(setCurrentPage(1));
   };
 
   // Handle clear search
   const handleClearSearch = () => {
     setSearchInput("");
-    dispatch(clearSearch());
+    dispatch(setSearchTerm(""));
     dispatch(setCurrentPage(1));
   };
 
-  // Handle load more for pagination
-  const handleLoadMore = async () => {
-    if (!hasMore || loading || isSearchMode) return;
-
-    try {
-      await dispatch(
-        fetchUsers({ cursor: nextCursor, pageSize: itemsPerPage })
-      ).unwrap();
-    } catch (err) {
-      console.error("Failed to load more users:");
-    }
-  };
-
   // Handle filter changes
-  const handleDepartmentChange = (value) => {
-    dispatch(setSelectedDepartment(value));
-  };
-
   const handleRoleChange = (value) => {
     dispatch(setSelectedRole(value));
+    dispatch(setCurrentPage(1));
   };
 
   const handleStatusChange = (value) => {
     dispatch(setSelectedStatus(value));
+    dispatch(setCurrentPage(1));
   };
 
   const handleClearFilters = () => {
+    setSearchInput("");
     dispatch(clearFilters());
   };
 
@@ -189,16 +123,24 @@ const UsersPage = () => {
     dispatch(setCurrentPage(page));
   };
 
+  // Client-side role filtering (since API doesn't support it)
+  const displayUsers = useMemo(() => {
+    if (!selectedRole) return users;
+    return users.filter((user) => user.admin_role === selectedRole);
+  }, [users, selectedRole]);
+
   // Analytics calculations
   const analytics = useMemo(() => {
-    const allUsers = isSearchMode ? searchResults : users;
     return {
-      total: allUsers?.length,
-      active: allUsers?.filter((u) => u.status === "active").length,
-      pending: allUsers?.filter((u) => u.status === "pending").length,
-      admins: allUsers?.filter((u) => u.role === "admin").length,
+      total: totalItems || 0,
+      active: users?.filter((u) => u.status === "ACTIVE").length || 0,
+      pending: users?.filter((u) => u.status === "INACTIVE").length || 0,
+      admins:
+        users?.filter(
+          (u) => u.admin_role === "ADMIN" || u.admin_role === "SUPER_ADMIN"
+        ).length || 0,
     };
-  }, [users, searchResults, isSearchMode]);
+  }, [users, totalItems]);
 
   return (
     <div className="users-page">
@@ -304,13 +246,13 @@ const UsersPage = () => {
               <Search className="search-icon" size={20} />
               <input
                 type="text"
-                placeholder="Search by name, email, phone, or employee ID..."
+                placeholder="Search by name, email, phone, or user code..."
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 onKeyPress={(e) => e.key === "Enter" && handleSearch()}
                 className="search-input"
               />
-              {isSearchMode && (
+              {searchTerm && (
                 <button
                   className="clear-search-btn"
                   onClick={handleClearSearch}
@@ -325,27 +267,14 @@ const UsersPage = () => {
           <div className="filters-section">
             <div className="filter-group">
               <select
-                value={selectedDepartment}
-                onChange={(e) => handleDepartmentChange(e.target.value)}
-                className="filter-select"
-              >
-                <option value="">All Departments</option>
-                {permissionsData?.departments?.map((dept) => (
-                  <option key={dept} value={dept}>
-                    {dept}
-                  </option>
-                ))}
-              </select>
-
-              <select
                 value={selectedRole}
                 onChange={(e) => handleRoleChange(e.target.value)}
                 className="filter-select"
               >
                 <option value="">All Roles</option>
-                {roles.map((role) => (
-                  <option key={role} value={role}>
-                    {role.charAt(0).toUpperCase() + role.slice(1)}
+                {permissionsData?.roles?.map((role) => (
+                  <option key={role.id} value={role.id}>
+                    {role.label}
                   </option>
                 ))}
               </select>
@@ -356,12 +285,11 @@ const UsersPage = () => {
                 className="filter-select"
               >
                 <option value="">All Status</option>
-                {statuses.map((status) => (
-                  <option key={status} value={status}>
-                    {status.charAt(0).toUpperCase() + status.slice(1)}
-                  </option>
-                ))}
+                <option value="ACTIVE">Active</option>
+                <option value="INACTIVE">Inactive</option>
+                <option value="SUSPENDED">Suspended</option>
               </select>
+
               <button className="btn btn-ghost" onClick={handleClearFilters}>
                 <RefreshCw size={16} />
                 <span>Reset Filters</span>
@@ -371,7 +299,7 @@ const UsersPage = () => {
         </div>
 
         {/* Search Mode Indicator */}
-        {isSearchMode && (
+        {searchTerm && (
           <div
             className="search-mode-indicator"
             initial={{ opacity: 0, y: -10 }}
@@ -409,7 +337,7 @@ const UsersPage = () => {
               <span>Error: {error}</span>
               <button
                 onClick={() =>
-                  dispatch(fetchUsers({ cursor: null, pageSize: itemsPerPage }))
+                  dispatch(fetchUsers({ page: 1, limit: itemsPerPage }))
                 }
                 className="btn btn-sm btn-secondary"
               >
@@ -429,7 +357,7 @@ const UsersPage = () => {
             transition={{ delay: 0.4, duration: 0.5 }}
           >
             <UsersTable
-              users={paginatedUsers}
+              users={displayUsers}
               onEdit={(user) => {
                 setSelectedUser(user);
                 setEditDialogOpen(true);
@@ -442,59 +370,31 @@ const UsersPage = () => {
                 setSelectedUser(user);
                 setDeleteDialogOpen(true);
               }}
-              onOmboardingResetLinkSend={(user) => {
-                dispatch(resetUserOnboarding({ email: user?.email }));
+              onOnboardingResetLinkSend={(user) => {
+                dispatch(resetUserOnboarding({ userId: user?.id }));
               }}
-
-               onResetPwdLinkSend={(user) => {
-                dispatch(sendPasswordResetLink({ email: user?.email }));
+              onResetPwdLinkSend={(user) => {
+                dispatch(sendPasswordResetLink({ userId: user?.id }));
               }}
-
-
-              sendPasswordResetLink
+              onToggleAccountStatus={(user) => {
+                dispatch(toggleUserStatus({ userId: user?.id }));
+              }}
               onResendInvite={(user) => {
-                dispatch(resendInvite({ email: user?.email || null }));
+                dispatch(resendInvite({ userId: user?.id }));
               }}
               currentPage={currentPage}
               totalPages={totalPages}
               onPageChange={handlePageChange}
-              totalUsers={displayUsers?.length}
+              totalUsers={totalItems}
               loading={loading}
+              togglingStatus={togglingStatus}
               resettingOnboarding={resettingOnboarding}
               resettingPassword={resettingPassword}
-              
             />
-
-            {/* Load More Button (outside table for seamless experience) */}
-            {!isSearchMode && hasMore && (
-              <div className="load-more-section">
-                <button
-                  className="btn btn-outline btn-wide"
-                  onClick={handleLoadMore}
-                  disabled={loading}
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 className="animate-spin" size={16} />
-                      <span>Loading...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Download size={16} />
-                      <span>Load More Users</span>
-                    </>
-                  )}
-                </button>
-                <p className="load-more-info">
-                  Showing {users.length} users • More available
-                </p>
-              </div>
-            )}
           </div>
         )}
 
         {/* Modal Dialogs */}
-
         {inviteDialogOpen && (
           <InviteUserDialog
             open={inviteDialogOpen}
@@ -504,6 +404,7 @@ const UsersPage = () => {
             }}
           />
         )}
+
         {editDialogOpen && selectedUser && (
           <EditUserDialog
             open={editDialogOpen}
@@ -516,9 +417,9 @@ const UsersPage = () => {
               setSelectedUser(null);
             }}
             user={selectedUser}
-            departments={permissionsData?.departments || []}
           />
         )}
+
         {permissionsDialogOpen && selectedUser && (
           <PermissionsDialog
             open={permissionsDialogOpen}
@@ -529,6 +430,7 @@ const UsersPage = () => {
             user={selectedUser}
           />
         )}
+
         {deleteDialogOpen && selectedUser && (
           <DeleteUserDialog
             open={deleteDialogOpen}

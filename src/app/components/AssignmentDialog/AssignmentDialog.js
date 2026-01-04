@@ -24,7 +24,6 @@ const AssignmentDialog = ({
   config = {},
   hasPermission = false 
 }) => {
-  // Destructure config with defaults
   const {
     selectedItem,
     apiEndpoint,

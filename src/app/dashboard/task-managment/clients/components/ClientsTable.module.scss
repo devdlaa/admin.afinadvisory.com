@@ -1,0 +1,286 @@
+.tableWrapper {
+  overflow-x: auto;
+  width: 100%;
+}
+
+.clientsTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+
+  thead {
+    background-color: #f8f9fa;
+    border-bottom: 2px solid #e9ecef;
+
+    th {
+      padding: 16px 12px;
+      text-align: left;
+      font-weight: 600;
+      color: #495057;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      user-select: none;
+      white-space: nowrap;
+
+      &:hover {
+        background-color: #f1f3f5;
+      }
+
+      &.actionsHeader {
+        cursor: default;
+        &:hover {
+          background-color: #f8f9fa;
+        }
+      }
+    }
+  }
+
+  tbody {
+    tr {
+      border-bottom: 1px solid #e9ecef;
+      transition: background-color 0.15s;
+
+      &:hover {
+        background-color: #f8f9fa;
+      }
+
+      &.loadingRow {
+        opacity: 0.6;
+        pointer-events: none;
+      }
+    }
+
+    td {
+      padding: 16px 16px;
+      vertical-align: top;
+    }
+  }
+
+  .headerCell {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .sortIcon {
+    color: #adb5bd;
+    flex-shrink: 0;
+  }
+
+  .sortIconActive {
+    color: #3b82f6;
+    flex-shrink: 0;
+  }
+
+  .nameCell {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+
+    .icon {
+      color: #6c757d;
+      margin-top: 2px;
+      flex-shrink: 0;
+    }
+
+    .clientName {
+      font-weight: 600;
+      color: #212529;
+      margin-bottom: 4px;
+    }
+
+    .contactPerson {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 12px;
+      color: #6c757d;
+
+      svg {
+        flex-shrink: 0;
+      }
+    }
+  }
+
+  .entityType {
+    display: inline-block;
+    padding: 4px 10px;
+    background-color: #e7f5ff;
+    color: #1971c2;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  .pan {
+    font-weight: 600;
+    color: #495057;
+  }
+
+  .contactInfo {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+
+    .contactItem {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+
+      svg {
+        color: #6c757d;
+        flex-shrink: 0;
+      }
+
+      a {
+        color: #316ed1;
+        text-decoration: none;
+        font-weight: 500;
+
+        &:hover {
+          text-decoration: underline;
+        }
+      }
+
+      span {
+        color: #495057;
+      }
+    }
+  }
+
+  .statusBadge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+
+  .statusActive {
+    background-color: #d3f9d8;
+    color: #2b8a3e;
+  }
+
+  .statusInactive {
+    background-color: #fff3bf;
+    color: #e67700;
+  }
+
+  .statusSuspended {
+    background-color: #ffe0e0;
+    color: #c92a2a;
+  }
+
+  .date {
+    color: #6c757d;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+
+  .actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  .actionBtn {
+    padding: 8px;
+    background-color: transparent;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #495057;
+
+    &:hover {
+      background-color: #e7f5ff;
+      border-color: #3b82f6;
+      color: #3b82f6;
+    }
+
+    &:active {
+      transform: scale(0.95);
+    }
+
+    &.deleteBtn {
+      &:hover {
+        background-color: #ffe0e0;
+        border-color: #fa5252;
+        color: #fa5252;
+      }
+    }
+  }
+}
+
+@media (max-width: 1200px) {
+  .clientsTable {
+    font-size: 13px;
+
+    thead th {
+      padding: 12px 8px;
+      font-size: 12px;
+    }
+
+    tbody td {
+      padding: 12px 8px;
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .tableWrapper {
+    border-radius: 0;
+  }
+
+  .clientsTable {
+    font-size: 12px;
+
+    .nameCell {
+      .clientName {
+        font-size: 13px;
+      }
+
+      .contactPerson {
+        font-size: 11px;
+      }
+    }
+
+    .contactInfo {
+      .contactItem {
+        font-size: 11px;
+      }
+    }
+  }
+}
+
+// Add this to your ClientsTable.module.scss file
+
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+// Also add disabled state styling to action buttons
+.actionBtn {
+  // ... existing styles ...
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+}

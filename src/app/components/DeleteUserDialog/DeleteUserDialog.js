@@ -9,9 +9,7 @@ const DeleteUserDialog = ({ open, onClose, user }) => {
   const [confirmText, setConfirmText] = useState("");
   const dispatch = useDispatch();
 
-  const { deleting, deleteError, deletedUser } = useSelector(
-    (state) => state.user
-  );
+  const { deleting, deleteError } = useSelector((state) => state.user);
 
   const handleDelete = () => {
     if (!user?.id) return;
@@ -20,11 +18,19 @@ const DeleteUserDialog = ({ open, onClose, user }) => {
 
   // Auto-close the dialog when user is deleted successfully
   useEffect(() => {
-    if (deletedUser && deletedUser.userId === user?.id) {
-      setConfirmText("");
-      onClose();
+    if (!deleting && !deleteError && confirmText.toLowerCase() === "delete") {
+      // Check if delete was successful by seeing if the button was enabled and is no longer deleting
+      const wasDeleting = deleting;
+      if (!wasDeleting && open) {
+        // Small delay to ensure state is updated
+        const timeout = setTimeout(() => {
+          setConfirmText("");
+          onClose();
+        }, 500);
+        return () => clearTimeout(timeout);
+      }
     }
-  }, [deletedUser, user?.id, onClose]);
+  }, [deleting, deleteError, open, onClose]);
 
   const handleBackdropClick = (e) => {
     if (e.target === e.currentTarget && !deleting) {
@@ -35,6 +41,18 @@ const DeleteUserDialog = ({ open, onClose, user }) => {
   const isConfirmed = confirmText.toLowerCase() === "delete";
 
   if (!open || !user) return null;
+
+  // Get role label
+  const getRoleLabel = (role) => {
+    const roleLabels = {
+      SUPER_ADMIN: "Super Admin",
+      ADMIN: "Admin",
+      MANAGER: "Manager",
+      EMPLOYEE: "Employee",
+      VIEW_ONLY: "View Only",
+    };
+    return roleLabels[role] || role;
+  };
 
   return (
     <div className="ud-dialog-backdrop" onClick={handleBackdropClick}>
@@ -84,10 +102,10 @@ const DeleteUserDialog = ({ open, onClose, user }) => {
               <h4>{user.name}</h4>
               <p>{user.email}</p>
               <div className="ud-user-meta">
-                <span className="ud-employee-code">{user.userCode}</span>
-                <span className="ud-department">{user.department}</span>
-                <span className={`ud-status ud-status-${user.status}`}>
-                  {user.status.charAt(0).toUpperCase() + user.status.slice(1)}
+                <span className="ud-employee-code">{user.user_code}</span>
+                <span className="ud-department">{user.phone}</span>
+                <span className={`ud-status ud-status-${user.status?.toLowerCase()}`}>
+                  {user.status}
                 </span>
               </div>
             </div>
@@ -101,7 +119,7 @@ const DeleteUserDialog = ({ open, onClose, user }) => {
               <li>Permanent deletion of user profile and preferences</li>
               <li>Loss of all user-specific data and settings</li>
               <li>Removal from all assigned projects and teams</li>
-              {user.role === "admin" && (
+              {(user.admin_role === "SUPER_ADMIN" || user.admin_role === "ADMIN") && (
                 <li className="ud-critical">
                   Loss of administrative privileges and managed resources
                 </li>

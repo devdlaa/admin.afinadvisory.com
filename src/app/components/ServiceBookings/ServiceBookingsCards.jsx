@@ -12,16 +12,16 @@ import {
 } from "@/store/slices/servicesSlice";
 
 import { tabs, DEFAULT_ACTIONS, TAB_IDS } from "@/app/constants/bookings";
+
 import {
   matchesTabFilter,
   calculateTabCounts,
   sortBookings,
-} from "@/utils/client/ui/bookingFilters";
+} from "@/utils/client/bookingFilters";
 
 import BookingCard from "./BookingCard";
 import TabsBar from "./TabsBar";
 
-import LoadingState from "./LoadingState";
 import EmptyState from "./EmptyState";
 
 import BookingSkeletonList from "./BookingCardSkeleton";

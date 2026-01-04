@@ -1,8 +1,10 @@
 // @ts-ignore
 import handlebars from /* webpackIgnore: true */ "handlebars";
-import nodemailer from "nodemailer";
+// import nodemailer from "nodemailer";
 import fs from "fs-extra";
 import path from "path";
+
+import { SendMailClient } from "zeptomail";
 
 // Email Templates Mapping
 const EMAIL_TEMPLATES = {
@@ -27,7 +29,6 @@ const EMAIL_TEMPLATES = {
     subject: "Reset Your Afin Influncer Dashboard Password - Afin Advisory",
     template: "pwd_reset_link_influncer",
   },
-  
 };
 
 const loadTemplate = async (templateName, variables) => {
@@ -47,6 +48,11 @@ const loadTemplate = async (templateName, variables) => {
   }
 };
 
+const client = new SendMailClient({
+  url: "https://api.zeptomail.in/v1.1/email",
+  token: process.env.ZEPTO_MAIL_TOKEN,
+});
+
 export async function SEND_EMAIL({
   to,
   type,
@@ -57,7 +63,6 @@ export async function SEND_EMAIL({
   bcc,
 }) {
   try {
-    // Validate Email Request Data
     if (!to || !type || !EMAIL_TEMPLATES[type]) {
       return { success: false, error: "Missing or invalid email type." };
     }
@@ -65,30 +70,55 @@ export async function SEND_EMAIL({
     const { subject, template } = EMAIL_TEMPLATES[type];
     const html = await loadTemplate(template, variables);
 
-    const TRANSPORTER = nodemailer.createTransport({
-      host: "smtp.hostinger.com",
-      port: 465,
-      secure: true,
-      auth: {
-        user: process.env.SERVICE_EMAIL,
-        pass: process.env.SERVICE_EMAIL_PWD,
-      },
-    });
+    // ZeptoMail attachment format
+    const formattedAttachments = attachments.map((file) => ({
+      name: file.filename || file.name,
+      content: file.content.toString("base64"),
+    }));
 
-    // Prepare Email Options
-    const mailOptions = {
-      from: '"AFINTHRIVE ADVISORY" <info@afinadvisory.com>',
-      to,
-      cc: cc || undefined,
-      bcc: bcc || undefined,
+    const payload = {
+      from: {
+        address: from || process.env.OFFICE_EMAIL,
+        name: "AFINTHRIVE ADVISORY PVT LTD",
+      },
+
+      to: [
+        {
+          email_address: {
+            address: to,
+            name: variables?.name ?? "",
+          },
+        },
+      ],
+
       subject,
-      html,
-      attachments,
+      htmlbody: html,
+      attachments: formattedAttachments.length
+        ? formattedAttachments
+        : undefined,
     };
-    await TRANSPORTER.sendMail(mailOptions);
-    console.log("✅ Email sent successfully!");
-    return { success: true, message: "✅ Email sent successfully!" };
+
+    if (cc) {
+      payload.cc = [
+        {
+          email_address: { address: cc },
+        },
+      ];
+    }
+
+    if (bcc) {
+      payload.bcc = [
+        {
+          email_address: { address: bcc },
+        },
+      ];
+    }
+
+    const resp = await client.sendMail(payload);
+
+    return { success: true, message: "Email sent successfully", resp };
   } catch (error) {
-    return { success: false, error: error.message || "Unknown error" };
+    console.error("Email Sending Error:");
+    return { success: false, error: "Unknown error" };
   }
 }

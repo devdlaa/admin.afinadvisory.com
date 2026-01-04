@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/utils/server/db.js";
 import { ValidationError, NotFoundError } from "@/utils/server/errors";
 
 /* ----------------------------------------------
@@ -19,65 +19,69 @@ export const listUserPermissions = async (adminUserId) => {
     include: { permission: true },
   });
 
-  return rows.map((r) => r.permission.code); // returns codes like "tasks.manage"
+  return rows.map((r) => r.permission.code);
 };
 
 /* ----------------------------------------------
    3) SYNC permissions using CODES
 ---------------------------------------------- */
-export const syncUserPermissionsByCode = async (
-  adminUserId,
-  newPermissionCodes = []
-) => {
+export async function syncUserPermissionsByCode(adminUserId, newCodes = []) {
   return prisma.$transaction(async (tx) => {
-    // 0) ensure user exists and not deleted
+    // 1) ensure user exists and not deleted
     const user = await tx.adminUser.findFirst({
       where: { id: adminUserId, deleted_at: null },
     });
 
-    if (!user) throw new NotFoundError("User not found or deleted");
+    if (!user) {
+      throw new NotFoundError("User not found");
+    }
 
-    // 1) validate that ALL provided codes exist in Permission table
-    const validPermissions = await tx.permission.findMany({
-      where: { code: { in: newPermissionCodes } },
+    // 2) fetch all valid permissions from DB
+    const allPermissions = await tx.permission.findMany({
       select: { id: true, code: true },
     });
 
-    const validCodes = new Set(validPermissions.map((p) => p.code));
+    const validCodeToId = new Map(allPermissions.map((p) => [p.code, p.id]));
 
-    const invalid = newPermissionCodes.filter((c) => !validCodes.has(c));
-    if (invalid.length) {
-      throw new ValidationError("One or more permission codes are invalid");
+    const validCodes = new Set(validCodeToId.keys());
+
+    // 3) validate requested codes
+    const invalid = newCodes.filter((c) => !validCodes.has(c));
+
+    if (invalid.length > 0) {
+      throw new ValidationError(
+        `Invalid permission codes: ${invalid.join(", ")}`
+      );
     }
 
-    // convert valid codes to ids
-    const codeToId = new Map(validPermissions.map((p) => [p.code, p.id]));
-    const desiredIds = new Set(newPermissionCodes.map((c) => codeToId.get(c)));
+    // 4) translate codes -> ids
+    const desiredIds = new Set(newCodes.map((c) => validCodeToId.get(c)));
 
-    // 2) fetch existing permission IDs assigned to user
+    // 5) fetch existing assignments
     const existing = await tx.adminUserPermission.findMany({
       where: { admin_user_id: adminUserId },
       select: { permission_id: true },
     });
 
-    const existingIds = new Set(existing.map((p) => p.permission_id));
+    const existingIds = new Set(existing.map((x) => x.permission_id));
 
-    // 3) diff
+    // 6) diff result
     const toAdd = [...desiredIds].filter((id) => !existingIds.has(id));
     const toRemove = [...existingIds].filter((id) => !desiredIds.has(id));
 
-    // 4) apply
-    if (toAdd.length) {
+    // 7) add new links
+    if (toAdd.length > 0) {
       await tx.adminUserPermission.createMany({
-        data: toAdd.map((permission_id) => ({
+        data: toAdd.map((pid) => ({
           admin_user_id: adminUserId,
-          permission_id,
+          permission_id: pid,
         })),
         skipDuplicates: true,
       });
     }
 
-    if (toRemove.length) {
+    // 8) remove old links
+    if (toRemove.length > 0) {
       await tx.adminUserPermission.deleteMany({
         where: {
           admin_user_id: adminUserId,
@@ -86,7 +90,7 @@ export const syncUserPermissionsByCode = async (
       });
     }
 
-    // 5) return final codes
+    // 9) return final codes for confirmation
     const final = await tx.adminUserPermission.findMany({
       where: { admin_user_id: adminUserId },
       include: { permission: true },
@@ -94,4 +98,4 @@ export const syncUserPermissionsByCode = async (
 
     return final.map((r) => r.permission.code);
   });
-};
+}

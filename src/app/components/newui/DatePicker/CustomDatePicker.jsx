@@ -456,7 +456,7 @@ const CustomDatePicker = ({
       case "time":
         return "Select time";
       default:
-        return "Select date";
+        return "Select Date";
     }
   };
 
@@ -472,13 +472,26 @@ const CustomDatePicker = ({
           {mode === "time" ? <Clock size={20} /> : <Calendar size={20} />}
         </div>
         <div className={styles.dateContent}>
- 
           <span
             className={`${styles.dateValue} ${
               !selectedDate ? styles.placeholder : ""
             }`}
           >
-            {selectedDate ? formatDate(selectedDate) : getPlaceholder()}
+            <p
+              style={{
+                color: "grey",
+                fontSize: "11px",
+              }}
+            >
+              {label}
+            </p>
+            <p
+              style={{
+                fontSize: "11px",
+              }}
+            >
+              {selectedDate ? formatDate(selectedDate) : getPlaceholder()}
+            </p>
           </span>
         </div>
       </button>

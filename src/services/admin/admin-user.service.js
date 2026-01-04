@@ -1,4 +1,7 @@
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "@/utils/server/db.js";
+
+const ADMIN_ROLES = ["SUPER_ADMIN", "ADMIN", "MANAGER"];
+
 import crypto from "crypto";
 import {
   NotFoundError,
@@ -6,23 +9,25 @@ import {
   ValidationError,
 } from "../../utils/server/errors.js";
 
-import { ADMIN_ROLES } from "@/schemas/core/adminUser.schema.js";
-
 import jwt from "jsonwebtoken";
 
-const INVITE_JWT_SECRET = process.env.JWT_SECRET;
+const JWT_SECRET = process.env.JWT_SECRET;
 const INVITE_TOKEN_TTL = "24h";
 const RESEND_COOLDOWN_MINUTES = 15;
 const PASSWORD_RESET_COOLDOWN_MINUTES = 15;
 const ONBOARDING_RESET_COOLDOWN_MINUTES = 15;
 
-const prisma = new PrismaClient();
+const ROLE_HIERARCHY = {
+  SUPER_ADMIN: 3,
+  ADMIN: 2,
+  VIEWER: 1,
+};
 
 const hashToken = (token) =>
   crypto.createHash("sha256").update(token).digest("hex");
 
-const generateUserCode = async () => {
-  const counter = await prisma.adminUserCounter.upsert({
+const generateUserCode = async (tx) => {
+  const counter = await tx.adminUserCounter.upsert({
     where: { id: "default" },
     update: {
       current_count: { increment: 1 },
@@ -36,6 +41,33 @@ const generateUserCode = async () => {
   return `ADMIN_USER_${String(counter.current_count).padStart(3, "0")}`;
 };
 
+export const sanitizeAdminUser = (user) => {
+  if (!user) return null;
+
+  const {
+    password,
+    totp_secret,
+    onboarding_token_hash,
+    password_reset_token_hash,
+    onboarding_reset_token_hash,
+    onboarding_token_expires_at,
+    last_password_reset_request_at,
+    password_reset_token_expires_at,
+    last_onboarding_reset_request_at,
+    onboarding_reset_token_expires_at,
+    two_fa_verified_at,
+    auth_provider,
+    provider_id,
+    created_by,
+    updated_by,
+    deleted_by,
+    deleted_at,
+    ...safe
+  } = user;
+
+  return safe;
+};
+
 /* -------------------------------------------------------------------
    CREATE ADMIN USER  (✔ permissions allowed here)
 ------------------------------------------------------------------- */
@@ -46,7 +78,7 @@ export const createAdminUser = async (data, created_by) => {
       throw new ValidationError("Invalid app role");
     }
 
-    // uniqueness
+    // uniqueness checks
     const emailExists = await tx.adminUser.findUnique({
       where: { email: data.email },
     });
@@ -56,16 +88,6 @@ export const createAdminUser = async (data, created_by) => {
       where: { phone: data.phone },
     });
     if (phoneExists) throw new ConflictError("Phone number already exists");
-
-    // validate departments (if any)
-    if (data.department_ids?.length) {
-      const deptCount = await tx.department.count({
-        where: { id: { in: data.department_ids } },
-      });
-      if (deptCount !== data.department_ids.length) {
-        throw new ConflictError("One or more departments are invalid");
-      }
-    }
 
     // validate permissions (if any, by id)
     if (data.permission_ids?.length) {
@@ -79,17 +101,7 @@ export const createAdminUser = async (data, created_by) => {
 
     const userCode = await generateUserCode(tx);
 
-    const onboardingToken = jwt.sign(
-      { sub: data.email, purpose: "user_invitation" },
-      INVITE_JWT_SECRET,
-      { expiresIn: INVITE_TOKEN_TTL }
-    );
-
-    const onboardingTokenHash = hashToken(onboardingToken);
-    const decoded = jwt.decode(onboardingToken);
-    const onboardingTokenExpiresAt = new Date(decoded.exp * 1000);
-
-    // create user
+    // 1) create user first so we have UUID
     const user = await tx.adminUser.create({
       data: {
         user_code: userCode,
@@ -104,37 +116,51 @@ export const createAdminUser = async (data, created_by) => {
         state: data.state ?? null,
         pincode: data.pincode ?? null,
 
-        date_of_joining: data.date_of_joining
-          ? new Date(data.date_of_joining)
-          : new Date(),
-
         password: null,
         status: "INACTIVE",
 
-        admin_role: data.admin_role || "EMPLOYEE",
+        admin_role: data.admin_role || "ADMIN",
 
         onboarding_completed: false,
-        onboarding_token_hash: onboardingTokenHash,
-        onboarding_token_expires_at: onboardingTokenExpiresAt,
-        last_invite_sent_at: new Date(),
+        onboarding_token_hash: null,
+        onboarding_token_expires_at: null,
+        last_invite_sent_at: null,
 
         is_2fa_enabled: false,
         totp_secret: null,
         two_fa_verified_at: null,
 
         created_by,
-
-        departments: data.department_ids?.length
-          ? {
-              create: data.department_ids.map((department_id) => ({
-                department_id,
-              })),
-            }
-          : undefined,
       },
     });
 
-    // assign permissions directly to user
+    // 2) sign token including UUID
+    const onboardingToken = jwt.sign(
+      {
+        sub: user.id, // UUID now in payload
+        email: user.email,
+        purpose: "user_invitation",
+      },
+      JWT_SECRET,
+      { expiresIn: INVITE_TOKEN_TTL }
+    );
+
+    // 3) derive hash and expiry
+    const onboardingTokenHash = hashToken(onboardingToken);
+    const decoded = jwt.decode(onboardingToken);
+    const onboardingTokenExpiresAt = new Date(decoded.exp * 1000);
+
+    // 4) update user with onboarding info
+    await tx.adminUser.update({
+      where: { id: user.id },
+      data: {
+        onboarding_token_hash: onboardingTokenHash,
+        onboarding_token_expires_at: onboardingTokenExpiresAt,
+        last_invite_sent_at: new Date(),
+      },
+    });
+
+    // 5) assign permissions if present
     if (data.permission_ids?.length) {
       await tx.adminUserPermission.createMany({
         data: data.permission_ids.map((permission_id) => ({
@@ -146,10 +172,8 @@ export const createAdminUser = async (data, created_by) => {
     }
 
     return {
-      user: {
-        ...user,
-        onboardingToken,
-      },
+      user: sanitizeAdminUser(user),
+      onboardingToken,
     };
   });
 };
@@ -166,18 +190,6 @@ export const updateAdminUser = async (id, data, updated_by) => {
     if (user.deleted_at)
       throw new ValidationError("Cannot update deleted user");
 
-    // forbid permission changes here
-    if (data.permission_ids || data.permission_codes) {
-      throw new ValidationError(
-        "Permissions must be updated using the dedicated permission API"
-      );
-    }
-
-    // validate role if provided
-    if (data.admin_role && !ADMIN_ROLES.includes(data.admin_role)) {
-      throw new ValidationError("Invalid app role");
-    }
-
     // unique email
     if (data.email && data.email !== user.email) {
       const existingEmail = await tx.adminUser.findUnique({
@@ -192,16 +204,6 @@ export const updateAdminUser = async (id, data, updated_by) => {
         where: { phone: data.phone },
       });
       if (existingPhone) throw new ConflictError("Phone number already exists");
-    }
-
-    // validate departments
-    if (data.department_ids?.length) {
-      const deptCount = await tx.department.count({
-        where: { id: { in: data.department_ids } },
-      });
-      if (deptCount !== data.department_ids.length) {
-        throw new ConflictError("One or more departments are invalid");
-      }
     }
 
     const updatedUser = await tx.adminUser.update({
@@ -222,51 +224,104 @@ export const updateAdminUser = async (id, data, updated_by) => {
         admin_role: data.admin_role ?? undefined,
 
         updated_by,
-
-        departments: data.department_ids
-          ? {
-              deleteMany: {},
-              create: data.department_ids.map((department_id) => ({
-                department_id,
-              })),
-            }
-          : undefined,
       },
       include: {
-        departments: { include: { department: true } },
         permissions: { include: { permission: true } },
       },
     });
 
-    return updatedUser;
+    return sanitizeAdminUser(updatedUser);
   });
 };
 
 export const deleteAdminUser = async (id, deleted_by) => {
   return prisma.$transaction(async (tx) => {
-    const user = await tx.adminUser.findUnique({
-      where: { id: id },
+    // 1️⃣ Fetch the user to be deleted
+    const userToDelete = await tx.adminUser.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        admin_role: true,
+        status: true,
+        deleted_at: true,
+        created_by: true,
+      },
     });
 
-    if (!user) throw new NotFoundError("User not found");
-    if (user.deleted_at) throw new ValidationError("User already deleted");
+    if (!userToDelete) {
+      throw new NotFoundError("User not found");
+    }
 
-    // 1) revoke all direct permissions
+    if (userToDelete.deleted_at) {
+      throw new ValidationError("User already deleted");
+    }
+
+    // 2️⃣ Fetch the user performing the deletion
+    const deletingUser = await tx.adminUser.findUnique({
+      where: { id: deleted_by },
+      select: {
+        id: true,
+        admin_role: true,
+        status: true,
+        deleted_at: true,
+      },
+    });
+
+    if (!deletingUser) {
+      throw new ConflictError("Invalid session");
+    }
+
+    if (deletingUser.deleted_at || deletingUser.status !== "ACTIVE") {
+      throw new ConflictError("Your account is not active");
+    }
+
+    // 3️⃣ CRITICAL: Prevent self-deletion
+    if (userToDelete.id === deleted_by) {
+      throw new ConflictError(
+        "You cannot delete your own account. Please contact another administrator."
+      );
+    }
+
+    // 5️⃣ CRITICAL: Prevent deletion of last SUPER_ADMIN
+    if (userToDelete.admin_role === "SUPER_ADMIN") {
+      const superAdminCount = await tx.adminUser.count({
+        where: {
+          admin_role: "SUPER_ADMIN",
+          deleted_at: null,
+          status: "ACTIVE",
+        },
+      });
+
+      if (superAdminCount <= 1) {
+        throw new ConflictError(
+          "Cannot delete the last SUPER_ADMIN. At least one SUPER_ADMIN must exist in the system."
+        );
+      }
+    }
+
+    // 6️⃣ Optional: Check if deleting user created this user (ownership validation)
+
+    if (
+      userToDelete.created_by !== deleted_by &&
+      deletingUser.admin_role !== "SUPER_ADMIN"
+    ) {
+      throw new ConflictError(
+        "You can only delete users you created, unless you are a SUPER_ADMIN."
+      );
+    }
+
+    // 7️⃣ Revoke all direct permissions
     await tx.adminUserPermission.deleteMany({
       where: { admin_user_id: id },
     });
 
-    // 2) soft delete the user
-    const deletedUser = await tx.adminUser.update({
-      where: { id: id },
-      data: {
-        deleted_by,
-        deleted_at: new Date(),
-        status: "SUSPENDED",
-      },
+    const deletedUser = await tx.adminUser.delete({
+      where: { id },
     });
 
-    return deletedUser;
+    return sanitizeAdminUser(deletedUser);
   });
 };
 
@@ -282,10 +337,6 @@ export const listAdminUsers = async (filters = {}) => {
 
   if (filters.status) where.status = filters.status;
 
-  if (filters.department_id) {
-    where.departments = { some: { department_id: filters.department_id } };
-  }
-
   if (filters.search?.trim()) {
     const s = filters.search.trim();
     where.OR = [
@@ -300,7 +351,6 @@ export const listAdminUsers = async (filters = {}) => {
     prisma.adminUser.findMany({
       where,
       include: {
-        departments: { include: { department: true } },
         permissions: {
           include: { permission: true },
         },
@@ -313,7 +363,7 @@ export const listAdminUsers = async (filters = {}) => {
   ]);
 
   return {
-    data: items,
+    data: items.map(sanitizeAdminUser),
     pagination: {
       page,
       page_size: pageSize,
@@ -336,7 +386,7 @@ export const getAdminUserById = async (id) => {
   });
 
   if (!user) throw new NotFoundError("User not found");
-  return user;
+  return sanitizeAdminUser(user);
 };
 
 export const resendOnboardingInvite = async (id, resent_by) => {
@@ -418,7 +468,7 @@ export const generatePasswordResetToken = async (id, updated_by) => {
     return null;
   }
 
-  // Cooldown (anti-spam)
+  // Cooldown
   if (user.last_password_reset_request_at) {
     const diffMs = Date.now() - user.last_password_reset_request_at.getTime();
     const diffMinutes = diffMs / (1000 * 60);
@@ -428,16 +478,18 @@ export const generatePasswordResetToken = async (id, updated_by) => {
     }
   }
 
-  // Generate JWT
+  // JWT with id + email + purpose
   const resetToken = jwt.sign(
     {
       sub: user.id,
+      email: user.email,
       purpose: "password_reset",
     },
     JWT_SECRET,
     { expiresIn: INVITE_TOKEN_TTL }
   );
 
+  // Store only hash
   const resetTokenHash = hashToken(resetToken);
 
   const decoded = jwt.decode(resetToken);
@@ -447,14 +499,13 @@ export const generatePasswordResetToken = async (id, updated_by) => {
 
   const resetTokenExpiresAt = new Date(decoded.exp * 1000);
 
-  // Persist token metadata
   await prisma.adminUser.update({
     where: { id: user.id },
     data: {
       password_reset_token_hash: resetTokenHash,
       password_reset_token_expires_at: resetTokenExpiresAt,
       last_password_reset_request_at: new Date(),
-      updated_by: updated_by,
+      updated_by,
     },
   });
 
@@ -499,10 +550,11 @@ export const generateOnboardingResetToken = async (id, requested_by) => {
     }
   }
 
-  // Generate JWT
+  // JWT with id + email + purpose
   const resetToken = jwt.sign(
     {
       sub: user.id,
+      email: user.email,
       purpose: "onboarding_reset",
     },
     JWT_SECRET,
@@ -518,14 +570,13 @@ export const generateOnboardingResetToken = async (id, requested_by) => {
 
   const resetTokenExpiresAt = new Date(decoded.exp * 1000);
 
-  // Persist reset state
   await prisma.adminUser.update({
     where: { id: user.id },
     data: {
-      onboarding_reset_token_hash: resetTokenHash,
-      onboarding_reset_token_expires_at: resetTokenExpiresAt,
+      status: "INACTIVE",
       last_onboarding_reset_request_at: new Date(),
-      onboarding_reset_requested_by: requested_by,
+      onboarding_token_hash: resetTokenHash,
+      onboarding_token_expires_at: resetTokenExpiresAt,
 
       // reset onboarding-related state
       onboarding_completed: false,
@@ -543,3 +594,74 @@ export const generateOnboardingResetToken = async (id, requested_by) => {
     resetToken,
   };
 };
+
+export async function toggleAdminUserActiveStatus({
+  targetUserId,
+  actingUserId,
+}) {
+  const [target, actor] = await Promise.all([
+    prisma.adminUser.findUnique({
+      where: { id: targetUserId },
+      select: {
+        id: true,
+        status: true,
+        deleted_at: true,
+        onboarding_completed: true,
+        admin_role: true,
+      },
+    }),
+    prisma.adminUser.findUnique({
+      where: { id: actingUserId },
+      select: {
+        id: true,
+        status: true,
+        deleted_at: true,
+        admin_role: true,
+      },
+    }),
+  ]);
+
+  if (!target) throw new NotFoundError("User not found");
+  if (!actor) throw new ForbiddenError("Invalid session");
+
+  // actor must be active
+  if (actor.deleted_at || actor.status !== "ACTIVE") {
+    throw new ForbiddenError("Your account is not active");
+  }
+
+  // cannot toggle yourself
+  if (target.id === actor.id) {
+    throw new ForbiddenError("You cannot change your own account status");
+  }
+
+  // cannot toggle deleted users
+  if (target.deleted_at) {
+    throw new ValidationError("Target user is deleted");
+  }
+
+  // decide new status
+  let newStatus;
+
+  if (target.status === "ACTIVE") {
+    newStatus = "INACTIVE";
+  } else if (target.status === "INACTIVE") {
+    if (!target.onboarding_completed) {
+      throw new ValidationError(
+        "User cannot be activated before completing onboarding"
+      );
+    }
+    newStatus = "ACTIVE";
+  } else {
+    throw new ValidationError("Only ACTIVE/INACTIVE accounts can be toggled");
+  }
+
+  const updated = await prisma.adminUser.update({
+    where: { id: targetUserId },
+    data: {
+      status: newStatus,
+      updated_by: actingUserId,
+    },
+  });
+
+  return sanitizeAdminUser(updated);
+}

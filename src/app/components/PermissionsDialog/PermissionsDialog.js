@@ -22,26 +22,37 @@ const PermissionsDialog = ({ open, onClose, user }) => {
   } = useSelector((state) => state.user);
 
   // Local state for form
-  const [selectedRole, setSelectedRole] = useState("user");
   const [selectedPermissions, setSelectedPermissions] = useState([]);
   const [hasChanges, setHasChanges] = useState(false);
+  const [initialPermissions, setInitialPermissions] = useState([]);
 
-  // Initial data setup - Reset form when dialog opens or user changes
-  useEffect(() => {
-    if (open && user) {
-   
-      setSelectedRole(user.role || "user");
-      setSelectedPermissions([...(user.permissions || [])]);
-      setHasChanges(false);
-    }
-  }, [open, user]);
+  // Get user's current permission codes
+  const getUserPermissionCodes = (user) => {
+    if (!user?.permissions) return [];
 
-  // Reset form when dialog closes
-  useEffect(() => {
-    if (!open) {
-      setHasChanges(false);
+    // If permissions is already an array of codes (strings)
+    if (
+      Array.isArray(user.permissions) &&
+      typeof user.permissions[0] === "string"
+    ) {
+      return user.permissions;
     }
-  }, [open]);
+
+    // If permissions is an array of objects with permission.code or just code
+    if (Array.isArray(user.permissions)) {
+      return user.permissions
+        .map((p) => {
+          // Handle different possible structures
+          if (typeof p === "string") return p;
+          if (p.permission?.code) return p.permission.code;
+          if (p.code) return p.code;
+          return null;
+        })
+        .filter(Boolean);
+    }
+
+    return [];
+  };
 
   // Fetch permissions data on component mount
   useEffect(() => {
@@ -50,52 +61,65 @@ const PermissionsDialog = ({ open, onClose, user }) => {
     }
   }, [open, permissionsData, dispatch]);
 
-  // Track changes
+  // Initial data setup - Set both selected and initial permissions
   useEffect(() => {
-    if (user) {
-      const roleChanged = selectedRole !== user.role;
+    if (open && user) {
+      const currentPermissions = getUserPermissionCodes(user);
+      
+      setSelectedPermissions([...currentPermissions]);
+      setInitialPermissions([...currentPermissions]);
+      setHasChanges(false);
+    }
+  }, [open, user]);
+
+  // Reset form when dialog closes
+  useEffect(() => {
+    if (!open) {
+      setSelectedPermissions([]);
+      setInitialPermissions([]);
+      setHasChanges(false);
+    }
+  }, [open]);
+
+  // Track changes by comparing with initial permissions
+  useEffect(() => {
+    if (initialPermissions.length > 0 || selectedPermissions.length > 0) {
       const permissionsChanged =
         JSON.stringify([...selectedPermissions].sort()) !==
-        JSON.stringify([...(user.permissions || [])].sort());
-      setHasChanges(roleChanged || permissionsChanged);
+        JSON.stringify([...initialPermissions].sort());
+      setHasChanges(permissionsChanged);
     }
-  }, [selectedRole, selectedPermissions, user]);
+  }, [selectedPermissions, initialPermissions]);
 
-  const handleRoleChange = (role) => {
-    setSelectedRole(role);
-    // Auto-select role default permissions
-    if (permissionsData?.roleDefaults?.[role]) {
-      setSelectedPermissions(permissionsData.roleDefaults[role]);
-    }
-  };
-
-  const handlePermissionToggle = (permissionId) => {
-
+  const handlePermissionToggle = (permissionCode) => {
     setSelectedPermissions((prev) => {
-      const newPermissions = prev.includes(permissionId)
-        ? prev.filter((p) => p !== permissionId)
-        : [...prev, permissionId];
+      const newPermissions = prev.includes(permissionCode)
+        ? prev.filter((p) => p !== permissionCode)
+        : [...prev, permissionCode];
 
       return newPermissions;
     });
   };
 
   const handleSelectAll = (category) => {
-    if (!permissionsData?.availablePermissions) return;
+    if (!permissionsData?.permissions) return;
 
-    const categoryPermissions = permissionsData.availablePermissions
+    // Fixed: Get category permissions from permissionsData.permissions
+    const categoryPermissions = permissionsData.permissions
       .filter((p) => p.category === category)
-      .map((p) => p.id);
+      .map((p) => p.code);
 
     const allSelected = categoryPermissions.every((p) =>
       selectedPermissions.includes(p)
     );
 
     if (allSelected) {
+      // Deselect all from this category
       setSelectedPermissions((prev) =>
         prev.filter((p) => !categoryPermissions.includes(p))
       );
     } else {
+      // Select all from this category
       setSelectedPermissions((prev) => [
         ...new Set([...prev, ...categoryPermissions]),
       ]);
@@ -108,37 +132,16 @@ const PermissionsDialog = ({ open, onClose, user }) => {
     if (!hasChanges || !user) return;
 
     try {
-      const updateData = {};
-
-      // Only include changed fields
-      if (selectedRole !== user.role) {
-        updateData.role = selectedRole;
-      }
-
-      const permissionsChanged =
-        JSON.stringify([...selectedPermissions].sort()) !==
-        JSON.stringify([...(user.permissions || [])].sort());
-      if (permissionsChanged) {
-        updateData.permissions = selectedPermissions;
-      }
-
-   
-
-      const result = await dispatch(
+      await dispatch(
         updateUserPermissions({
           userId: user.id,
-          ...updateData,
+          permissionCodes: selectedPermissions,
         })
       ).unwrap();
 
-      
-      // Update local state with the returned data if available
-      if (result && result.user) {
-        setSelectedRole(result.user.role || selectedRole);
-        setSelectedPermissions([
-          ...(result.user.permissions || selectedPermissions),
-        ]);
-      }
+      // Update initial permissions to reflect the save
+      setInitialPermissions([...selectedPermissions]);
+      setHasChanges(false);
 
       onClose();
     } catch (error) {
@@ -159,33 +162,22 @@ const PermissionsDialog = ({ open, onClose, user }) => {
     }
   };
 
-  const getPermissionLevel = (permissionId) => {
-    if (!permissionId) return "basic";
+  const getPermissionLevel = (permissionCode) => {
+    if (!permissionCode) return "basic";
 
     const criticalKeywords = [
       "delete",
-      "update",
-      "alter-permissions",
       "reject_refund",
       "initiate_refund",
+      "manage",
     ];
+    const advancedKeywords = ["create", "update", "assign", "alter"];
 
-    const advancedKeywords = [
-      "create",
-      "invite",
-      "access",
-      "assign_member",
-      "create_new_link",
-      "update_paid_status",
-      "reset_password",
-      "resend_invite",
-    ];
-
-    if (criticalKeywords.some((keyword) => permissionId.includes(keyword))) {
+    if (criticalKeywords.some((keyword) => permissionCode.includes(keyword))) {
       return "critical";
     }
 
-    if (advancedKeywords.some((keyword) => permissionId.includes(keyword))) {
+    if (advancedKeywords.some((keyword) => permissionCode.includes(keyword))) {
       return "advanced";
     }
 
@@ -231,19 +223,36 @@ const PermissionsDialog = ({ open, onClose, user }) => {
   }
 
   // Group permissions by category
-  const groupedPermissions = permissionsData.availablePermissions.reduce(
+  const groupedPermissions = permissionsData.permissions.reduce(
     (acc, permission) => {
       if (!acc[permission.category]) {
         acc[permission.category] = [];
       }
       acc[permission.category].push({
         ...permission,
-        level: getPermissionLevel(permission.id),
+        level: getPermissionLevel(permission.code),
       });
       return acc;
     },
     {}
   );
+
+  // Sort permissions within each category
+  Object.keys(groupedPermissions).forEach((category) => {
+    groupedPermissions[category].sort((a, b) => a.code.localeCompare(b.code));
+  });
+
+  // Get role label
+  const getRoleLabel = (role) => {
+    const roleLabels = {
+      SUPER_ADMIN: "Super Admin",
+      ADMIN: "Admin",
+      MANAGER: "Manager",
+      EMPLOYEE: "Employee",
+      VIEW_ONLY: "View Only",
+    };
+    return roleLabels[role] || role;
+  };
 
   return (
     <div className="pd-dialog-overlay" onClick={onClose}>
@@ -272,10 +281,10 @@ const PermissionsDialog = ({ open, onClose, user }) => {
                 <div className="pd-user-meta">
                   <h3>{user.name}</h3>
                   <p>{user.email}</p>
-                  <span className={`pd-current-role pd-role-${user.role}`}>
-                    Current Role:{" "}
-                    {user.role.charAt(0).toUpperCase() +
-                      user.role.slice(1).replace("A", " A")}
+                  <span
+                    className={`pd-current-role pd-role-${user.admin_role?.toLowerCase()}`}
+                  >
+                    Current Role: {getRoleLabel(user.admin_role)}
                   </span>
                 </div>
               </div>
@@ -289,45 +298,6 @@ const PermissionsDialog = ({ open, onClose, user }) => {
 
               <div className="pd-divider"></div>
 
-              {/* Role Selection */}
-              <div className="pd-role-section">
-                <h3 className="pd-section-title">
-                  <Shield size={16} />
-                  User Role
-                </h3>
-                <div className="pd-role-options">
-                  {permissionsData.roles.map((role) => (
-                    <label
-                      key={role.id}
-                      className={`pd-role-option ${
-                        selectedRole === role.id ? "pd-selected" : ""
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="role"
-                        value={role.id}
-                        checked={selectedRole === role.id}
-                        onChange={() => handleRoleChange(role.id)}
-                        className="pd-role-radio"
-                        disabled={updating}
-                      />
-                      <div className="pd-radio-custom">
-                        {selectedRole === role.id && (
-                          <div className="pd-radio-dot" />
-                        )}
-                      </div>
-                      <div className="pd-role-info">
-                        <div className="pd-role-name">{role.label}</div>
-                        <div className="pd-role-desc">{role.description}</div>
-                      </div>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              <div className="pd-divider"></div>
-
               {/* Permissions Section */}
               <div className="pd-permissions-section">
                 <h3 className="pd-section-title">
@@ -338,7 +308,9 @@ const PermissionsDialog = ({ open, onClose, user }) => {
                 <div className="pd-permissions-grid">
                   {Object.entries(groupedPermissions).map(
                     ([category, permissions]) => {
-                      const categoryPermissions = permissions.map((p) => p.id);
+                      const categoryPermissions = permissions.map(
+                        (p) => p.code
+                      );
                       const allSelected = categoryPermissions.every((p) =>
                         selectedPermissions.includes(p)
                       );
@@ -369,19 +341,19 @@ const PermissionsDialog = ({ open, onClose, user }) => {
                           <div className="pd-permissions-list">
                             {permissions.map((permission) => {
                               const isChecked = selectedPermissions.includes(
-                                permission.id
+                                permission.code
                               );
 
                               return (
                                 <label
-                                  key={permission.id}
+                                  key={permission.code}
                                   className="pd-permission-item"
                                 >
                                   <input
                                     type="checkbox"
                                     checked={isChecked}
                                     onChange={() =>
-                                      handlePermissionToggle(permission.id)
+                                      handlePermissionToggle(permission.code)
                                     }
                                     className="pd-permission-checkbox"
                                     disabled={updating}
@@ -438,13 +410,7 @@ const PermissionsDialog = ({ open, onClose, user }) => {
                     <span className="pd-stat-number">
                       {
                         selectedPermissions.filter((p) => {
-                          const permission =
-                            permissionsData.availablePermissions.find(
-                              (ap) => ap.id === p
-                            );
-                          return (
-                            getPermissionLevel(permission?.id || p) === "basic"
-                          );
+                          return getPermissionLevel(p) === "basic";
                         }).length
                       }
                     </span>
@@ -454,14 +420,7 @@ const PermissionsDialog = ({ open, onClose, user }) => {
                     <span className="pd-stat-number">
                       {
                         selectedPermissions.filter((p) => {
-                          const permission =
-                            permissionsData.availablePermissions.find(
-                              (ap) => ap.id === p
-                            );
-                          return (
-                            getPermissionLevel(permission?.id || p) ===
-                            "advanced"
-                          );
+                          return getPermissionLevel(p) === "advanced";
                         }).length
                       }
                     </span>
@@ -471,14 +430,7 @@ const PermissionsDialog = ({ open, onClose, user }) => {
                     <span className="pd-stat-number">
                       {
                         selectedPermissions.filter((p) => {
-                          const permission =
-                            permissionsData.availablePermissions.find(
-                              (ap) => ap.id === p
-                            );
-                          return (
-                            getPermissionLevel(permission?.id || p) ===
-                            "critical"
-                          );
+                          return getPermissionLevel(p) === "critical";
                         }).length
                       }
                     </span>
@@ -506,7 +458,7 @@ const PermissionsDialog = ({ open, onClose, user }) => {
               onClick={handleSubmit}
               disabled={updating || !hasChanges}
             >
-              {updating && <CircularProgress color="white" size={18} />}
+              {updating && <CircularProgress color="inherit" size={18} />}
               {updating ? "Updating..." : "Update Permissions"}
             </button>
           </div>

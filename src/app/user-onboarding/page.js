@@ -90,18 +90,17 @@ const OnboardingContent = () => {
     setPasswordErrors({});
 
     try {
-      const response = await fetch(
-        "/api/admin/onboarding/initiate-onboarding",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            token: inviteToken,
-          }),
-        }
-      );
+      const response = await fetch("/api/auth/onboarding/initiate-onboarding", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          token: inviteToken,
+          password: passwordData.password,
+          confirm_password: passwordData.confirmPassword,
+        }),
+      });
 
       const data = await response.json();
 
@@ -120,9 +119,10 @@ const OnboardingContent = () => {
         }
         return;
       }
-
-      if (data.success && data.qrCodeUrl) {
-        await generateQRCodeFromUrl(data.qrCodeUrl);
+       
+      if (data.success && data?.data?.qrCodeUrl) {
+    
+        await generateQRCodeFromUrl(data?.data?.qrCodeUrl);
         setCurrentStep(2);
       } else {
         setPasswordErrors({
@@ -175,14 +175,13 @@ const OnboardingContent = () => {
     setTotpError("");
 
     try {
-      const response = await fetch("/api/admin/onboarding/verify-onboarding", {
+      const response = await fetch("/api/auth/onboarding/verify-onboarding", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
           token: inviteToken,
-          password: passwordData.password,
           totpCode: totpCode,
         }),
       });

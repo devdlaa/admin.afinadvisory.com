@@ -1,9 +1,11 @@
+
 import { supabase } from "@/lib/supabaseClient";
 import { requirePermission } from "@/utils/server/requirePermission";
+
 import {
   createSuccessResponse,
   createErrorResponse,
-} from "@/utils/resposeHandlers";
+} from "@/utils/server/apiResponse";
 import { uuidSchema } from "@/schemas";
 
 const BUCKET = process.env.SUPERBASE_STORAGE_BUCKET_emp_images;
@@ -15,8 +17,9 @@ export async function POST(req, { params }) {
       "admin_users.manage"
     );
     if (permissionError) return permissionError;
+    const { id } = await params;
 
-    const userId = uuidSchema.parse(params.id);
+    const userId = uuidSchema.parse(id);
 
     const formData = await req.formData();
     const file = formData.get("file");
@@ -46,6 +49,7 @@ export async function POST(req, { params }) {
       url: publicUrl,
     });
   } catch (err) {
+
     return createErrorResponse(
       "Failed to upload profile image",
       500,

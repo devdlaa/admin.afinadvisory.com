@@ -10,7 +10,6 @@ import {
 // POST - Create a new task
 export async function POST(request) {
   try {
-    // ✅ NEW: permission + session from updated requirePermission
     const [permissionError, session] = await requirePermission(
       request,
       "tasks.manage"
@@ -23,10 +22,8 @@ export async function POST(request) {
 
     const task = await createTask(validatedData, session.user.id);
 
-    // ⬇️ UPDATED: use unified success formatter
     return createSuccessResponse("Task created successfully", task, 201);
   } catch (error) {
-    // ⬇️ UPDATED: centralized error adapter
     return handleApiError(error);
   }
 }
@@ -42,20 +39,31 @@ export async function GET(request) {
     const params = {
       page: searchParams.get("page"),
       page_size: searchParams.get("page_size"),
+
       entity_id: searchParams.get("entity_id"),
       status: searchParams.get("status"),
       priority: searchParams.get("priority"),
       task_category_id: searchParams.get("task_category_id"),
-      compliance_rule_id: searchParams.get("compliance_rule_id"),
-      registration_type_id: searchParams.get("registration_type_id"),
+
       created_by: searchParams.get("created_by"),
       assigned_to: searchParams.get("assigned_to"),
+
       due_date_from: searchParams.get("due_date_from"),
       due_date_to: searchParams.get("due_date_to"),
+
       search: searchParams.get("search"),
+
+      // billing filters
+      is_billable: searchParams.get("is_billable"),
+      billed_from_firm: searchParams.get("billed_from_firm"),
+
       sort_by: searchParams.get("sort_by"),
       sort_order: searchParams.get("sort_order"),
     };
+
+    if (params.is_billable === "true") params.is_billable = true;
+    else if (params.is_billable === "false") params.is_billable = false;
+    else delete params.is_billable;
 
     Object.keys(params).forEach(
       (key) => params[key] === null && delete params[key]

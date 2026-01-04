@@ -1,53 +1,33 @@
 "use client";
 import { useState, useEffect, useRef, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { Eye, EyeOff, ArrowRight, ArrowLeft, Info, LogIn } from "lucide-react";
-
-import { auth } from "@/lib/firebase";
-import { signInWithEmailAndPassword } from "firebase/auth";
 import "./login.scss";
 
-// Create a separate component that uses useSearchParams
 const LoginContent = () => {
-  const searchParams = useSearchParams();
   const [currentStep, setCurrentStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
-
-  // Check if we're in development environment
   const isDevelopment = process.env.NODE_ENV === "development";
 
-  // Turnstile refs and state
   const turnstileRef = useRef(null);
   const [turnstileToken, setTurnstileToken] = useState("");
   const [turnstileLoaded, setTurnstileLoaded] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
 
-  // Step 1 - Email and Password
-  const [loginData, setLoginData] = useState({
-    email: "",
-    password: "",
-  });
+  const [loginData, setLoginData] = useState({ email: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
   const [loginErrors, setLoginErrors] = useState({});
 
-  // Step 2 - TOTP Verification
   const [totpCode, setTotpCode] = useState("");
   const [totpError, setTotpError] = useState("");
 
-  // Store Firebase ID token for NextAuth
-  const [firebaseIdToken, setFirebaseIdToken] = useState("");
-
-  // Handle client-side mounting
   useEffect(() => {
     setIsMounted(true);
-    // Auto-set turnstile token in development
     if (isDevelopment) {
       setTurnstileToken("dev-bypass-token");
     }
   }, [isDevelopment]);
 
-  // Load Cloudflare Turnstile script (only in production)
   useEffect(() => {
     if (!isMounted || isDevelopment) return;
 
@@ -58,49 +38,26 @@ const LoginContent = () => {
     document.head.appendChild(script);
 
     return () => {
-      // Cleanup script on unmount
       if (document.head.contains(script)) {
         document.head.removeChild(script);
       }
     };
   }, [isMounted, isDevelopment]);
 
-  // Initialize Turnstile widget when script loads (only in production)
   useEffect(() => {
     if (isDevelopment) return;
 
     if (turnstileLoaded && window.turnstile && turnstileRef.current) {
       window.turnstile.render(turnstileRef.current, {
         sitekey: process.env.NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY,
-        callback: function (token) {
-          setTurnstileToken(token);
-        },
-        "error-callback": function () {
-          setTurnstileToken("");
-        },
-        "expired-callback": function () {
-          setTurnstileToken("");
-        },
+        callback: (token) => setTurnstileToken(token),
+        "error-callback": () => setTurnstileToken(""),
+        "expired-callback": () => setTurnstileToken(""),
         theme: "light",
         size: "normal",
       });
     }
   }, [turnstileLoaded, isDevelopment]);
-
-  // Handle URL error parameter on component mount
-  useEffect(() => {
-    const error = searchParams.get("error");
-    if (error === "Configuration") {
-      // User came back from failed TOTP verification
-      setCurrentStep(2);
-      setTotpError("Invalid verification code. Please try again.");
-
-      // Clear the error from URL without page reload
-      if (window.history.replaceState) {
-        window.history.replaceState({}, document.title, "/login");
-      }
-    }
-  }, [searchParams]);
 
   const validateLogin = () => {
     const errors = {};
@@ -115,7 +72,6 @@ const LoginContent = () => {
       errors.password = "Password is required";
     }
 
-    // Check if Turnstile is completed (only in production and if mounted)
     if (isMounted && !isDevelopment && !turnstileToken) {
       errors.turnstile = "Please complete the security verification";
     }
@@ -124,6 +80,7 @@ const LoginContent = () => {
     return Object.keys(errors).length === 0;
   };
 
+  // STEP 1: Verify email and password only
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
 
@@ -133,16 +90,12 @@ const LoginContent = () => {
     setLoginErrors({});
 
     try {
-      // Verify Turnstile token with backend (skip in development)
+      // Verify Turnstile (skip in dev)
       if (!isDevelopment) {
         const turnstileResponse = await fetch("/api/verify-turnstile", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            token: turnstileToken,
-          }),
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token: turnstileToken }),
         });
 
         const turnstileResult = await turnstileResponse.json();
@@ -151,51 +104,65 @@ const LoginContent = () => {
           setLoginErrors({
             general: "Security verification failed. Please try again.",
           });
-          // Reset Turnstile
           if (window.turnstile) {
             window.turnstile.reset();
           }
           setTurnstileToken("");
+          setIsLoading(false);
           return;
         }
       }
 
-      // Sign in with Firebase to get ID token
-      const userCredential = await signInWithEmailAndPassword(
-        auth,
-        loginData.email,
-        loginData.password
-      );
-
-      // Get the ID token
-      const idToken = await userCredential.user.getIdToken();
-      setFirebaseIdToken(idToken);
-
-      // Move to TOTP step
-      setCurrentStep(2);
-    } catch (error) {
-      console.error("Login error:", error);
-
-      // Handle different Firebase error codes
-      let errorMessage = "Invalid email or password. Please try again.";
-
-      if (error.code === "auth/user-not-found") {
-        errorMessage = "No account found with this email address.";
-      } else if (error.code === "auth/wrong-password") {
-        errorMessage = "Incorrect password. Please try again.";
-      } else if (error.code === "auth/invalid-email") {
-        errorMessage = "Please enter a valid email address.";
-      } else if (error.code === "auth/user-disabled") {
-        errorMessage = "This account has been disabled. Contact support.";
-      } else if (error.code === "auth/too-many-requests") {
-        errorMessage = "Too many failed attempts. Please try again later.";
-      }
-
-      setLoginErrors({
-        general: errorMessage,
+      // Call our verification API
+      const verifyResponse = await fetch("/api/auth/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: loginData.email,
+          password: loginData.password,
+        }),
       });
 
-      // Reset Turnstile on error (only in production)
+      const verifyResult = await verifyResponse.json();
+
+     
+
+      if (!verifyResult.success) {
+        setLoginErrors({ general: verifyResult.error });
+        if (!isDevelopment && window.turnstile) {
+          window.turnstile.reset();
+          setTurnstileToken("");
+        }
+        setIsLoading(false);
+        return;
+      }
+
+      // Credentials are valid
+      if (verifyResult.requires2FA) {
+        // User has 2FA enabled - move to step 2
+        setCurrentStep(2);
+      } else {
+        // No 2FA - directly login with NextAuth
+        const result = await signIn("credentials", {
+          email: loginData.email,
+          password: loginData.password,
+          redirect: false,
+        });
+
+        if (result?.ok) {
+          window.location.href = "/dashboard";
+        } else {
+          setLoginErrors({
+            general: "Login failed. Please try again.",
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Login error:", error);
+      setLoginErrors({
+        general: "An unexpected error occurred. Please try again.",
+      });
+
       if (!isDevelopment && window.turnstile) {
         window.turnstile.reset();
         setTurnstileToken("");
@@ -205,6 +172,7 @@ const LoginContent = () => {
     }
   };
 
+  // STEP 2: Verify TOTP and login with NextAuth
   const handleTotpSubmit = async (e) => {
     e.preventDefault();
 
@@ -217,25 +185,28 @@ const LoginContent = () => {
     setTotpError("");
 
     try {
-      // Use NextAuth signIn with credentials - DON'T redirect on error
+      // Login with NextAuth - send email, password AND TOTP
       const result = await signIn("credentials", {
-        idToken: firebaseIdToken,
+        email: loginData.email,
+        password: loginData.password,
         totpCode: totpCode,
         redirect: false,
-        callbackUrl: "/dashboard",
       });
 
-      if (result?.error) {
-        // Stay on step 2 and show error
-        setTotpError("Invalid verification code. Please try again.");
-        setTotpCode("");
-      } else if (result?.ok) {
+  
+
+      if (result?.ok) {
         // Success - redirect to dashboard
         window.location.href = "/dashboard";
+      } else {
+        // Failed - invalid TOTP code
+        setTotpError("Invalid verification code. Please try again.");
+        setTotpCode("");
       }
     } catch (error) {
-      console.error("NextAuth login error:", error);
-      setTotpError("Authentication failed. Please try again.");
+      console.error("TOTP verification error:", error);
+      setTotpError("An unexpected error occurred. Please try again.");
+      setTotpCode("");
     } finally {
       setIsLoading(false);
     }
@@ -245,13 +216,11 @@ const LoginContent = () => {
     setCurrentStep(1);
     setTotpCode("");
     setTotpError("");
-    setFirebaseIdToken("");
-    // Reset Turnstile when going back (only in production)
+
     if (!isDevelopment && window.turnstile) {
       window.turnstile.reset();
       setTurnstileToken("");
     } else if (isDevelopment) {
-      // Reset dev token
       setTurnstileToken("dev-bypass-token");
     }
   };
@@ -265,7 +234,6 @@ const LoginContent = () => {
   return (
     <div className="lg-login-container">
       <div className="lg-login-card">
-        {/* Header */}
         <div className="lg-step-header">
           <img
             src="/assets/svg/afin_admin_logo.svg"
@@ -273,7 +241,6 @@ const LoginContent = () => {
           />
         </div>
 
-        {/* Development Environment Notice */}
         {isDevelopment && (
           <div className="lg-dev-notice">
             <Info size={16} />
@@ -281,9 +248,8 @@ const LoginContent = () => {
           </div>
         )}
 
-        {/* Steps */}
         <div className="lg-steps-container">
-          {/* Step 1: Email and Password */}
+          {/* STEP 1: Email + Password */}
           {currentStep === 1 && (
             <div className="lg-step" style={stepStyle}>
               <div className="lg-step-title">
@@ -366,7 +332,6 @@ const LoginContent = () => {
                   )}
                 </div>
 
-                {/* Cloudflare Turnstile - Only show in production */}
                 {isMounted && !isDevelopment && (
                   <div className="lg-form-group">
                     <div
@@ -395,15 +360,19 @@ const LoginContent = () => {
             </div>
           )}
 
-          {/* Step 2: TOTP Verification */}
+          {/* STEP 2: 2FA Verification */}
           {currentStep === 2 && (
             <div className="lg-step" style={stepStyle}>
               <div className="lg-step-title">
                 <h2>Two-Factor Authentication</h2>
-                <p>Please enter the verification code</p>
+                <p>Enter the 6-digit code from your authenticator app</p>
               </div>
 
               <div className="lg-2fa-verify">
+                {totpError && (
+                  <div className="lg-error-banner">{totpError}</div>
+                )}
+
                 <div className="lg-totp-form">
                   <div className="lg-form-group">
                     <input
@@ -423,10 +392,8 @@ const LoginContent = () => {
                       maxLength={6}
                       disabled={isLoading}
                       autoComplete="one-time-code"
+                      autoFocus
                     />
-                    {totpError && (
-                      <span className="lg-error-text">{totpError}</span>
-                    )}
                   </div>
 
                   <div className="lg-form-actions">
@@ -456,7 +423,6 @@ const LoginContent = () => {
           )}
         </div>
 
-        {/* Footer */}
         <div className="lg-footer">
           <p>
             Need help? Contact{" "}
@@ -468,7 +434,6 @@ const LoginContent = () => {
   );
 };
 
-// Loading fallback component
 const LoginPageFallback = () => {
   return (
     <div className="lg-login-container">
@@ -492,7 +457,6 @@ const LoginPageFallback = () => {
   );
 };
 
-// Main component wrapped with Suspense
 const LoginPage = () => {
   return (
     <Suspense fallback={<LoginPageFallback />}>

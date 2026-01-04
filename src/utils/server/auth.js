@@ -1,12 +1,11 @@
+// auth.js
 import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "@/utils/server/db";
+import { compareSync } from "bcrypt";
 import { authenticator } from "otplib";
-import bcrypt from "bcrypt";
 
-const prisma = new PrismaClient();
-
-export const authOptions = {
+export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
     CredentialsProvider({
       name: "Credentials",
@@ -15,16 +14,15 @@ export const authOptions = {
         password: { label: "Password", type: "password" },
         totpCode: { label: "TOTP Code", type: "text" },
       },
-
       async authorize(credentials) {
-        const { email, password, totpCode } = credentials;
-
-        if (!email || !password || !totpCode) {
-          throw new Error("Invalid login details");
-        }
-
         try {
-          // ✅ Fetch user with direct permissions (NOT via roles anymore)
+          const { email, password, totpCode } = credentials;
+
+          if (!email || !password) {
+            return null;
+          }
+
+          // Fetch user with permissions
           const user = await prisma.adminUser.findUnique({
             where: { email },
             include: {
@@ -33,123 +31,132 @@ export const authOptions = {
                   permission: true,
                 },
               },
-              departments: {
-                include: {
-                  department: true,
-                },
-              },
             },
           });
 
-          // existence validation
-          if (!user) throw new Error("Invalid login details");
-
-          // soft delete block
-          if (user.deleted_at) throw new Error("Invalid login details");
-
-          // must be active
-          if (user.status !== "ACTIVE") {
-            throw new Error(
-              "Account is not active. Please contact administrator."
-            );
+          if (!user) {
+            return null;
           }
 
-          // must have set password (completed onboarding)
+          // Check if user is deleted
+          if (user.deleted_at) {
+            return null;
+          }
+
+          // Check if user is suspended
+          if (user.status === "SUSPENDED") {
+            return null;
+          }
+
+          // For inactive users, reject login
+          if (user.status === "INACTIVE" && !user.onboarding_completed) {
+            return null;
+          }
+
+          // Verify password exists
           if (!user.password) {
-            throw new Error("Please complete your onboarding first.");
+            return null;
           }
 
-          if (!user.onboarding_completed) {
-            throw new Error("Please complete your onboarding first.");
+          // Verify password
+          const isPasswordValid = compareSync(password, user.password);
+
+          if (!isPasswordValid) {
+            return null;
           }
 
-          // password check
-          const isPasswordValid = await bcrypt.compare(password, user.password);
-          if (!isPasswordValid) throw new Error("Invalid login details");
+          // If 2FA is enabled, verify TOTP code
+          if (user.is_2fa_enabled) {
+            // TOTP code must be provided
+            if (!totpCode) {
+              return null;
+            }
 
-          // require configured 2FA
-          if (!user.is_2fa_enabled || !user.totp_secret) {
-            throw new Error(
-              "Two-factor authentication not set up. Please contact administrator."
-            );
+            if (!user.totp_secret) {
+              return null;
+            }
+
+            // Verify TOTP code
+            const isValidTotp = authenticator.verify({
+              token: totpCode,
+              secret: user.totp_secret,
+            });
+
+            if (!isValidTotp) {
+              return null;
+            }
+
+            // Update 2FA verification timestamp
+            await prisma.adminUser.update({
+              where: { id: user.id },
+              data: {
+                two_fa_verified_at: new Date(),
+                last_login_at: new Date(),
+              },
+            });
+          } else {
+            // Update last login for non-2FA users
+            await prisma.adminUser.update({
+              where: { id: user.id },
+              data: { last_login_at: new Date() },
+            });
           }
 
-          // validate submitted TOTP
-          const isValidTotp = authenticator.check(totpCode, user.totp_secret);
-          if (!isValidTotp) {
-            throw new Error("Invalid two-factor authentication code");
-          }
+          // Extract permission codes
+          const permissionCodes = user.permissions.map(
+            (up) => up.permission.code
+          );
 
-          // ✅ Extract direct permissions (user → permission)
-          const permissions = user.permissions.map(({ permission }) => ({
-            id: permission.id,
-            code: permission.code,
-          }));
-
-          // ✅ Extract departments
-          const departments = user.departments.map(({ department }) => ({
-            id: department.id,
-            name: department.name,
-          }));
-
+          // Return user object for JWT/session
           return {
             id: user.id,
             email: user.email,
             name: user.name,
-            user_code: user.user_code,
-
+            role: user.admin_role,
+            userCode: user.user_code,
             phone: user.phone,
-            alternate_phone: user.alternate_phone,
-
-            address_line1: user.address_line1,
-            address_line2: user.address_line2,
+            alternatePhone: user.alternate_phone,
+            status: user.status,
+            permissions: permissionCodes,
+            onboardingCompleted: user.onboarding_completed,
+            is2faEnabled: user.is_2fa_enabled,
+            dateOfJoining: user.date_of_joining,
+            addressLine1: user.address_line1,
+            addressLine2: user.address_line2,
             city: user.city,
             state: user.state,
             pincode: user.pincode,
-
-            status: user.status,
-            date_of_joining: user.date_of_joining?.toISOString(),
-
-            is_2fa_enabled: user.is_2fa_enabled,
-            two_fa_verified_at: user.two_fa_verified_at?.toISOString(),
-
-            
-            admin_role: user.admin_role,
-
-            // collections
-            departments,
-            permissions,
-
-            auth_provider: user.auth_provider,
-
-            created_by: user.created_by,
-            updated_at: new Date().toISOString(),
-
-            // UI lock flag
             isDashboardLocked: false,
           };
-        } catch (err) {
-          console.error("Authorize error:", err);
-          throw new Error(err.message || "Invalid login details");
+        } catch (error) {
+          console.error("Authorization error:");
+          return null;
         }
       },
     }),
   ],
 
-  trustedHosts: ["admin.afinadvisory.com"],
-
-  session: {
-    strategy: "jwt",
-    maxAge: 2 * 24 * 60 * 60,
-  },
-
-  jwt: {
-    maxAge: 2 * 24 * 60 * 60,
-  },
-
   callbacks: {
     async jwt({ token, user, trigger, session }) {
-      if (user) Object.assign(token, user);
+      if (user) {
+        token.id = user.id;
+        token.email = user.email;
+        token.name = user.name;
+        token.role = user.role;
+        token.userCode = user.userCode;
+        token.phone = user.phone;
+        token.alternatePhone = user.alternatePhone;
+        token.status = user.status;
+        token.permissions = user.permissions;
+        token.onboardingCompleted = user.onboardingCompleted;
+        token.is2faEnabled = user.is2faEnabled;
+        token.dateOfJoining = user.dateOfJoining;
+        token.addressLine1 = user.addressLine1;
+        token.addressLine2 = user.addressLine2;
+        token.city = user.city;
+        token.state = user.state;
+        token.pincode = user.pincode;
+      }
 
       if (trigger === "update" && session?.isDashboardLocked !== undefined) {
         token.isDashboardLocked = session.isDashboardLocked;
@@ -159,7 +166,25 @@ export const authOptions = {
     },
 
     async session({ session, token }) {
-      session.user = { ...token };
+      if (token && session.user) {
+        session.user.id = token.id;
+        session.user.email = token.email;
+        session.user.name = token.name;
+        session.user.role = token.role;
+        session.user.userCode = token.userCode;
+        session.user.phone = token.phone;
+        session.user.alternatePhone = token.alternatePhone;
+        session.user.status = token.status;
+        session.user.permissions = token.permissions || [];
+        session.user.onboardingCompleted = token.onboardingCompleted;
+        session.user.is2faEnabled = token.is2faEnabled;
+        session.user.dateOfJoining = token.dateOfJoining;
+        session.user.addressLine1 = token.addressLine1;
+        session.user.addressLine2 = token.addressLine2;
+        session.user.city = token.city;
+        session.user.state = token.state;
+        session.user.pincode = token.pincode;
+      }
       session.isDashboardLocked = token.isDashboardLocked || false;
       return session;
     },
@@ -167,15 +192,18 @@ export const authOptions = {
 
   pages: {
     signIn: "/login",
-    error: "/login",
+  },
+
+  session: {
+    strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60, // 30 days
   },
 
   secret: process.env.NEXTAUTH_SECRET,
-};
+  debug: process.env.NODE_ENV === "development",
+});
 
-export const { handlers, auth, signIn, signOut } = NextAuth(authOptions);
-
-// unchanged: unlock dashboard TOTP verifier
+// : unlock dashboard TOTP verifier
 export async function verifyTotpForUnlock(userId, code) {
   try {
     const user = await prisma.adminUser.findUnique({

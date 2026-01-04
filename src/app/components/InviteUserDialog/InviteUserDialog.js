@@ -16,7 +16,6 @@ import { fetchPermissions, inviteUser } from "@/store/slices/userSlice";
 import "./InviteUserDialog.scss";
 
 const InviteUserDialog = ({ open, onClose, onInvite }) => {
-  // Added onInvite prop
   const dispatch = useDispatch();
   const {
     permissionsData,
@@ -24,7 +23,7 @@ const InviteUserDialog = ({ open, onClose, onInvite }) => {
     permissionsError,
     inviting,
     inviteError,
-    inviteErrors, // Added for handling multiple errors
+    inviteErrors,
   } = useSelector((state) => state.user);
 
   const [formData, setFormData] = useState({
@@ -34,9 +33,9 @@ const InviteUserDialog = ({ open, onClose, onInvite }) => {
     alternatePhone: "",
     department: "",
     designation: "",
-    role: "user",
+    role: "MANAGER", // Fixed: Use uppercase role ID
     dateOfJoining: "",
-    permissions: ["dashboard.read"],
+    permissions: [],
   });
 
   const [errors, setErrors] = useState({});
@@ -45,7 +44,6 @@ const InviteUserDialog = ({ open, onClose, onInvite }) => {
 
   // Load permissions when dialog opens
   useEffect(() => {
-   
     if (open && !permissionsData) {
       dispatch(fetchPermissions());
     }
@@ -53,7 +51,11 @@ const InviteUserDialog = ({ open, onClose, onInvite }) => {
 
   // Reset form when dialog opens
   useEffect(() => {
-    if (open) {
+    if (open && permissionsData) {
+      const defaultRole = "MANAGER"; // Default role
+      const defaultPermissions =
+        permissionsData?.roleDefaults?.[defaultRole] || [];
+
       setFormData({
         name: "",
         email: "",
@@ -61,16 +63,15 @@ const InviteUserDialog = ({ open, onClose, onInvite }) => {
         alternatePhone: "",
         department: "",
         designation: "",
-        role: "user",
+        role: defaultRole,
         dateOfJoining: "",
-        permissions: permissionsData?.roleDefaults?.user || ["dashboard.read"],
+        permissions: defaultPermissions,
       });
       setErrors({});
       setShowConfirmation(false);
       setInvitationResult(null);
     }
   }, [open, permissionsData]);
-
 
   // Handle API errors from Redux
   useEffect(() => {
@@ -94,20 +95,19 @@ const InviteUserDialog = ({ open, onClose, onInvite }) => {
 
     // Special handling for different field types
     if (field === "dateOfJoining" && value) {
-      // Ensure we have a valid date in YYYY-MM-DD format
       try {
         const date = new Date(value);
         if (!isNaN(date)) {
           newValue = date.toISOString().split("T")[0];
         }
       } catch (error) {
-        console.warn("Invalid date format:");
+        console.warn("Invalid date format:", error);
       }
     }
 
     // Clean phone numbers
     if ((field === "phone" || field === "alternatePhone") && value) {
-      newValue = value.replace(/\D/g, ""); // Remove non-digits
+      newValue = value.replace(/\D/g, "");
     }
 
     setFormData((prev) => ({ ...prev, [field]: newValue }));
@@ -118,12 +118,12 @@ const InviteUserDialog = ({ open, onClose, onInvite }) => {
     }
   };
 
-  const handlePermissionToggle = (permissionId) => {
+  const handlePermissionToggle = (permissionCode) => {
     setFormData((prev) => ({
       ...prev,
-      permissions: prev.permissions.includes(permissionId)
-        ? prev.permissions.filter((p) => p !== permissionId)
-        : [...prev.permissions, permissionId],
+      permissions: prev.permissions.includes(permissionCode)
+        ? prev.permissions.filter((p) => p !== permissionCode)
+        : [...prev.permissions, permissionCode],
     }));
 
     // Clear permissions error
@@ -132,14 +132,12 @@ const InviteUserDialog = ({ open, onClose, onInvite }) => {
     }
   };
 
-  const handleRoleChange = (role) => {
-    const defaultPermissions = permissionsData?.roleDefaults?.[role] || [
-      "dashboard.read",
-    ];
+  const handleRoleChange = (roleId) => {
+    const defaultPermissions = permissionsData?.roleDefaults?.[roleId] || [];
 
     setFormData((prev) => ({
       ...prev,
-      role,
+      role: roleId,
       permissions: defaultPermissions,
     }));
 
@@ -185,16 +183,6 @@ const InviteUserDialog = ({ open, onClose, onInvite }) => {
       const cleanAltPhone = formData.alternatePhone.replace(/\s/g, "");
       if (!/^\+?[0-9]{10,15}$/.test(cleanAltPhone)) {
         newErrors.alternatePhone = "Alternate phone must be 10-15 digits";
-      }
-    }
-
-    if (!formData.dateOfJoining) {
-      newErrors.dateOfJoining = "Date of joining is required";
-    } else {
-      // Validate date format
-      const date = new Date(formData.dateOfJoining);
-      if (isNaN(date)) {
-        newErrors.dateOfJoining = "Please enter a valid date";
       }
     }
 
@@ -254,13 +242,13 @@ const InviteUserDialog = ({ open, onClose, onInvite }) => {
         onInvite(result.data);
       }
 
-      // Auto-close after successful invitation (optional)
+      // Auto-close after successful invitation
       setTimeout(() => {
         handleResetForm();
         onClose();
       }, 3000);
     } catch (error) {
-      console.error("Invitation failed:");
+      console.error("Invitation failed:", error);
 
       setInvitationResult({
         type: "error",
@@ -282,6 +270,10 @@ const InviteUserDialog = ({ open, onClose, onInvite }) => {
   };
 
   const handleResetForm = () => {
+    const defaultRole = "MANAGER";
+    const defaultPermissions =
+      permissionsData?.roleDefaults?.[defaultRole] || [];
+
     setFormData({
       name: "",
       email: "",
@@ -289,9 +281,9 @@ const InviteUserDialog = ({ open, onClose, onInvite }) => {
       alternatePhone: "",
       department: "",
       designation: "",
-      role: "user",
+      role: defaultRole,
       dateOfJoining: "",
-      permissions: permissionsData?.roleDefaults?.user || ["dashboard.read"],
+      permissions: defaultPermissions,
     });
     setErrors({});
     setShowConfirmation(false);
@@ -299,15 +291,10 @@ const InviteUserDialog = ({ open, onClose, onInvite }) => {
   };
 
   // Get available data from Redux store
-  const availablePermissions = permissionsData?.availablePermissions || [];
-  const departments = permissionsData?.departments || [];
-  const roles = permissionsData?.roles || [
-    { id: "superAdmin", label: "Super Admin", description: "Full access" },
+  const availablePermissions = permissionsData?.permissions || [];
+  const roles = permissionsData?.roles || [];
 
-    { id: "admin", label: "Admin", description: "Administrative access" },
-    { id: "user", label: "User", description: "Basic access" },
-  ];
-
+  // Group permissions by category and sort by permission code
   const groupedPermissions = availablePermissions.reduce((acc, permission) => {
     const category = permission.category || "Other";
     if (!acc[category]) {
@@ -317,7 +304,11 @@ const InviteUserDialog = ({ open, onClose, onInvite }) => {
     return acc;
   }, {});
 
-  
+  // Sort permissions within each category by code
+  Object.keys(groupedPermissions).forEach((category) => {
+    groupedPermissions[category].sort((a, b) => a.code.localeCompare(b.code));
+  });
+
   const isSubmitting = inviting;
 
   if (!open) return null;
@@ -325,7 +316,7 @@ const InviteUserDialog = ({ open, onClose, onInvite }) => {
   // Show loading state while fetching permissions
   if (permissionsLoading) {
     return (
-      <div className="invite_new_user_invite_new_user_dialog-overlay">
+      <div className="invite_new_user_dialog-overlay">
         <div className="dialog-container">
           <div className="invite-dialog">
             <div className="loading-content">
@@ -514,81 +505,6 @@ const InviteUserDialog = ({ open, onClose, onInvite }) => {
                         </div>
                       </div>
                     </div>
-
-                    {/* Work Information */}
-                    <div className="form-section">
-                      <h3 className="section-title">
-                        <Briefcase size={16} />
-                        Work Information
-                      </h3>
-                      <div className="form-grid">
-                        <div className="form-group">
-                          <label className="form-label">Department</label>
-                          <select
-                            value={formData.department}
-                            onChange={(e) =>
-                              handleInputChange("department", e.target.value)
-                            }
-                            className={`form-select ${
-                              errors.department ? "error" : ""
-                            }`}
-                          >
-                            <option value="">Select Department</option>
-                            {departments?.map((dept) => (
-                              <option key={dept} value={dept}>
-                                {dept}
-                              </option>
-                            ))}
-                          </select>
-                          {errors.department && (
-                            <span className="error-text">
-                              {errors.department}
-                            </span>
-                          )}
-                        </div>
-                        <div className="form-group">
-                          <label className="form-label">Designation</label>
-                          <input
-                            type="text"
-                            value={formData.designation}
-                            onChange={(e) =>
-                              handleInputChange("designation", e.target.value)
-                            }
-                            className={`form-input ${
-                              errors.designation ? "error" : ""
-                            }`}
-                            placeholder="Enter designation"
-                            maxLength={100}
-                          />
-                          {errors.designation && (
-                            <span className="error-text">
-                              {errors.designation}
-                            </span>
-                          )}
-                        </div>
-                        <div className="form-group">
-                          <label className="form-label">
-                            Date of Joining *
-                          </label>
-                          <input
-                            type="date"
-                            value={formData.dateOfJoining}
-                            onChange={(e) =>
-                              handleInputChange("dateOfJoining", e.target.value)
-                            }
-                            className={`form-input ${
-                              errors.dateOfJoining ? "error" : ""
-                            }`}
-                            max={new Date().toISOString().split("T")[0]} // Prevent future dates
-                          />
-                          {errors.dateOfJoining && (
-                            <span className="error-text">
-                              {errors.dateOfJoining}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
                   </div>
 
                   {/* Role & Permissions */}
@@ -622,9 +538,6 @@ const InviteUserDialog = ({ open, onClose, onInvite }) => {
                                 <div className="role-name">{role.label}</div>
                               </div>
                             </div>
-                            <div className="role-description">
-                              {role.description}
-                            </div>
                           </div>
                         ))}
                       </div>
@@ -641,7 +554,9 @@ const InviteUserDialog = ({ open, onClose, onInvite }) => {
                             <div key={category} className="permission-category">
                               <h4 className="category-title">{category}</h4>
                               {permissions.map((permission) => {
-                                const isChecked = formData.permissions.includes(permission.id);
+                                const isChecked = formData.permissions.includes(
+                                  permission.code
+                                );
                                 return (
                                   <label
                                     key={permission.id}
@@ -651,14 +566,21 @@ const InviteUserDialog = ({ open, onClose, onInvite }) => {
                                       type="checkbox"
                                       checked={isChecked}
                                       onChange={() =>
-                                        handlePermissionToggle(permission.id)
+                                        handlePermissionToggle(permission.code)
                                       }
                                       className="permission-checkbox"
                                     />
-                                    <div 
-                                      className={`checkbox-custom ${isChecked ? 'checked' : ''}`}
+                                    <div
+                                      className={`checkbox-custom ${
+                                        isChecked ? "checked" : ""
+                                      }`}
                                     >
-                                      {isChecked && <Check size={12} className="check-icon" />}
+                                      {isChecked && (
+                                        <Check
+                                          size={12}
+                                          className="check-icon"
+                                        />
+                                      )}
                                     </div>
                                     <span className="permission-label">
                                       {permission.label}
@@ -727,18 +649,7 @@ const InviteUserDialog = ({ open, onClose, onInvite }) => {
                     {roles.find((r) => r.id === formData.role)?.label ||
                       formData.role}
                   </div>
-                  <div className="detail-group">
-                    <strong>Department:</strong>{" "}
-                    {formData.department || "Not specified"}
-                  </div>
-                  {formData.designation && (
-                    <div className="detail-group">
-                      <strong>Designation:</strong> {formData.designation}
-                    </div>
-                  )}
-                  <div className="detail-group">
-                    <strong>Date of Joining:</strong> {formData.dateOfJoining}
-                  </div>
+
                   <div className="detail-group">
                     <strong>Permissions:</strong> {formData.permissions.length}{" "}
                     permissions assigned

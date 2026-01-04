@@ -19,15 +19,21 @@ export const TaskPriorityEnum = z
   .enum(["LOW", "NORMAL", "HIGH"])
   .default("NORMAL");
 
+/**
+ * Practice firms enum for billing-from
+ */
+export const PracticeFirmEnum = z.enum([
+  "CA_FIRM",
+  "AFIN_ADVISORY_PRIVATE_LIMITED",
+  "MUTUAL_FUND_ADVISORY",
+]);
+
+/**
+ * CREATE TASK
+ */
 export const createTaskSchema = z
   .object({
     entity_id: z.string().uuid("Invalid entity ID format"),
-
-    entity_registration_id: z
-      .string()
-      .uuid("Invalid registration ID format")
-      .optional()
-      .nullable(),
 
     title: z
       .string()
@@ -35,7 +41,7 @@ export const createTaskSchema = z
       .max(255, "Title too long")
       .trim(),
 
-    description: z.string().max(800).optional().nullable(),
+    description: z.string().max(2000).optional().nullable(),
 
     status: TaskStatusEnum.default("PENDING"),
 
@@ -45,19 +51,25 @@ export const createTaskSchema = z
     end_date: z.coerce.date().optional().nullable(),
     due_date: z.coerce.date().optional().nullable(),
 
-    task_category_id: z.string().uuid("Invalid category ID format"),
-
-    compliance_rule_id: z
+    // optional categorisation
+    task_category_id: z
       .string()
-      .uuid("Invalid compliance rule ID format")
+      .uuid("Invalid category ID format")
       .optional()
       .nullable(),
 
-    period_start: z.coerce.date().optional().nullable(),
-    period_end: z.coerce.date().optional().nullable(),
+    /**
+     * NEW BILLING FIELDS
+     */
+    is_billable: z.boolean().default(false),
 
-    financial_year: z.string().optional().nullable(),
-    period_label: z.string().optional().nullable(),
+    invoice_number: z
+      .string()
+      .max(100, "Invoice number too long")
+      .optional()
+      .nullable(),
+
+    billed_from_firm: PracticeFirmEnum.optional().nullable(),
   })
   // end >= start
   .refine(
@@ -72,10 +84,8 @@ export const createTaskSchema = z
   });
 
 /**
- * QUERY TASKS / LISTING
- * Supports filtering + pagination
+ * LIST / QUERY TASKS
  */
-
 export const listTasksSchema = z
   .object({
     page: z.coerce.number().int().positive().optional().default(1),
@@ -93,20 +103,20 @@ export const listTasksSchema = z
     priority: TaskPriorityEnum.optional(),
 
     task_category_id: z.string().uuid("Invalid category ID").optional(),
-    compliance_rule_id: z.string().uuid("Invalid category ID").optional(),
-
-    registration_type_id: z
-      .string()
-      .uuid("Invalid registration type ID")
-      .optional(),
 
     created_by: z.string().uuid("Invalid user ID").optional(),
     assigned_to: z.string().uuid("Invalid user ID").optional(),
 
+    // date filters
     due_date_from: z.string().datetime().optional(),
     due_date_to: z.string().datetime().optional(),
 
+    // search term
     search: z.string().optional(),
+
+    // new billing filters
+    is_billable: z.boolean().optional(),
+    billed_from_firm: PracticeFirmEnum.optional(),
 
     sort_by: z
       .enum(["due_date", "priority", "created_at"])
@@ -127,7 +137,6 @@ export const listTasksSchema = z
 /**
  * UPDATE TASK
  */
-
 export const TaskUpdateSchema = z
   .object({
     title: z.string().min(1).max(500).trim().optional(),
@@ -138,18 +147,19 @@ export const TaskUpdateSchema = z
     priority: TaskPriorityEnum.optional(),
 
     task_category_id: z.string().uuid().optional().nullable(),
-    entity_registration_id: z.string().uuid().optional().nullable(),
-
-    compliance_rule_id: z.string().uuid().optional().nullable(),
 
     start_date: z.coerce.date().optional().nullable(),
     end_date: z.coerce.date().optional().nullable(),
     due_date: z.coerce.date().optional().nullable(),
 
-    period_start: z.coerce.date().optional().nullable(),
-    period_end: z.coerce.date().optional().nullable(),
-    financial_year: z.string().optional().nullable(),
-    period_label: z.string().optional().nullable(),
+    /**
+     * NEW BILLING FIELDS
+     */
+    is_billable: z.boolean().optional(),
+
+    invoice_number: z.string().max(100).optional().nullable(),
+
+    billed_from_firm: PracticeFirmEnum.optional().nullable(),
   })
   // end >= start
   .refine(

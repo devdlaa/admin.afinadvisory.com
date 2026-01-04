@@ -225,7 +225,7 @@ async function cleanupAuth(uid) {
   try {
     if (uid) {
       await admin.auth().deleteUser(uid);
-      console.log(`Rolled back auth user: ${uid}`);
+  
     }
   } catch (error) {
     console.error(`Failed to rollback auth user ${uid}:`, error);
@@ -315,7 +315,7 @@ export async function POST(req) {
         .auth()
         .getUserByEmail(validatedData.email);
 
-      console.log("User already exists in Auth:", existingAuthUser.uid);
+  
 
       return createErrorResponse(
         "Existing Account: Email Already in Use",

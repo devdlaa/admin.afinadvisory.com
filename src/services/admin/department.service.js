@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/utils/server/db.js";
 import { ConflictError } from "@/utils/server/errors";
 
 const departmentExistsCaseInsensitive = async (name, excludeId = null) => {
