@@ -18,13 +18,11 @@ export async function POST(req) {
 
     const body = schemas.entity.create.parse(await req.json());
 
-    const entity = await createEntity(
-      body,
-      "a46c2752-5a1f-4bd0-9c04-348c31f61ff5"
-    );
+    const entity = await createEntity(body, session.user.id);
 
     return createSuccessResponse("Entity created successfully", entity, 201);
   } catch (e) {
+    console.log(e)
     return handleApiError(e);
   }
 }

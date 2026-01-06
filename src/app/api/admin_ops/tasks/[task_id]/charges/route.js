@@ -38,7 +38,7 @@ export async function POST(request, { params }) {
 
 export async function GET(request, { params }) {
   try {
-    const [permissionError] = await requirePermission(request, "tasks.access");
+    const [permissionError] = await requirePermission(request, "tasks.charge.manage");
     if (permissionError) return permissionError;
 
     const parsed = schemas.taskCharge.list.parse({

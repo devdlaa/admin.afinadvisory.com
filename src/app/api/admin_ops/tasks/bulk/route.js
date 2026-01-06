@@ -13,7 +13,6 @@ import {
 
 import { requirePermission } from "@/utils/server/requirePermission";
 
-// POST → bulk update tasks (status or priority based on query param)
 export async function POST(request) {
   try {
     const [permissionError, session] = await requirePermission(

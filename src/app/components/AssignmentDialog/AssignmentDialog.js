@@ -55,7 +55,7 @@ const AssignmentDialog = ({
   const [cacheTimestamp, setCacheTimestamp] = useState(null);
   const [refreshingUsers, setRefreshingUsers] = useState(false);
 
-  const MAX_ASSIGNED_USERS = 10;
+  const MAX_ASSIGNED_USERS = 5;
   const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes in milliseconds
   const CACHE_KEY = "available_users_cache";
 

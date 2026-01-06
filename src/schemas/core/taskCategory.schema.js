@@ -1,39 +1,29 @@
 import { z } from "zod";
 
-export const createTaskCategorySchema = z.object({
+export const taskCategoryCreateSchema = z.object({
   name: z
     .string()
-    .min(1, "Name is required")
-    .max(50, "Name must not exceed 50 characters")
+    .min(2, "Name must be at least 2 characters")
+    .max(100, "Name too long")
     .trim(),
-  description: z.string().optional().nullable(),
-  is_active: z.boolean().optional().default(true),
+
+  code: z
+    .string()
+    .min(2, "Code must be at least 2 characters")
+    .max(50)
+    .toUpperCase(),
+
+  description: z.string().max(500).optional().nullable(),
 });
 
-export const listTaskCategoriesSchema = z.object({
-  page: z.coerce.number().int().positive().optional().default(1),
-  page_size: z.coerce.number().int().positive().max(50).optional().default(10),
-  is_active: z
-    .enum(["true", "false"])
-    .transform((val) => val === "true")
-    .optional(),
-  search: z.string().optional(),
+export const taskCategoryUpdateSchema = z.object({
+  name: z.string().min(2).max(100).trim().optional(),
+
+  code: z.string().min(2).max(50).toUpperCase().optional(),
+
+  description: z.string().max(500).optional().nullable(),
 });
 
-export const updateTaskCategorySchema = z
-  .object({
-    name: z
-      .string()
-      .min(1, "Name cannot be empty")
-      .max(50, "Name must not exceed 50 characters")
-      .trim()
-      .optional(),
-
-    description: z.string().optional().nullable(),
-
-    is_active: z.boolean().optional(),
-  })
-  .refine((data) => Object.keys(data).length > 0, {
-    message: "At least one field must be provided for update",
-    path: ["_root"], // or put it on a specific field if you prefer
-  });
+export const taskCategoryIdSchema = z.object({
+  id: z.string().uuid("Invalid category ID"),
+});

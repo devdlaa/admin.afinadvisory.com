@@ -1,4 +1,5 @@
 import { createTask, listTasks } from "@/services/task.service";
+
 import { requirePermission } from "@/utils/server/requirePermission";
 import { schemas } from "@/schemas";
 
@@ -36,6 +37,8 @@ export async function GET(request) {
 
     const { searchParams } = new URL(request.url);
 
+
+
     const params = {
       page: searchParams.get("page"),
       page_size: searchParams.get("page_size"),
@@ -53,7 +56,6 @@ export async function GET(request) {
 
       search: searchParams.get("search"),
 
-      // billing filters
       is_billable: searchParams.get("is_billable"),
       billed_from_firm: searchParams.get("billed_from_firm"),
 

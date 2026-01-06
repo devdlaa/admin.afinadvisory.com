@@ -1,30 +1,36 @@
 import { z } from "zod";
 
-/**
- * Basic task-level identifier validation
- */
-export const TaskAssignmentTaskIdSchema = z.object({
+// Schema for creating a comment
+export const TaskCommentCreateSchema = z.object({
   task_id: z.string().uuid("Invalid task ID"),
+  message: z
+    .string()
+    .min(1, "Message cannot be empty")
+    .max(5000, "Message is too long"),
+  mentions: z
+    .array(z.string().uuid("Invalid user ID in mentions"))
+    .optional()
+    .default([]),
 });
 
-export const BulkAssignTaskSchema = z.object({
-  task_ids: z
-    .array(z.string().uuid("Invalid task ID format"))
-    .min(1, "At least one task ID is required"),
-  user_ids: z
-    .array(z.string().uuid("Invalid user ID format"))
-    .min(1, "At least one user ID is required"),
+// Schema for updating a comment
+export const TaskCommentUpdateSchema = z.object({
+  task_id: z.string().uuid("Invalid task ID"),
+  comment_id: z.string().min(1, "Comment ID is required"),
+  message: z
+    .string()
+    .min(1, "Message cannot be empty")
+    .max(5000, "Message is too long"),
 });
 
-/**
- * Sync semantics
- * The API you wrote uses:
- *  - user_ids[]
- *  - assigned_to_all: boolean
- */
-export const TaskAssignmentSyncSchema = z.object({
-  task_id: z.string().uuid(),
-  user_ids: z.array(z.string().uuid("Invalid user ID")).default([]),
-  assigned_to_all: z.boolean().default(false),
-  assignment_source: z.string().max(100).optional().nullable(),
+// Schema for querying comments
+export const TaskCommentQuerySchema = z.object({
+  task_id: z.string().uuid("Invalid task ID"),
+  limit: z
+    .string()
+    .optional()
+    .transform((val) => (val ? parseInt(val, 10) : 20))
+    .pipe(z.number().int().min(1).max(100)),
+  cursor: z.string().optional(),
+  type: z.enum(["COMMENT", "ACTIVITY", "ALL"]).optional().default("ALL"),
 });

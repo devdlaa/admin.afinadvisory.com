@@ -117,7 +117,7 @@ enum IndianState {
 
 enum EntityType {
   INDIVIDUAL
-  UNREGISTERED_INDIVIDUAL
+  UN_REGISTRED
   PRIVATE_LIMITED_COMPANY
   PUBLIC_LIMITED_COMPANY
   ONE_PERSON_COMPANY
@@ -233,6 +233,7 @@ model AdminUser {
   last_activity_tasks      Task[]                  @relation("last_activity_admin")
   updated_tasks            Task[]                  @relation("task_updator") 
   permissions              AdminUserPermission[]
+  pushTokens    UserPushToken[]
  
   @@index([email]) 
   @@index([name])
@@ -241,13 +242,7 @@ model AdminUser {
   @@index([status])
 }
 
-model AdminUserCounter {
-  id            String   @id
-  current_count Int      @default(0)
-  updated_at    DateTime @updatedAt
 
-  @@map("admin_user_counter")
-}
 
 model AdminUserPermission {
   admin_user_id String @db.Uuid
@@ -274,7 +269,13 @@ model Permission {
   adminUserPermissions AdminUserPermission[]
 }
 
+model AdminUserCounter {
+  id            String   @id
+  current_count Int      @default(0)
+  updated_at    DateTime @updatedAt
 
+  @@map("admin_user_counter")
+}
 
 
 
@@ -302,10 +303,29 @@ model TaskCharge {
 
 
 
+model TaskCategory {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @unique
+  code        String   @unique
+  description String?
+
+
+
+  created_at  DateTime @default(now())
+  created_by  String   @db.Uuid
+
+  updated_at  DateTime @updatedAt
+  updated_by  String   @db.Uuid
+
+  tasks       Task[]
+}
+
 
 model Task {
   id               String       @id @default(uuid()) @db.Uuid
-  entity_id        String       @db.Uuid
+
+  entity_id        String?      @db.Uuid
+  task_category_id String?      @db.Uuid
 
   title            String
   description      String?
@@ -317,12 +337,14 @@ model Task {
   end_date         DateTime?
   due_date         DateTime?
 
-  // NEW BILLING FLAGS
+  // BILLING
   is_billable      Boolean      @default(false)
   invoice_number   String?
-  billed_from_firm PracticeFirm?   // new enum below
+  billed_from_firm PracticeFirm?
+  assigned_to_all Boolean @default(false)
 
 
+  // ACTIVITY
   last_activity_at DateTime?
   last_activity_by String?      @db.Uuid
 
@@ -331,16 +353,28 @@ model Task {
   updated_at       DateTime     @updatedAt
   updated_by       String       @db.Uuid
 
-  entity              Entity        @relation(fields: [entity_id], references: [id], onDelete: Cascade)
+  // relations
+  entity              Entity?        @relation(fields: [entity_id], references: [id], onDelete: SetNull)
+  category            TaskCategory?  @relation(fields: [task_category_id], references: [id], onDelete: SetNull)
+
   creator             AdminUser     @relation("task_creator", fields: [created_by], references: [id])
   updator             AdminUser     @relation("task_updator", fields: [updated_by], references: [id])
   last_activity_admin AdminUser?    @relation("last_activity_admin", fields: [last_activity_by], references: [id])
 
   assignments         TaskAssignment[]
-  charges             TaskCharge[]   // NEW CHILD TABLE
+  charges             TaskCharge[]
+  checklist_items     TaskChecklistItem[]
+
+  // in the near future:
+  // activities       TaskActivity[]
+  last_comment_at   DateTime?
+  last_commented_by String? @db.Uuid
+  comment_count     Int      @default(0)
+
 
   @@index([status])
   @@index([entity_id])
+  @@index([task_category_id])
   @@index([created_by])
   @@index([due_date])
   @@index([created_at])
@@ -349,6 +383,24 @@ model Task {
 
 
 
+
+model TaskChecklistItem {
+  id        String   @id @default(uuid()) @db.Uuid
+  task_id   String   @db.Uuid
+  title     String
+  is_done   Boolean  @default(false)
+
+  order     Int      @default(0)
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  created_by String   @db.Uuid
+  updated_by String   @db.Uuid
+
+  task Task @relation(fields: [task_id], references: [id], onDelete: Cascade)
+
+  @@index([task_id])
+}
 
 
 
@@ -369,4 +421,19 @@ model TaskAssignment {
   @@index([assigned_by])
   @@index([assigned_at])
   @@index([admin_user_id, task_id])
+}
+
+
+
+model UserPushToken {
+  id         String   @id @default(uuid())
+  user_id    String   @db.Uuid
+  token      String   @unique
+  device     String?  // browser, ios, android label
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  user AdminUser @relation(fields: [user_id], references: [id])
+
+  @@index([user_id])
 }

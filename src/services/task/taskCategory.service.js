@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import {prisma} from "@/utils/server/db.js";
 import {
   NotFoundError,
   ConflictError,
@@ -6,7 +6,7 @@ import {
   BadRequestError,
 } from "../../utils/server/errors.js";
 
-const prisma = new PrismaClient();
+
 
 const toTitleCase = (value) =>
   value
@@ -23,7 +23,7 @@ export const createTaskCategory = async (data) => {
     const formattedName = toTitleCase(data.name);
 
     // Allow only ASCII letters, numbers, and spaces
-    if (!/^[A-Za-z0-9 ]+$/.test(formattedName)) {
+    if (!/^[A-Za-z0-9 _\-\/]+$/.test(formattedName)) {
       throw new BadRequestError(
         "Category name can only contain letters, numbers, and spaces"
       );
@@ -41,7 +41,6 @@ export const createTaskCategory = async (data) => {
       data: {
         name: formattedName,
         description: data.description?.trim() || null,
-        is_active: data.is_active ?? true,
       },
     });
 
@@ -97,7 +96,6 @@ export const updateTaskCategory = async (category_id, data) => {
           data.description !== undefined
             ? data.description.trim() || null
             : undefined,
-        is_active: data.is_active ?? false,
       },
     });
 
@@ -160,20 +158,7 @@ export const listTaskCategories = async (filters = {}) => {
   const pageSize =
     Number(filters.page_size) > 0 ? Number(filters.page_size) : 10;
 
-  // boolean normalization
-  let isActive;
-  if (filters.is_active !== undefined) {
-    if (filters.is_active === true || filters.is_active === "true")
-      isActive = true;
-    if (filters.is_active === false || filters.is_active === "false")
-      isActive = false;
-  }
-
   const where = {};
-
-  if (isActive !== undefined) {
-    where.is_active = isActive;
-  }
 
   if (filters.search && filters.search.trim()) {
     where.OR = [
@@ -188,7 +173,7 @@ export const listTaskCategories = async (filters = {}) => {
       include: {
         _count: { select: { tasks: true } },
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: { created_at: "desc" },
       skip: (page - 1) * pageSize,
       take: pageSize,
     }),
@@ -207,12 +192,4 @@ export const listTaskCategories = async (filters = {}) => {
       has_more: page < totalPages,
     },
   };
-};
-
-export {
-  createTaskCategory,
-  updateTaskCategory,
-  deleteTaskCategory,
-  getTaskCategoryById,
-  listTaskCategories,
 };

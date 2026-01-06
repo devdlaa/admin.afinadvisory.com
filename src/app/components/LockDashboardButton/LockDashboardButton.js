@@ -3,7 +3,8 @@
 import { useSession } from "next-auth/react";
 import { useState } from "react";
 import { Lock, Loader2, Check } from "lucide-react";
-import "./LockDashboardButton.scss";
+import NotificationBell from "../Notifications/NotificationBell";
+import styles from "./DashboardActions.module.scss";
 
 export default function LockDashboardButton() {
   const { data: session, update } = useSession();
@@ -15,11 +16,9 @@ export default function LockDashboardButton() {
       setLoading(true);
       await update({ isDashboardLocked: true });
 
-      // Show success state briefly
       setSuccess(true);
       setLoading(false);
 
-      // Redirect after a short delay to show success feedback
       setTimeout(() => {
         window.location.href = "/dashboard/locked";
       }, 800);
@@ -35,26 +34,25 @@ export default function LockDashboardButton() {
   if (!session || session.user?.isDashboardLocked) return null;
 
   return (
-    <button
-      onClick={handleLock}
-      disabled={loading || success}
-      className={`lock-dashboard-btn ${
-        success ? "lock-dashboard-btn--success" : ""
-      }`}
-      title="Lock Dashboard"
-    >
-      <div className="lock-dashboard-btn__icon">
+    <div className={styles.dashboardActions}>
+      <NotificationBell />
+
+      <button
+        onClick={handleLock}
+        disabled={loading || success}
+        className={`${styles.dashboardActions__btn} ${
+          success ? styles.dashboardActions__btn-success : ""
+        }`}
+        title="Lock Dashboard"
+      >
         {loading ? (
-          <Loader2 size={18} className="lock-dashboard-btn__spinner" />
+          <Loader2 size={20} className={styles.dashboardActions__spinner} />
         ) : success ? (
-          <Check size={18} />
+          <Check size={20} />
         ) : (
-          <Lock size={18} />
+          <Lock size={20} />
         )}
-      </div>
-      <span className="lock-dashboard-btn__text">
-        {loading ? "Locking..." : success ? "Locked!" : "Lock"}
-      </span>
-    </button>
+      </button>
+    </div>
   );
 }

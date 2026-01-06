@@ -1,0 +1,110 @@
+.dashboardActions {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 1000;
+
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  background: #dbdbdb;
+  padding: 10px;
+  border-radius: 91px;
+  outline: 1px solid #0000004f;
+  box-shadow: rgba(0, 0, 0, 0.25) 0px 0.0625em 0.0625em,
+    rgba(0, 0, 0, 0.25) 0px 0.125em 0.5em,
+    rgba(255, 255, 255, 0.1) 0px 0px 0px 1px inset;
+  &__btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 48px;
+    height: 48px;
+
+    background: white;
+    color: #64748b;
+    border: 2px solid #e2e8f0;
+    border-radius: 50%;
+
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+      0 2px 4px -1px rgba(0, 0, 0, 0.06);
+
+    &:hover:not(:disabled) {
+      color: #0f172a;
+      border-color: #cbd5e1;
+      background: #f8fafc;
+    }
+
+    &:active:not(:disabled) {
+      transform: translateY(0) scale(0.98);
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+        0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+
+    &:disabled {
+      cursor: not-allowed;
+      opacity: 0.6;
+      transform: none;
+    }
+
+    &--success {
+      background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+      color: white;
+      border: none;
+
+      &:hover:not(:disabled) {
+        background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+      }
+    }
+  }
+
+  &__spinner {
+    animation: spin 1s linear infinite;
+  }
+
+  // Responsive adjustments
+  @media (max-width: 640px) {
+    bottom: 20px;
+    right: 20px;
+    gap: 10px;
+
+    &__btn {
+      width: 44px;
+      height: 44px;
+
+      svg {
+        width: 18px;
+        height: 18px;
+      }
+    }
+  }
+
+  // Dark mode support
+  @media (prefers-color-scheme: dark) {
+    &__btn {
+      background: #1e293b;
+      color: #94a3b8;
+      border-color: #334155;
+
+      &:hover:not(:disabled) {
+        color: #f1f5f9;
+        border-color: #475569;
+        background: #0f172a;
+      }
+    }
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}

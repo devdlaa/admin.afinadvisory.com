@@ -9,7 +9,7 @@ const CONFIG = {
   PROTECTED_ROUTES: ["/dashboard"],
 
   // Auth pages (redirect authenticated users away from these)
-  AUTH_PAGES: ["/login", "/user-onboarding","/reset-password"],
+  AUTH_PAGES: ["/login", "/user-onboarding", "/reset-password"],
 
   // Permission-based route access
   PERMISSION_ROUTES: {
@@ -32,6 +32,7 @@ const CONFIG = {
     "/api/verify-turnstile",
     "/api/admin/users/unlock-dashboard",
     "/api/admin_ops/entity/unlock-dashboard",
+    "/api/admin_ops/notifications/test",
   ],
 
   // Default redirects

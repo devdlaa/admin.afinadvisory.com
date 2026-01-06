@@ -41,7 +41,12 @@ export const createTaskCharge = async (taskId, data) => {
     },
   });
 
-  return fetchChargesForTask(taskId);
+  const charges = await fetchChargesForTask(taskId);
+
+  return {
+    task_id: taskId,
+    charges,
+  };
 };
 
 // LIST charges
@@ -74,5 +79,9 @@ export const deleteTaskCharge = async (id) => {
     where: { id },
   });
 
-  return fetchChargesForTask(charge.task_id);
+  const charges = fetchChargesForTask(charge.task_id);
+  return {
+    task_id: taskId,
+    charges,
+  };
 };

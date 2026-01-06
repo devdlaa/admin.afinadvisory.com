@@ -38,6 +38,17 @@ import {
   listTaskChargesSchema,
   updateTaskChargeSchema,
 } from "./core/taskCharge.schema.js";
+import {
+  taskCategoryCreateSchema,
+  taskCategoryIdSchema,
+  taskCategoryUpdateSchema,
+} from "./core/taskCategory.schema.js";
+import {
+  taskCommentCreateSchema,
+  taskCommentListQuerySchema,
+  taskCommentUpdateSchema,
+} from "./activity/taskComment.schema.js";
+import { checklistSyncSchema } from "./core/taskChecklist.js";
 
 // ============================================================================
 // Structured Export Object
@@ -88,6 +99,19 @@ export const schemas = Object.freeze({
     sync: TaskAssignmentSyncSchema,
     bulk: BulkAssignTaskSchema,
   },
+  taskCategory: {
+    create: taskCategoryCreateSchema,
+    update: taskCategoryUpdateSchema,
+    id: taskCategoryIdSchema,
+  },
+  taskComment: {
+    create: taskCommentCreateSchema,
+    update: taskCommentUpdateSchema,
+    query: taskCommentListQuerySchema,
+  },
+  taskChecklist : {
+     sync : checklistSyncSchema
+  }
 });
 
 // Zod validation schema for UUID

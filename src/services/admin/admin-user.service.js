@@ -665,3 +665,16 @@ export async function toggleAdminUserActiveStatus({
 
   return sanitizeAdminUser(updated);
 }
+
+export async function getAllSuperAdminIds() {
+  const users = await prisma.adminUser.findMany({
+    where: {
+      admin_role: "SUPER_ADMIN",
+      deleted_at: null,
+      status: "ACTIVE",
+    },
+    select: { id: true },
+  });
+
+  return users.map((u) => u.id);
+}

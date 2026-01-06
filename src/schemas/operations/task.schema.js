@@ -33,7 +33,11 @@ export const PracticeFirmEnum = z.enum([
  */
 export const createTaskSchema = z
   .object({
-    entity_id: z.string().uuid("Invalid entity ID format"),
+    entity_id: z
+      .string()
+      .uuid("Invalid entity ID format")
+      .optional()
+      .nullable(),
 
     title: z
       .string()
@@ -112,7 +116,10 @@ export const listTasksSchema = z
     due_date_to: z.string().datetime().optional(),
 
     // search term
-    search: z.string().optional(),
+    search: z
+      .string()
+      .min(3, "Search must be at least 3 characters")
+      .optional(),
 
     // new billing filters
     is_billable: z.boolean().optional(),
