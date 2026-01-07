@@ -75,8 +75,10 @@ const CustomDropdown = ({
     setSearchQuery("");
   };
 
-  const handleAddNew = () => {
+  const handleAddNew = (e) => {
+    e.stopPropagation();
     if (onAddNew && !isAddingNew) {
+      setIsOpen(false); // Close dropdown when opening management
       onAddNew();
     }
   };
@@ -150,11 +152,13 @@ const CustomDropdown = ({
       </button>
 
       {isOpen && !isLoading && (
-        <div 
-          className={styles.dropdownMenu} 
+        <div
+          className={styles.dropdownMenu}
           role="listbox"
           style={{
             maxHeight: maxHeight || undefined,
+            display: "flex",
+            flexDirection: "column",
           }}
         >
           {shouldShowSearch && (
@@ -173,7 +177,14 @@ const CustomDropdown = ({
             </div>
           )}
 
-          <div className={styles.optionsContainer}>
+          <div
+            className={styles.optionsContainer}
+            style={{
+              flex: 1,
+              overflowY: "auto",
+              minHeight: 0,
+            }}
+          >
             {filteredOptions.length > 0 ? (
               filteredOptions.map((option) => {
                 const isSelected = option.value === selectedValue;
@@ -213,7 +224,16 @@ const CustomDropdown = ({
           </div>
 
           {onAddNew && (
-            <div className={styles.addNewContainer}>
+            <div
+              className={styles.addNewContainer}
+              style={{
+                flexShrink: 0,
+                position: "sticky",
+                bottom: 0,
+                backgroundColor: "white",
+                zIndex: 10,
+              }}
+            >
               <button
                 type="button"
                 className={styles.addNewButton}

@@ -1,0 +1,65 @@
+.tasksPage {
+  padding: 24px;
+  max-width: 1470px;
+  margin: 0 auto;
+  min-height: 100vh;
+}
+
+// Page Header
+.pageHeader {
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.headerContent {
+  h1 {
+    font-size: 28px;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0 0 8px;
+    letter-spacing: -0.5px;
+  }
+
+  p {
+    font-size: 14px;
+    color: #64748b;
+    margin: 0;
+  }
+}
+
+// Responsive
+@media (max-width: 1024px) {
+  .tasksPage {
+    padding: 20px 16px;
+  }
+
+  .pageHeader {
+    .headerContent {
+      h1 {
+        font-size: 24px;
+      }
+
+      p {
+        font-size: 13px;
+      }
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .tasksPage {
+    padding: 16px 12px;
+  }
+
+  .pageHeader {
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+
+    .headerContent {
+      h1 {
+        font-size: 22px;
+      }
+    }
+  }
+}

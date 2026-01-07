@@ -12,6 +12,9 @@ import sessionReducer from "./slices/sessionSlice";
 import toastMiddleware from "./toastMiddleware";
 import entityReducer from "./slices/entitySlice";
 import notificationReducer from "./slices/notificationSlice";
+import taskReducer from "./slices/taskSlice";
+
+import taskCategoryReducer from "./slices/taskCategorySlice";
 export const store = configureStore({
   reducer: {
     session: sessionReducer,
@@ -26,6 +29,8 @@ export const store = configureStore({
     paymentLinks: paymentLinksPageReducer,
     entity: entityReducer,
     notifications: notificationReducer,
+    taskCategory: taskCategoryReducer,
+    task: taskReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat(toastMiddleware),

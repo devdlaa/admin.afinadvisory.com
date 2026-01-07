@@ -51,20 +51,7 @@ const ServiceBookingQuickView = ({
     return statusColors[status] || "sbqv__status--default";
   };
 
-  const getPaymentMethodIcon = (method) => {
-    switch (method) {
-      case "upi":
-        return "📱";
-      case "card":
-        return "💳";
-      case "netbanking":
-        return "🏦";
-      case "wallet":
-        return "👛";
-      default:
-        return "💰";
-    }
-  };
+
 
   return (
     <div className="sbqv-overlay">

@@ -81,21 +81,37 @@ const updateEntity = async (entity_id, data, updated_by) => {
     if (entity.deleted_at)
       throw new ValidationError("Cannot update deleted entity");
 
-    const nextType = data.entity_type ?? entity.entity_type;
-    const nextPAN = data.pan?.toUpperCase() ?? entity.pan;
+    // detect if client actually sent pan key
+    const panProvided = Object.prototype.hasOwnProperty.call(data, "pan");
+
+    // compute next TYPE
+    const nextType = Object.prototype.hasOwnProperty.call(data, "entity_type")
+      ? data.entity_type
+      : entity.entity_type;
+
+    // compute next PAN honoring null clearing
+    let nextPAN = entity.pan;
+
+    if (panProvided) {
+      if (data.pan === null) {
+        nextPAN = null; // explicit clear
+      } else {
+        nextPAN = data.pan.toUpperCase();
+      }
+    }
 
     // enforce conditional PAN rule
     if (nextType !== "UN_REGISTRED" && !nextPAN) {
       throw new ValidationError("PAN is required for this entity type");
     }
 
-    // validate PAN only when present
+    // validate PAN only when present and non-null
     if (nextPAN) {
       validatePAN(nextPAN);
     }
 
     // uniqueness check if PAN changed
-    if (nextPAN && nextPAN !== entity.pan) {
+    if (panProvided && nextPAN !== entity.pan && nextPAN) {
       const panExists = await tx.entity.findUnique({
         where: { pan: nextPAN },
       });
@@ -108,19 +124,71 @@ const updateEntity = async (entity_id, data, updated_by) => {
     const updatedEntity = await tx.entity.update({
       where: { id: entity_id },
       data: {
-        entity_type: data.entity_type ?? undefined,
-        name: data.name ?? undefined,
-        pan: nextPAN ?? undefined,
-        email: data.email ?? undefined,
-        primary_phone: data.primary_phone ?? undefined,
-        contact_person: data.contact_person ?? undefined,
-        secondary_phone: data.secondary_phone ?? undefined,
-        address_line1: data.address_line1 ?? undefined,
-        address_line2: data.address_line2 ?? undefined,
-        city: data.city ?? undefined,
-        state: data.state ?? undefined,
-        pincode: data.pincode ?? undefined,
-        status: data.status ?? undefined,
+        entity_type: Object.prototype.hasOwnProperty.call(data, "entity_type")
+          ? data.entity_type
+          : undefined,
+
+        name: Object.prototype.hasOwnProperty.call(data, "name")
+          ? data.name
+          : undefined,
+
+        pan: panProvided ? nextPAN : undefined,
+
+        email: Object.prototype.hasOwnProperty.call(data, "email")
+          ? data.email
+          : undefined,
+
+        primary_phone: Object.prototype.hasOwnProperty.call(
+          data,
+          "primary_phone"
+        )
+          ? data.primary_phone
+          : undefined,
+
+        contact_person: Object.prototype.hasOwnProperty.call(
+          data,
+          "contact_person"
+        )
+          ? data.contact_person
+          : undefined,
+
+        secondary_phone: Object.prototype.hasOwnProperty.call(
+          data,
+          "secondary_phone"
+        )
+          ? data.secondary_phone
+          : undefined,
+
+        address_line1: Object.prototype.hasOwnProperty.call(
+          data,
+          "address_line1"
+        )
+          ? data.address_line1
+          : undefined,
+
+        address_line2: Object.prototype.hasOwnProperty.call(
+          data,
+          "address_line2"
+        )
+          ? data.address_line2
+          : undefined,
+
+        city: Object.prototype.hasOwnProperty.call(data, "city")
+          ? data.city
+          : undefined,
+
+        state: Object.prototype.hasOwnProperty.call(data, "state")
+          ? data.state
+          : undefined,
+
+        pincode: Object.prototype.hasOwnProperty.call(data, "pincode")
+          ? data.pincode
+          : undefined,
+
+        status: Object.prototype.hasOwnProperty.call(data, "status")
+          ? data.status
+          : undefined,
+
         updated_by,
       },
       include: {

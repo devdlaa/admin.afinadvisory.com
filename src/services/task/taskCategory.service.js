@@ -1,4 +1,4 @@
-import {prisma} from "@/utils/server/db.js";
+import { prisma } from "@/utils/server/db.js";
 import {
   NotFoundError,
   ConflictError,
@@ -6,7 +6,18 @@ import {
   BadRequestError,
 } from "../../utils/server/errors.js";
 
+const generateCategoryCode = (name) => {
+  return name
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .replace(/_+/g, "_");
+};
 
+const normalizeForDuplicateCheck = (name) => {
+  return name.trim().toUpperCase().replace(/\s+/g, " ");
+};
 
 const toTitleCase = (value) =>
   value
@@ -14,7 +25,7 @@ const toTitleCase = (value) =>
     .toLowerCase()
     .replace(/\b\w/g, (char) => char.toUpperCase());
 
-export const createTaskCategory = async (data) => {
+export const createTaskCategory = async (data, created_by) => {
   return prisma.$transaction(async (tx) => {
     if (!data.name || !data.name.trim()) {
       throw new BadRequestError("Task category name is required");
@@ -22,25 +33,46 @@ export const createTaskCategory = async (data) => {
 
     const formattedName = toTitleCase(data.name);
 
-    // Allow only ASCII letters, numbers, and spaces
     if (!/^[A-Za-z0-9 _\-\/]+$/.test(formattedName)) {
       throw new BadRequestError(
-        "Category name can only contain letters, numbers, and spaces"
+        "Category name can only contain letters, numbers, spaces, hyphens, underscores, and slashes"
       );
     }
 
-    const existingCategory = await tx.taskCategory.findUnique({
-      where: { name: formattedName },
+    const generatedCode = generateCategoryCode(formattedName);
+
+    const normalizedName = normalizeForDuplicateCheck(formattedName);
+
+    const existingByName = await tx.taskCategory.findFirst({
+      where: {
+        name: {
+          mode: "insensitive",
+          equals: normalizedName,
+        },
+      },
     });
 
-    if (existingCategory) {
+    if (existingByName) {
       throw new ConflictError("Task category with this name already exists");
+    }
+
+    const existingByCode = await tx.taskCategory.findUnique({
+      where: { code: generatedCode },
+    });
+
+    if (existingByCode) {
+      throw new ConflictError(
+        "A category with a similar name already exists (code conflict)"
+      );
     }
 
     const category = await tx.taskCategory.create({
       data: {
         name: formattedName,
+        code: generatedCode,
         description: data.description?.trim() || null,
+        created_by: created_by,
+        updated_by: created_by,
       },
     });
 
@@ -48,7 +80,7 @@ export const createTaskCategory = async (data) => {
   });
 };
 
-export const updateTaskCategory = async (category_id, data) => {
+export const updateTaskCategory = async (category_id, data, created_by) => {
   return prisma.$transaction(async (tx) => {
     const category = await tx.taskCategory.findUnique({
       where: { id: category_id },
@@ -59,6 +91,7 @@ export const updateTaskCategory = async (category_id, data) => {
     }
 
     let formattedName;
+    let generatedCode;
 
     if (data.name !== undefined) {
       if (!data.name.trim()) {
@@ -67,22 +100,49 @@ export const updateTaskCategory = async (category_id, data) => {
 
       formattedName = toTitleCase(data.name);
 
-      // Allow only ASCII letters, numbers, and spaces
-      if (!/^[A-Za-z0-9 ]+$/.test(formattedName)) {
+      // Allow only ASCII letters, numbers, spaces, hyphens, underscores, slashes
+      if (!/^[A-Za-z0-9 _\-\/]+$/.test(formattedName)) {
         throw new BadRequestError(
-          "Category name can only contain letters, numbers, and spaces"
+          "Category name can only contain letters, numbers, spaces, hyphens, underscores, and slashes"
         );
       }
 
+      // Generate new code
+      generatedCode = generateCategoryCode(formattedName);
+
       // Check uniqueness only if name actually changed
-      if (formattedName !== category.name) {
-        const existingCategory = await tx.taskCategory.findUnique({
-          where: { name: formattedName },
+      const normalizedNewName = normalizeForDuplicateCheck(formattedName);
+      const normalizedOldName = normalizeForDuplicateCheck(category.name);
+
+      if (normalizedNewName !== normalizedOldName) {
+        // Check for duplicate name
+        const existingByName = await tx.taskCategory.findFirst({
+          where: {
+            id: { not: category_id },
+            name: {
+              mode: "insensitive",
+              equals: normalizedNewName,
+            },
+          },
         });
 
-        if (existingCategory) {
+        if (existingByName) {
           throw new ConflictError(
             "Task category with this name already exists"
+          );
+        }
+
+        // Check for duplicate code
+        const existingByCode = await tx.taskCategory.findFirst({
+          where: {
+            id: { not: category_id },
+            code: generatedCode,
+          },
+        });
+
+        if (existingByCode) {
+          throw new ConflictError(
+            "A category with a similar name already exists (code conflict)"
           );
         }
       }
@@ -92,10 +152,13 @@ export const updateTaskCategory = async (category_id, data) => {
       where: { id: category_id },
       data: {
         name: formattedName,
+        code: generatedCode,
         description:
           data.description !== undefined
             ? data.description.trim() || null
             : undefined,
+        created_by: created_by,
+        updated_by: created_by,
       },
     });
 
