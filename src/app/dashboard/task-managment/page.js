@@ -4,13 +4,14 @@ import { useState, useEffect, useCallback, useMemo, Suspense } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useRouter, useSearchParams } from "next/navigation";
 
-import TaskTable from "./components/TasksTable/TasksTable";
-import TaskActionBar from "./components/TaskActionBar/TaskActionBar";
-import TaskCreateDialog from "./components/TaskCreateDialog/TaskCreateDialog";
-import TaskManageDrawer from "./components/TaskManageDrawer/TaskManageDrawer";
-import TaskCategoryBoard from "@/app/components/TaskCategoryBoard/TaskCategoryBoard";
-import TaskWorkload from "./components/TaskWorkload/TaskWorkload";
-import TaskStatusBoard from "./components/TaskStatusBoard/TaskStatusBoard";
+import TaskTable from "./components/TasksTable/TasksTable.jsx";
+import TaskActionBar from "./components/TaskActionBar/TaskActionBar.jsx";
+
+import TaskManageDrawer from "./components/TaskManageDrawer/TaskManageDrawer.jsx";
+import TaskCategoryBoard from "@/app/components/TaskCategoryBoard/TaskCategoryBoard.jsx";
+import TaskWorkload from "./components/TaskWorkload/TaskWorkload.jsx";
+import TaskStatusBoard from "./components/TaskStatusBoard/TaskStatusBoard.jsx";
+import TaskCreateDialog from "./components/TaskCreateDialog/TaskCreateDialog.jsx";
 
 import {
   openCreateDialog,
