@@ -4,7 +4,7 @@ import { requirePermission } from "@/utils/server/requirePermission";
 import {
   createSuccessResponse,
   createErrorResponse,
-} from "@/utils/resposeHandlers";
+} from "@/utils/server/apiResponse";
 
 // Validation schema for query parameters
 const deleteInfluencerSchema = z.object({

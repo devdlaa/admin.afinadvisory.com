@@ -40,11 +40,9 @@ import {
 import "./ServiceBookingPage.scss";
 import InfoBanner from "@/app/components/InfoBanner/InfoBanner";
 import { Button } from "@/app/components/TinyLib/TinyLib";
-import OtpDialog from "@/app/components/OtpDialog/OtpDialog";
-import { OTP_CONFIGS } from "@/utils/otpConfigs";
-import { useOtpDialog } from "@/hooks/useOtpDialog";
+
 import { useSelector, useDispatch } from "react-redux";
-import { downloadInvoiceInNewWindow } from "@/utils/invoiceUtil";
+
 import Permission from "@/app/components/Permission";
 import AssignmentDialog from "@/app/components/AssignmentDialog/AssignmentDialog";
 import ConfirmationDialog from "@/app/components/ConfirmationDialog/ConfirmationDialog";
@@ -293,7 +291,7 @@ export default function ServiceBookingPage() {
   const [isAssignmentBoxActive, setAssignmentBox] = useState(false);
   const [invoiceDownloading, setInvoiceDownloading] = useState(false);
   const [error, setError] = useState(null);
-  const { isOpen, config, openOtpDialog, closeOtpDialog } = useOtpDialog();
+
   const permissions = useSelector(selectPermissions);
 
   // Check if user has permission to assign members
@@ -396,15 +394,7 @@ export default function ServiceBookingPage() {
       alert("Not currentLoggedInUserID, Error");
     }
 
-    openOtpDialog(
-      OTP_CONFIGS.APPROVE_REFUND(
-        serviceBookingId,
-        serviceAttchedPaymentId,
-        currentLoggedInUserID,
-        service,
-        user
-      )
-    );
+   
   };
   const processedSteps = generateAdminSteps(
     bookingData?.progress_steps,
@@ -434,7 +424,7 @@ export default function ServiceBookingPage() {
     if (isInvoiceDownloadAvailable) {
       if (bookingData) {
         setInvoiceDownloading(true);
-        downloadInvoiceInNewWindow(bookingData);
+     
         setInvoiceDownloading(false);
       }
     }
@@ -507,17 +497,7 @@ export default function ServiceBookingPage() {
         config={assignmentConfig}
         hasPermission={hasAssignPermission}
       />
-      <OtpDialog
-        isOpen={isOpen}
-        onClose={closeOtpDialog}
-        config={config}
-        onSuccess={(data) => {
-          console.log("OTP Verified Successfully");
-        }}
-        onError={(error) => {
-          console.error("OTP Verification Failed");
-        }}
-      />
+      
 
       <ConfirmationDialog
         isOpen={showConfirmationBox}

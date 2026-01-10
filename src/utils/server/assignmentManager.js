@@ -1,5 +1,5 @@
 import admin from "@/lib/firebase-admin";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/utils/server/db";
 import { z } from "zod";
 
 // client sends only admin user id

@@ -1,6 +1,6 @@
 "use client";
 import { Building2, Tag, Users } from "lucide-react";
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, Suspense } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -37,7 +37,8 @@ import { fetchUsers } from "@/store/slices/userSlice";
 
 import style from "./page.module.scss";
 
-export default function TasksPage() {
+// Separate component that uses useSearchParams
+function TasksPageContent() {
   const dispatch = useDispatch();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -339,7 +340,7 @@ export default function TasksPage() {
         isTaskLoading={tasksLoading}
       />
 
-      {/* NEW: Task Status Board */}
+      {/* Task Status Board */}
       <TaskStatusBoard statusCounts={statusCounts} loading={tasksLoading} />
 
       {showWorkload && <TaskWorkload />}
@@ -363,5 +364,14 @@ export default function TasksPage() {
         mode="list"
       />
     </div>
+  );
+}
+
+// Main component with Suspense boundary
+export default function TasksPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <TasksPageContent />
+    </Suspense>
   );
 }

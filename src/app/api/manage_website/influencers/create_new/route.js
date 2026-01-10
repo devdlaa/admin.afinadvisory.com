@@ -7,7 +7,7 @@ import { SEND_EMAIL } from "@/utils/server/sendemail";
 import {
   createSuccessResponse,
   createErrorResponse,
-} from "@/utils/resposeHandlers";
+} from "@/utils/server/apiResponse";
 
 import { requirePermission } from "@/utils/server/requirePermission";
 

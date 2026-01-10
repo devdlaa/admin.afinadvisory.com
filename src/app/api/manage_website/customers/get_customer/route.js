@@ -1,6 +1,7 @@
 import admin from "@/lib/firebase-admin";
 import { z } from "zod";
-import { createSuccessResponse, createErrorResponse } from "@/utils/resposeHandlers";
+import {   createSuccessResponse,
+  createErrorResponse, } from "@/utils/server/apiResponse";
 
 const db = admin.firestore();
 

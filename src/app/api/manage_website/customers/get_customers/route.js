@@ -1,10 +1,7 @@
 import { NextResponse } from "next/server";
 import admin from "@/lib/firebase-admin";
 import { z } from "zod";
-import {
-  createSuccessResponse,
-  createErrorResponse,
-} from "@/utils/resposeHandlers";
+
 const db = admin.firestore();
 
 // Zod schema for pagination input

@@ -3,7 +3,7 @@ import { z } from "zod";
 import {
   createSuccessResponse,
   createErrorResponse,
-} from "@/utils/resposeHandlers";
+} from "@/utils/server/apiResponse";
 
 const db = admin.firestore();
 

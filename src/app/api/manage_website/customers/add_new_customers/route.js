@@ -1,15 +1,16 @@
 import admin from "@/lib/firebase-admin";
+
 import {
   createSuccessResponse,
   createErrorResponse,
-} from "@/utils/resposeHandlers";
+} from "@/utils/server/apiResponse";
 import { requirePermission } from "@/utils/server/requirePermission";
 import { auth as clientAuth } from "@/utils/server/auth";
 
 const db = admin.firestore();
 const auth = admin.auth();
 
-import { syncClientToAlgolia } from "@/lib/algoliaSync";
+
 
 import { AddUserWithMandatoryEmailSchema as AddUserSchema } from "@/app/schemas/ClientSchema";
 
@@ -297,7 +298,6 @@ export async function POST(req) {
       // Clean up Firebase Auth user if Firestore fails
       try {
         await auth.deleteUser(userRecord.uid);
-       
       } catch (cleanupError) {
         console.error("Failed to cleanup Firebase Auth user:", cleanupError);
       }
@@ -321,7 +321,7 @@ export async function POST(req) {
     }
 
     // sync to angolia
-    syncClientToAlgolia(userDoc);
+    // syncClientToAlgolia(userDoc);
 
     const executionTimeMs = Date.now() - startTime;
 
@@ -330,8 +330,6 @@ export async function POST(req) {
       id: userRecord.uid,
       ...safeUserData,
     };
-
-  
 
     const responsePayload = {
       user: responseData,

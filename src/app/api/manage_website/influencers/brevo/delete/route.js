@@ -1,6 +1,9 @@
 
 
-import { createSuccessResponse,createErrorResponse } from "@/utils/resposeHandlers";
+import {
+  createSuccessResponse,
+  createErrorResponse,
+} from "@/utils/server/apiResponse";
 import { requirePermission } from "@/utils/server/requirePermission";
 
 export async function POST(request) {

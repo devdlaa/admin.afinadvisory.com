@@ -4,9 +4,9 @@ import { requirePermission } from "@/utils/server/requirePermission";
 import {
   createSuccessResponse,
   createErrorResponse,
-} from "@/utils/resposeHandlers";
+} from "@/utils/server/apiResponse";
 const db = admin.firestore();
-import { updateClientInAlgolia } from "@/lib/algoliaSync";
+
 // Define which fields can be updated by admin (whitelist approach)
 const UPDATEABLE_FIELDS = [
   "firstName",
@@ -280,7 +280,7 @@ export async function POST(req) {
       }).filter(([_, v]) => v !== undefined && v !== null)
     );
 
-    updateClientInAlgolia(userId, angoliaUpdateFeilds);
+
 
     // Handle nested address updates (merge with existing)
     if (sanitizedUpdateData.address && currentData.address) {
