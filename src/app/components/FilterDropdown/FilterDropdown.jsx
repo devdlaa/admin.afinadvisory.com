@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Search, X, ChevronDown, Loader2, Plus } from "lucide-react";
 import "./FilterDropdown.scss";
+import { truncateText } from "@/utils/server/utils";
 
 /**
  * FilterDropdown - A reusable dropdown component with search, loading states, and more
@@ -45,6 +46,7 @@ const FilterDropdown = ({
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [hasTriggeredLoad, setHasTriggeredLoad] = useState(false);
+  const [dropdownDirection, setDropdownDirection] = useState("downward");
   const dropdownRef = useRef(null);
   const searchInputRef = useRef(null);
 
@@ -88,6 +90,22 @@ const FilterDropdown = ({
     if (!isLoading) {
       const willOpen = !isOpen;
       setIsOpen(willOpen);
+
+      // Calculate available space and determine dropdown direction
+      if (willOpen && dropdownRef.current) {
+        const rect = dropdownRef.current.getBoundingClientRect();
+        const viewportHeight = window.innerHeight;
+        const spaceBelow = viewportHeight - rect.bottom;
+        const spaceAbove = rect.top;
+        const dropdownHeight = 400; // max-height of dropdown
+
+        // If not enough space below and more space above, open upward
+        if (spaceBelow < dropdownHeight && spaceAbove > spaceBelow) {
+          setDropdownDirection("upward");
+        } else {
+          setDropdownDirection("downward");
+        }
+      }
 
       // Lazy load data on first open
       if (willOpen && lazyLoad && !hasTriggeredLoad && onLazyLoad) {
@@ -156,13 +174,12 @@ const FilterDropdown = ({
       >
         <div className="filter-dropdown__content">
           <div className="filter-dropdown__display">
-            {selectedOption?.icon && (
+            {Icon && (
               <span className="filter-dropdown__icon">
-                {selectedOption.icon}
+                <Icon size={16} />
               </span>
             )}
-
-            <span className="filter-dropdown__text">{displayText}</span>
+            <span className="filter-dropdown__text">{truncateText(displayText,22)}</span>
           </div>
         </div>
 
@@ -189,7 +206,13 @@ const FilterDropdown = ({
       </button>
 
       {isOpen && (
-        <div className="filter-dropdown__menu">
+        <div
+          className={`filter-dropdown__menu ${
+            dropdownDirection === "upward"
+              ? "filter-dropdown__menu--upward"
+              : ""
+          }`}
+        >
           {shouldShowSearch && (
             <div className="filter-dropdown__search">
               <Search size={16} className="filter-dropdown__search-icon" />

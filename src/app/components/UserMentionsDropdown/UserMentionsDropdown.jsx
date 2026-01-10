@@ -3,10 +3,10 @@ import React, { useEffect, useState, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchUsers } from "@/store/slices/userSlice";
 import styles from "./UserMentionsDropdown.module.scss";
-import { User, Loader2 } from "lucide-react";
+import { User } from "lucide-react";
 import { CircularProgress } from "@mui/material";
 
-const UserMentionsDropdown = ({ inputRef, query = "", onSelect, onClose }) => {
+const UserMentionsDropdown = ({ inputRef, query = "", onSelect, onClose, taskId, task }) => {
   const dispatch = useDispatch();
   const dropdownRef = useRef(null);
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -20,8 +20,41 @@ const UserMentionsDropdown = ({ inputRef, query = "", onSelect, onClose }) => {
     }
   }, [dispatch, users.length, loading]);
 
+  // Filter users based on task assignment
+  const getEligibleUsers = () => {
+    // If no task data or users not loaded, return empty
+    if (!users || users.length === 0) return [];
+    
+    // If no task provided, return all users (fallback)
+    if (!task) return users;
+
+    // If assigned_to_all is true, return all users
+    if (task.assigned_to_all === true) {
+      return users;
+    }
+
+    // Otherwise, only return users assigned to this task
+    const assignedUserIds = Array.isArray(task.assignments) 
+      ? task.assignments.map(a => a.admin_user_id).filter(Boolean)
+      : [];
+    
+    // Always include the task creator if it exists
+    const eligibleUserIds = new Set(assignedUserIds);
+    if (task.created_by) {
+      eligibleUserIds.add(task.created_by);
+    }
+    
+    // If no eligible users found, return all users (safety fallback)
+    if (eligibleUserIds.size === 0) {
+      console.warn("No eligible users found, showing all users");
+      return users;
+    }
+    
+    return users.filter(user => eligibleUserIds.has(user.id));
+  };
+
   // Filter users by query
-  const filteredUsers = users
+  const filteredUsers = getEligibleUsers()
     .filter((user) => {
       if (!query.trim()) return true;
 
@@ -110,12 +143,23 @@ const UserMentionsDropdown = ({ inputRef, query = "", onSelect, onClose }) => {
       .slice(0, 2);
   };
 
-  if (filteredUsers.length === 0 && !loading) {
+  if (loading) {
+    return (
+      <div ref={dropdownRef} className={styles.dropdown}>
+        <div className={styles.loadingState}>
+          <CircularProgress color="grey" size={16} />
+          <span>Loading Users...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (filteredUsers.length === 0) {
     return (
       <div ref={dropdownRef} className={styles.dropdown}>
         <div className={styles.emptyState}>
           <User size={24} />
-          <p>No users found</p>
+          <p>No users available to mention</p>
         </div>
       </div>
     );
@@ -123,41 +167,33 @@ const UserMentionsDropdown = ({ inputRef, query = "", onSelect, onClose }) => {
 
   return (
     <div ref={dropdownRef} className={styles.dropdown}>
-      {loading ? (
-        <div className={styles.loadingState}>
-          <CircularProgress color="grey" size={16} />
-
-          <span>Loading Users...</span>
-        </div>
-      ) : (
-        filteredUsers.map((user, index) => (
-          <div
-            key={user.id}
-            className={`${styles.userItem} ${
-              index === selectedIndex ? styles.selected : ""
-            }`}
-            onClick={() => onSelect(user)}
-            onMouseEnter={() => setSelectedIndex(index)}
-          >
-            <div className={styles.avatar}>
-              {user.profile_image_url ? (
-                <img src={user.profile_image_url} alt={user.name} />
-              ) : (
-                <span className={styles.initials}>
-                  {getInitials(user.name)}
-                </span>
-              )}
-            </div>
-
-            <div className={styles.userInfo}>
-              <div className={styles.userName}>{user.name}</div>
-              <div className={styles.userEmail}>{user.email}</div>
-            </div>
-
-            {user.status === "ACTIVE" && <div className={styles.activeDot} />}
+      {filteredUsers.map((user, index) => (
+        <div
+          key={user.id}
+          className={`${styles.userItem} ${
+            index === selectedIndex ? styles.selected : ""
+          }`}
+          onClick={() => onSelect(user)}
+          onMouseEnter={() => setSelectedIndex(index)}
+        >
+          <div className={styles.avatar}>
+            {user.profile_image_url ? (
+              <img src={user.profile_image_url} alt={user.name} />
+            ) : (
+              <span className={styles.initials}>
+                {getInitials(user.name)}
+              </span>
+            )}
           </div>
-        ))
-      )}
+
+          <div className={styles.userInfo}>
+            <div className={styles.userName}>{user.name}</div>
+            <div className={styles.userEmail}>{user.email}</div>
+          </div>
+
+          {user.status === "ACTIVE" && <div className={styles.activeDot} />}
+        </div>
+      ))}
     </div>
   );
 };

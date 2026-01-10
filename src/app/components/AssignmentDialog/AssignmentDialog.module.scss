@@ -54,20 +54,18 @@
 
     &.no_able {
       max-width: 450px;
-        .dialogFooter{
-          display: none;
-        }
-      
+      .dialogFooter {
+        display: none;
+      }
+
       .assignmentContainer {
- 
         grid-template-columns: 1fr;
-        .availableSection{
+        .availableSection {
           display: none;
         }
-        .divider{
+        .divider {
           display: none;
         }
-      
       }
     }
   }
@@ -176,7 +174,6 @@
     display: flex;
     align-items: center;
     gap: 8px;
-   
   }
 
   .sectionTitle h3 {
@@ -196,7 +193,6 @@
   }
 
   .assignAllToggle {
-
     z-index: 5;
   }
 
@@ -632,11 +628,49 @@
   }
 }
 
-.headerInner{
-  
+.headerInner {
   display: flex;
   align-items: center;
 
   justify-content: space-between;
   margin-bottom: 15px;
+}
+
+.userCard .creator {
+  border-color: #f59e0b !important;
+  background: rgba(245, 158, 11, 0.05) !important;
+  cursor: not-allowed !important;
+
+  &:hover {
+    transform: none !important;
+    box-shadow: none !important;
+  }
+}
+
+.creatorBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.userName {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #0f172a;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }

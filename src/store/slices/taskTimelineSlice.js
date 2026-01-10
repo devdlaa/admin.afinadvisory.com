@@ -31,20 +31,25 @@ const apiFetch = async (url, options = {}) => {
 // ============================================
 
 /**
- * Group timeline items by date
+ * Group timeline items by date (using local timezone)
  * Returns: { "2024-01-15": [items...], "2024-01-14": [items...] }
  */
 export const groupByDate = (items) => {
   const grouped = {};
 
   items.forEach((item) => {
-    const date = new Date(item.created_at).toISOString().split("T")[0];
+    const date = new Date(item.created_at);
+    // Get local date string in YYYY-MM-DD format
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    const dateKey = `${year}-${month}-${day}`;
 
-    if (!grouped[date]) {
-      grouped[date] = [];
+    if (!grouped[dateKey]) {
+      grouped[dateKey] = [];
     }
 
-    grouped[date].push(item);
+    grouped[dateKey].push(item);
   });
 
   return grouped;
@@ -54,13 +59,21 @@ export const groupByDate = (items) => {
  * Format date for display (e.g., "Today", "Yesterday", "Jan 15, 2024")
  */
 export const formatDateLabel = (dateString) => {
-  const date = new Date(dateString);
+  // Parse the date string (YYYY-MM-DD format)
+  const [year, month, day] = dateString.split("-").map(Number);
+  const date = new Date(year, month - 1, day);
+
   const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
   const yesterday = new Date(today);
   yesterday.setDate(yesterday.getDate() - 1);
 
-  const isToday = date.toDateString() === today.toDateString();
-  const isYesterday = date.toDateString() === yesterday.toDateString();
+  const compareDate = new Date(date);
+  compareDate.setHours(0, 0, 0, 0);
+
+  const isToday = compareDate.getTime() === today.getTime();
+  const isYesterday = compareDate.getTime() === yesterday.getTime();
 
   if (isToday) return "Today";
   if (isYesterday) return "Yesterday";
@@ -77,12 +90,12 @@ export const formatDateLabel = (dateString) => {
 // ============================================
 
 /**
- * Fetch timeline (comments + activity)
- * Replaces existing items
+ * Fetch timeline (comments OR activity based on type)
+ * Replaces existing items for that type
  */
 export const fetchTimeline = createAsyncThunk(
   "taskTimeline/fetchTimeline",
-  async ({ taskId, type = "ALL", limit = 20 }, { rejectWithValue }) => {
+  async ({ taskId, type = "COMMENT", limit = 20 }, { rejectWithValue }) => {
     try {
       const params = new URLSearchParams({
         type,
@@ -90,15 +103,17 @@ export const fetchTimeline = createAsyncThunk(
       });
 
       const result = await apiFetch(
-        `/api/tasks/${taskId}/comments?${params.toString()}`
+        `/api/admin_ops/tasks/${taskId}/comments?${params.toString()}`
       );
 
       return {
         taskId,
+        type,
         ...result.data, // { items, next_cursor }
       };
     } catch (error) {
       return rejectWithValue({
+        type,
         message: error.message || "Failed to fetch timeline",
         code: error.code,
         details: error.details,
@@ -109,11 +124,14 @@ export const fetchTimeline = createAsyncThunk(
 
 /**
  * Load more timeline items (pagination)
- * Appends to existing items
+ * Prepends older items to existing items (for upward scrolling)
  */
 export const loadMoreTimeline = createAsyncThunk(
   "taskTimeline/loadMoreTimeline",
-  async ({ taskId, cursor, type = "ALL", limit = 20 }, { rejectWithValue }) => {
+  async (
+    { taskId, cursor, type = "COMMENT", limit = 20 },
+    { rejectWithValue }
+  ) => {
     try {
       const params = new URLSearchParams({
         type,
@@ -122,15 +140,17 @@ export const loadMoreTimeline = createAsyncThunk(
       });
 
       const result = await apiFetch(
-        `/api/tasks/${taskId}/comments?${params.toString()}`
+        `/api/admin_ops/tasks/${taskId}/comments?${params.toString()}`
       );
 
       return {
         taskId,
+        type,
         ...result.data, // { items, next_cursor }
       };
     } catch (error) {
       return rejectWithValue({
+        type,
         message: error.message || "Failed to load more timeline items",
         code: error.code,
         details: error.details,
@@ -146,7 +166,7 @@ export const createComment = createAsyncThunk(
   "taskTimeline/createComment",
   async ({ taskId, message, mentions = [] }, { rejectWithValue }) => {
     try {
-      const result = await apiFetch(`/api/tasks/${taskId}/comments`, {
+      const result = await apiFetch(`/api/admin_ops/tasks/${taskId}/comments`, {
         method: "POST",
         body: JSON.stringify({ message, mentions }),
       });
@@ -173,7 +193,7 @@ export const updateComment = createAsyncThunk(
   async ({ taskId, commentId, message }, { rejectWithValue }) => {
     try {
       const result = await apiFetch(
-        `/api/tasks/${taskId}/comments/${commentId}`,
+        `/api/admin_ops/tasks/${taskId}/comments/${commentId}`,
         {
           method: "PATCH",
           body: JSON.stringify({ message }),
@@ -202,7 +222,7 @@ export const deleteComment = createAsyncThunk(
   "taskTimeline/deleteComment",
   async ({ taskId, commentId }, { rejectWithValue }) => {
     try {
-      await apiFetch(`/api/tasks/${taskId}/comments/${commentId}`, {
+      await apiFetch(`/api/admin_ops/tasks/${taskId}/comments/${commentId}`, {
         method: "DELETE",
       });
 
@@ -224,23 +244,37 @@ export const deleteComment = createAsyncThunk(
 // INITIAL STATE
 // ============================================
 const initialState = {
-  // Timeline items (chronological order, newest first)
-  items: [],
+  // Separate arrays for comments and activities
+  comments: [],
+  activities: [],
 
   // Current task ID
   currentTaskId: null,
 
-  // Pagination
-  nextCursor: null,
-  hasMore: true,
+  // Pagination (separate for each type)
+  pagination: {
+    COMMENT: {
+      nextCursor: null,
+      hasMore: true,
+    },
+    ACTIVITY: {
+      nextCursor: null,
+      hasMore: true,
+    },
+  },
 
-  // Current filter
-  currentFilter: "ALL", // COMMENT | ACTIVITY | ALL
-
-  // Loading states
+  // Loading states (separate for each type and action)
   loading: {
-    initial: false,
-    more: false,
+    COMMENT: {
+      initial: false,
+      more: false,
+      refresh: false,
+    },
+    ACTIVITY: {
+      initial: false,
+      more: false,
+      refresh: false,
+    },
     create: false,
     update: false,
     delete: false,
@@ -248,7 +282,8 @@ const initialState = {
 
   // Error states
   error: {
-    fetch: null,
+    COMMENT: null,
+    ACTIVITY: null,
     create: null,
     update: null,
     delete: null,
@@ -269,17 +304,26 @@ const taskTimelineSlice = createSlice({
   name: "taskTimeline",
   initialState,
   reducers: {
-    // Set filter type
-    setFilter: (state, action) => {
-      state.currentFilter = action.payload;
-    },
-
     // Clear timeline (when switching tasks)
     clearTimeline: (state) => {
-      state.items = [];
-      state.nextCursor = null;
-      state.hasMore = true;
+      state.comments = [];
+      state.activities = [];
+      state.pagination = initialState.pagination;
       state.currentTaskId = null;
+    },
+
+    // Clear specific type
+    clearTimelineType: (state, action) => {
+      const type = action.payload;
+      if (type === "COMMENT") {
+        state.comments = [];
+      } else if (type === "ACTIVITY") {
+        state.activities = [];
+      }
+      state.pagination[type] = {
+        nextCursor: null,
+        hasMore: true,
+      };
     },
 
     // Clear errors
@@ -290,7 +334,7 @@ const taskTimelineSlice = createSlice({
     // Clear specific error
     clearError: (state, action) => {
       const errorKey = action.payload;
-      if (state.error[errorKey]) {
+      if (state.error[errorKey] !== undefined) {
         state.error[errorKey] = null;
       }
     },
@@ -314,24 +358,32 @@ const taskTimelineSlice = createSlice({
     // FETCH TIMELINE (INITIAL)
     // ============================================
     builder
-      .addCase(fetchTimeline.pending, (state) => {
-        state.loading.initial = true;
-        state.error.fetch = null;
+      .addCase(fetchTimeline.pending, (state, action) => {
+        const type = action.meta.arg.type;
+        state.loading[type].initial = true;
+        state.error[type] = null;
       })
       .addCase(fetchTimeline.fulfilled, (state, action) => {
-        const { taskId, items, next_cursor } = action.payload;
+        const { taskId, type, items, next_cursor } = action.payload;
 
-        // Replace items
-        state.items = items;
+        // Store in appropriate array (oldest to newest for WhatsApp-style display)
+        if (type === "COMMENT") {
+          state.comments = items.reverse(); // Reverse to show oldest first
+        } else if (type === "ACTIVITY") {
+          state.activities = items.reverse();
+        }
+
         state.currentTaskId = taskId;
-        state.nextCursor = next_cursor;
-        state.hasMore = next_cursor !== null;
-
-        state.loading.initial = false;
+        state.pagination[type].nextCursor = next_cursor;
+        state.pagination[type].hasMore = next_cursor !== null;
+        state.loading[type].initial = false;
+        state.loading[type].refresh = false;
       })
       .addCase(fetchTimeline.rejected, (state, action) => {
-        state.loading.initial = false;
-        state.error.fetch =
+        const type = action.payload?.type || action.meta.arg.type;
+        state.loading[type].initial = false;
+        state.loading[type].refresh = false;
+        state.error[type] =
           action.payload?.message || "Failed to fetch timeline";
       });
 
@@ -339,23 +391,31 @@ const taskTimelineSlice = createSlice({
     // LOAD MORE TIMELINE
     // ============================================
     builder
-      .addCase(loadMoreTimeline.pending, (state) => {
-        state.loading.more = true;
-        state.error.fetch = null;
+      .addCase(loadMoreTimeline.pending, (state, action) => {
+        const type = action.meta.arg.type;
+        state.loading[type].more = true;
+        state.error[type] = null;
       })
       .addCase(loadMoreTimeline.fulfilled, (state, action) => {
-        const { items, next_cursor } = action.payload;
+        const { type, items, next_cursor } = action.payload;
 
-        // Append items
-        state.items = [...state.items, ...items];
-        state.nextCursor = next_cursor;
-        state.hasMore = next_cursor !== null;
+        // Prepend older items (they come in newest first from API)
+        const reversedItems = [...items].reverse();
 
-        state.loading.more = false;
+        if (type === "COMMENT") {
+          state.comments = [...reversedItems, ...state.comments];
+        } else if (type === "ACTIVITY") {
+          state.activities = [...reversedItems, ...state.activities];
+        }
+
+        state.pagination[type].nextCursor = next_cursor;
+        state.pagination[type].hasMore = next_cursor !== null;
+        state.loading[type].more = false;
       })
       .addCase(loadMoreTimeline.rejected, (state, action) => {
-        state.loading.more = false;
-        state.error.fetch =
+        const type = action.payload?.type || action.meta.arg.type;
+        state.loading[type].more = false;
+        state.error[type] =
           action.payload?.message || "Failed to load more items";
       });
 
@@ -371,8 +431,8 @@ const taskTimelineSlice = createSlice({
       .addCase(createComment.fulfilled, (state, action) => {
         const { comment } = action.payload;
 
-        // Add to beginning of list (newest first)
-        state.items.unshift(comment);
+        // Add to end of comments array (latest at bottom)
+        state.comments.push(comment);
 
         state.loading.create = false;
         state.success.commentCreated = true;
@@ -395,8 +455,8 @@ const taskTimelineSlice = createSlice({
       .addCase(updateComment.fulfilled, (state, action) => {
         const { commentId, updatedComment } = action.payload;
 
-        // Update in list
-        state.items = state.items.map((item) =>
+        // Update in comments array
+        state.comments = state.comments.map((item) =>
           item.id === commentId ? { ...item, ...updatedComment } : item
         );
 
@@ -421,8 +481,8 @@ const taskTimelineSlice = createSlice({
       .addCase(deleteComment.fulfilled, (state, action) => {
         const { commentId } = action.payload;
 
-        // Mark as deleted in list (soft delete, keeps in timeline)
-        state.items = state.items.map((item) =>
+        // Mark as deleted in comments array
+        state.comments = state.comments.map((item) =>
           item.id === commentId ? { ...item, deleted: true } : item
         );
 
@@ -441,8 +501,8 @@ const taskTimelineSlice = createSlice({
 // ACTIONS
 // ============================================
 export const {
-  setFilter,
   clearTimeline,
+  clearTimelineType,
   clearErrors,
   clearError,
   clearSuccessFlags,
@@ -453,50 +513,49 @@ export const {
 // SELECTORS
 // ============================================
 
-// Get all timeline items
-export const selectTimelineItems = (state) => state.taskTimeline.items;
-
-// Get timeline items grouped by date
-export const selectTimelineGroupedByDate = (state) => {
-  return groupByDate(state.taskTimeline.items);
+// Get items based on type
+export const selectItemsByType = (state, type) => {
+  return type === "COMMENT"
+    ? state.taskTimeline.comments
+    : state.taskTimeline.activities;
 };
 
-// Get current filter
-export const selectCurrentFilter = (state) => state.taskTimeline.currentFilter;
+// Get items grouped by date for specific type
+export const selectTimelineGroupedByDate = (state, type) => {
+  const items = selectItemsByType(state, type);
+  return groupByDate(items);
+};
 
-// Get pagination info
-export const selectPaginationInfo = (state) => ({
-  nextCursor: state.taskTimeline.nextCursor,
-  hasMore: state.taskTimeline.hasMore,
+// Get pagination info for specific type
+export const selectPaginationInfo = (state, type) => ({
+  nextCursor: state.taskTimeline.pagination[type]?.nextCursor,
+  hasMore: state.taskTimeline.pagination[type]?.hasMore,
 });
 
 // Check if has more items to load
-export const selectHasMore = (state) => state.taskTimeline.hasMore;
+export const selectHasMore = (state, type) =>
+  state.taskTimeline.pagination[type]?.hasMore;
 
 // Get current task ID
 export const selectCurrentTaskId = (state) => state.taskTimeline.currentTaskId;
 
 // Get loading states
-export const selectIsLoading = (state, type = "initial") =>
-  state.taskTimeline.loading[type];
+export const selectIsLoading = (state, type, action = "initial") => {
+  if (action === "create" || action === "update" || action === "delete") {
+    return state.taskTimeline.loading[action];
+  }
+  return state.taskTimeline.loading[type]?.[action];
+};
 
 // Get error states
-export const selectError = (state, type = "fetch") =>
-  state.taskTimeline.error[type];
+export const selectError = (state, type) => state.taskTimeline.error[type];
 
 // Get success states
 export const selectSuccess = (state, type) => state.taskTimeline.success[type];
 
-// Get comments only (filter out activities)
-export const selectCommentsOnly = (state) =>
-  state.taskTimeline.items.filter((item) => item.type === "COMMENT");
-
-// Get activities only
-export const selectActivitiesOnly = (state) =>
-  state.taskTimeline.items.filter((item) => item.type === "ACTIVITY");
-
-// Get total items count
-export const selectTotalItemsCount = (state) => state.taskTimeline.items.length;
+// Get total items count for type
+export const selectTotalItemsCount = (state, type) =>
+  selectItemsByType(state, type).length;
 
 // ============================================
 // EXPORT REDUCER

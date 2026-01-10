@@ -1,6 +1,7 @@
-
-import {  createTaskComment,
-  listTaskTimeline, } from "@/services/task/taskComment.service";
+import {
+  createTaskComment,
+  listTaskTimeline,
+} from "@/services/task/taskComment.service";
 import { requirePermission } from "@/utils/server/requirePermission";
 import { schemas } from "@/schemas";
 import {
@@ -17,7 +18,7 @@ export async function POST(request, { params }) {
     );
     if (permissionError) return permissionError;
 
-    const { id: task_id } = params;
+    const { task_id } =  await params;
     const body = await request.json();
 
     const validatedData = schemas.taskComment.create.parse({
@@ -44,7 +45,7 @@ export async function GET(request, { params }) {
     const [permissionError] = await requirePermission(request, "tasks.access");
     if (permissionError) return permissionError;
 
-    const { id: task_id } = params;
+    const { task_id } = await params;
     const { searchParams } = new URL(request.url);
 
     const queryParams = {
@@ -66,6 +67,7 @@ export async function GET(request, { params }) {
 
     return createSuccessResponse("Comments retrieved successfully", result);
   } catch (error) {
+    console.log("error",error);
     return handleApiError(error);
   }
 }

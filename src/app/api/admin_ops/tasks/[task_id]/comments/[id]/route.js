@@ -1,14 +1,13 @@
 import {
   updateTaskComment,
   deleteTaskComment,
-} from "@/services/taskComment.service";
+} from "@/services/task/taskComment.service";
 import { requirePermission } from "@/utils/server/requirePermission";
 import { schemas } from "@/schemas";
 import {
   handleApiError,
   createSuccessResponse,
 } from "@/utils/server/apiResponse";
-
 
 export async function PATCH(request, { params }) {
   try {
@@ -18,7 +17,7 @@ export async function PATCH(request, { params }) {
     );
     if (permissionError) return permissionError;
 
-    const { id: task_id, comment_id } = params;
+    const { task_id, id: comment_id } = await params;
     const body = await request.json();
 
     const validatedData = schemas.taskComment.update.parse({
@@ -43,7 +42,6 @@ export async function PATCH(request, { params }) {
   }
 }
 
-
 export async function DELETE(request, { params }) {
   try {
     const [permissionError, session] = await requirePermission(
@@ -52,7 +50,7 @@ export async function DELETE(request, { params }) {
     );
     if (permissionError) return permissionError;
 
-    const { id: task_id, comment_id } = params;
+    const { task_id, id: comment_id } = params;
 
     await deleteTaskComment(task_id, comment_id, session.user.id);
 

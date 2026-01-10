@@ -1,4 +1,4 @@
-"use client"
+"use client";
 import { useState, useEffect } from "react";
 import {
   Edit2,
@@ -12,11 +12,14 @@ import {
   RefreshCcw,
   DiamondMinus,
 } from "lucide-react";
-import CustomInput from "./CustomInput";
-import CustomDropdown from "./CustomDropdown";
-import ActionButton from "./ActionButton";
-import Avatar from "./Avatar";
+
+import CustomInput from "@/app/components/TinyLib/CustomInput";
+import CustomDropdown from "@/app/components/TinyLib/CustomDropdown";
+import ActionButton from "@/app/components/TinyLib/ActionButton";
+import Avatar from "@/app/components/newui/Avatar/Avatar";
+
 import styles from "./ChargeCard.module.scss";
+import { getProfileUrl } from "@/utils/shared/shared_util";
 
 const ChargeCard = ({
   charge = {},
@@ -24,6 +27,7 @@ const ChargeCard = ({
   onCancel = () => {},
   onDelete = () => {},
   isNewCharge = false,
+  isLoading = false,
 }) => {
   const [isEditing, setIsEditing] = useState(isNewCharge);
   const [isExpanded, setIsExpanded] = useState(isNewCharge);
@@ -45,36 +49,37 @@ const ChargeCard = ({
   }, [isNewCharge]);
 
   const chargeTypeOptions = [
-    { value: "external", label: "External Charge" },
-    { value: "internal", label: "Service Fee" },
+    { value: "EXTERNAL_CHARGE", label: "External Charge" },
+    { value: "GOVERNMENT_FEE", label: "Government Fee" },
+    { value: "SERVICE_FEE", label: "Service Fee" },
   ];
 
   const bearerOptions = [
     {
-      value: "client",
+      value: "CLIENT",
       label: "Client Will Pay",
       icon: <UserCheck size={16} />,
     },
-    { value: "company", label: "Firm Will Pay", icon: <Landmark size={16} /> },
+    { value: "FIRM", label: "Firm Will Pay", icon: <Landmark size={16} /> },
   ];
 
   const paymentStatusOptions = [
     {
-      value: "paid",
+      value: "PAID",
       label: "Paid",
       bgColor: "#dcfce7",
       txtClr: "#166534",
       icon: <BadgeCheck color="#166534" size={16} />,
     },
     {
-      value: "not-paid",
+      value: "NOT_PAID",
       label: "Not Paid Yet",
       bgColor: "#fee2e2",
       txtClr: "#991b1b",
       icon: <RefreshCcw color="#991b1b" size={16} />,
     },
     {
-      value: "written-off",
+      value: "WRITTEN_OFF",
       label: "Written Off",
       bgColor: "#fef3c7",
       txtClr: "#92400e",
@@ -138,33 +143,39 @@ const ChargeCard = ({
   // Collapsed view - one line summary
   if (!isExpanded) {
     const statusConfig = getStatusConfig(formData.paymentStatus);
-    
+
     return (
-      <div 
+      <div
         className={`${styles.chargeCard} ${styles.collapsed}`}
         onClick={() => setIsExpanded(true)}
       >
         <div className={styles.collapsedContent}>
           <div className={styles.collapsedLeft}>
-            <h3 className={styles.collapsedTitle}>{formData.chargeTitle || "Untitled Charge"}</h3>
+            <h3 className={styles.collapsedTitle}>
+              {formData.chargeTitle || "Untitled Charge"}
+            </h3>
             <div className={styles.collapsedMeta}>
-              <span className={styles.chargeTypeLabel}>{getChargeTypeLabel(formData.chargeType)}</span>
+              <span className={styles.chargeTypeLabel}>
+                {getChargeTypeLabel(formData.chargeType)}
+              </span>
               <span className={styles.separator}>•</span>
-              <span className={styles.bearerLabel}>{getBearerLabel(formData.whoIsBearer)}</span>
+              <span className={styles.bearerLabel}>
+                {getBearerLabel(formData.whoIsBearer)}
+              </span>
             </div>
           </div>
-          
+
           <div className={styles.collapsedRight}>
             <div className={styles.collapsedAmount}>
               <IndianRupee size={16} />
               <span>{formData.chargeAmount || "0"}</span>
             </div>
             {statusConfig && (
-              <div 
+              <div
                 className={styles.collapsedStatus}
-                style={{ 
+                style={{
                   backgroundColor: statusConfig.bgColor,
-                  color: statusConfig.txtClr 
+                  color: statusConfig.txtClr,
                 }}
               >
                 {statusConfig.icon}
@@ -178,12 +189,14 @@ const ChargeCard = ({
   }
 
   return (
-    <div className={`${styles.chargeCard} ${isNewCharge ? styles.newCharge : ""} ${styles.expanded}`}>
-      {isNewCharge && <div className={styles.newBadge}>New Charge</div>}
-      
+    <div
+      className={`${styles.chargeCard} ${isNewCharge ? styles.newCharge : ""} ${
+        styles.expanded
+      }`}
+    >
       {/* Collapse button */}
       {!isEditing && (
-        <button 
+        <button
           className={styles.collapseBtn}
           onClick={() => setIsExpanded(false)}
           aria-label="Collapse"
@@ -191,7 +204,7 @@ const ChargeCard = ({
           ×
         </button>
       )}
-      
+
       {/* Header Section */}
       <div className={styles.header}>
         <div className={styles.titleSection}>
@@ -276,7 +289,7 @@ const ChargeCard = ({
           {!isNewCharge && (
             <div className={styles.metaItem}>
               <Avatar
-                src={charge.createdBy.avatar}
+                src={getProfileUrl(charge.createdBy.created_by_uid)}
                 alt={charge.createdBy.name}
                 size={36}
                 fallbackText={charge.createdBy.name}
@@ -300,13 +313,15 @@ const ChargeCard = ({
                 onClick={handleDelete}
                 variant="danger"
                 size="small"
+                isLoading={isLoading}
               />
               <ActionButton
                 text="Update"
                 icon={Edit2}
                 onClick={handleEdit}
                 variant="light"
-                  size="small"
+                size="small"
+                isLoading={isLoading}
               />
             </>
           ) : (
@@ -316,14 +331,14 @@ const ChargeCard = ({
                 icon={X}
                 onClick={handleCancelEdit}
                 variant="light"
-                       size="small"
+                size="small"
               />
               <ActionButton
                 text={isNewCharge ? "Save Charge" : "Save Changes"}
                 icon={Save}
                 onClick={handleSave}
                 variant="primary"
-                       size="small"
+                size="small"
               />
             </>
           )}
@@ -333,4 +348,4 @@ const ChargeCard = ({
   );
 };
 
-export default ChargeCard
+export default ChargeCard;

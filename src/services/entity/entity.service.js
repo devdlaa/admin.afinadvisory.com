@@ -260,17 +260,44 @@ const listEntities = async (filters = {}) => {
     where.state = filters.state;
   }
 
-  // Search by name, email, pan, phone, contact_person
+  // OPTIMIZED SEARCH - Replace the old OR search with full-text search
   if (filters.search && filters.search.trim()) {
-    const s = filters.search.trim();
+    const searchTerm = filters.search.trim();
 
-    where.OR = [
-      { name: { contains: s, mode: "insensitive" } },
-      { email: { contains: s, mode: "insensitive" } },
-      { pan: { contains: s, mode: "insensitive" } },
-      { primary_phone: { contains: s } },
-      { contact_person: { contains: s, mode: "insensitive" } },
-    ];
+    // Use full-text search for better performance
+    const searchResults = await prisma.$queryRaw`
+      SELECT id 
+      FROM "Entity"
+      WHERE deleted_at IS NULL
+        AND (
+          to_tsvector('english', 
+            name || ' ' || 
+            COALESCE(email, '') || ' ' || 
+            COALESCE(pan, '') || ' ' || 
+            COALESCE(primary_phone, '') || ' ' || 
+            COALESCE(contact_person, '')
+          ) @@ plainto_tsquery('english', ${searchTerm})
+        )
+      LIMIT 1000
+    `;
+
+    const entityIds = searchResults.map(r => r.id);
+
+    // If no results found, return empty
+    if (entityIds.length === 0) {
+      return {
+        data: [],
+        pagination: {
+          page,
+          page_size: pageSize,
+          total_items: 0,
+          total_pages: 0,
+          has_more: false,
+        },
+      };
+    }
+
+    where.id = { in: entityIds };
   }
 
   const orderBy = filters.orderBy || { created_at: "desc" };

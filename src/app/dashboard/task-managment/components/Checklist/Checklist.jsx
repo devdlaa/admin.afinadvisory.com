@@ -1,10 +1,13 @@
-import { useState } from "react";
-import { Plus, Trash2, GripVertical } from "lucide-react";
-import ActionButton from "./ActionButton";
+"use client";
+
+import React, { useState, useEffect, useRef } from "react";
+import { Plus, GripVertical, Trash2, Save } from "lucide-react";
+import ActionButton from "@/app/components/TinyLib/ActionButton";
 import styles from "./Checklist.module.scss";
 
-const Checklist = ({ initialItems = [] }) => {
-  const [items, setItems] = useState(initialItems);
+const Checklist = ({ initialItems = [], onSave, isSaving = false }) => {
+  const [items, setItems] = useState([]);
+  const [originalItems, setOriginalItems] = useState([]);
   const [newItemText, setNewItemText] = useState("");
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -12,23 +15,53 @@ const Checklist = ({ initialItems = [] }) => {
   const [draggedItem, setDraggedItem] = useState(null);
   const [dragOverIndex, setDragOverIndex] = useState(null);
 
+  const isInitializedRef = useRef(false);
+  const lastSavedItemsRef = useRef(null);
+
+  useEffect(() => {
+    const currentItemsString = JSON.stringify(initialItems);
+    const hasActuallyChanged = currentItemsString !== lastSavedItemsRef.current;
+
+    if (!isInitializedRef.current || (hasActuallyChanged && !isSaving)) {
+      const formattedItems = initialItems.map((item) => ({
+        id: item.id || `temp-${Date.now()}-${Math.random()}`,
+        text: item.text || item.title || "",
+        isCompleted: item.isCompleted || item.is_done || false,
+        timestamp: Date.now(),
+      }));
+
+      setItems(formattedItems);
+      setOriginalItems(JSON.parse(JSON.stringify(formattedItems)));
+      lastSavedItemsRef.current = currentItemsString;
+      isInitializedRef.current = true;
+    }
+  }, [initialItems, isSaving]);
+
   const completedCount = items.filter((item) => item.isCompleted).length;
   const totalCount = items.length;
 
-  const handleAddItem = () => {
-    if (newItemText.trim()) {
-      const newItem = {
-        id: Date.now().toString(),
-        text: newItemText.trim(),
-        isCompleted: false,
-        timestamp: Date.now(),
-      };
-      setItems([...items, newItem]);
-      setNewItemText("");
-      setIsAdding(false);
-    }
+  // Check if there are changes
+  const hasChanges = () => {
+    return JSON.stringify(items) !== JSON.stringify(originalItems);
   };
 
+  // Add new item
+  const handleAddItem = () => {
+    if (!newItemText.trim()) return;
+
+    const newItem = {
+      id: `temp-${Date.now()}-${Math.random()}`,
+      text: newItemText.trim(),
+      isCompleted: false,
+      timestamp: Date.now(),
+    };
+
+    setItems([...items, newItem]);
+    setNewItemText("");
+    setIsAdding(false);
+  };
+
+  // Toggle completion
   const handleToggleComplete = (id) => {
     setItems(
       items.map((item) =>
@@ -37,25 +70,18 @@ const Checklist = ({ initialItems = [] }) => {
     );
   };
 
+  // Delete item
   const handleDeleteItem = (id) => {
     setItems(items.filter((item) => item.id !== id));
   };
 
-  const handleKeyPressNew = (e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleAddItem();
-    } else if (e.key === "Escape") {
-      setNewItemText("");
-      setIsAdding(false);
-    }
-  };
-
+  // Start editing
   const startEditing = (item) => {
     setEditingId(item.id);
     setEditText(item.text);
   };
 
+  // Save edit
   const handleUpdateItem = (id) => {
     if (editText.trim()) {
       setItems(
@@ -68,10 +94,22 @@ const Checklist = ({ initialItems = [] }) => {
     setEditText("");
   };
 
+  // Auto-resize textarea
   const autoResizeTextarea = (element) => {
     if (!element) return;
     element.style.height = "auto";
     element.style.height = element.scrollHeight + "px";
+  };
+
+  // Keyboard handlers
+  const handleKeyPressNew = (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleAddItem();
+    } else if (e.key === "Escape") {
+      setNewItemText("");
+      setIsAdding(false);
+    }
   };
 
   const handleKeyPressEdit = (e, id) => {
@@ -84,6 +122,7 @@ const Checklist = ({ initialItems = [] }) => {
     }
   };
 
+  // Drag and drop handlers
   const handleDragStart = (e, index) => {
     setDraggedItem(index);
     e.dataTransfer.effectAllowed = "move";
@@ -122,6 +161,26 @@ const Checklist = ({ initialItems = [] }) => {
     setDragOverIndex(null);
   };
 
+  // Save changes
+  const handleSave = async () => {
+    if (onSave) {
+      // Transform items to API format
+      const itemsToSave = items.map((item, index) => ({
+        id: item.id.startsWith("temp-") ? null : item.id,
+        title: item.text,
+        is_done: item.isCompleted,
+        position: index,
+      }));
+
+      await onSave(itemsToSave);
+
+      // Update original items and last saved reference after save
+      const newOriginalItems = JSON.parse(JSON.stringify(items));
+      setOriginalItems(newOriginalItems);
+      lastSavedItemsRef.current = JSON.stringify(items);
+    }
+  };
+
   return (
     <div className={styles.checklistContainer}>
       <div className={styles.header}>
@@ -156,16 +215,13 @@ const Checklist = ({ initialItems = [] }) => {
           text="Add More"
           icon={Plus}
           onClick={() => setIsAdding(true)}
-          variant="light"
+          variant="primary"
           size="small"
+
         />
       </div>
 
-      {items?.length <= 0 && !isAdding ? (
-        <div className={styles.empty_state}>
-          No Checkist Items, Add to continue
-        </div>
-      ) : (
+      {items?.length <= 0 && !isAdding ? null : (
         <div className={styles.itemsList}>
           {items.map((item, index) => (
             <div
@@ -280,6 +336,7 @@ const Checklist = ({ initialItems = [] }) => {
               </div>
             </div>
           )}
+
           {items?.length >= 6 && (
             <ActionButton
               text="Add More"
@@ -289,6 +346,22 @@ const Checklist = ({ initialItems = [] }) => {
               size="small"
             />
           )}
+        </div>
+      )}
+
+      {/* Save Button - Only shown when there are changes */}
+      {hasChanges() && (
+        <div className={styles.saveSection}>
+          <ActionButton
+            text={isSaving ? "Saving..." : "Save Checklist Changes"}
+            icon={Save}
+            onClick={handleSave}
+            variant="primary"
+            size="medium"
+            disabled={isSaving}
+            fullWidth
+            isLoading={isSaving}
+          />
         </div>
       )}
     </div>

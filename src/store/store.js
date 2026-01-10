@@ -13,8 +13,11 @@ import toastMiddleware from "./toastMiddleware";
 import entityReducer from "./slices/entitySlice";
 import notificationReducer from "./slices/notificationSlice";
 import taskReducer from "./slices/taskSlice";
-
+import TaskDetailReducer from "./slices/taskDetailsSlice";
 import taskCategoryReducer from "./slices/taskCategorySlice";
+import TaskTimelineReducer from "./slices/taskTimelineSlice";
+
+
 export const store = configureStore({
   reducer: {
     session: sessionReducer,
@@ -31,6 +34,8 @@ export const store = configureStore({
     notifications: notificationReducer,
     taskCategory: taskCategoryReducer,
     task: taskReducer,
+    taskDetail : TaskDetailReducer,
+    taskTimeline : TaskTimelineReducer
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat(toastMiddleware),

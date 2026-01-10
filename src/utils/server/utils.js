@@ -469,6 +469,30 @@ export function removeEmptyFields(input) {
   return input;
 }
 
+export function removeUndefined(input) {
+  if (Array.isArray(input)) {
+    return input
+      .map(removeUndefined)
+      .filter((item) => item !== undefined);
+  }
+
+  if (input !== null && typeof input === "object") {
+    const cleaned = {};
+    for (const key in input) {
+      if (!Object.prototype.hasOwnProperty.call(input, key)) continue;
+
+      const value = removeUndefined(input[key]);
+
+      if (value !== undefined) {
+        cleaned[key] = value;
+      }
+    }
+    return cleaned;
+  }
+
+  return input === undefined ? undefined : input;
+}
+
 export const formatDate = (dateString) => {
   const date = new Date(dateString);
   return date.toLocaleDateString("en-US", {

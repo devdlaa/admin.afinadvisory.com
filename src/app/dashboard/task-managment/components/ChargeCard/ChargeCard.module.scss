@@ -68,9 +68,10 @@
   .collapsedTitle {
     font-size: 0.95rem;
     font-weight: 500;
-    color: #1a212f;
+    color: #404757;
     margin: 0 0 6px 0;
     white-space: nowrap;
+    text-transform: capitalize;
     overflow: hidden;
     text-overflow: ellipsis;
   }
@@ -81,6 +82,7 @@
     gap: 8px;
     font-size: 0.875rem;
     color: #6b7280;
+    font-weight: 600;
   }
 
   .chargeTypeLabel,
@@ -252,17 +254,13 @@
   .metaLabel {
     font-size: 0.75rem;
     color: #6b7280;
-
-    strong {
-      color: #111827;
-      font-weight: 600;
-    }
+    font-weight: 600;
   }
 
   .metaName {
     font-size: 0.875rem;
     color: #111827;
-    font-weight: 500;
+    font-weight: 600;
   }
 
   .actions {

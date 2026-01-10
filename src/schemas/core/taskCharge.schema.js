@@ -31,7 +31,7 @@ export const createTaskChargeSchema = z.object({
     remark: z.string().max(2000, "Remark too long").optional().nullable(),
   }),
   params: z.object({
-    taskId: z.string().uuid("Invalid task id"),
+    task_id: z.string().uuid("Invalid task id"),
   }),
 });
 
@@ -72,6 +72,6 @@ export const deleteTaskChargeSchema = z.object({
 
 export const listTaskChargesSchema = z.object({
   params: z.object({
-    taskId: z.string().uuid("Invalid task id"),
+    task_id: z.string().uuid("Invalid task id"),
   }),
 });

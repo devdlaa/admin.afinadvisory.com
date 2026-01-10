@@ -37,7 +37,7 @@ export const fetchTaskById = createAsyncThunk(
   "taskDetail/fetchTaskById",
   async (taskId, { rejectWithValue }) => {
     try {
-      const result = await apiFetch(`/api/tasks/${taskId}`);
+      const result = await apiFetch(`/api/admin_ops/tasks/${taskId}`);
       return result.data;
     } catch (error) {
       return rejectWithValue({
@@ -60,7 +60,7 @@ export const addCharge = createAsyncThunk(
   "taskDetail/addCharge",
   async ({ taskId, chargeData }, { rejectWithValue }) => {
     try {
-      const result = await apiFetch(`/api/tasks/${taskId}/charges`, {
+      const result = await apiFetch(`/api/admin_ops/tasks/${taskId}/charges`, {
         method: "POST",
         body: JSON.stringify(chargeData),
       });
@@ -83,7 +83,7 @@ export const updateCharge = createAsyncThunk(
   async ({ taskId, chargeId, data }, { rejectWithValue }) => {
     try {
       const result = await apiFetch(
-        `/api/tasks/${taskId}/charges/${chargeId}`,
+        `/api/admin_ops/tasks/${taskId}/charges/${chargeId}`,
         {
           method: "PATCH",
           body: JSON.stringify(data),
@@ -108,7 +108,7 @@ export const deleteCharge = createAsyncThunk(
   async ({ taskId, chargeId }, { rejectWithValue }) => {
     try {
       const result = await apiFetch(
-        `/api/tasks/${taskId}/charges/${chargeId}`,
+        `/api/admin_ops/tasks/${taskId}/charges/${chargeId}`,
         {
           method: "DELETE",
         }
@@ -135,10 +135,13 @@ export const syncChecklist = createAsyncThunk(
   "taskDetail/syncChecklist",
   async ({ taskId, items }, { rejectWithValue }) => {
     try {
-      const result = await apiFetch(`/api/tasks/${taskId}/checklist`, {
-        method: "POST",
-        body: JSON.stringify({ items }),
-      });
+      const result = await apiFetch(
+        `/api/admin_ops/tasks/${taskId}/checklist`,
+        {
+          method: "POST",
+          body: JSON.stringify({ items }),
+        }
+      );
       return result.data; // { task_id, updated }
     } catch (error) {
       return rejectWithValue({
@@ -161,11 +164,15 @@ export const syncAssignments = createAsyncThunk(
   "taskDetail/syncAssignments",
   async ({ taskId, user_ids, assigned_to_all }, { rejectWithValue }) => {
     try {
-      const result = await apiFetch(`/api/tasks/${taskId}/assignments`, {
-        method: "POST",
-        body: JSON.stringify({ user_ids, assigned_to_all }),
-      });
-      return result.data; // { task_id, assigned_to_all, assignments }
+      const result = await apiFetch(
+        `/api/admin_ops/tasks/${taskId}/assignments`,
+        {
+          method: "POST",
+          body: JSON.stringify({ user_ids, assigned_to_all }),
+        }
+      );
+     
+      return result.data; 
     } catch (error) {
       return rejectWithValue({
         message: error.message || "Failed to sync assignments",
@@ -380,10 +387,10 @@ const taskDetailSlice = createSlice({
       })
       .addCase(syncAssignments.fulfilled, (state, action) => {
         const { task_id, assigned_to_all, assignments } = action.payload;
-
+   
         // Update assignments in current task
         if (state.currentTask && state.currentTask.id === task_id) {
-          state.currentTask.is_assigned_to_all = assigned_to_all;
+          state.currentTask.assigned_to_all = assigned_to_all;
           state.currentTask.assignments = assignments;
         }
 

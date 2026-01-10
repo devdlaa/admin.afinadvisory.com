@@ -1,6 +1,5 @@
-
 import {
-updateTaskCharge,
+  updateTaskCharge,
   deleteTaskCharge,
 } from "@/services/task/taskCharge.service";
 
@@ -15,34 +14,48 @@ import { schemas } from "@/schemas";
 
 export async function PATCH(request, { params }) {
   try {
-    const [permissionError] = await requirePermission(request, "tasks.charge.manage");
+    const [permissionError, session] = await requirePermission(
+      request,
+      "tasks.charge.manage"
+    );
     if (permissionError) return permissionError;
 
     const body = await request.json();
+    const resolvedParams = await params;
 
     const parsed = schemas.taskCharge.update.parse({
-      params,
+      params: resolvedParams,
       body,
     });
 
-    const updated = await updateTaskCharge(parsed.params.id, parsed.body);
+    const updated = await updateTaskCharge(
+      parsed.params.id,
+      parsed.body,
+      session.user.id
+    );
 
     return createSuccessResponse("Charge updated successfully", updated);
   } catch (error) {
+    console.log(error);
     return handleApiError(error);
   }
 }
 
 export async function DELETE(request, { params }) {
   try {
-    const [permissionError] = await requirePermission(request, "tasks.charge.manage");
+    const [permissionError, session] = await requirePermission(
+      request,
+      "tasks.charge.manage"
+    );
     if (permissionError) return permissionError;
 
+    const resolvedParams = await params;
+
     const parsed = schemas.taskCharge.delete.parse({
-      params,
+      params: resolvedParams,
     });
 
-    const deleted = await deleteTaskCharge(parsed.params.id);
+    const deleted = await deleteTaskCharge(parsed.params.id, session.user.id);
 
     return createSuccessResponse("Charge deleted successfully", deleted);
   } catch (error) {

@@ -6,94 +6,43 @@ import {
   UserPlus,
   ChevronDown,
   Users as UsersIcon,
-  Trash2,
-  UserCheck,
   X,
-  Clock,
   Tag,
-  SquarePen,
-  Bell,
-  PauseCircle,
-  MessageSquare,
-  CheckCircle2,
-  XCircle,
-  RotateCcw,
   IndianRupee,
   Plus,
+  MoreHorizontal,
+  Flag,
 } from "lucide-react";
 import "./TasksTable.scss";
 
 import Button from "@/app/components/Button/Button";
 import Avatar from "@/app/components/newui/Avatar/Avatar";
-import { setFilters } from "@/store/slices/taskSlice";
+import {
+  setFilters,
+  fetchTasks,
+  bulkUpdateTaskStatus,
+  bulkUpdateTaskPriority,
+} from "@/store/slices/taskSlice";
+import { statusOptions, priorityOptions } from "@/utils/shared/constants";
+import { getProfileUrl, formatDate } from "@/utils/shared/shared_util";
+import { truncateText } from "@/utils/server/utils";
 
 const TaskTable = ({
   tasks = [],
   onTaskClick,
-  onManageTask,
   onAssigneeClick,
-  onBulkAssign,
-  onBulkStatusChange,
-  onBulkDelete,
+
   loading = false,
   activeStatusFilter = null,
   activePriorityFilter = null,
+  statusCounts = {},
 }) => {
   const dispatch = useDispatch();
   const priorityDropdownRef = useRef(null);
+  const bulkActionsRef = useRef(null);
   const [selectedTasks, setSelectedTasks] = useState([]);
   const [priorityDropdownOpen, setPriorityDropdownOpen] = useState(false);
-
-  const statusTabs = [
-    {
-      value: "PENDING",
-      label: "Pending",
-      color: "#f59e0b",
-      icon: <Clock size={14} />,
-    },
-
-    {
-      value: "IN_PROGRESS",
-      label: "In Progress",
-      color: "#3b82f6",
-      icon: <RotateCcw size={14} />,
-    },
-
-    {
-      value: "ON_HOLD",
-      label: "On Hold",
-      color: "#8b5cf6",
-      icon: <PauseCircle size={14} />,
-    },
-
-    {
-      value: "PENDING_CLIENT_INPUT",
-      label: "Client Input",
-      color: "#f97316",
-      icon: <MessageSquare size={14} />,
-    },
-
-    {
-      value: "COMPLETED",
-      label: "Completed",
-      color: "#10b981",
-      icon: <CheckCircle2 size={14} />,
-    },
-
-    {
-      value: "CANCELLED",
-      label: "Cancelled",
-      color: "#ef4444",
-      icon: <XCircle size={14} />,
-    },
-  ];
-
-  const priorityOptions = [
-    { value: null, label: "All", color: "#6b7280" },
-    { value: "LOW", label: "Low", color: "#10b981" },
-    { value: "NORMAL", label: "Normal", color: "#3b82f6" },
-    { value: "HIGH", label: "High", color: "#f59e0b" },
-  ];
+  const [bulkActionsOpen, setBulkActionsOpen] = useState(false);
 
   useEffect(() => {
     setSelectedTasks([]);
@@ -106,6 +55,12 @@ const TaskTable = ({
         !priorityDropdownRef.current.contains(event.target)
       ) {
         setPriorityDropdownOpen(false);
+      }
+      if (
+        bulkActionsRef.current &&
+        !bulkActionsRef.current.contains(event.target)
+      ) {
+        setBulkActionsOpen(false);
       }
     };
 
@@ -135,13 +90,45 @@ const TaskTable = ({
 
   const handleStatusChange = (status) => {
     dispatch(setFilters({ status }));
+    dispatch(fetchTasks(true));
     setSelectedTasks([]);
   };
 
   const handlePriorityChange = (priority) => {
     dispatch(setFilters({ priority }));
+    dispatch(fetchTasks(true));
     setPriorityDropdownOpen(false);
     setSelectedTasks([]);
+  };
+
+  const handleBulkStatusUpdate = async (status) => {
+    if (selectedTasks.length === 0) return;
+
+     dispatch(
+      bulkUpdateTaskStatus({
+        task_ids: selectedTasks,
+        status,
+      })
+    );
+
+    // Refresh tasks to get updated counts
+    dispatch(fetchTasks(true));
+    setBulkActionsOpen(false);
+  };
+
+  const handleBulkPriorityUpdate = async (priority) => {
+    if (selectedTasks.length === 0) return;
+
+     dispatch(
+      bulkUpdateTaskPriority({
+        task_ids: selectedTasks,
+        priority,
+      })
+    );
+
+    // Refresh tasks to get updated counts
+    dispatch(fetchTasks(true));
+    setBulkActionsOpen(false);
   };
 
   const isAllSelected =
@@ -149,30 +136,18 @@ const TaskTable = ({
   const isSomeSelected =
     selectedTasks.length > 0 && selectedTasks.length < tasks.length;
 
-  const formatDate = (date) => {
-    if (!date) return "N/A";
-    return new Date(date).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
-  };
-
-  const getProfileUrl = (userId) =>
-    `https://nlpbifhxscrlgsfgrlua.supabase.co/storage/v1/object/public/team_profiles/${userId}.jpg`;
-
   const getPriorityColor = (priority) => {
     const option = priorityOptions.find((opt) => opt.value === priority);
-    return option?.color || "#6b7280";
+    return option?.txtClr || "#6b7280";
   };
 
   const getStatusColor = (status) => {
-    const tab = statusTabs.find((tab) => tab.value === status);
-    return tab?.color || "#6b7280";
+    const tab = statusOptions.find((tab) => tab.value === status);
+    return tab?.txtClr || "#6b7280";
   };
 
   const getStatusLabel = (status) => {
-    const tab = statusTabs.find((tab) => tab.value === status);
+    const tab = statusOptions.find((tab) => tab.value === status);
     return tab?.label || status;
   };
 
@@ -185,9 +160,22 @@ const TaskTable = ({
     priorityOptions.find((opt) => opt.value === activePriorityFilter)?.label ||
     "All";
 
+  // Get filtered counts for status tabs
+  const getStatusCount = (statusValue) => {
+    const { filtered = {} } = statusCounts;
+    if (!statusValue) {
+      // "All" tab - show sum of all filtered counts
+      return Object.values(filtered).reduce((sum, count) => sum + count, 0);
+    }
+    return filtered[statusValue] || 0;
+  };
+
   const renderAssignees = (task) => {
-    const { is_assigned_to_all, assignees_preview, remaining_assignee_count } =
-      task;
+    const {
+      assigned_to_all,
+      assignments = [],
+      remaining_assignee_count = 0,
+    } = task;
 
     const handleClick = (e) => {
       e.stopPropagation();
@@ -196,7 +184,7 @@ const TaskTable = ({
       }
     };
 
-    if (is_assigned_to_all) {
+    if (assigned_to_all) {
       return (
         <div className="task-assignees" onClick={handleClick}>
           <div className="assignee-chip assignee-all">
@@ -207,7 +195,7 @@ const TaskTable = ({
       );
     }
 
-    if (!assignees_preview || assignees_preview.length === 0) {
+    if (!assignments.length) {
       return (
         <div className="task-assignees" onClick={handleClick}>
           <div className="assignee-chip assignee-empty">
@@ -221,19 +209,21 @@ const TaskTable = ({
     return (
       <div className="task-assignees" onClick={handleClick}>
         <div className="avatar-stack">
-          {assignees_preview.map((assignee) => (
+          {assignments.map((a) => (
             <Avatar
-              key={assignee.id}
-              src={getProfileUrl(assignee.id)}
-              alt={assignee.name}
+              key={a.id}
+              src={getProfileUrl(a.assignee.id)}
+              alt={a.assignee.name}
               size={35}
-              fallbackText={assignee.name}
+              fallbackText={a.assignee.name}
             />
           ))}
+
           {remaining_assignee_count > 0 && (
             <div className="avatar-more">+{remaining_assignee_count}</div>
           )}
-          {assignees_preview.length < 3 && (
+
+          {assignments.length < 3 && (
             <div className="avatar-more">
               <Plus />
             </div>
@@ -256,7 +246,6 @@ const TaskTable = ({
 
   return (
     <div className="task-table">
-      {/* Controls Section - Hides when tasks are selected */}
       <div className="controls-bar">
         <div className="controls-left">
           <input
@@ -271,19 +260,21 @@ const TaskTable = ({
           {selectedTasks.length === 0 ? (
             <>
               <div className="status-tabs">
-                {statusTabs.map((tab) => (
-                  <button
-                    key={tab.value || "all"}
-                    className={`status-tab ${
-                      activeStatusFilter === tab.value ? "active" : ""
-                    }`}
-                    onClick={() => handleStatusChange(tab.value)}
-                    style={{ "--tab-color": tab.color }}
-                  >
-                    {tab.icon}
-                    {tab.label}
-                  </button>
-                ))}
+                {statusOptions.map((tab) => {
+                  return (
+                    <button
+                      key={tab.value || "all"}
+                      className={`status-tab ${
+                        activeStatusFilter === tab.value ? "active" : ""
+                      }`}
+                      onClick={() => handleStatusChange(tab.value)}
+                      style={{ "--tab-color": tab.txtClr }}
+                    >
+                      {tab.icon}
+                      {tab.label}
+                    </button>
+                  );
+                })}
               </div>
 
               <div className="priority-filter" ref={priorityDropdownRef}>
@@ -291,7 +282,7 @@ const TaskTable = ({
                   className="priority-button"
                   onClick={() => setPriorityDropdownOpen(!priorityDropdownOpen)}
                 >
-                  <span>{activePriorityLabel} Priority</span>
+                  <span>{activePriorityLabel}</span>
                   <ChevronDown size={16} />
                 </button>
 
@@ -309,6 +300,7 @@ const TaskTable = ({
                           className="priority-dot"
                           style={{ backgroundColor: option.color }}
                         />
+                        {option?.icon}
                         <span>{option.label}</span>
                       </div>
                     ))}
@@ -322,22 +314,60 @@ const TaskTable = ({
                 {selectedTasks.length} selected
               </span>
               <div className="bulk-buttons">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  icon={UserCheck}
-                  onClick={() => onBulkAssign && onBulkAssign(selectedTasks)}
-                >
-                  Assign
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  icon={Trash2}
-                  onClick={() => onBulkDelete && onBulkDelete(selectedTasks)}
-                >
-                  Delete
-                </Button>
+                <div className="bulk-actions-menu" ref={bulkActionsRef}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    icon={MoreHorizontal}
+                    onClick={() => setBulkActionsOpen(!bulkActionsOpen)}
+                  >
+                    Actions
+                  </Button>
+
+                  {bulkActionsOpen && (
+                    <div className="bulk-dropdown">
+                      <div className="dropdown-section">
+                        <div className="dropdown-label">Update Status</div>
+                        {statusOptions
+                          .filter((opt) => opt.value)
+                          .map((option) => (
+                            <button
+                              key={option.value}
+                              className="dropdown-item"
+                              onClick={() =>
+                                handleBulkStatusUpdate(option.value)
+                              }
+                            >
+                              {option.icon}
+                              <span>{option.label}</span>
+                            </button>
+                          ))}
+                      </div>
+
+                      <div className="dropdown-divider" />
+
+                      <div className="dropdown-section">
+                        <div className="dropdown-label">Update Priority</div>
+                        {priorityOptions
+                          .filter((opt) => opt.value)
+                          .map((option) => (
+                            <button
+                              key={option.value}
+                              className="dropdown-item"
+                              onClick={() =>
+                                handleBulkPriorityUpdate(option.value)
+                              }
+                            >
+                              {option?.icon}
+                       
+                              <span>{option.label}</span>
+                            </button>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 <Button
                   variant="ghost"
                   size="sm"
@@ -352,11 +382,9 @@ const TaskTable = ({
         </div>
       </div>
 
-      {/* Task List */}
       <div
         style={{
           display: tasks.length === 0 ? "flex" : "grid",
-
         }}
         className="task-list"
       >
@@ -391,7 +419,9 @@ const TaskTable = ({
                 <div className="task-content">
                   <div className="task-header">
                     <div className="task-title-group">
-                      <h3 className="task-title">{task.title}</h3>
+                      <h3 className="task-title">
+                        {truncateText(task.title, 100)}
+                      </h3>
                       <span className="entity-name">
                         {task.entity?.name || "No Entity"}
                       </span>
@@ -445,7 +475,6 @@ const TaskTable = ({
 
                     {task.is_billable && (
                       <span className="billable-badge">
-                        {" "}
                         <IndianRupee /> Billable Task
                       </span>
                     )}
@@ -460,26 +489,7 @@ const TaskTable = ({
                       }}
                     >
                       {renderAssignees(task)}
-
-                      {true && (
-                        <div className="attention-badge">
-                          <Bell size={14} />
-                          <span>Needs Attention</span>
-                        </div>
-                      )}
                     </div>
-
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onManageTask && onManageTask(task);
-                      }}
-                      icon={SquarePen}
-                    >
-                      Manage Task
-                    </Button>
                   </div>
                 </div>
               </div>

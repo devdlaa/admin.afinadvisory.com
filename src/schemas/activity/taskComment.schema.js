@@ -53,8 +53,8 @@ export const TaskCommentQuerySchema = z
       .transform((val) => (val ? parseInt(val, 10) : 20))
       .pipe(z.number().int().min(1).max(100))
       .default(20),
-    cursor: z.string().optional(),
-    type: z.enum(["COMMENT", "ACTIVITY", "ALL"]).optional().default("ALL"),
+    cursor: z.string().optional().nullable(),
+    type: z.enum(["COMMENT", "ACTIVITY", "ALL"]).optional().default("COMMENT"),
   })
   .refine((data) => data.limit || data.cursor || data.type, {
     message: "At least one query parameter is required",

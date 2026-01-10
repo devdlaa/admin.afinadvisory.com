@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   X,
   Loader2,
@@ -16,55 +16,56 @@ import {
 } from "lucide-react";
 import style from "./AssignmentDialog.module.scss";
 import { CircularProgress } from "@mui/material";
+import Avatar from "@/app/components/newui/Avatar/Avatar";
+import { getProfileUrl } from "@/utils/shared/shared_util";
 
-
-const AssignmentDialog = ({ 
-  isOpen, 
-  onClose, 
+const AssignmentDialog = ({
+  isOpen,
+  onClose,
   config = {},
-  hasPermission = false 
+  isSaving = false,
+  hasPermission = true,
 }) => {
   const {
-    selectedItem,
-    apiEndpoint,
-    buildPayload,
-    onSuccessDispatch,
+    assignedUsers: initialAssignedUsers = [],
+    assignedToAll: initialAssignedToAll = false,
+    creatorId,
+    onSave,
     title = "Assign Team Members",
     subtitle = "Drag and drop users to manage team assignments",
-    validateItem = (item) => item?.id ? null : "No item selected"
+    maxAssignedUsers = 10,
+    usersApiEndpoint = "/api/admin_ops/staff-managment/admin-users",
   } = config;
 
-  // Local state
+  // Available users state (fetched internally)
   const [availableUsers, setAvailableUsers] = useState([]);
-  const [assignedUsers, setAssignedUsers] = useState([]);
-  const [isAssignToAll, setIsAssignToAll] = useState(false);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [usersError, setUsersError] = useState(null);
 
-  // Store original/initial state for comparison
-  const [originalAssignedUsers, setOriginalAssignedUsers] = useState([]);
-  const [originalIsAssignToAll, setOriginalIsAssignToAll] = useState(false);
-
-  const [availableSearch, setAvailableSearch] = useState("");
-  const [assignedSearch, setAssignedSearch] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [draggedUser, setDraggedUser] = useState(null);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState(null);
-
-  // Cache-related state
+  // Cache state
   const [isFromCache, setIsFromCache] = useState(false);
   const [cacheTimestamp, setCacheTimestamp] = useState(null);
   const [refreshingUsers, setRefreshingUsers] = useState(false);
 
-  const MAX_ASSIGNED_USERS = 5;
-  const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes in milliseconds
+  // Assignment state
+  const [assignedUsers, setAssignedUsers] = useState([]);
+  const [isAssignToAll, setIsAssignToAll] = useState(false);
+  const [originalAssignedUsers, setOriginalAssignedUsers] = useState([]);
+  const [originalIsAssignToAll, setOriginalIsAssignToAll] = useState(false);
+
+  // UI state
+  const [availableSearch, setAvailableSearch] = useState("");
+  const [assignedSearch, setAssignedSearch] = useState("");
+  const [draggedUser, setDraggedUser] = useState(null);
+
+  const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
   const CACHE_KEY = "available_users_cache";
 
-  // Helper function to check if cache is valid
+  // Cache helpers
   const isCacheValid = (timestamp) => {
     return Date.now() - timestamp < CACHE_DURATION;
   };
 
-  // Helper function to get cached users
   const getCachedUsers = () => {
     try {
       const cached = localStorage.getItem(CACHE_KEY);
@@ -72,10 +73,8 @@ const AssignmentDialog = ({
         const { users, timestamp } = JSON.parse(cached);
         if (isCacheValid(timestamp)) {
           return { users, timestamp };
-        } else {
-          // Cache expired, remove it
-          localStorage.removeItem(CACHE_KEY);
         }
+        localStorage.removeItem(CACHE_KEY);
       }
     } catch (error) {
       console.error("Error reading cache:", error);
@@ -84,7 +83,6 @@ const AssignmentDialog = ({
     return null;
   };
 
-  // Helper function to cache users
   const cacheUsers = (users) => {
     try {
       const timestamp = Date.now();
@@ -95,51 +93,20 @@ const AssignmentDialog = ({
     }
   };
 
-  // Helper function to format cache age
   const formatCacheAge = (timestamp) => {
     if (!timestamp) return "";
-
     const ageInMinutes = Math.floor((Date.now() - timestamp) / (1000 * 60));
-    if (ageInMinutes < 1) {
-      return "Just now";
-    } else if (ageInMinutes < 60) {
-      return `${ageInMinutes} min ago`;
-    } else {
-      const ageInHours = Math.floor(ageInMinutes / 60);
-      return `${ageInHours}h ${ageInMinutes % 60}m ago`;
-    }
+    if (ageInMinutes < 1) return "Just now";
+    if (ageInMinutes < 60) return `${ageInMinutes} min ago`;
+    const ageInHours = Math.floor(ageInMinutes / 60);
+    return `${ageInHours}h ${ageInMinutes % 60}m ago`;
   };
 
-  // Helper function to check if there are actual changes
-  const checkForChanges = (currentAssigned, currentToggle) => {
-    // Check if toggle state changed
-    const toggleChanged = currentToggle !== originalIsAssignToAll;
-
-    // Check if assigned users array changed
-    const usersChanged =
-      currentAssigned.length !== originalAssignedUsers.length ||
-      !currentAssigned.every((user) =>
-        originalAssignedUsers.some(
-          (originalUser) => originalUser.userCode === user.userCode
-        )
-      );
-
-    return toggleChanged || usersChanged;
-  };
-
-  // Computed value for hasChanges
-  const hasChanges = checkForChanges(assignedUsers, isAssignToAll);
-
-  // Fetch users from API
+  // Fetch available users from API
   const fetchUsersFromAPI = async () => {
-    const response = await fetch("/api/admin/users/get_users", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        pageSize: 100, // Get more users for assignment dialog
-      }),
+    const response = await fetch(usersApiEndpoint, {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
     });
 
     if (!response.ok) {
@@ -147,76 +114,53 @@ const AssignmentDialog = ({
     }
 
     const data = await response.json();
-
     if (!data.success) {
       throw new Error(data.error || "Failed to fetch available users");
     }
 
-    return data?.data?.users || [];
+    return data?.data?.data || data?.data?.users || [];
   };
 
-  // Fetch data when dialog opens
+  // Load users on dialog open
   useEffect(() => {
-    if (isOpen && selectedItem) {
-      fetchData();
+    if (isOpen) {
+      loadUsers();
     }
-  }, [isOpen, selectedItem?.id]);
+  }, [isOpen]);
 
-  const fetchData = async () => {
-    setLoading(true);
-    setError(null);
+  const loadUsers = async () => {
+    setLoadingUsers(true);
+    setUsersError(null);
 
     try {
       let users = [];
-      let fromCache = false;
-      let timestamp = null;
 
-      // Try to get from cache first
+      // Try cache first
       const cached = getCachedUsers();
       if (cached) {
         users = cached.users;
-        timestamp = cached.timestamp;
-        fromCache = true;
+        setCacheTimestamp(cached.timestamp);
         setIsFromCache(true);
-        setCacheTimestamp(timestamp);
       } else {
-        // Fetch from API if no valid cache
+        // Fetch from API
         users = await fetchUsersFromAPI();
         cacheUsers(users);
-        fromCache = false;
         setIsFromCache(false);
       }
 
       setAvailableUsers(users);
-
-      // Get current assignment from selectedItem
-      const currentAssignment = selectedItem?.assignmentManagement || {
-        assignToAll: false,
-        members: [],
-      };
-
-      // Set initial state from current item
-      const currentAssignedUsers = currentAssignment.members || [];
-      const currentAssignToAll = currentAssignment.assignToAll || false;
-
-      setAssignedUsers(currentAssignedUsers);
-      setIsAssignToAll(currentAssignToAll);
-
-      // Store original state for comparison
-      setOriginalAssignedUsers([...currentAssignedUsers]);
-      setOriginalIsAssignToAll(currentAssignToAll);
     } catch (err) {
-      console.error("Error fetching data:", err);
-      setError(err.message);
+      console.error("Error loading users:", err);
+      setUsersError(err.message);
     } finally {
-      setLoading(false);
+      setLoadingUsers(false);
     }
   };
 
-  // Function to refresh users from API
+  // Refresh users manually
   const refreshUsers = async () => {
     setRefreshingUsers(true);
-    setError(null);
+    setUsersError(null);
 
     try {
       const users = await fetchUsersFromAPI();
@@ -225,27 +169,63 @@ const AssignmentDialog = ({
       setIsFromCache(false);
     } catch (err) {
       console.error("Error refreshing users:", err);
-      setError(err.message);
+      setUsersError(err.message);
     } finally {
       setRefreshingUsers(false);
     }
   };
 
+  // Initialize assignment state when dialog opens
+  // Use a ref to track if we've already initialized for this dialog session
+  const dialogSessionRef = useRef(false);
+
+  useEffect(() => {
+    if (isOpen && !dialogSessionRef.current) {
+      // Dialog just opened - initialize state
+      setAssignedUsers([...initialAssignedUsers]);
+      setIsAssignToAll(initialAssignedToAll);
+      setOriginalAssignedUsers([...initialAssignedUsers]);
+      setOriginalIsAssignToAll(initialAssignedToAll);
+      setAvailableSearch("");
+      setAssignedSearch("");
+      dialogSessionRef.current = true;
+    } else if (!isOpen) {
+      // Dialog closed - reset the session flag
+      dialogSessionRef.current = false;
+    }
+  }, [isOpen, initialAssignedUsers, initialAssignedToAll]);
+
+  // Check if user is creator
+  const isCreator = (user) => creatorId && user.id === creatorId;
+
+  // Check if there are changes
+  const hasChanges = () => {
+    const toggleChanged = isAssignToAll !== originalIsAssignToAll;
+    const usersChanged =
+      assignedUsers.length !== originalAssignedUsers.length ||
+      !assignedUsers.every((user) =>
+        originalAssignedUsers.some((original) => original.id === user.id)
+      );
+    return toggleChanged || usersChanged;
+  };
+
+  // Filter users
   const filteredAvailableUsers = availableUsers.filter(
     (user) =>
-      !assignedUsers.some((assigned) => assigned.userCode === user.userCode) &&
-      (user.name.toLowerCase().includes(availableSearch.toLowerCase()) ||
-        user.email.toLowerCase().includes(availableSearch.toLowerCase()))
+      !assignedUsers.some((assigned) => assigned.id === user.id) &&
+      (user.name?.toLowerCase().includes(availableSearch.toLowerCase()) ||
+        user.email?.toLowerCase().includes(availableSearch.toLowerCase()))
   );
 
   const filteredAssignedUsers = assignedUsers.filter(
     (user) =>
-      user.name.toLowerCase().includes(assignedSearch.toLowerCase()) ||
-      user.email.toLowerCase().includes(assignedSearch.toLowerCase())
+      user.name?.toLowerCase().includes(assignedSearch.toLowerCase()) ||
+      user.email?.toLowerCase().includes(assignedSearch.toLowerCase())
   );
 
+  // Drag and drop handlers
   const handleDragStart = (e, user, source) => {
-    if (isAssignToAll) {
+    if (isAssignToAll || !hasPermission) {
       e.preventDefault();
       return;
     }
@@ -253,7 +233,6 @@ const AssignmentDialog = ({
     setDraggedUser({ ...user, source });
     e.dataTransfer.effectAllowed = "move";
 
-    // Create a custom drag image
     const dragImage = document.createElement("div");
     dragImage.innerHTML = `
       <div style="
@@ -280,9 +259,7 @@ const AssignmentDialog = ({
           justify-content: center;
           font-size: 12px;
           font-weight: 600;
-        ">${
-          user.avatar || user.name?.substring(0, 2).toUpperCase() || "?"
-        }</div>
+        ">${user.name?.substring(0, 2).toUpperCase() || "?"}</div>
         <div>
           <div style="font-size: 13px; font-weight: 500; color: #0f172a; margin-bottom: 2px;">
             ${user.name}
@@ -296,12 +273,9 @@ const AssignmentDialog = ({
 
     dragImage.style.position = "absolute";
     dragImage.style.top = "-1000px";
-    dragImage.style.pointerEvents = "none";
     document.body.appendChild(dragImage);
-
     e.dataTransfer.setDragImage(dragImage, 110, 25);
 
-    // Clean up the drag image after a short delay
     setTimeout(() => {
       if (document.body.contains(dragImage)) {
         document.body.removeChild(dragImage);
@@ -310,135 +284,74 @@ const AssignmentDialog = ({
   };
 
   const handleDragOver = (e) => {
-    if (isAssignToAll) return;
+    if (isAssignToAll || !hasPermission) return;
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
   };
 
   const handleDrop = (e, targetList) => {
-    if (isAssignToAll) return;
+    if (isAssignToAll || !hasPermission) return;
     e.preventDefault();
 
     if (!draggedUser) return;
-
     const { source } = draggedUser;
 
     if (source === "available" && targetList === "assigned") {
-      // Check if we've reached the limit
-      if (assignedUsers.length >= MAX_ASSIGNED_USERS) {
+      if (assignedUsers.length >= maxAssignedUsers) {
         setDraggedUser(null);
         return;
       }
-
-      // Add to assigned users
       setAssignedUsers((prev) => [...prev, draggedUser]);
     } else if (source === "assigned" && targetList === "available") {
-      // Remove from assigned users
-      setAssignedUsers((prev) =>
-        prev.filter((u) => u.userCode !== draggedUser.userCode)
-      );
+      setAssignedUsers((prev) => prev.filter((u) => u.id !== draggedUser.id));
     }
 
     setDraggedUser(null);
   };
 
   const handleAssignToAllToggle = () => {
+    if (!hasPermission || isSaving) return;
     setIsAssignToAll(!isAssignToAll);
   };
 
-  const handleAssignUsers = async () => {
-    // Validate selected item
-    const validationError = validateItem(selectedItem);
-    if (validationError) {
-      setError(validationError);
-      return;
-    }
+  // Save handler - calls parent's onSave with the data
+  const handleSave = () => {
+    if (!onSave || !hasChanges()) return;
 
-    // Check if required config is provided
-    if (!apiEndpoint || !buildPayload) {
-      setError("Missing required configuration");
-      return;
-    }
+    const assignmentData = {
+      assigned_to_all: isAssignToAll,
+      user_ids: isAssignToAll ? [] : assignedUsers.map((u) => u.id),
+      members: isAssignToAll ? [] : assignedUsers,
+    };
 
-    setSaving(true);
-    setError(null);
-
-    try {
-      // Build assignment data
-      const assignmentData = {
-        assignToAll: isAssignToAll,
-        members: isAssignToAll
-          ? []
-          : assignedUsers.map((u) => ({
-              userCode: u.userCode,
-              name: u.name,
-              email: u.email,
-              sendEmail: false,
-            })),
-      };
-
-      // Build payload using config function
-      const payload = buildPayload(selectedItem.id, assignmentData);
-
-      const response = await fetch(apiEndpoint, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-
-      if (!data.success) {
-        throw new Error(data.error || "Failed to update assignment");
-      }
-
-      // Dispatch Redux action if provided
-      if (onSuccessDispatch) {
-        onSuccessDispatch(data);
-      }
-
-      // Update original state after successful save
-      setOriginalAssignedUsers([...assignedUsers]);
-      setOriginalIsAssignToAll(isAssignToAll);
-
-      onClose();
-    } catch (err) {
-      console.error("Error updating assignment:", err);
-      setError(err.message);
-    } finally {
-      setSaving(false);
-    }
+    onSave(assignmentData);
   };
 
   const handleClose = () => {
     setAvailableSearch("");
     setAssignedSearch("");
-    setError(null);
     onClose();
   };
 
   if (!isOpen) return null;
 
-  const isAtLimit = assignedUsers.length >= MAX_ASSIGNED_USERS;
-  const isDisabled = isAssignToAll;
+  const isAtLimit = assignedUsers.length >= maxAssignedUsers;
+  const isDisabled = isAssignToAll || !hasPermission;
 
   return (
     <div className={style.assignmentDialogBackdrop}>
-      <div className={`${style.assignmentDialog} ${!hasPermission ? style.noAble : ''}`}>
+      <div
+        className={`${style.assignmentDialog} ${
+          !hasPermission ? style.noAble : ""
+        }`}
+      >
+        {/* Header */}
         <div className={style.dialogHeader}>
           <div className={style.headerContent}>
             <h2>{title}</h2>
             {hasPermission && (
               <p className={style.subtitle}>
-                {isAssignToAll
-                  ? "All users are assigned to this task"
-                  : subtitle}
+                {isAssignToAll ? "All users are assigned" : subtitle}
               </p>
             )}
           </div>
@@ -447,22 +360,23 @@ const AssignmentDialog = ({
           </button>
         </div>
 
+        {/* Body */}
         <div className={style.dialogBody}>
-          {error && (
+          {usersError && (
             <div className={style.errorBanner}>
               <AlertCircle size={16} />
-              <span>{error}</span>
+              <span>{usersError}</span>
             </div>
           )}
 
-          {loading ? (
+          {loadingUsers ? (
             <div className={style.loadingState}>
               <Loader2 className={style.loader} />
               <p>Loading team members...</p>
             </div>
           ) : (
             <div className={style.assignmentContainer}>
-              {/* Available Users - Left Side */}
+              {/* Available Users - Left */}
               <div className={`${style.userSection} ${style.availableSection}`}>
                 <div className={style.sectionHeader}>
                   <div className={style.headerInner}>
@@ -476,8 +390,10 @@ const AssignmentDialog = ({
 
                     <div className={style.assignAllToggle}>
                       <button
-                        disabled={saving}
-                        className={`${style.toggleBtn} ${!saving ? style.active : ''}`}
+                        disabled={isSaving}
+                        className={`${style.toggleBtn} ${
+                          isAssignToAll ? style.active : ""
+                        }`}
                         onClick={handleAssignToAllToggle}
                       >
                         {isAssignToAll ? (
@@ -490,7 +406,7 @@ const AssignmentDialog = ({
                     </div>
                   </div>
 
-                  {/* Cache Status and Refresh */}
+                  {/* Cache Status */}
                   <div className={style.cacheControls}>
                     <div className={style.cacheStatus}>
                       {isFromCache ? (
@@ -508,12 +424,12 @@ const AssignmentDialog = ({
                     <button
                       className={style.refreshBtn}
                       onClick={refreshUsers}
-                      disabled={refreshingUsers || saving}
+                      disabled={refreshingUsers || isSaving}
                       title="Refresh user list"
                     >
                       <RefreshCw
                         size={14}
-                        className={refreshingUsers ? style.spinning : ''}
+                        className={refreshingUsers ? style.spinning : ""}
                       />
                     </button>
                   </div>
@@ -532,27 +448,28 @@ const AssignmentDialog = ({
                 </div>
 
                 <div
-                  className={`${style.usersList} ${isDisabled ? style.disabled : ''}`}
+                  className={`${style.usersList} ${
+                    isDisabled ? style.disabled : ""
+                  }`}
                   onDragOver={handleDragOver}
                   onDrop={(e) => handleDrop(e, "available")}
                 >
                   {filteredAvailableUsers.map((user) => (
                     <div
-                      style={{
-                        cursor: "grab",
-                      }}
-                      key={user.userCode}
+                      key={user.id}
+                      style={{ cursor: isDisabled ? "default" : "grab" }}
                       className={`${style.userCard} ${style.available} ${
-                        isDisabled ? style.disabled : ''
+                        isDisabled ? style.disabled : ""
                       }`}
                       draggable={!isDisabled}
                       onDragStart={(e) => handleDragStart(e, user, "available")}
                     >
-                      <div className={style.userAvatar}>
-                        {user.avatar ||
-                          user.name?.substring(0, 2).toUpperCase() ||
-                          "?"}
-                      </div>
+                      <Avatar
+                        src={getProfileUrl(user.id)}
+                        alt={user.name}
+                        size={32}
+                        fallbackText={user.name}
+                      />
                       <div className={style.userInfo}>
                         <div className={style.userName}>{user.name}</div>
                         <div className={style.userEmail}>{user.email}</div>
@@ -569,13 +486,13 @@ const AssignmentDialog = ({
                 </div>
               </div>
 
-              {/* Vertical Divider */}
+              {/* Divider */}
               <div className={style.divider}></div>
 
-              {/* Assigned Users - Right Side */}
+              {/* Assigned Users - Right */}
               <div
                 className={`${style.userSection} ${style.assignedSection} ${
-                  isDisabled ? style.disabled : ''
+                  isDisabled ? style.disabled : ""
                 }`}
               >
                 <div className={style.sectionHeader}>
@@ -585,7 +502,7 @@ const AssignmentDialog = ({
                     <span className={style.count}>
                       {isAssignToAll
                         ? "(All)"
-                        : `(${assignedUsers.length}/${MAX_ASSIGNED_USERS})`}
+                        : `(${assignedUsers.length}/${maxAssignedUsers})`}
                     </span>
                   </div>
 
@@ -607,7 +524,9 @@ const AssignmentDialog = ({
                 {isAtLimit && !isAssignToAll && (
                   <div className={style.limitWarning}>
                     <AlertCircle size={14} />
-                    <span>Maximum 10 members can be assigned</span>
+                    <span>
+                      Maximum {maxAssignedUsers} members can be assigned
+                    </span>
                   </div>
                 )}
 
@@ -615,7 +534,7 @@ const AssignmentDialog = ({
                   <div className={style.allUsersState}>
                     <Users size={48} />
                     <h4>All Users Assigned</h4>
-                    <p>Every team member is assigned to this task</p>
+                    <p>Every team member is assigned</p>
                   </div>
                 ) : (
                   <div
@@ -623,31 +542,43 @@ const AssignmentDialog = ({
                     onDragOver={handleDragOver}
                     onDrop={(e) => handleDrop(e, "assigned")}
                   >
-                    {filteredAssignedUsers.map((user) => (
-                      <div
-                        style={{
-                          cursor: "grab",
-                        }}
-                        key={user.userCode}
-                        className={`${style.userCard} ${style.assigned} ${
-                          isDisabled ? style.disabled : ''
-                        }`}
-                        draggable={!isDisabled}
-                        onDragStart={(e) =>
-                          handleDragStart(e, user, "assigned")
-                        }
-                      >
-                        <div className={`${style.userAvatar} ${style.assigned}`}>
-                          {user.avatar ||
-                            user.name?.substring(0, 2).toUpperCase() ||
-                            "?"}
+                    {filteredAssignedUsers.map((user) => {
+                      const isUserCreator = isCreator(user);
+
+                      return (
+                        <div
+                          key={user.id}
+                          style={{
+                            cursor: isDisabled ? "default" : "grab",
+                          }}
+                          className={`${style.userCard} ${style.assigned} ${
+                            isDisabled ? style.disabled : ""
+                          }`}
+                          draggable={!isDisabled}
+                          onDragStart={(e) =>
+                            handleDragStart(e, user, "assigned")
+                          }
+                        >
+                          <Avatar
+                            src={getProfileUrl(user.id)}
+                            alt={user.name}
+                            size={32}
+                            fallbackText={user.name}
+                          />
+                          <div className={style.userInfo}>
+                            <div className={style.userName}>
+                              {user.name}
+                              {isUserCreator && (
+                                <span className={style.creatorBadge}>
+                                  Creator
+                                </span>
+                              )}
+                            </div>
+                            <div className={style.userEmail}>{user.email}</div>
+                          </div>
                         </div>
-                        <div className={style.userInfo}>
-                          <div className={style.userName}>{user.name}</div>
-                          <div className={style.userEmail}>{user.email}</div>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
 
                     {filteredAssignedUsers.length === 0 && (
                       <div className={style.emptyState}>
@@ -663,9 +594,10 @@ const AssignmentDialog = ({
           )}
         </div>
 
+        {/* Footer */}
         <div className={style.dialogFooter}>
           <div className={style.footerInfo}>
-            {hasChanges && (
+            {hasChanges() && hasPermission && (
               <span>
                 {isAssignToAll
                   ? "All members will be assigned"
@@ -677,20 +609,22 @@ const AssignmentDialog = ({
             <button className={style.cancelBtn} onClick={handleClose}>
               Cancel
             </button>
-            <button
-              className={style.submitBtn}
-              onClick={handleAssignUsers}
-              disabled={!hasChanges || saving}
-            >
-              {saving ? (
-                <>
-                  <CircularProgress size={18} />
-                  <span>Assigning...</span>
-                </>
-              ) : (
-                <span>Assign Members</span>
-              )}
-            </button>
+            {hasPermission && (
+              <button
+                className={style.submitBtn}
+                onClick={handleSave}
+                disabled={!hasChanges() || isSaving}
+              >
+                {isSaving ? (
+                  <>
+                    <CircularProgress  color="grey" size={16} />
+                    <span>Assigning...</span>
+                  </>
+                ) : (
+                  <span>Assign Members</span>
+                )}
+              </button>
+            )}
           </div>
         </div>
       </div>

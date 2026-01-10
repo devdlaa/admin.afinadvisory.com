@@ -56,7 +56,7 @@ export const syncTaskAssignments = async (
     await tx.task.update({
       where: { id: task_id },
       data: {
-        is_assigned_to_all: assigned_to_all === true,
+        assigned_to_all: assigned_to_all === true,
         updated_by,
         last_activity_at: new Date(),
         last_activity_by: updated_by,
@@ -122,9 +122,6 @@ export const syncTaskAssignments = async (
             id: true,
             name: true,
             email: true,
-            user_code: true,
-            status: true,
-            phone: true,
           },
         },
       },
@@ -160,12 +157,18 @@ export const syncTaskAssignments = async (
   // ------------------------------ FINAL API RESPONSE ------------------------------
 
   return {
-    task_id: task_id,
-    message: "Assignments synced successfully",
+    task_id,
     assigned_to_all: result.assigned_to_all,
+
     assignments: result.assignments.map((a) => ({
-      user: a.assignee,
-      assigned_by: a.assigner,
+      id: a.id,
+      task_id: a.task_id,
+      admin_user_id: a.admin_user_id,
+      assigned_at: a.assigned_at,
+      assigned_by: a.assigned_by,
+      assignment_source: a.assignment_source,
+
+      assignee: a.assignee,
     })),
   };
 };
@@ -174,7 +177,7 @@ export const syncTaskAssignments = async (
  * NEW: Safe bulk assignment
  * Only affects:
  *  - tasks with NO assignees
- *  - tasks with is_assigned_to_all = true
+ *  - tasks with assigned_to_all = true
  */
 
 export const bulkAssignUnownedTasks = async (
@@ -197,7 +200,7 @@ export const bulkAssignUnownedTasks = async (
 
     const tasks = await tx.task.findMany({
       where: { id: { in: task_ids } },
-      select: { id: true, title: true, is_assigned_to_all: true },
+      select: { id: true, title: true, assigned_to_all: true },
     });
 
     if (tasks.length === 0) {
@@ -212,9 +215,7 @@ export const bulkAssignUnownedTasks = async (
     const alreadyAssigned = new Set(existingAssignments.map((a) => a.task_id));
 
     const eligibleTaskIds = tasks
-      .filter(
-        (t) => t.is_assigned_to_all === true || !alreadyAssigned.has(t.id)
-      )
+      .filter((t) => t.assigned_to_all === true || !alreadyAssigned.has(t.id))
       .map((t) => t.id);
 
     const skippedTaskIds = task_ids.filter(
@@ -238,7 +239,7 @@ export const bulkAssignUnownedTasks = async (
     await tx.task.updateMany({
       where: { id: { in: eligibleTaskIds } },
       data: {
-        is_assigned_to_all: false,
+        assigned_to_all: false,
         updated_by: assigned_by,
         last_activity_at: now,
         last_activity_by: assigned_by,
@@ -298,25 +299,84 @@ export const getAssignmentsByTaskId = async (task_id) => {
 /**
  * Reporting
  */
+/**
+ * Reporting - Get assignment counts per user with status breakdown
+ */
 export const getAssignmentCountsPerUser = async () => {
-  const rows = await prisma.taskAssignment.groupBy({
-    by: ["admin_user_id"],
-    _count: { admin_user_id: true },
+  // Get all assignments with task status
+  const assignments = await prisma.taskAssignment.findMany({
+    select: {
+      admin_user_id: true,
+      task: {
+        select: {
+          status: true,
+        },
+      },
+    },
   });
 
-  const userIds = rows.map((r) => r.admin_user_id);
+  // Group by user and count statuses
+  const userStatsMap = new Map();
+
+  assignments.forEach((assignment) => {
+    const userId = assignment.admin_user_id;
+    const status = assignment.task.status;
+
+    if (!userStatsMap.has(userId)) {
+      userStatsMap.set(userId, {
+        admin_user_id: userId,
+        total: 0,
+        pending: 0,
+        in_progress: 0,
+        completed: 0,
+        on_hold: 0,
+        cancelled: 0,
+      });
+    }
+
+    const stats = userStatsMap.get(userId);
+    stats.total++;
+
+    // Count by status
+    switch (status) {
+      case "PENDING":
+        stats.pending++;
+        break;
+      case "IN_PROGRESS":
+        stats.in_progress++;
+        break;
+      case "COMPLETED":
+        stats.completed++;
+        break;
+      case "ON_HOLD":
+        stats.on_hold++;
+        break;
+      case "CANCELLED":
+        stats.cancelled++;
+        break;
+    }
+  });
+
+  // Get user details
+  const userIds = Array.from(userStatsMap.keys());
 
   const users = await prisma.adminUser.findMany({
     where: { id: { in: userIds } },
     select: { id: true, name: true, email: true },
   });
 
-  const map = new Map(users.map((u) => [u.id, u]));
+  const userMap = new Map(users.map((u) => [u.id, u]));
 
-  return rows.map((r) => ({
-    admin_user_id: r.admin_user_id,
-    name: map.get(r.admin_user_id)?.name ?? "Unknown",
-    email: map.get(r.admin_user_id)?.email ?? null,
-    assignment_count: r._count.admin_user_id,
+  // Combine stats with user details
+  return Array.from(userStatsMap.values()).map((stats) => ({
+    admin_user_id: stats.admin_user_id,
+    name: userMap.get(stats.admin_user_id)?.name ?? "Unknown",
+    email: userMap.get(stats.admin_user_id)?.email ?? null,
+    total: stats.total,
+    pending: stats.pending,
+    in_progress: stats.in_progress,
+    completed: stats.completed,
+    on_hold: stats.on_hold,
+    cancelled: stats.cancelled,
   }));
 };

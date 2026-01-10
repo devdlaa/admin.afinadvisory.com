@@ -8,6 +8,110 @@ const toastMiddleware = () => (next) => (action) => {
   // Success messages
   if (action.type.endsWith("/fulfilled")) {
     switch (action.type) {
+      // ===== TASK SLICE =====
+
+      case "task/createTask/fulfilled":
+        const newTask = action.payload;
+        const taskTitle = newTask?.title || "Task";
+        showSuccess(`"${taskTitle}" created successfully`);
+        break;
+
+      case "task/updateTask/fulfilled":
+        showSuccess("Task updated successfully");
+        break;
+
+      case "task/deleteTask/fulfilled":
+        showSuccess("Task deleted successfully");
+        break;
+
+      case "task/bulkUpdateTaskStatus/fulfilled":
+        const statussPayload = action.payload;
+        const statusCount = statussPayload?.updated_task_ids?.length || 0;
+        showSuccess(
+          `${statusCount} task${
+            statusCount !== 1 ? "s" : ""
+          } status updated successfully`
+        );
+        break;
+
+      case "task/bulkUpdateTaskPriority/fulfilled":
+        const priorityPayload = action.payload;
+        const priorityCount = priorityPayload?.updated_task_ids?.length || 0;
+        showSuccess(
+          `${priorityCount} task${
+            priorityCount !== 1 ? "s" : ""
+          } priority updated successfully`
+        );
+        break;
+
+      case "task/bulkAssignTasks/fulfilled":
+        showSuccess("Tasks assigned successfully");
+        break;
+
+      // ===== TASK DETAILS SLICE =====
+
+      case "taskDetail/addCharge/fulfilled":
+        showSuccess("Charge added successfully");
+        break;
+
+      case "taskDetail/updateCharge/fulfilled":
+        showSuccess("Charge updated successfully");
+        break;
+
+      case "taskDetail/deleteCharge/fulfilled":
+        showSuccess("Charge deleted successfully");
+        break;
+
+      case "taskDetail/syncChecklist/fulfilled":
+        showSuccess("Checklist saved successfully");
+        break;
+
+      case "taskDetail/syncAssignments/fulfilled":
+        showSuccess("Task assignments updated successfully");
+        break;
+
+      // ===== TASK CATEGORY SLICE =====
+
+      case "taskCategory/createCategory/fulfilled":
+        const newCategory = action.payload;
+        const categoryName = newCategory?.name || "Category";
+        showSuccess(`Category "${categoryName}" created successfully`);
+        break;
+
+      case "taskCategory/updateCategory/fulfilled":
+        showSuccess("Category updated successfully");
+        break;
+
+      case "taskCategory/deleteCategory/fulfilled":
+        showSuccess("Category deleted successfully");
+        break;
+
+      // ===== TASK TIMELINE SLICE =====
+
+      case "taskTimeline/createComment/fulfilled":
+        showSuccess("Comment added successfully");
+        break;
+
+      case "taskTimeline/updateComment/fulfilled":
+        showSuccess("Comment updated successfully");
+        break;
+
+      case "taskTimeline/deleteComment/fulfilled":
+        showSuccess("Comment deleted successfully");
+        break;
+
+      // Silent operations (no toast needed)
+      case "task/fetchTasks/fulfilled":
+      case "task/fetchAssignmentReport/fulfilled":
+      case "taskDetail/fetchTaskById/fulfilled":
+      case "taskCategory/fetchCategories/fulfilled":
+      case "taskCategory/quickSearchCategories/fulfilled":
+      case "taskCategory/fetchCategoryById/fulfilled":
+      case "taskTimeline/fetchTimeline/fulfilled":
+      case "taskTimeline/loadMoreTimeline/fulfilled":
+        // No toast - these are silent background operations
+        break;
+
       // ===== USERS SLICE =====
 
       // Fetch Users - No toast (silent background operation)
@@ -312,6 +416,176 @@ const toastMiddleware = () => (next) => (action) => {
   // Error messages
   if (action.type.endsWith("/rejected")) {
     switch (action.type) {
+      case "task/fetchAssignmentReport/rejected":
+        const assignmentReportError =
+          action.payload?.message || action.error?.message;
+        if (assignmentReportError?.includes("unauthorized")) {
+          showError("You don't have permission to view workload data");
+        } else if (assignmentReportError?.includes("no data")) {
+          showInfo("No assignment data available yet");
+        } else {
+          showError("Failed to load workload data. Please try again.");
+        }
+        break;
+
+      // ===== TASK SLICE ERRORS =====
+
+      case "task/fetchTasks/rejected":
+        showError("Failed to load tasks. Please refresh and try again.");
+        break;
+
+      case "task/createTask/rejected":
+        const createTaskError =
+          action.payload?.message || action.error?.message;
+        if (createTaskError?.includes("validation")) {
+          showError("Invalid task data. Please check your input.");
+        } else {
+          showError(createTaskError || "Failed to create task");
+        }
+        break;
+
+      case "task/updateTask/rejected":
+        const updateTaskError =
+          action.payload?.message || action.error?.message;
+        if (updateTaskError?.includes("not found")) {
+          showError("Task not found. Please refresh the page.");
+        } else {
+          showError(updateTaskError || "Failed to update task");
+        }
+        break;
+
+      case "task/deleteTask/rejected":
+        const deleteTaskError =
+          action.payload?.message || action.error?.message;
+        showError(deleteTaskError || "Failed to delete task");
+        break;
+
+      case "task/bulkUpdateTaskStatus/rejected":
+        showError("Failed to update task statuses. Please try again.");
+        break;
+
+      case "task/bulkUpdateTaskPriority/rejected":
+        showError("Failed to update task priorities. Please try again.");
+        break;
+
+      case "task/bulkAssignTasks/rejected":
+        showError("Failed to assign tasks. Please try again.");
+        break;
+
+      // ===== TASK DETAILS SLICE ERRORS =====
+
+      case "taskDetail/fetchTaskById/rejected":
+        const fetchTaskError = action.payload?.message || action.error?.message;
+        if (fetchTaskError?.includes("not found")) {
+          showError("Task not found. Please refresh the page.");
+        } else {
+          showError("Failed to load task details. Please try again.");
+        }
+        break;
+
+      case "taskDetail/addCharge/rejected":
+        const addChargeError = action.payload?.message || action.error?.message;
+        if (addChargeError?.includes("validation")) {
+          showError("Invalid charge data. Please check your input.");
+        } else {
+          showError(addChargeError || "Failed to add charge");
+        }
+        break;
+
+      case "taskDetail/updateCharge/rejected":
+        showError("Failed to update charge. Please try again.");
+        break;
+
+      case "taskDetail/deleteCharge/rejected":
+        showError("Failed to delete charge. Please try again.");
+        break;
+
+      case "taskDetail/syncChecklist/rejected":
+        showError("Failed to save checklist. Please try again.");
+        break;
+
+      case "taskDetail/syncAssignments/rejected":
+        const syncAssignmentsError =
+          action.payload?.message || action.error?.message;
+        if (syncAssignmentsError?.includes("not found")) {
+          showError("Some users were not found. Please refresh and try again.");
+        } else {
+          showError(syncAssignmentsError || "Failed to update assignments");
+        }
+        break;
+
+      // ===== TASK CATEGORY SLICE ERRORS =====
+
+      case "taskCategory/fetchCategories/rejected":
+        showError("Failed to load categories. Please refresh and try again.");
+        break;
+
+      case "taskCategory/createCategory/rejected":
+        const createCategoryError =
+          action.payload?.message || action.error?.message;
+        if (
+          createCategoryError?.includes("already exists") ||
+          createCategoryError?.includes("duplicate")
+        ) {
+          showError("Category with this name already exists");
+        } else if (createCategoryError?.includes("validation")) {
+          showError("Invalid category data. Please check your input.");
+        } else {
+          showError(createCategoryError || "Failed to create category");
+        }
+        break;
+
+      case "taskCategory/updateCategory/rejected":
+        const updateCategoryError =
+          action.payload?.message || action.error?.message;
+        if (updateCategoryError?.includes("not found")) {
+          showError("Category not found. Please refresh the page.");
+        } else {
+          showError(updateCategoryError || "Failed to update category");
+        }
+        break;
+
+      case "taskCategory/deleteCategory/rejected":
+        const deleteCategoryError =
+          action.payload?.message || action.error?.message;
+        if (
+          deleteCategoryError?.includes("in use") ||
+          deleteCategoryError?.includes("associated")
+        ) {
+          showError("Cannot delete category: It's being used by tasks");
+        } else {
+          showError(deleteCategoryError || "Failed to delete category");
+        }
+        break;
+
+      // ===== TASK TIMELINE SLICE ERRORS =====
+
+      case "taskTimeline/fetchTimeline/rejected":
+        showError("Failed to load activity timeline. Please try again.");
+        break;
+
+      case "taskTimeline/loadMoreTimeline/rejected":
+        showError("Failed to load more items. Please try again.");
+        break;
+
+      case "taskTimeline/createComment/rejected":
+        const createCommentError =
+          action.payload?.message || action.error?.message;
+        if (createCommentError?.includes("validation")) {
+          showError("Invalid comment. Please check your input.");
+        } else {
+          showError(createCommentError || "Failed to add comment");
+        }
+        break;
+
+      case "taskTimeline/updateComment/rejected":
+        showError("Failed to update comment. Please try again.");
+        break;
+
+      case "taskTimeline/deleteComment/rejected":
+        showError("Failed to delete comment. Please try again.");
+        break;
+
       // ===== USERS SLICE ERRORS =====
 
       case "users/fetchUsers/rejected":
@@ -823,6 +1097,41 @@ const toastMiddleware = () => (next) => (action) => {
   // Pending messages (only for operations that benefit from loading indicators)
   if (action.type.endsWith("/pending")) {
     switch (action.type) {
+      // ===== TASK SLICE PENDING =====
+
+      case "task/createTask/pending":
+        showInfo("Creating task...");
+        break;
+
+      case "task/deleteTask/pending":
+        showInfo("Deleting task...");
+        break;
+
+      case "task/bulkUpdateTaskStatus/pending":
+        showInfo("Updating task statuses...");
+        break;
+
+      case "task/bulkUpdateTaskPriority/pending":
+        showInfo("Updating task priorities...");
+        break;
+
+      case "task/bulkAssignTasks/pending":
+        showInfo("Assigning tasks...");
+        break;
+
+      // ===== TASK CATEGORY SLICE PENDING =====
+
+      case "taskCategory/createCategory/pending":
+        showInfo("Creating category...");
+        break;
+
+      case "taskCategory/updateCategory/pending":
+        showInfo("Updating category...");
+        break;
+
+      case "taskCategory/deleteCategory/pending":
+        showInfo("Deleting category...");
+        break;
       // ===== USERS SLICE PENDING =====
 
       // Show loading for operations that take longer time
@@ -971,7 +1280,22 @@ const toastMiddleware = () => (next) => (action) => {
       case "coupons/searchCouponsByDateRange/pending":
       case "coupons/fetchServices/pending":
       case "coupons/searchInfluencer/pending":
-        // No toast - these operations should be silent while pending
+      case "task/fetchTasks/pending":
+      case "task/updateTask/pending":
+      case "taskDetail/fetchTaskById/pending":
+      case "taskDetail/addCharge/pending":
+      case "taskDetail/updateCharge/pending":
+      case "taskDetail/deleteCharge/pending":
+      case "taskDetail/syncChecklist/pending":
+      case "taskDetail/syncAssignments/pending":
+      case "taskCategory/fetchCategories/pending":
+      case "taskCategory/quickSearchCategories/pending":
+      case "taskTimeline/fetchTimeline/pending":
+      case "taskTimeline/loadMoreTimeline/pending":
+      case "taskTimeline/createComment/pending":
+      case "taskTimeline/updateComment/pending":
+      case "taskTimeline/deleteComment/pending":
+        // Silent operations
         break;
 
       default:

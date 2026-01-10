@@ -1,6 +1,31 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 
 // ============================================
+// CACHE CONFIGURATION
+// ============================================
+const CACHE_CONFIG = {
+  // Cache duration in milliseconds (5 minutes)
+  TASK_LIST_TTL: 2 * 60 * 1000,
+  // Maximum cache entries to prevent memory bloat
+  MAX_CACHE_ENTRIES: 50,
+};
+
+// ============================================
+// CACHE KEY GENERATOR
+// ============================================
+const generateCacheKey = (filters, page, pageSize) => {
+  const filterStr = Object.entries(filters)
+    .filter(
+      ([_, value]) => value !== null && value !== "" && value !== undefined
+    )
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([key, value]) => `${key}:${value}`)
+    .join("|");
+
+  return `tasks_${filterStr}_p${page}_ps${pageSize}`;
+};
+
+// ============================================
 // HELPER - API FETCH WRAPPER
 // ============================================
 const apiFetch = async (url, options = {}) => {
@@ -31,28 +56,54 @@ const apiFetch = async (url, options = {}) => {
 // ============================================
 
 /**
- * Fetch tasks with filters and pagination
+ * Fetch tasks with filters and pagination (with caching)
  */
 export const fetchTasks = createAsyncThunk(
   "task/fetchTasks",
-  async (_, { getState, rejectWithValue }) => {
+  async (forceRefresh = false, { getState, rejectWithValue }) => {
     try {
       const state = getState().task;
-      const { currentPage, pageSize, filters } = state;
+      const { currentPage, pageSize, filters, cache } = state;
 
+      // Generate cache key
+      const cacheKey = generateCacheKey(filters, currentPage, pageSize);
+
+      // Check cache if not forcing refresh
+      if (!forceRefresh && cache[cacheKey]) {
+        const cachedData = cache[cacheKey];
+        const now = Date.now();
+
+        // Return cached data if still valid
+        if (now - cachedData.timestamp < CACHE_CONFIG.TASK_LIST_TTL) {
+          return {
+            ...cachedData.data,
+            fromCache: true,
+            cacheKey,
+          };
+        }
+      }
+
+      // Build API URL
       const params = new URLSearchParams();
       params.append("page", currentPage);
       params.append("page_size", pageSize);
 
-      // Add filters
+
       Object.entries(filters).forEach(([key, value]) => {
         if (value !== null && value !== "" && value !== undefined) {
           params.append(key, value);
         }
       });
 
-      const result = await apiFetch(`/api/tasks?${params.toString()}`);
-      return result.data;
+      const result = await apiFetch(
+        `/api/admin_ops/tasks?${params.toString()}`
+      );
+
+      return {
+        ...result.data,
+        fromCache: false,
+        cacheKey,
+      };
     } catch (error) {
       return rejectWithValue({
         message: error.message || "Failed to fetch tasks",
@@ -70,7 +121,7 @@ export const createTask = createAsyncThunk(
   "task/createTask",
   async (taskData, { rejectWithValue }) => {
     try {
-      const result = await apiFetch("/api/tasks", {
+      const result = await apiFetch("/api/admin_ops/tasks", {
         method: "POST",
         body: JSON.stringify(taskData),
       });
@@ -92,7 +143,7 @@ export const updateTask = createAsyncThunk(
   "task/updateTask",
   async ({ taskId, data }, { rejectWithValue }) => {
     try {
-      const result = await apiFetch(`/api/tasks/${taskId}`, {
+      const result = await apiFetch(`/api/admin_ops/tasks/${taskId}`, {
         method: "PATCH",
         body: JSON.stringify(data),
       });
@@ -114,7 +165,7 @@ export const deleteTask = createAsyncThunk(
   "task/deleteTask",
   async (taskId, { rejectWithValue }) => {
     try {
-      const result = await apiFetch(`/api/tasks/${taskId}`, {
+      const result = await apiFetch(`/api/admin_ops/tasks/${taskId}`, {
         method: "DELETE",
       });
       return { taskId, ...result.data };
@@ -135,7 +186,7 @@ export const bulkUpdateTaskStatus = createAsyncThunk(
   "task/bulkUpdateTaskStatus",
   async ({ task_ids, status }, { rejectWithValue }) => {
     try {
-      const result = await apiFetch("/api/tasks/bulk?action=status", {
+      const result = await apiFetch("/api/admin_ops/tasks/bulk?action=status", {
         method: "POST",
         body: JSON.stringify({ task_ids, status }),
       });
@@ -157,10 +208,13 @@ export const bulkUpdateTaskPriority = createAsyncThunk(
   "task/bulkUpdateTaskPriority",
   async ({ task_ids, priority }, { rejectWithValue }) => {
     try {
-      const result = await apiFetch("/api/tasks/bulk?action=priority", {
-        method: "POST",
-        body: JSON.stringify({ task_ids, priority }),
-      });
+      const result = await apiFetch(
+        "/api/admin_ops/tasks/bulk?action=priority",
+        {
+          method: "POST",
+          body: JSON.stringify({ task_ids, priority }),
+        }
+      );
       return result.data;
     } catch (error) {
       return rejectWithValue({
@@ -179,7 +233,7 @@ export const bulkAssignTasks = createAsyncThunk(
   "task/bulkAssignTasks",
   async ({ task_ids, user_ids }, { rejectWithValue }) => {
     try {
-      const result = await apiFetch("/api/tasks/assignments/bulk", {
+      const result = await apiFetch("/api/admin_ops/tasks/assignments/bulk", {
         method: "POST",
         body: JSON.stringify({ task_ids, user_ids }),
       });
@@ -201,7 +255,7 @@ export const fetchAssignmentReport = createAsyncThunk(
   "task/fetchAssignmentReport",
   async (_, { rejectWithValue }) => {
     try {
-      const result = await apiFetch("/api/tasks/assignments/report");
+      const result = await apiFetch("/api/admin_ops/tasks/assignments/report");
       return result.data;
     } catch (error) {
       return rejectWithValue({
@@ -224,11 +278,36 @@ const initialState = {
   pageSize: 20,
   totalPages: 0,
 
+  // Status counts for filters
+  statusCounts: {
+    filtered: {
+      PENDING: 0,
+      IN_PROGRESS: 0,
+      COMPLETED: 0,
+      CANCELLED: 0,
+      ON_HOLD: 0,
+      PENDING_CLIENT_INPUT: 0,
+    },
+    global: {
+      PENDING: 0,
+      IN_PROGRESS: 0,
+      COMPLETED: 0,
+      CANCELLED: 0,
+      ON_HOLD: 0,
+      PENDING_CLIENT_INPUT: 0,
+    },
+  },
+
+  // Cache management
+  cache: {},
+  cacheKeys: [],
+  lastCacheCleanup: Date.now(),
+
   // Filters
   filters: {
     entity_id: null,
-    status: null,
-    priority: null,
+    status: "PENDING", // null means "All"
+    priority: null, // null means "All"
     task_category_id: null,
     created_by: null,
     assigned_to: null,
@@ -239,20 +318,17 @@ const initialState = {
     billed_from_firm: null,
   },
 
-  // Active filter count (computed in reducer)
+  // Active filter count
   activeFilterCount: 0,
 
   // Bulk selection
   selectedTaskIds: [],
   bulkActionInProgress: false,
 
-  // Dialog state
-  dialog: {
-    open: false,
-    mode: null, // 'create' | 'edit'
-    step: 1, // Only for create mode (step 1 or 2)
-    taskId: null, // For edit mode
-  },
+  // Dialog states
+  createDialogOpen: false,
+  manageDialogOpen: false,
+  manageDialogTaskId: null,
 
   // Assignment report (workload)
   assignmentReport: null,
@@ -319,6 +395,52 @@ const removeTaskFromList = (tasks, taskId) => {
   return tasks.filter((task) => task.id !== taskId);
 };
 
+/**
+ * Clean old cache entries
+ */
+const cleanCache = (cache, cacheKeys) => {
+  const now = Date.now();
+  const validKeys = [];
+  const newCache = {};
+
+  // Keep only valid cache entries
+  cacheKeys.forEach((key) => {
+    if (cache[key] && now - cache[key].timestamp < CACHE_CONFIG.TASK_LIST_TTL) {
+      validKeys.push(key);
+      newCache[key] = cache[key];
+    }
+  });
+
+  // If still too many entries, keep only the most recent ones
+  if (validKeys.length > CACHE_CONFIG.MAX_CACHE_ENTRIES) {
+    const sorted = validKeys
+      .map((key) => ({ key, timestamp: cache[key].timestamp }))
+      .sort((a, b) => b.timestamp - a.timestamp)
+      .slice(0, CACHE_CONFIG.MAX_CACHE_ENTRIES);
+
+    const finalCache = {};
+    const finalKeys = [];
+
+    sorted.forEach(({ key }) => {
+      finalCache[key] = newCache[key];
+      finalKeys.push(key);
+    });
+
+    return { cache: finalCache, cacheKeys: finalKeys };
+  }
+
+  return { cache: newCache, cacheKeys: validKeys };
+};
+
+/**
+ * Invalidate cache (when mutations occur)
+ */
+const invalidateCache = (state) => {
+  state.cache = {};
+  state.cacheKeys = [];
+  state.lastCacheCleanup = Date.now();
+};
+
 // ============================================
 // SLICE
 // ============================================
@@ -326,27 +448,43 @@ const taskSlice = createSlice({
   name: "task",
   initialState,
   reducers: {
-    // Set filters
+    updateTaskAssignmentsInList: (state, action) => {
+      const {
+        task_id,
+        assigned_to_all,
+        assignments,
+        remaining_assignee_count,
+      } = action.payload;
+
+      const task = state.tasks.find((t) => t.id === task_id);
+      if (task) {
+        task.assigned_to_all = assigned_to_all;
+        task.assignments = assignments;
+        if (remaining_assignee_count !== undefined) {
+          task.remaining_assignee_count = remaining_assignee_count;
+        }
+      }
+
+      // Invalidate cache on update
+      invalidateCache(state);
+    },
+
     setFilters: (state, action) => {
       state.filters = { ...state.filters, ...action.payload };
       state.activeFilterCount = countActiveFilters(state.filters);
-      // Reset to page 1 when filters change
       state.currentPage = 1;
     },
 
-    // Reset filters
     resetFilters: (state) => {
       state.filters = initialState.filters;
       state.activeFilterCount = 0;
       state.currentPage = 1;
     },
 
-    // Set page
     setPage: (state, action) => {
       state.currentPage = action.payload;
     },
 
-    // Toggle task selection
     toggleTaskSelection: (state, action) => {
       const taskId = action.payload;
       const index = state.selectedTaskIds.indexOf(taskId);
@@ -358,7 +496,6 @@ const taskSlice = createSlice({
       }
     },
 
-    // Select all tasks on current page
     selectAllTasks: (state) => {
       const currentTaskIds = state.tasks.map((task) => task.id);
       state.selectedTaskIds = [
@@ -366,43 +503,42 @@ const taskSlice = createSlice({
       ];
     },
 
-    // Deselect all tasks
     deselectAllTasks: (state) => {
       state.selectedTaskIds = [];
     },
 
-    // Open dialog
-    openDialog: (state, action) => {
-      const { mode, taskId } = action.payload;
-      state.dialog = {
-        open: true,
-        mode,
-        step: mode === "create" ? 1 : 1,
-        taskId: taskId || null,
-      };
+    openCreateDialog: (state) => {
+      state.createDialogOpen = true;
     },
 
-    // Close dialog
-    closeDialog: (state) => {
-      state.dialog = initialState.dialog;
+    closeCreateDialog: (state) => {
+      state.createDialogOpen = false;
     },
 
-    // Set dialog step (for create mode)
-    setDialogStep: (state, action) => {
-      state.dialog.step = action.payload;
+    openManageDialog: (state, action) => {
+      state.manageDialogOpen = true;
+      state.manageDialogTaskId = action.payload;
     },
 
-    // Clear errors
+    closeManageDialog: (state) => {
+      state.manageDialogOpen = false;
+      state.manageDialogTaskId = null;
+    },
+
     clearErrors: (state) => {
       state.error = initialState.error;
     },
 
-    // Clear specific error
     clearError: (state, action) => {
       const errorKey = action.payload;
       if (state.error[errorKey]) {
         state.error[errorKey] = null;
       }
+    },
+
+    // Manual cache invalidation
+    invalidateTaskCache: (state) => {
+      invalidateCache(state);
     },
   },
 
@@ -416,13 +552,44 @@ const taskSlice = createSlice({
         state.error.list = null;
       })
       .addCase(fetchTasks.fulfilled, (state, action) => {
-        const { tasks, page, page_size, total, total_pages } = action.payload;
+        const {
+          tasks,
+          page,
+          page_size,
+          total,
+          total_pages,
+          status_counts,
+          fromCache,
+          cacheKey,
+        } = action.payload;
 
         state.tasks = tasks;
         state.totalTasks = total;
         state.currentPage = page;
         state.pageSize = page_size;
         state.totalPages = total_pages;
+        state.statusCounts = status_counts || state.statusCounts;
+
+        // Update cache if not from cache
+        if (!fromCache && cacheKey) {
+          state.cache[cacheKey] = {
+            data: action.payload,
+            timestamp: Date.now(),
+          };
+
+          if (!state.cacheKeys.includes(cacheKey)) {
+            state.cacheKeys.push(cacheKey);
+          }
+
+          // Periodic cache cleanup
+          const now = Date.now();
+          if (now - state.lastCacheCleanup > 60000) {
+            const cleaned = cleanCache(state.cache, state.cacheKeys);
+            state.cache = cleaned.cache;
+            state.cacheKeys = cleaned.cacheKeys;
+            state.lastCacheCleanup = now;
+          }
+        }
 
         state.loading.list = false;
       })
@@ -442,18 +609,15 @@ const taskSlice = createSlice({
       .addCase(createTask.fulfilled, (state, action) => {
         const newTask = action.payload;
 
-        // Add to list if on first page
         if (state.currentPage === 1) {
           state.tasks.unshift(newTask);
         }
 
-        // Move to step 2 in create dialog
-        if (state.dialog.mode === "create") {
-          state.dialog.step = 2;
-          state.dialog.taskId = newTask.id;
-        }
-
+        state.createDialogOpen = false;
         state.loading.create = false;
+
+        // Invalidate cache
+        invalidateCache(state);
       })
       .addCase(createTask.rejected, (state, action) => {
         state.loading.create = false;
@@ -470,11 +634,11 @@ const taskSlice = createSlice({
       })
       .addCase(updateTask.fulfilled, (state, action) => {
         const updatedTask = action.payload;
-
-        // Update in list
         state.tasks = updateTaskInList(state.tasks, updatedTask);
-
         state.loading.update = false;
+
+        // Invalidate cache
+        invalidateCache(state);
       })
       .addCase(updateTask.rejected, (state, action) => {
         state.loading.update = false;
@@ -492,15 +656,17 @@ const taskSlice = createSlice({
       .addCase(deleteTask.fulfilled, (state, action) => {
         const { taskId } = action.payload;
 
-        // Remove from list
         state.tasks = removeTaskFromList(state.tasks, taskId);
-
-        // Remove from selection if selected
         state.selectedTaskIds = state.selectedTaskIds.filter(
           (id) => id !== taskId
         );
 
+        state.manageDialogOpen = false;
+        state.manageDialogTaskId = null;
         state.loading.delete = false;
+
+        // Invalidate cache
+        invalidateCache(state);
       })
       .addCase(deleteTask.rejected, (state, action) => {
         state.loading.delete = false;
@@ -519,16 +685,16 @@ const taskSlice = createSlice({
       .addCase(bulkUpdateTaskStatus.fulfilled, (state, action) => {
         const { updated_task_ids, new_status } = action.payload;
 
-        // Update tasks in list
         state.tasks = updateMultipleTasksInList(state.tasks, updated_task_ids, {
           status: new_status,
         });
 
-        // Clear selection after success
         state.selectedTaskIds = [];
-
         state.loading.bulkStatus = false;
         state.bulkActionInProgress = false;
+
+        // Invalidate cache
+        invalidateCache(state);
       })
       .addCase(bulkUpdateTaskStatus.rejected, (state, action) => {
         state.loading.bulkStatus = false;
@@ -549,16 +715,16 @@ const taskSlice = createSlice({
       .addCase(bulkUpdateTaskPriority.fulfilled, (state, action) => {
         const { updated_task_ids, new_priority } = action.payload;
 
-        // Update tasks in list
         state.tasks = updateMultipleTasksInList(state.tasks, updated_task_ids, {
           priority: new_priority,
         });
 
-        // Clear selection after success
         state.selectedTaskIds = [];
-
         state.loading.bulkPriority = false;
         state.bulkActionInProgress = false;
+
+        // Invalidate cache
+        invalidateCache(state);
       })
       .addCase(bulkUpdateTaskPriority.rejected, (state, action) => {
         state.loading.bulkPriority = false;
@@ -576,12 +742,13 @@ const taskSlice = createSlice({
         state.error.bulkAssign = null;
         state.bulkActionInProgress = true;
       })
-      .addCase(bulkAssignTasks.fulfilled, (state, action) => {
-        // Clear selection after success
+      .addCase(bulkAssignTasks.fulfilled, (state) => {
         state.selectedTaskIds = [];
-
         state.loading.bulkAssign = false;
         state.bulkActionInProgress = false;
+
+        // Invalidate cache
+        invalidateCache(state);
       })
       .addCase(bulkAssignTasks.rejected, (state, action) => {
         state.loading.bulkAssign = false;
@@ -611,69 +778,56 @@ const taskSlice = createSlice({
 // ACTIONS
 // ============================================
 export const {
+  updateTaskAssignmentsInList,
   setFilters,
   resetFilters,
   setPage,
   toggleTaskSelection,
   selectAllTasks,
   deselectAllTasks,
-  openDialog,
-  closeDialog,
-  setDialogStep,
+  openCreateDialog,
+  closeCreateDialog,
+  openManageDialog,
+  closeManageDialog,
   clearErrors,
   clearError,
+  invalidateTaskCache,
 } = taskSlice.actions;
 
 // ============================================
 // SELECTORS
 // ============================================
-
-// Get all tasks
 export const selectTasks = (state) => state.task.tasks;
-
-// Get pagination info
 export const selectPagination = (state) => ({
   currentPage: state.task.currentPage,
   pageSize: state.task.pageSize,
   totalTasks: state.task.totalTasks,
   totalPages: state.task.totalPages,
 });
-
-// Get filters
 export const selectFilters = (state) => state.task.filters;
-
-// Get active filter count
 export const selectActiveFilterCount = (state) => state.task.activeFilterCount;
-
-// Get selected task IDs
 export const selectSelectedTaskIds = (state) => state.task.selectedTaskIds;
-
-// Get selected tasks count
 export const selectSelectedTasksCount = (state) =>
   state.task.selectedTaskIds.length;
-
-// Check if any tasks are selected
 export const selectHasSelectedTasks = (state) =>
   state.task.selectedTaskIds.length > 0;
-
-// Get dialog state
-export const selectDialogState = (state) => state.task.dialog;
-
-// Get assignment report
+export const selectCreateDialogOpen = (state) => state.task.createDialogOpen;
+export const selectManageDialogOpen = (state) => state.task.manageDialogOpen;
+export const selectManageDialogTaskId = (state) =>
+  state.task.manageDialogTaskId;
 export const selectAssignmentReport = (state) => state.task.assignmentReport;
-
-// Get loading states
 export const selectIsLoading =
   ({ type = "list" } = {}) =>
   (state) =>
     state?.task?.loading?.[type] ?? false;
-
-// Get error states
 export const selectError = (state, type = "list") => state.task.error[type];
-
-// Check if bulk action in progress
 export const selectBulkActionInProgress = (state) =>
   state.task.bulkActionInProgress;
+export const selectAssignmentReportLoading = (state) =>
+  state.task.assignmentReportLoading;
+export const selectHasAssignmentReportData = (state) =>
+  state.task.assignmentReport && state.task.assignmentReport.length > 0;
+export const selectStatusCounts = (state) => state.task.statusCounts;
 
 // ============================================
 // EXPORT REDUCER

@@ -1,0 +1,229 @@
+.task-status-board-wrapper {
+  margin-bottom: 24px;
+}
+
+.task-status-board {
+  background: #ffffff;
+  border-radius: 14px;
+
+  overflow: hidden;
+
+  .status-columns {
+    display: flex;
+    border-bottom: 1px solid #e5e7eb;
+
+    .status-column {
+      flex: 1;
+      padding: 20px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      border-right: 1px solid #e5e7eb;
+      transition: background-color 0.2s ease;
+
+      &:last-child {
+        border-right: none;
+      }
+
+      &:hover {
+        background-color: #f9fafb;
+      }
+
+      .column-label {
+        font-size: 11px;
+        font-weight: 600;
+        color: #6b7280;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        line-height: 1.2;
+      }
+
+      .column-count {
+        font-size: 32px;
+        font-weight: 700;
+        color: #111827;
+        line-height: 1;
+      }
+
+      .filtered-badge {
+        font-size: 12px;
+        font-weight: 500;
+        color: #6b7280;
+        line-height: 1.4;
+        margin-top: 4px;
+        display: block;
+      }
+
+      // Total column - no background color, just bold
+      &.total-column {
+        min-width: 200px;
+        background-color: #fafafa;
+      }
+
+      // Pending column - yellow tint
+      &.pending-column {
+        background-color: #fffbeb;
+      }
+
+      // In Progress column - blue tint
+      &.progress-column {
+        background-color: #eff6ff;
+      }
+
+      // Completed column - green tint
+      &.completed-column {
+        background-color: #f0fdf4;
+      }
+
+      // On Hold column - purple tint
+      &.hold-column {
+        background-color: #faf5ff;
+      }
+
+      // Pending Client Input column - pink tint
+      &.client-column {
+        background-color: #fdf2f8;
+      }
+
+      // Cancelled column - red tint
+      &.cancelled-column {
+        background-color: #fef2f2;
+      }
+
+      // Skeleton state
+      &.skeleton {
+        pointer-events: none;
+
+        .skeleton-label {
+          width: 80%;
+          height: 12px;
+          background: linear-gradient(
+            90deg,
+            #f3f4f6 25%,
+            #e5e7eb 50%,
+            #f3f4f6 75%
+          );
+          background-size: 200% 100%;
+          animation: shimmer 1.5s infinite;
+          border-radius: 4px;
+        }
+
+        .skeleton-count {
+          width: 50%;
+          height: 32px;
+          background: linear-gradient(
+            90deg,
+            #f3f4f6 25%,
+            #e5e7eb 50%,
+            #f3f4f6 75%
+          );
+          background-size: 200% 100%;
+          animation: shimmer 1.5s infinite;
+          border-radius: 4px;
+        }
+      }
+    }
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+// Responsive design
+@media (max-width: 1400px) {
+  .task-status-board {
+    .status-columns {
+      .status-column {
+        padding: 16px 20px;
+
+        .column-count {
+          font-size: 28px;
+
+          .filtered-badge {
+            font-size: 11px;
+          }
+        }
+      }
+    }
+  }
+}
+
+@media (max-width: 1200px) {
+  .task-status-board {
+    .status-columns {
+      overflow-x: auto;
+
+      .status-column {
+        min-width: 160px;
+        padding: 16px 18px;
+
+        &.total-column {
+          min-width: 180px;
+        }
+
+        .column-label {
+          font-size: 10px;
+        }
+
+        .column-count {
+          font-size: 24px;
+
+          .filtered-badge {
+            font-size: 10px;
+          }
+        }
+      }
+    }
+
+    // Custom scrollbar
+    .status-columns::-webkit-scrollbar {
+      height: 6px;
+    }
+
+    .status-columns::-webkit-scrollbar-track {
+      background: #f3f4f6;
+    }
+
+    .status-columns::-webkit-scrollbar-thumb {
+      background: #d1d5db;
+      border-radius: 3px;
+
+      &:hover {
+        background: #9ca3af;
+      }
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .task-status-board {
+    .status-columns {
+      .status-column {
+        min-width: 140px;
+        padding: 14px 16px;
+
+        &.total-column {
+          min-width: 160px;
+        }
+
+        .column-label {
+          font-size: 9px;
+        }
+
+        .column-count {
+          font-size: 20px;
+
+          .filtered-badge {
+            font-size: 9px;
+          }
+        }
+      }
+    }
+  }
+}

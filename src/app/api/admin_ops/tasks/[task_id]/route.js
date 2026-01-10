@@ -1,6 +1,10 @@
 import { z } from "zod";
 
-import { getTaskById, updateTask, deleteTask } from "@/services/task.service";
+import {
+  getTaskById,
+  updateTask,
+  deleteTask,
+} from "@/services/task/task.service";
 
 import { schemas } from "@/schemas";
 
@@ -20,7 +24,7 @@ export async function GET(request, { params }) {
     const [permissionError] = await requirePermission(request, "tasks.access");
     if (permissionError) return permissionError;
 
-    const task_id = uuidSchema.parse(params.id);
+    const task_id = uuidSchema.parse((await params).task_id);
 
     const task = await getTaskById(task_id);
 
@@ -47,8 +51,7 @@ export async function PATCH(request, { params }) {
       "tasks.manage"
     );
     if (permissionError) return permissionError;
-
-    const task_id = uuidSchema.parse(params.id);
+    const task_id = uuidSchema.parse((await params).task_id);
 
     const body = await request.json();
 
@@ -66,14 +69,7 @@ export async function PATCH(request, { params }) {
 
     return createSuccessResponse("Task updated successfully", task);
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return createErrorResponse(
-        "Validation failed",
-        400,
-        "VALIDATION_ERROR",
-        error.errors
-      );
-    }
+    console.log(error);
 
     return handleApiError(error);
   }
@@ -94,14 +90,7 @@ export async function DELETE(request, { params }) {
 
     return createSuccessResponse("Task deleted successfully", result.task);
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return createErrorResponse(
-        "Invalid task ID",
-        400,
-        "VALIDATION_ERROR",
-        error.errors
-      );
-    }
+  console.log(error);
 
     return handleApiError(error);
   }

@@ -1,7 +1,13 @@
 import { prisma } from "@/utils/server/db.js";
 import admin from "@/lib/firebase-admin";
+import {
+  NotFoundError,
+  ValidationError,
+  ForbiddenError,
+} from "@/utils/server/errors";
+import { removeUndefined } from "@/utils/server/utils";
 
-import { NotFoundError, ValidationError, ForbiddenError } from "@/utils/errors";
+import { notify } from "../shared/notifications.service";
 
 const db = admin.firestore();
 
@@ -18,7 +24,6 @@ async function getValidAdminUser(user_id) {
   const user = await prisma.adminUser.findFirst({
     where: {
       id: user_id,
-      deleted_at: null,
       status: "ACTIVE",
     },
     select: {
@@ -26,7 +31,6 @@ async function getValidAdminUser(user_id) {
       name: true,
       email: true,
       admin_role: true,
-      is_super_admin: true,
     },
   });
 
@@ -41,12 +45,12 @@ async function getTaskOrFail(task_id) {
   const task = await prisma.task.findFirst({
     where: {
       id: task_id,
-      deleted_at: null,
     },
     select: {
       id: true,
+      title: true,
       created_by: true,
-      is_assigned_to_all: true,
+      assigned_to_all: true,
     },
   });
 
@@ -63,7 +67,7 @@ export const ensureUserCanComment = async (task, user_id) => {
   if (task.created_by === user_id) return true;
 
   // assigned to all
-  if (task.is_assigned_to_all === true) return true;
+  if (task.assigned_to_all === true) return true;
 
   // otherwise must be explicitly assigned
   const assignment = await prisma.taskAssignment.findFirst({
@@ -115,26 +119,20 @@ export const createTaskComment = async (
   const payload = {
     id: commentRef.id,
     task_id,
-
     type: "COMMENT",
-
     message,
     activity: null,
-
     user_id: user.id,
     user_name: user.name,
-
     mentions: Array.isArray(mentions) ? mentions : [],
-
     created_at: now.toISOString(),
     updated_at: now.toISOString(),
     edited_until: editedUntil.toISOString(),
-
     deleted: false,
   };
 
-  // persist comment
-  await commentRef.set(payload);
+  // persist comment (clean undefined values)
+  await commentRef.set(removeUndefined(payload));
 
   // sync task metadata
   await prisma.task.update({
@@ -153,7 +151,7 @@ export const createTaskComment = async (
   // -------------------------------------------------
 
   // 1) If assigned-to-all -> do not notify anyone
-  if (task.is_assigned_to_all) {
+  if (task.assigned_to_all) {
     return payload;
   }
 
@@ -181,16 +179,15 @@ export const createTaskComment = async (
 
   // if still empty no need to notify
   if (notifyUserIds.length > 0) {
-    await notifyMany(notifyUserIds, {
+    await notify(notifyUserIds, {
       type: "TASK_COMMENT",
+      title: `New comment on ${task.title}`,
+      body: message.length > 100 ? `${message.substring(0, 100)}...` : message,
       task_id,
-      task_title: task.title,
       comment_id: payload.id,
-      author_id: user.id,
-      author_name: user.name,
-      has_mentions: cleanMentions.length > 0,
-      body: message,
-      created_at: now.toISOString(),
+      actor_id: user.id,
+      actor_name: user.name,
+      link: `/tasks/${task_id}`,
     });
   }
 
@@ -198,11 +195,10 @@ export const createTaskComment = async (
 };
 
 // ------------------------------------------------------------------
-// CREATE ACTIVITY ENTRY (backend/internal only)
+// CREATE ACTIVITY ENTRY (backend/internal only) do not touch this
 // ------------------------------------------------------------------
 
 export const addTaskActivityLog = async (task_id, actor_id, activity) => {
-  const task = await getTaskOrFail(task_id);
   const user = await getValidAdminUser(actor_id);
 
   const docRef = db
@@ -216,21 +212,19 @@ export const addTaskActivityLog = async (task_id, actor_id, activity) => {
   const payload = {
     id: docRef.id,
     task_id,
-
     type: "ACTIVITY",
-
-    message: null,
-
     user_id: user.id,
     user_name: user.name,
-
-    activity,
-
+    message: activity.message, // ✅ UI-ready sentence
+    activity: {
+      action: activity.action,
+      meta: activity.meta ?? null,
+    },
     created_at: now.toISOString(),
     deleted: false,
   };
 
-  await docRef.set(payload);
+  await docRef.set(removeUndefined(payload));
 
   await prisma.task.update({
     where: { id: task_id },
@@ -351,10 +345,12 @@ export const updateTaskComment = async (
     throw new ValidationError("Edit window has expired");
   }
 
-  await commentRef.update({
+  const updatePayload = {
     message,
     updated_at: now.toISOString(),
-  });
+  };
+
+  await commentRef.update(removeUndefined(updatePayload));
 
   return {
     ...data,
@@ -388,7 +384,7 @@ export const deleteTaskComment = async (task_id, comment_id, user_id) => {
   }
 
   const isOwner = data.user_id === user.id;
-  const isAdmin = user.admin_role === "ADMIN" || user.is_super_admin === true;
+  const isAdmin = user.admin_role === "SUPER_ADMIN";
 
   if (!isOwner && !isAdmin) {
     throw new ForbiddenError("You cannot delete this comment");
@@ -401,10 +397,12 @@ export const deleteTaskComment = async (task_id, comment_id, user_id) => {
     return true;
   }
 
-  await commentRef.update({
+  const deletePayload = {
     deleted: true,
     updated_at: now.toISOString(),
-  });
+  };
+
+  await commentRef.update(removeUndefined(deletePayload));
 
   // keep comment_count non-negative
   await prisma.task.update({

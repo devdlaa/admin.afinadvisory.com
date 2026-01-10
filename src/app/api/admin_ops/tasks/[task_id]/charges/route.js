@@ -13,22 +13,25 @@ import { schemas } from "@/schemas";
 
 export async function POST(request, { params }) {
   try {
-    const [permissionError] = await requirePermission(
+    const [permissionError, session] = await requirePermission(
       request,
       "tasks.charge.manage"
     );
     if (permissionError) return permissionError;
 
     const body = await request.json();
+    const resolvedParams = await params;
 
     const parsed = schemas.taskCharge.create.parse({
-      params,
+      params: resolvedParams,
       body,
     });
 
-    const result = await createTaskCharge(parsed.params.taskId, {
-      ...parsed.body,
-    });
+    const result = await createTaskCharge(
+      parsed.params.task_id,
+      parsed.body,
+      session.user.id
+    );
 
     return createSuccessResponse("Charge added successfully", result);
   } catch (error) {
@@ -38,14 +41,19 @@ export async function POST(request, { params }) {
 
 export async function GET(request, { params }) {
   try {
-    const [permissionError] = await requirePermission(request, "tasks.charge.manage");
+    const [permissionError] = await requirePermission(
+      request,
+      "tasks.charge.manage"
+    );
     if (permissionError) return permissionError;
 
+    const resolvedParams = await params;
+
     const parsed = schemas.taskCharge.list.parse({
-      params,
+      params: resolvedParams,
     });
 
-    const charges = await listTaskCharges(parsed.params.taskId);
+    const charges = await listTaskCharges(parsed.params.task_id);
 
     return createSuccessResponse(
       "Task charges retrieved successfully",

@@ -77,6 +77,7 @@ export const fetchCategories = createAsyncThunk(
       const result = await apiFetch(
         `/api/admin_ops/tasks/category?${params.toString()}`
       );
+
       return result.data;
     } catch (error) {
       return rejectWithValue({
@@ -85,6 +86,16 @@ export const fetchCategories = createAsyncThunk(
         details: error.details,
       });
     }
+  },
+  {
+    condition: (filters, { getState }) => {
+      const { taskCategory } = getState();
+
+      // already have data and not forcing refresh
+      if (taskCategory.list.length > 0 && !filters?.force) {
+        return false; // ⛔ stop thunk
+      }
+    },
   }
 );
 

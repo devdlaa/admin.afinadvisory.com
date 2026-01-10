@@ -1,4 +1,5 @@
-import { createTask, listTasks } from "@/services/task.service";
+
+import { createTask,listTasks } from "@/services/task/task.service";
 
 import { requirePermission } from "@/utils/server/requirePermission";
 import { schemas } from "@/schemas";

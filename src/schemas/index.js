@@ -46,6 +46,7 @@ import {
 import {
   taskCommentCreateSchema,
   taskCommentListQuerySchema,
+  TaskCommentQuerySchema,
   taskCommentUpdateSchema,
 } from "./activity/taskComment.schema.js";
 import { checklistSyncSchema } from "./core/taskChecklist.js";
@@ -107,11 +108,11 @@ export const schemas = Object.freeze({
   taskComment: {
     create: taskCommentCreateSchema,
     update: taskCommentUpdateSchema,
-    query: taskCommentListQuerySchema,
+    query: TaskCommentQuerySchema,
   },
-  taskChecklist : {
-     sync : checklistSyncSchema
-  }
+  taskChecklist: {
+    sync: checklistSyncSchema,
+  },
 });
 
 // Zod validation schema for UUID

@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/utils/server/db";
 import { NotFoundError } from "@/utils/server/errors";
 
 // helpers
@@ -19,13 +19,24 @@ const chargeExists = async (chargeId) => {
 // list charges for reuse
 const fetchChargesForTask = (taskId) => {
   return prisma.taskCharge.findMany({
-    where: { task_id: taskId },
+    where: {
+      task_id: taskId,
+      deleted_at: null,
+    },
     orderBy: { created_at: "asc" },
+    include: {
+      creator: {
+        select: { id: true, name: true, email: true },
+      },
+      updater: {
+        select: { id: true, name: true, email: true },
+      },
+    },
   });
 };
 
 // CREATE charge
-export const createTaskCharge = async (taskId, data) => {
+export const createTaskCharge = async (taskId, data, adminUserId) => {
   const exists = await taskExists(taskId);
   if (!exists) throw new NotFoundError("Task not found");
 
@@ -38,6 +49,16 @@ export const createTaskCharge = async (taskId, data) => {
       bearer: data.bearer,
       status: data.status,
       remark: data.remark ?? null,
+      created_by: adminUserId,
+      updated_by: adminUserId,
+    },
+    include: {
+      creator: {
+        select: { id: true, name: true, email: true },
+      },
+      updater: {
+        select: { id: true, name: true, email: true },
+      },
     },
   });
 
@@ -49,6 +70,30 @@ export const createTaskCharge = async (taskId, data) => {
   };
 };
 
+// UPDATE charge
+export const updateTaskCharge = async (id, data, adminUserId) => {
+  const charge = await chargeExists(id);
+  if (!charge) throw new NotFoundError("Charge not found");
+
+  await prisma.taskCharge.update({
+    where: { id },
+    data: {
+      ...data,
+      updated_by: adminUserId,
+    },
+    include: {
+      creator: {
+        select: { id: true, name: true, email: true },
+      },
+      updater: {
+        select: { id: true, name: true, email: true },
+      },
+    },
+  });
+
+  return fetchChargesForTask(charge.task_id);
+};
+
 // LIST charges
 export const listTaskCharges = async (taskId) => {
   const exists = await taskExists(taskId);
@@ -57,31 +102,23 @@ export const listTaskCharges = async (taskId) => {
   return fetchChargesForTask(taskId);
 };
 
-// UPDATE charge
-export const updateTaskCharge = async (id, data) => {
+// DELETE charge (soft delete)
+export const deleteTaskCharge = async (id, adminUserId) => {
   const charge = await chargeExists(id);
   if (!charge) throw new NotFoundError("Charge not found");
 
   await prisma.taskCharge.update({
     where: { id },
-    data,
+    data: {
+      deleted_at: new Date(),
+      deleted_by: adminUserId,
+    },
   });
 
-  return fetchChargesForTask(charge.task_id);
-};
+  const charges = await fetchChargesForTask(charge.task_id);
 
-// DELETE charge
-export const deleteTaskCharge = async (id) => {
-  const charge = await chargeExists(id);
-  if (!charge) throw new NotFoundError("Charge not found");
-
-  await prisma.taskCharge.delete({
-    where: { id },
-  });
-
-  const charges = fetchChargesForTask(charge.task_id);
   return {
-    task_id: taskId,
+    task_id: charge.task_id,
     charges,
   };
 };

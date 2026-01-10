@@ -1,6 +1,6 @@
 import { prisma } from "@/utils/server/db";
-import { NotFoundError } from "@/utils/errors";
 
+import { NotFoundError } from "@/utils/server/errors";
 export const syncTaskChecklist = async (task_id, items, user_id) => {
   return prisma.$transaction(async (tx) => {
     const task = await tx.task.findUnique({
@@ -16,7 +16,7 @@ export const syncTaskChecklist = async (task_id, items, user_id) => {
     const existingIds = new Set(existing.map((i) => i.id));
     const incomingIds = new Set(items.filter((i) => i.id).map((i) => i.id));
 
-    // ids to delete
+    // hard delete removed items (allowed by your rules)
     const toDelete = [...existingIds].filter((id) => !incomingIds.has(id));
 
     if (toDelete.length > 0) {
@@ -37,7 +37,7 @@ export const syncTaskChecklist = async (task_id, items, user_id) => {
             title: item.title,
             is_done: item.is_done,
             order: item.order ?? 0,
-            updated_by: user_id,
+            updated_by: user_id, 
           },
         });
       } else {
@@ -48,21 +48,20 @@ export const syncTaskChecklist = async (task_id, items, user_id) => {
             is_done: item.is_done ?? false,
             order: item.order ?? 0,
             created_by: user_id,
-            updated_by: user_id,
+            updated_by: user_id, 
           },
         });
       }
     }
 
-    // return final sorted list
     const updated = await tx.taskChecklistItem.findMany({
       where: { task_id },
       orderBy: [{ order: "asc" }, { created_at: "asc" }],
     });
 
     return {
-      task_id : task_id,
-      updated : updated
+      task_id,
+      updated,
     };
   });
 };

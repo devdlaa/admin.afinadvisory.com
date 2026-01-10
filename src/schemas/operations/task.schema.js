@@ -17,7 +17,9 @@ export const TaskStatusEnum = z.enum([
  */
 export const TaskPriorityEnum = z
   .enum(["LOW", "NORMAL", "HIGH"])
-  .default("NORMAL");
+  .default("LOW");
+
+export const TaskPriorityEnumD = z.enum(["LOW", "NORMAL", "HIGH"]);
 
 /**
  * Practice firms enum for billing-from
@@ -103,8 +105,8 @@ export const listTasksSchema = z
       .default(20),
 
     entity_id: z.string().uuid("Invalid entity ID").optional(),
-    status: TaskStatusEnum.optional(),
-    priority: TaskPriorityEnum.optional(),
+    status: TaskStatusEnum.optional().nullable(),
+    priority: TaskPriorityEnumD.optional().nullable(),
 
     task_category_id: z.string().uuid("Invalid category ID").optional(),
 
@@ -141,6 +143,11 @@ export const listTasksSchema = z
     { message: "due_date_from must be before or equal to due_date_to" }
   );
 
+const optionalDate = z.preprocess(
+  (val) => (val === "" || val === null ? undefined : val),
+  z.coerce.date().optional()
+);
+
 /**
  * UPDATE TASK
  */
@@ -150,31 +157,24 @@ export const TaskUpdateSchema = z
 
     description: z.string().max(5000).optional().nullable(),
 
+    entity_id: z.string().uuid("Invalid entity ID").optional().nullable(),
+
     status: TaskStatusEnum.optional(),
     priority: TaskPriorityEnum.optional(),
 
     task_category_id: z.string().uuid().optional().nullable(),
 
-    start_date: z.coerce.date().optional().nullable(),
-    end_date: z.coerce.date().optional().nullable(),
-    due_date: z.coerce.date().optional().nullable(),
+    start_date: optionalDate,
 
-    /**
-     * NEW BILLING FIELDS
-     */
+    due_date: optionalDate,
+
     is_billable: z.boolean().optional(),
 
     invoice_number: z.string().max(100).optional().nullable(),
 
     billed_from_firm: PracticeFirmEnum.optional().nullable(),
   })
-  // end >= start
-  .refine(
-    (data) =>
-      !data.end_date || !data.start_date || data.end_date >= data.start_date,
-    { message: "End date must be after start date", path: ["end_date"] }
-  )
-  // due date not in past
+
   .refine((data) => !data.due_date || data.due_date >= new Date(), {
     message: "Due date cannot be in the past",
     path: ["due_date"],
