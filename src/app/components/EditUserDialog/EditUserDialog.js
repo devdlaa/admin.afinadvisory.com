@@ -3,9 +3,6 @@ import { useDispatch, useSelector } from "react-redux";
 import { motion } from "framer-motion";
 
 import {
-  getExistingProfileImageUrl,
-} from "@/utils/shared/shared_util";
-import {
   Edit,
   User,
   Phone,
@@ -183,20 +180,6 @@ const EditUserDialog = ({ open, onClose, user }) => {
     }
   };
 
-  useEffect(() => {
-    if (!user?.id) return;
-
-    let cancelled = false;
-
-    getExistingProfileImageUrl(user.id).then((url) => {
-      if (!cancelled) setProfileImageUrl(url);
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [user?.id]);
-
   const validateForm = () => {
     const newErrors = {};
 
@@ -334,21 +317,12 @@ const EditUserDialog = ({ open, onClose, user }) => {
             <div className="eu-user-header">
               <div className="eu-profile-image-section">
                 <div className="eu-profile-image-container">
-                  {currentImageUrl ? (
-                    <img
-                      src={currentImageUrl}
-                      alt={user.name}
-                      className="eu-profile-image"
-                    />
-                  ) : (
-                    <div className="eu-profile-avatar">
-                      {user.name
-                        .split(" ")
-                        .map((n) => n[0])
-                        .join("")
-                        .toUpperCase()}
-                    </div>
-                  )}
+                  <Avatar
+                    src={getProfileUrl(user.id)}
+                    alt={user.name}
+                    size={32}
+                    fallbackText={user.name}
+                  />
 
                   {uploadingImage && (
                     <div className="eu-image-uploading-overlay">

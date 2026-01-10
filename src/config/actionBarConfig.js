@@ -63,11 +63,7 @@ import {
 } from "@/store/slices/influencersSlice";
 
 // Import your export functions
-import {
-  exportServiceBookingsToExcel,
-  exportCustomersToExcel,
-  exportInfluencersToExcel
-} from "@/utils/server/utils";
+
 
 // Services/Bookings Configuration
 export const servicesActionBarConfig = {
@@ -147,7 +143,7 @@ export const servicesFilterConfig = {
     { label: "Master Status", value: "master_status" },
   ],
 
-  exportFunction: exportServiceBookingsToExcel,
+  exportFunction: null,
 };
 
 // Customers Configuration
@@ -220,7 +216,7 @@ export const customersFilterConfig = {
     { label: "Account Status", value: "accountStatus" },
   ],
 
-  exportFunction: exportCustomersToExcel,
+  exportFunction: null,
 };
 
 // Influencers Configuration
@@ -296,7 +292,7 @@ export const influencersFilterConfig = {
     { label: "Name", value: "lowercase_name" },
   ],
 
-  exportFunction: exportInfluencersToExcel,
+  exportFunction: null,
 };
 
 // Helper function to create a basic config for any new route

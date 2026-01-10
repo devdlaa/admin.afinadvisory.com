@@ -158,17 +158,9 @@ const SIDEBAR_CONFIG = {
   ],
 };
 
-import { getExistingProfileImageUrl as getProfileImageUrl } from "@/utils/shared/shared_util";
+import { getProfileUrl } from "@/utils/shared/shared_util";
 
-// Get user initials
-const getUserInitials = (name) => {
-  if (!name) return "U";
-  const parts = name.trim().split(" ");
-  if (parts.length >= 2) {
-    return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
-  }
-  return name.substring(0, 2).toUpperCase();
-};
+
 
 // ============================================================================
 // SIDEBAR COMPONENT
@@ -186,19 +178,6 @@ const Sidebar = () => {
 
   const user = session?.user;
   const isSessionLoading = status === "loading";
-
-  // Fetch profile image
-  useEffect(() => {
-    if (user?.id) {
-      setImageLoading(true);
-      getProfileImageUrl(user.id).then((url) => {
-        setProfileImageUrl(url);
-        setImageLoading(false);
-      });
-    } else {
-      setImageLoading(false);
-    }
-  }, [user?.id]);
 
   // Set active item based on pathname and auto-expand parent
   useEffect(() => {
@@ -331,13 +310,12 @@ const Sidebar = () => {
         ) : user ? (
           <>
             <div className={styles.userAvatar}>
-              {profileImageUrl ? (
-                <img src={profileImageUrl} alt={user.name || "User"} />
-              ) : (
-                <div className={styles.avatarInitials}>
-                  {getUserInitials(user.name)}
-                </div>
-              )}
+              <Avatar
+                src={getProfileUrl(user.id)}
+                alt={user.name}
+                size={32}
+                fallbackText={user.name}
+              />
             </div>
             <div className={styles.userInfo}>
               <div className={styles.userName}>{user.name || "User"}</div>

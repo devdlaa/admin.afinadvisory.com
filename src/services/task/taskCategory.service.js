@@ -3,7 +3,6 @@ import {
   NotFoundError,
   ConflictError,
   ValidationError,
-  BadRequestError,
 } from "../../utils/server/errors.js";
 
 const generateCategoryCode = (name) => {
@@ -28,13 +27,13 @@ const toTitleCase = (value) =>
 export const createTaskCategory = async (data, created_by) => {
   return prisma.$transaction(async (tx) => {
     if (!data.name || !data.name.trim()) {
-      throw new BadRequestError("Task category name is required");
+      throw new ValidationError("Task category name is required");
     }
 
     const formattedName = toTitleCase(data.name);
 
     if (!/^[A-Za-z0-9 _\-\/]+$/.test(formattedName)) {
-      throw new BadRequestError(
+      throw new ValidationError(
         "Category name can only contain letters, numbers, spaces, hyphens, underscores, and slashes"
       );
     }
@@ -95,14 +94,14 @@ export const updateTaskCategory = async (category_id, data, created_by) => {
 
     if (data.name !== undefined) {
       if (!data.name.trim()) {
-        throw new BadRequestError("Task category name cannot be empty");
+        throw new ValidationError("Task category name cannot be empty");
       }
 
       formattedName = toTitleCase(data.name);
 
       // Allow only ASCII letters, numbers, spaces, hyphens, underscores, slashes
       if (!/^[A-Za-z0-9 _\-\/]+$/.test(formattedName)) {
-        throw new BadRequestError(
+        throw new ValidationError(
           "Category name can only contain letters, numbers, spaces, hyphens, underscores, and slashes"
         );
       }

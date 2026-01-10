@@ -2,10 +2,11 @@ import React from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Wallet, DollarSign, AlertCircle } from "lucide-react";
 import CustomInput from "../TinyLib/CustomInput";
-import {
-  setPaymentType,
-  setPartialAmount,
-} from "@/store/slices/createPaymentLink";
+// import {
+//   setPaymentType,
+//   setPartialAmount,
+// } from "@/store/slices/createPaymentLink";
+
 
 const CreatePaymentLinkStepFive = () => {
   const dispatch = useDispatch();
@@ -18,15 +19,15 @@ const CreatePaymentLinkStepFive = () => {
   const totalAmount = calculatedAmounts?.totalWithGst || 0;
 
   const handlePaymentTypeSelect = (type) => {
-    dispatch(setPaymentType(type));
+    // dispatch(setPaymentType(type));
     if (type === "full") {
-      dispatch(setPartialAmount(totalAmount));
+      // dispatch(setPartialAmount(totalAmount));
     }
   };
 
   const handlePartialAmountChange = (value) => {
     const amount = parseFloat(value) || 0;
-    dispatch(setPartialAmount(amount));
+    // dispatch(setPartialAmount(amount));
   };
 
   const isPartialAmountValid =

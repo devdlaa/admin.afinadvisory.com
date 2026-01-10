@@ -1,6 +1,6 @@
 // @ts-ignore
 import handlebars from /* webpackIgnore: true */ "handlebars";
-// import nodemailer from "nodemailer";
+
 import fs from "fs-extra";
 import path from "path";
 
