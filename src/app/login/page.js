@@ -7,7 +7,7 @@ import "./login.scss";
 const LoginContent = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
-  const isDevelopment = process.env.NODE_ENV === "development";
+  const isDevelopment = process.env === "development";
 
   const turnstileRef = useRef(null);
   const [turnstileToken, setTurnstileToken] = useState("");
