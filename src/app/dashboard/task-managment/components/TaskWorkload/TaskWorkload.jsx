@@ -15,11 +15,13 @@ const TaskWorkload = () => {
 
   // Get workload data and loading state from Redux
   const assignmentReport = useSelector(selectAssignmentReport);
-  const isLoading = useSelector((state) => state.task.assignmentReportLoading);
+  const isLoading = useSelector(
+    (state) => state.task?.assignmentReportLoading ?? false
+  );
 
   // Fetch data only if not already loaded
   useEffect(() => {
-    if (!assignmentReport) {
+    if (assignmentReport === null) {
       dispatch(fetchAssignmentReport());
     }
   }, [dispatch, assignmentReport]);
@@ -30,31 +32,33 @@ const TaskWorkload = () => {
   };
 
   // Calculate summary statistics
-  const summary = assignmentReport?.reduce(
-    (acc, user) => ({
-      total: acc.total + user.total,
-      pending: acc.pending + user.pending,
-      in_progress: acc.in_progress + user.in_progress,
-      completed: acc.completed + user.completed,
-      on_hold: acc.on_hold + user.on_hold,
-      cancelled: acc.cancelled + user.cancelled,
-    }),
-    {
-      total: 0,
-      pending: 0,
-      in_progress: 0,
-      completed: 0,
-      on_hold: 0,
-      cancelled: 0,
-    }
-  ) || {
-    total: 0,
-    pending: 0,
-    in_progress: 0,
-    completed: 0,
-    on_hold: 0,
-    cancelled: 0,
-  };
+  const summary = Array.isArray(assignmentReport)
+    ? assignmentReport.reduce(
+        (acc, user) => ({
+          total: acc.total + (user.total || 0),
+          pending: acc.pending + (user.pending || 0),
+          in_progress: acc.in_progress + (user.in_progress || 0),
+          completed: acc.completed + (user.completed || 0),
+          on_hold: acc.on_hold + (user.on_hold || 0),
+          cancelled: acc.cancelled + (user.cancelled || 0),
+        }),
+        {
+          total: 0,
+          pending: 0,
+          in_progress: 0,
+          completed: 0,
+          on_hold: 0,
+          cancelled: 0,
+        }
+      )
+    : {
+        total: 0,
+        pending: 0,
+        in_progress: 0,
+        completed: 0,
+        on_hold: 0,
+        cancelled: 0,
+      };
 
   // Sort users by total assignment count (highest first)
   const sortedUsers = assignmentReport
@@ -148,8 +152,9 @@ const TaskWorkload = () => {
       <div className="workload__summary">
         <div className="workload__summary-item">
           <span className="workload__summary-label">
-            {" "}
-            Assgnmetns (These are not Total Task)
+
+        Assignments (These are not total tasks)
+
           </span>
           <span className="workload__summary-value">{summary.total}</span>
         </div>
@@ -202,7 +207,7 @@ const TaskWorkload = () => {
                 <div className="workload__table-cell workload__table-cell--user">
                   <div className="workload__user">
                     <Avatar
-                      src={getProfileUrl(user.admin_user_id)}
+                      src={user.admin_user_id ? getProfileUrl(user.admin_user_id) : undefined}
                       alt={user.name}
                       size={32}
                       fallbackText={user.name}

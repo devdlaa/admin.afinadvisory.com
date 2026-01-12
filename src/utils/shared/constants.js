@@ -9,6 +9,7 @@ import {
   Flower,
   Waves,
   Flame,
+  ArrowDownCircle,
 } from "lucide-react";
 export const statusOptions = [
   {
@@ -67,7 +68,7 @@ export const priorityOptions = [
     label: "Low Priority",
     txtClr: "#059669",
     bgColor: "#ecfdf5",
-    icon: <Flower size={16} color="#059669" />,
+    icon: <ArrowDownCircle size={16} color="#059669" />,
   },
   {
     value: "NORMAL",

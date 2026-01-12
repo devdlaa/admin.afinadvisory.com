@@ -26,9 +26,9 @@ export async function GET(request, { params }) {
 
     const task_id = uuidSchema.parse((await params).task_id);
 
-    const task = await getTaskById(task_id);
+    const result = await getTaskById(task_id);
 
-    return createSuccessResponse("Task retrieved successfully", task);
+    return createSuccessResponse("Task retrieved successfully", result);
   } catch (error) {
     if (error instanceof z.ZodError) {
       return createErrorResponse(
@@ -65,9 +65,9 @@ export async function PATCH(request, { params }) {
       );
     }
 
-    const task = await updateTask(task_id, validatedData, session.user.id);
+    const result = await updateTask(task_id, validatedData, session.user.id);
 
-    return createSuccessResponse("Task updated successfully", task);
+    return createSuccessResponse("Task updated successfully", result);
   } catch (error) {
     console.log(error);
 
@@ -84,13 +84,13 @@ export async function DELETE(request, { params }) {
     );
     if (permissionError) return permissionError;
 
-    const task_id = uuidSchema.parse(params.id);
+    const task_id = uuidSchema.parse((await params).task_id);
 
     const result = await deleteTask(task_id, session.user.id);
 
-    return createSuccessResponse("Task deleted successfully", result.task);
+    return createSuccessResponse("Task deleted successfully", result);
   } catch (error) {
-  console.log(error);
+    console.log(error);
 
     return handleApiError(error);
   }

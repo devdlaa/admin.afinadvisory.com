@@ -17,20 +17,17 @@ export async function PATCH(request, { params }) {
     );
     if (permissionError) return permissionError;
 
-    const { task_id, id: comment_id } = await params;
+    const { task_id, id: comment_id } = params;
     const body = await request.json();
 
-    const validatedData = schemas.taskComment.update.parse({
-      ...body,
-      task_id,
-      comment_id,
-    });
+    const validatedData = schemas.taskComment.update.parse(body);
 
     const updatedComment = await updateTaskComment(
       task_id,
       comment_id,
       session.user.id,
-      validatedData.message
+      validatedData.message,
+      validatedData.mentions
     );
 
     return createSuccessResponse(

@@ -1,4 +1,4 @@
-import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import { createSlice, createAsyncThunk,createSelector  } from "@reduxjs/toolkit";
 
 // ============================================
 // HELPER - API FETCH WRAPPER
@@ -541,53 +541,59 @@ export const {
 // ============================================
 // SELECTORS
 // ============================================
+const selectTaskCategoryState = (state) => state.taskCategory || initialState;
+export const selectAllCategories = createSelector(
+  [selectTaskCategoryState],
+  (s) => Object.values(s.categories)
+);
 
-// Get all categories as array
-export const selectAllCategories = (state) =>
-  Object.values(state.taskCategory.categories);
-
-// Get category by ID
 export const selectCategoryById = (state, categoryId) =>
-  state.taskCategory.categories[categoryId];
+  state.taskCategory?.categories?.[categoryId];
 
-// Get current list view categories (respects pagination)
-export const selectListCategories = (state) =>
-  state.taskCategory.list.ids
-    .map((id) => state.taskCategory.categories[id])
-    .filter(Boolean);
+export const selectListCategories = createSelector(
+  [selectTaskCategoryState],
+  (s) => s.list.ids.map((id) => s.categories[id]).filter(Boolean)
+);
 
-// Get pagination info
-export const selectPagination = (state) => state.taskCategory.list.pagination;
+export const selectPagination = createSelector(
+  [selectTaskCategoryState],
+  (s) => s.list.pagination
+);
 
-// Get current filters
-export const selectFilters = (state) => state.taskCategory.list.filters;
+export const selectFilters = createSelector(
+  [selectTaskCategoryState],
+  (s) => s.list.filters
+);
 
-// Get selected category
-export const selectSelectedCategory = (state) =>
-  state.taskCategory.selectedCategory;
+export const selectSelectedCategory = createSelector(
+  [selectTaskCategoryState],
+  (s) => s.selectedCategory
+);
 
-// Get quick search results
-export const selectQuickSearchResults = (state) =>
-  state.taskCategory.quickSearch.results;
+export const selectQuickSearchResults = createSelector(
+  [selectTaskCategoryState],
+  (s) => s.quickSearch.results
+);
 
-// Check if cache is available
-export const selectIsCached = (state) => state.taskCategory.cache.isCached;
+export const selectIsCached = createSelector(
+  [selectTaskCategoryState],
+  (s) => s.cache.isCached
+);
 
-// Get loading states
 export const selectIsLoading = (state, type = "list") =>
-  state.taskCategory.loading[type];
+  state?.taskCategory?.loading?.[type] ?? false;
 
-// Get error states
 export const selectError = (state, type = "list") =>
-  state.taskCategory.error[type];
+  state?.taskCategory?.error?.[type] ?? null;
 
-// Check if category exists in cache
 export const selectIsCategoryCached = (state, categoryId) =>
-  !!state.taskCategory.categories[categoryId];
+  !!state?.taskCategory?.categories?.[categoryId];
 
-// Get categories count in cache
-export const selectCachedCategoriesCount = (state) =>
-  Object.keys(state.taskCategory.categories).length;
+export const selectCachedCategoriesCount = createSelector(
+  [selectTaskCategoryState],
+  (s) => Object.keys(s.categories).length
+);
+
 
 // ============================================
 // EXPORT REDUCER

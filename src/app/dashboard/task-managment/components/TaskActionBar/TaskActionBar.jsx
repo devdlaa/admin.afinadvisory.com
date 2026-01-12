@@ -16,11 +16,10 @@ import "./TaskActionBar.scss";
  * TaskActionBar - Custom action bar for the tasks page
  *
  * @param {Array} filterDropdowns - Array of filter dropdown configurations
- * @param {Object} activeFilters - Current filter values {entity_id, task_category_id, assigned_to}
+ * @param {Object} activeFilters - Current filter values {entity_id, task_category_id, assigned_to, is_billable}
  * @param {Function} onFilterChange - Callback when filter changes (filterKey, value) => void
  * @param {Function} onClearAllFilters - Callback to clear all filters
  * @param {Function} onCreateTask - Callback for creating new task
-
  * @param {Function} onToggleWorkload - Callback for toggling workload view
  * @param {boolean} showWorkload - Current workload visibility state
  * @param {number} totalCount - Total number of tasks
@@ -37,7 +36,6 @@ const TaskActionBar = ({
   onFilterChange,
   onClearAllFilters,
   onCreateTask,
-
   onToggleWorkload,
   onRefresh,
   showWorkload = false,
@@ -49,17 +47,10 @@ const TaskActionBar = ({
   onPageChange,
   isPaginationLoading = false,
 }) => {
-  const hasActiveFilters = Object.values(activeFilters).some(
-    (value) => value !== null && value !== undefined && value !== ""
+  // FIX: Properly check for active filters including boolean false
+  const hasActiveFilters = Object.entries(activeFilters).some(
+    ([key, value]) => value !== null && value !== undefined && value !== ""
   );
-
-  const getActiveFilterLabels = () => {
-    const labels = [];
-
-    return labels;
-  };
-
-  const activeFilterLabels = getActiveFilterLabels();
 
   const handleRemoveFilter = (filterKey) => {
     onFilterChange(filterKey, null);
@@ -67,15 +58,36 @@ const TaskActionBar = ({
 
   const handlePrevPage = () => {
     if (currentPage > 1 && !isPaginationLoading) {
-      onPageChange(currentPage - 1);
+      if (onPageChange) onPageChange(currentPage - 1);
     }
   };
 
   const handleNextPage = () => {
     if (currentPage < totalPages && !isPaginationLoading) {
-      onPageChange(currentPage + 1);
+      if (onPageChange) onPageChange(currentPage + 1);
     }
   };
+
+  // FIX: Get active filter labels for display
+  const getActiveFilterLabel = (filterKey, value) => {
+    const dropdown = filterDropdowns.find((d) => d.filterKey === filterKey);
+    if (!dropdown) return null;
+
+    const option = dropdown.options.find((opt) => opt.value === value);
+    return option ? option.label : null;
+  };
+
+  // FIX: Get list of active filters with their labels
+  const activeFiltersList = Object.entries(activeFilters)
+    .filter(
+      ([key, value]) => value !== null && value !== undefined && value !== ""
+    )
+    .map(([key, value]) => ({
+      key,
+      value,
+      label: getActiveFilterLabel(key, value),
+    }))
+    .filter((filter) => filter.label);
 
   return (
     <div className="task-action-bar">
@@ -167,6 +179,26 @@ const TaskActionBar = ({
         </div>
       </div>
 
+      {/* FIX: Active Filters Chips */}
+      {activeFiltersList.length > 0 && (
+        <div className="task-action-bar__active-filters">
+          {activeFiltersList.map((filter) => (
+            <div key={filter.key} className="task-action-bar__filter-chip">
+              <span className="task-action-bar__filter-chip-label">
+                {filter.label}
+              </span>
+              <button
+                className="task-action-bar__filter-chip-remove"
+                onClick={() => handleRemoveFilter(filter.key)}
+                aria-label={`Remove ${filter.label} filter`}
+              >
+                <X size={14} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Pagination and Meta Info Strip */}
       <div className="task-action-bar__pagination-strip">
         <div className="task-action-bar__meta-info">
@@ -188,33 +220,6 @@ const TaskActionBar = ({
               </>
             )}
           </div>
-
-          {activeFilterLabels.length > 0 && (
-            <div className="task-action-bar__active-filters">
-              <span className="task-action-bar__filters-label">
-                Applied filters:
-              </span>
-              <div className="task-action-bar__filter-tags">
-                {activeFilterLabels.map((filter) => (
-                  <div key={filter.key} className="task-action-bar__filter-tag">
-                    <span className="task-action-bar__filter-tag-text">
-                      <span className="task-action-bar__filter-tag-label">
-                        {filter.label}:
-                      </span>{" "}
-                      {filter.value}
-                    </span>
-                    <button
-                      className="task-action-bar__filter-tag-remove"
-                      onClick={() => handleRemoveFilter(filter.key)}
-                      title="Remove filter"
-                    >
-                      <X size={12} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
 
         <div className="task-action-bar__pagination">

@@ -5,7 +5,7 @@ import {
   ValidationError,
   ForbiddenError,
 } from "@/utils/server/errors";
-import { removeUndefined } from "@/utils/server/utils";
+import { safeForFirestore } from "@/utils/server/utils";
 
 import { notify } from "../shared/notifications.service";
 
@@ -39,6 +39,22 @@ async function getValidAdminUser(user_id) {
   }
 
   return user;
+}
+
+function stripMentionsFromMessage(message, mentions) {
+  if (!Array.isArray(mentions)) return message;
+
+  let clean = message;
+
+  for (const m of mentions) {
+    if (!m?.name) continue;
+
+    const escaped = m.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const regex = new RegExp(`@${escaped}`, "gi");
+    clean = clean.replace(regex, "");
+  }
+
+  return clean.replace(/\s+/g, " ").trim();
 }
 
 async function getTaskOrFail(task_id) {
@@ -99,9 +115,13 @@ export const createTaskComment = async (
 
   await ensureUserCanComment(task, user.id);
 
-  const message = (rawMessage || "").trim();
+  // ✅ sanitize message
+  const cleanedMessage = stripMentionsFromMessage(
+    (rawMessage || "").trim(),
+    mentions
+  );
 
-  if (!message) {
+  if (!cleanedMessage) {
     throw new ValidationError("Message cannot be empty");
   }
 
@@ -120,19 +140,23 @@ export const createTaskComment = async (
     id: commentRef.id,
     task_id,
     type: "COMMENT",
-    message,
+    message: cleanedMessage, // ✅ no mentions inside
     activity: null,
     user_id: user.id,
     user_name: user.name,
-    mentions: Array.isArray(mentions) ? mentions : [],
+
+    // ✅ only id + name
+    mentions: Array.isArray(mentions)
+      ? mentions.map((m) => ({ id: m.id, name: m.name }))
+      : [],
+
     created_at: now.toISOString(),
     updated_at: now.toISOString(),
     edited_until: editedUntil.toISOString(),
     deleted: false,
   };
 
-  // persist comment (clean undefined values)
-  await commentRef.set(removeUndefined(payload));
+  await commentRef.set(safeForFirestore(payload));
 
   // sync task metadata
   await prisma.task.update({
@@ -140,33 +164,25 @@ export const createTaskComment = async (
     data: {
       last_comment_at: now,
       last_commented_by: user.id,
-      comment_count: {
-        increment: 1,
-      },
+      comment_count: { increment: 1 },
     },
   });
 
   // -------------------------------------------------
-  // NOTIFICATIONS SECTION
+  // NOTIFICATIONS
   // -------------------------------------------------
 
-  // 1) If assigned-to-all -> do not notify anyone
-  if (task.assigned_to_all) {
-    return payload;
-  }
+  if (task.assigned_to_all) return payload;
 
-  // 2) Clean mentions
-  const cleanMentions = Array.isArray(mentions)
-    ? [...new Set(mentions)].filter((id) => id !== user.id)
-    : [];
+  const cleanMentionIds = payload.mentions
+    .map((m) => m.id)
+    .filter((id) => id !== user.id);
 
   let notifyUserIds = [];
 
-  if (cleanMentions.length > 0) {
-    // notify only the mentioned users
-    notifyUserIds = cleanMentions;
+  if (cleanMentionIds.length > 0) {
+    notifyUserIds = cleanMentionIds;
   } else {
-    // fallback: notify all task assignees
     const assignees = await prisma.taskAssignment.findMany({
       where: { task_id },
       select: { admin_user_id: true },
@@ -177,17 +193,19 @@ export const createTaskComment = async (
       .filter((id) => id !== user.id);
   }
 
-  // if still empty no need to notify
   if (notifyUserIds.length > 0) {
     await notify(notifyUserIds, {
       type: "TASK_COMMENT",
       title: `New comment on ${task.title}`,
-      body: message.length > 100 ? `${message.substring(0, 100)}...` : message,
+      body:
+        cleanedMessage.length > 100
+          ? `${cleanedMessage.substring(0, 100)}...`
+          : cleanedMessage,
       task_id,
       comment_id: payload.id,
       actor_id: user.id,
       actor_name: user.name,
-      link: `/tasks/${task_id}`,
+      link: `/dashboard/task-managment?taskId=${task_id}&tab=task-activity`,
     });
   }
 
@@ -215,7 +233,7 @@ export const addTaskActivityLog = async (task_id, actor_id, activity) => {
     type: "ACTIVITY",
     user_id: user.id,
     user_name: user.name,
-    message: activity.message, // ✅ UI-ready sentence
+    message: activity.message, 
     activity: {
       action: activity.action,
       meta: activity.meta ?? null,
@@ -224,7 +242,7 @@ export const addTaskActivityLog = async (task_id, actor_id, activity) => {
     deleted: false,
   };
 
-  await docRef.set(removeUndefined(payload));
+  await docRef.set(safeForFirestore(payload));
 
   await prisma.task.update({
     where: { id: task_id },
@@ -287,7 +305,27 @@ export const listTaskTimeline = async (
   const snapshot = await ref.get();
 
   const items = [];
-  snapshot.forEach((doc) => items.push(doc.data()));
+
+  snapshot.forEach((doc) => {
+    const data = doc.data();
+
+    // ✅ normalize mentions (old + new format safe)
+    if (Array.isArray(data.mentions)) {
+      data.mentions = data.mentions.map((m) => {
+        if (typeof m === "string") {
+          return { id: m, name: "Unknown" }; // backward compatibility
+        }
+        return {
+          id: m.id,
+          name: m.name,
+        };
+      });
+    } else {
+      data.mentions = [];
+    }
+
+    items.push(data);
+  });
 
   const nextCursor = items.length > 0 ? items[items.length - 1].id : null;
 
@@ -305,7 +343,8 @@ export const updateTaskComment = async (
   task_id,
   comment_id,
   user_id,
-  rawMessage
+  rawMessage,
+  mentions = []
 ) => {
   const user = await getValidAdminUser(user_id);
 
@@ -329,12 +368,7 @@ export const updateTaskComment = async (
     throw new ValidationError("Comment has been deleted");
   }
 
-  const message = (rawMessage || "").trim();
-  if (!message) {
-    throw new ValidationError("Message cannot be empty");
-  }
-
-  // Only the author may edit, within editable window
+  // Only author can edit
   if (data.user_id !== user.id) {
     throw new ForbiddenError("You may only edit your own comments");
   }
@@ -345,17 +379,29 @@ export const updateTaskComment = async (
     throw new ValidationError("Edit window has expired");
   }
 
+  // sanitize message
+  const cleanedMessage = stripMentionsFromMessage(
+    (rawMessage || "").trim(),
+    mentions
+  );
+
+  if (!cleanedMessage) {
+    throw new ValidationError("Message cannot be empty");
+  }
+
   const updatePayload = {
-    message,
+    message: cleanedMessage,
+    mentions: Array.isArray(mentions)
+      ? mentions.map((m) => ({ id: m.id, name: m.name }))
+      : [],
     updated_at: now.toISOString(),
   };
 
-  await commentRef.update(removeUndefined(updatePayload));
+  await commentRef.update(safeForFirestore(updatePayload));
 
   return {
     ...data,
-    message,
-    updated_at: now.toISOString(),
+    ...updatePayload,
   };
 };
 
@@ -402,7 +448,7 @@ export const deleteTaskComment = async (task_id, comment_id, user_id) => {
     updated_at: now.toISOString(),
   };
 
-  await commentRef.update(removeUndefined(deletePayload));
+  await commentRef.update(safeForFirestore(deletePayload));
 
   // keep comment_count non-negative
   await prisma.task.update({

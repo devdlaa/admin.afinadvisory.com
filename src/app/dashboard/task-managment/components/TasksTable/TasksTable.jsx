@@ -27,6 +27,7 @@ import { statusOptions, priorityOptions } from "@/utils/shared/constants";
 import { getProfileUrl, formatDate } from "@/utils/shared/shared_util";
 import { truncateText } from "@/utils/server/utils";
 
+
 const TaskTable = ({
   tasks = [],
   onTaskClick,
@@ -104,30 +105,26 @@ const TaskTable = ({
   const handleBulkStatusUpdate = async (status) => {
     if (selectedTasks.length === 0) return;
 
-     dispatch(
+    dispatch(
       bulkUpdateTaskStatus({
         task_ids: selectedTasks,
         status,
       })
     );
 
-    // Refresh tasks to get updated counts
-    dispatch(fetchTasks(true));
     setBulkActionsOpen(false);
   };
 
   const handleBulkPriorityUpdate = async (priority) => {
     if (selectedTasks.length === 0) return;
 
-     dispatch(
+    dispatch(
       bulkUpdateTaskPriority({
         task_ids: selectedTasks,
         priority,
       })
     );
 
-    // Refresh tasks to get updated counts
-    dispatch(fetchTasks(true));
     setBulkActionsOpen(false);
   };
 
@@ -209,7 +206,7 @@ const TaskTable = ({
     return (
       <div className="task-assignees" onClick={handleClick}>
         <div className="avatar-stack">
-          {assignments.map((a) => (
+          {assignments.filter(a => a?.assignee?.id).map((a) => (
             <Avatar
               key={a.id}
               src={getProfileUrl(a.assignee.id)}
@@ -251,7 +248,9 @@ const TaskTable = ({
           <input
             type="checkbox"
             checked={isAllSelected}
-            ref={(el) => el && (el.indeterminate = isSomeSelected)}
+            ref={(el) => {
+              if (el) el.indeterminate = isSomeSelected;
+            }}
             onChange={handleSelectAll}
             className="checkbox"
             disabled={tasks.length === 0}
@@ -359,7 +358,7 @@ const TaskTable = ({
                               }
                             >
                               {option?.icon}
-                       
+
                               <span>{option.label}</span>
                             </button>
                           ))}

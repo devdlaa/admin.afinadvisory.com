@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Plus, List, PieChart } from "lucide-react";
 
 import ChargesSummary from "../ChargesSummary/ChargesSummary";
@@ -8,35 +8,26 @@ import ActionButton from "@/app/components/TinyLib/ActionButton";
 
 import "./ChargesManager.scss";
 
-/**
- * ChargesManager Component
- * Pure presentation component with local state
- * Parent handles saving to Redux
- */
 const ChargesManager = ({
   initialCharges = [],
   onAddCharge,
   onUpdateCharge,
   onDeleteCharge,
-  onSaveInvoiceDetails, // New prop for saving invoice details
-  isLoading = false,
-  isSavingInvoiceDetails = false, // New prop for invoice details loading state
-  invoiceNumber = "", // New prop for initial invoice number
-  practiceFirm = null, // New prop for initial practice firm
-}) => {
-  const [view, setView] = useState("items"); // 'items' or 'summary'
-  const [isAddingNew, setIsAddingNew] = useState(false);
-  const [localCharges, setLocalCharges] = useState([]);
+  onSaveInvoiceDetails,
 
-  // Sync initial charges to local state
-  useEffect(() => {
-    setLocalCharges(initialCharges || []);
-  }, [initialCharges]);
+  isSavingInvoiceDetails = false,
+  invoiceNumber = "",
+  practiceFirm = null,
+  chargeOperations = {},
+}) => {
+  const [view, setView] = useState("items");
+  const [draftCharge, setDraftCharge] = useState(null);
+
+  const chargesArray = Array.isArray(initialCharges) ? initialCharges : [];
 
   const handleAddCharge = () => {
-    const newId = `new-${Date.now()}`;
-    const newCharge = {
-      id: newId,
+    setDraftCharge({
+      id: "draft",
       title: "",
       charge_type: "EXTERNAL_CHARGE",
       amount: "",
@@ -44,14 +35,11 @@ const ChargesManager = ({
       status: "NOT_PAID",
       remark: "",
       isNew: true,
-    };
-
-    setLocalCharges([newCharge, ...localCharges]);
-    setIsAddingNew(true);
+    });
     setView("items");
   };
 
-  const handleSaveNewCharge = async (id, chargeData) => {
+  const handleSaveNewCharge = async (chargeData) => {
     const chargePayload = {
       title: chargeData.chargeTitle,
       amount: parseFloat(chargeData.chargeAmount) || 0,
@@ -64,14 +52,13 @@ const ChargesManager = ({
     if (onAddCharge) {
       const success = await onAddCharge(chargePayload);
       if (success) {
-        setIsAddingNew(false);
+        setDraftCharge(null);
       }
     }
   };
 
-  const handleCancelNewCharge = (id) => {
-    setLocalCharges(localCharges.filter((charge) => charge.id !== id));
-    setIsAddingNew(false);
+  const handleCancelNewCharge = () => {
+    setDraftCharge(null);
   };
 
   const handleUpdateExistingCharge = async (id, updatedData) => {
@@ -90,24 +77,13 @@ const ChargesManager = ({
   };
 
   const handleDeleteExistingCharge = async (id) => {
-    if (window.confirm("Are you sure you want to delete this charge?")) {
-      if (onDeleteCharge) {
-        await onDeleteCharge(id);
-      }
+    if (onDeleteCharge) {
+      await onDeleteCharge(id);
     }
   };
 
-  const handleSaveInvoiceDetails = async (invoiceData) => {
-    if (onSaveInvoiceDetails) {
-      const success = await onSaveInvoiceDetails(invoiceData);
-      return success;
-    }
-    return false;
-  };
-
-  // Calculate summary
   const calculateSummary = () => {
-    const savedCharges = localCharges.filter((charge) => !charge.isNew);
+    const savedCharges = chargesArray;
 
     let totalBilled = 0;
     let writtenOff = 0;
@@ -120,17 +96,11 @@ const ChargesManager = ({
 
       totalBilled += amount;
 
-      if (charge.status === "WRITTEN_OFF") {
-        writtenOff += amount;
-      } else if (charge.status === "PAID") {
-        prepaidByClient += amount;
-      }
+      if (charge.status === "WRITTEN_OFF") writtenOff += amount;
+      else if (charge.status === "PAID") prepaidByClient += amount;
 
-      if (charge.charge_type === "SERVICE_FEE") {
-        firmsFee += amount;
-      } else {
-        externalExpenses += amount;
-      }
+      if (charge.charge_type === "SERVICE_FEE") firmsFee += amount;
+      else externalExpenses += amount;
     });
 
     const totalRecoverable = totalBilled - writtenOff - prepaidByClient;
@@ -156,7 +126,6 @@ const ChargesManager = ({
     };
   };
 
-  // Transform charge data for ChargeCard component
   const transformChargeForCard = (charge) => ({
     ...charge,
     chargeTitle: charge.title,
@@ -179,11 +148,10 @@ const ChargesManager = ({
     },
   });
 
-  const savedChargesCount = localCharges.filter((c) => !c.isNew).length;
+  const savedChargesCount = chargesArray.length;
 
   return (
     <div className="charges-manager">
-      {/* Header */}
       <div className="charges-manager__header">
         <div className="charges-manager__header-left">
           <ActionButton
@@ -192,9 +160,10 @@ const ChargesManager = ({
             onClick={handleAddCharge}
             variant="primary"
             size="medium"
-            disabled={isAddingNew || isLoading}
-            isLoading={isLoading}
+            disabled={!!draftCharge || chargeOperations["new"] === "adding"}
+            isLoading={chargeOperations["new"] === "adding"}
           />
+
           {savedChargesCount > 0 && (
             <div className="charges-manager__item-count">
               <span className="charges-manager__count">
@@ -221,7 +190,7 @@ const ChargesManager = ({
               view === "summary" ? "charges-manager__active-summary" : ""
             }`}
             onClick={() => setView("summary")}
-            disabled={isAddingNew}
+            disabled={!!draftCharge}
           >
             <PieChart size={18} />
             <span>Summary</span>
@@ -229,36 +198,46 @@ const ChargesManager = ({
         </div>
       </div>
 
-      {/* Content */}
       <div className="charges-manager__content">
         {view === "items" ? (
           <div className="charges-manager__charges-list">
-            {localCharges.length === 0 ? (
+            {chargesArray.length === 0 && !draftCharge ? (
               <div className="charges-manager__empty-state">
                 <p>No charges added yet. Click "Add New Charge" to begin.</p>
               </div>
             ) : (
-              localCharges.map((charge) => (
-                <ChargeCard
-                  key={charge.id}
-                  charge={transformChargeForCard(charge)}
-                  onUpdate={(updatedData) => {
-                    if (charge.isNew) {
-                      handleSaveNewCharge(charge.id, updatedData);
-                    } else {
-                      handleUpdateExistingCharge(charge.id, updatedData);
-                    }
-                  }}
-                  onCancel={() => {
-                    if (charge.isNew) {
-                      handleCancelNewCharge(charge.id);
-                    }
-                  }}
-                  onDelete={() => handleDeleteExistingCharge(charge.id)}
-                  isNewCharge={charge.isNew}
-                  isLoading={isLoading}
-                />
-              ))
+              <>
+                {draftCharge && (
+                  <ChargeCard
+                    key="draft"
+                    charge={transformChargeForCard(draftCharge)}
+                    isNewCharge
+                    isLoading={chargeOperations["new"] === "adding"}
+                    onUpdate={(data) => handleSaveNewCharge(data)}
+                    onCancel={handleCancelNewCharge}
+                  />
+                )}
+
+                {chargesArray.map((charge) => {
+                  const chargeOperation = chargeOperations[charge.id];
+                  const isChargeLoading =
+                    chargeOperation === "updating" ||
+                    chargeOperation === "deleting";
+
+                  return (
+                    <ChargeCard
+                      key={charge.id}
+                      charge={transformChargeForCard(charge)}
+                      onUpdate={(data) =>
+                        handleUpdateExistingCharge(charge.id, data)
+                      }
+                      onDelete={() => handleDeleteExistingCharge(charge.id)}
+                      isLoading={isChargeLoading}
+                      operationType={chargeOperation}
+                    />
+                  );
+                })}
+              </>
             )}
           </div>
         ) : (
@@ -266,7 +245,7 @@ const ChargesManager = ({
             summary={calculateSummary()}
             initialInvoiceNumber={invoiceNumber}
             initialPracticeFirm={practiceFirm}
-            onSaveInvoiceDetails={handleSaveInvoiceDetails}
+            onSaveInvoiceDetails={onSaveInvoiceDetails}
             isSavingInvoiceDetails={isSavingInvoiceDetails}
           />
         )}

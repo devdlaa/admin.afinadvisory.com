@@ -11,12 +11,13 @@ import paymentLinksPageReducer from "./slices/paymentLinksPageSlice";
 import sessionReducer from "./slices/sessionSlice";
 import toastMiddleware from "./toastMiddleware";
 import entityReducer from "./slices/entitySlice";
-import notificationReducer from "./slices/notificationSlice";
+import notificationReducer, {
+  setSoundEnabled,
+} from "./slices/notificationSlice";
 import taskReducer from "./slices/taskSlice";
 import TaskDetailReducer from "./slices/taskDetailsSlice";
 import taskCategoryReducer from "./slices/taskCategorySlice";
 import TaskTimelineReducer from "./slices/taskTimelineSlice";
-
 
 export const store = configureStore({
   reducer: {
@@ -34,9 +35,25 @@ export const store = configureStore({
     notifications: notificationReducer,
     taskCategory: taskCategoryReducer,
     task: taskReducer,
-    taskDetail : TaskDetailReducer,
-    taskTimeline : TaskTimelineReducer
+    taskDetail: TaskDetailReducer,
+    taskTimeline: TaskTimelineReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat(toastMiddleware),
 });
+
+/* -----------------------------
+   Restore notification sound preference
+   ----------------------------- */
+
+if (typeof window !== "undefined") {
+  try {
+    const saved = localStorage.getItem("notification_sound_enabled");
+
+    if (saved !== null) {
+      store.dispatch(setSoundEnabled(saved === "true"));
+    }
+  } catch (err) {
+    console.warn("Failed to load notification sound preference", err);
+  }
+}

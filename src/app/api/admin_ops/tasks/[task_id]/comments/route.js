@@ -9,7 +9,6 @@ import {
   createSuccessResponse,
 } from "@/utils/server/apiResponse";
 
-// POST - Create a new comment
 export async function POST(request, { params }) {
   try {
     const [permissionError, session] = await requirePermission(
@@ -18,13 +17,10 @@ export async function POST(request, { params }) {
     );
     if (permissionError) return permissionError;
 
-    const { task_id } =  await params;
+    const { task_id } = params;
     const body = await request.json();
 
-    const validatedData = schemas.taskComment.create.parse({
-      ...body,
-      task_id,
-    });
+    const validatedData = schemas.taskComment.create.parse(body);
 
     const comment = await createTaskComment(
       task_id,
@@ -67,7 +63,7 @@ export async function GET(request, { params }) {
 
     return createSuccessResponse("Comments retrieved successfully", result);
   } catch (error) {
-    console.log("error",error);
+    console.log("error", error);
     return handleApiError(error);
   }
 }

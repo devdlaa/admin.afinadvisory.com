@@ -11,6 +11,7 @@ import {
   BadgeCheck,
   RefreshCcw,
   DiamondMinus,
+  Loader2,
 } from "lucide-react";
 
 import CustomInput from "@/app/components/TinyLib/CustomInput";
@@ -20,6 +21,7 @@ import Avatar from "@/app/components/newui/Avatar/Avatar";
 
 import styles from "./ChargeCard.module.scss";
 import { getProfileUrl } from "@/utils/shared/shared_util";
+import ConfirmationDialog from "@/app/components/ConfirmationDialog/ConfirmationDialog";
 
 const ChargeCard = ({
   charge = {},
@@ -28,9 +30,12 @@ const ChargeCard = ({
   onDelete = () => {},
   isNewCharge = false,
   isLoading = false,
+  operationType = null, // 'adding' | 'updating' | 'deleting'
 }) => {
   const [isEditing, setIsEditing] = useState(isNewCharge);
   const [isExpanded, setIsExpanded] = useState(isNewCharge);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showValidationDialog, setShowValidationDialog] = useState(false);
   const [formData, setFormData] = useState({
     chargeTitle: charge.chargeTitle,
     chargeType: charge.chargeType,
@@ -92,10 +97,9 @@ const ChargeCard = ({
   };
 
   const handleSave = () => {
-    // Validate required fields for new charges
     if (isNewCharge) {
       if (!formData.chargeTitle || !formData.chargeAmount) {
-        alert("Please fill in Charge Title and Amount before saving.");
+        setShowValidationDialog(true);
         return;
       }
     }
@@ -123,9 +127,7 @@ const ChargeCard = ({
   };
 
   const handleDelete = () => {
-    if (window.confirm("Are you sure you want to delete this charge?")) {
-      onDelete();
-    }
+    setShowDeleteDialog(true);
   };
 
   const getStatusConfig = (status) => {
@@ -140,6 +142,10 @@ const ChargeCard = ({
     return chargeTypeOptions.find((opt) => opt.value === type)?.label || type;
   };
 
+  // Show overlay when this specific charge is being processed
+  const showOverlay =
+    operationType === "updating" || operationType === "deleting";
+
   // Collapsed view - one line summary
   if (!isExpanded) {
     const statusConfig = getStatusConfig(formData.paymentStatus);
@@ -147,7 +153,11 @@ const ChargeCard = ({
     return (
       <div
         className={`${styles.chargeCard} ${styles.collapsed}`}
-        onClick={() => setIsExpanded(true)}
+        onClick={() => !showOverlay && setIsExpanded(true)}
+        style={{
+          opacity: showOverlay ? 0.6 : 1,
+          pointerEvents: showOverlay ? "none" : "auto",
+        }}
       >
         <div className={styles.collapsedContent}>
           <div className={styles.collapsedLeft}>
@@ -193,13 +203,29 @@ const ChargeCard = ({
       className={`${styles.chargeCard} ${isNewCharge ? styles.newCharge : ""} ${
         styles.expanded
       }`}
+      style={{ position: "relative" }}
     >
+      {/* Loading Overlay for updating/deleting */}
+      {showOverlay && (
+        <div className={styles.loadingOverlay}>
+          <div className={styles.loadingContent}>
+            <Loader2 size={32} className={styles.spinner} />
+            <p className={styles.loadingText}>
+              {operationType === "updating"
+                ? "Updating charge..."
+                : "Deleting charge..."}
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Collapse button */}
       {!isEditing && (
         <button
           className={styles.collapseBtn}
           onClick={() => setIsExpanded(false)}
           aria-label="Collapse"
+          disabled={showOverlay}
         >
           ×
         </button>
@@ -215,7 +241,7 @@ const ChargeCard = ({
             }
             label="Charge Title"
             placeholder="Enter charge title"
-            disabled={!isEditing}
+            disabled={!isEditing || showOverlay}
           />
         </div>
 
@@ -229,7 +255,7 @@ const ChargeCard = ({
             type="text"
             icon={<IndianRupee size={18} />}
             label="Amount"
-            disabled={!isEditing}
+            disabled={!isEditing || showOverlay}
           />
         </div>
       </div>
@@ -244,7 +270,7 @@ const ChargeCard = ({
           }
           placeholder="Select charge type"
           label="Charge Type"
-          disabled={!isEditing}
+          disabled={!isEditing || showOverlay}
         />
         <CustomDropdown
           icon={Landmark}
@@ -255,7 +281,7 @@ const ChargeCard = ({
           }
           label="Bearer"
           placeholder="Select bearer"
-          disabled={!isEditing}
+          disabled={!isEditing || showOverlay}
         />
 
         <CustomDropdown
@@ -266,7 +292,7 @@ const ChargeCard = ({
           }
           placeholder="Select status"
           label="Status"
-          disabled={!isEditing}
+          disabled={!isEditing || showOverlay}
         />
       </div>
 
@@ -279,7 +305,7 @@ const ChargeCard = ({
           multiline={true}
           rows={3}
           label="Remarks about this Charge"
-          disabled={!isEditing}
+          disabled={!isEditing || showOverlay}
         />
       </div>
 
@@ -313,7 +339,8 @@ const ChargeCard = ({
                 onClick={handleDelete}
                 variant="danger"
                 size="small"
-                isLoading={isLoading}
+                isLoading={operationType === "deleting"}
+                disabled={showOverlay}
               />
               <ActionButton
                 text="Update"
@@ -321,7 +348,7 @@ const ChargeCard = ({
                 onClick={handleEdit}
                 variant="light"
                 size="small"
-                isLoading={isLoading}
+                disabled={showOverlay}
               />
             </>
           ) : (
@@ -332,6 +359,7 @@ const ChargeCard = ({
                 onClick={handleCancelEdit}
                 variant="light"
                 size="small"
+                disabled={isLoading || showOverlay}
               />
               <ActionButton
                 text={isNewCharge ? "Save Charge" : "Save Changes"}
@@ -339,11 +367,39 @@ const ChargeCard = ({
                 onClick={handleSave}
                 variant="primary"
                 size="small"
+                isLoading={isLoading}
+                disabled={showOverlay}
               />
             </>
           )}
         </div>
       </div>
+      <ConfirmationDialog
+        isOpen={showDeleteDialog}
+        onClose={() => setShowDeleteDialog(false)}
+        actionName="Delete this charge?"
+        actionInfo="This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="danger"
+        onConfirm={async () => {
+          onDelete();
+          setShowDeleteDialog(false);
+        }}
+        onCancel={() => setShowDeleteDialog(false)}
+      />
+      <ConfirmationDialog
+        isOpen={showValidationDialog}
+        onClose={() => setShowValidationDialog(false)}
+        actionName="Missing required fields"
+        actionInfo="Please fill in Charge Title and Amount before saving."
+        confirmText="OK"
+        cancelText=""
+        variant="warning"
+        onConfirm={() => {
+          setShowValidationDialog(false);
+        }}
+      />
     </div>
   );
 };

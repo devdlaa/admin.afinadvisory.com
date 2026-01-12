@@ -6,7 +6,14 @@ import styles from "./UserMentionsDropdown.module.scss";
 import { User } from "lucide-react";
 import { CircularProgress } from "@mui/material";
 
-const UserMentionsDropdown = ({ inputRef, query = "", onSelect, onClose, taskId, task }) => {
+const UserMentionsDropdown = ({
+  inputRef,
+  query = "",
+  onSelect,
+  onClose,
+  taskId,
+  task,
+}) => {
   const dispatch = useDispatch();
   const dropdownRef = useRef(null);
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -24,7 +31,7 @@ const UserMentionsDropdown = ({ inputRef, query = "", onSelect, onClose, taskId,
   const getEligibleUsers = () => {
     // If no task data or users not loaded, return empty
     if (!users || users.length === 0) return [];
-    
+
     // If no task provided, return all users (fallback)
     if (!task) return users;
 
@@ -34,23 +41,23 @@ const UserMentionsDropdown = ({ inputRef, query = "", onSelect, onClose, taskId,
     }
 
     // Otherwise, only return users assigned to this task
-    const assignedUserIds = Array.isArray(task.assignments) 
-      ? task.assignments.map(a => a.admin_user_id).filter(Boolean)
+    const assignedUserIds = Array.isArray(task.assignments)
+      ? task.assignments.map((a) => a.admin_user_id).filter(Boolean)
       : [];
-    
+
     // Always include the task creator if it exists
     const eligibleUserIds = new Set(assignedUserIds);
     if (task.created_by) {
       eligibleUserIds.add(task.created_by);
     }
-    
+
     // If no eligible users found, return all users (safety fallback)
     if (eligibleUserIds.size === 0) {
       console.warn("No eligible users found, showing all users");
       return users;
     }
-    
-    return users.filter(user => eligibleUserIds.has(user.id));
+
+    return users.filter((user) => eligibleUserIds.has(user.id));
   };
 
   // Filter users by query
@@ -180,9 +187,7 @@ const UserMentionsDropdown = ({ inputRef, query = "", onSelect, onClose, taskId,
             {user.profile_image_url ? (
               <img src={user.profile_image_url} alt={user.name} />
             ) : (
-              <span className={styles.initials}>
-                {getInitials(user.name)}
-              </span>
+              <span className={styles.initials}>{getInitials(user.name)}</span>
             )}
           </div>
 

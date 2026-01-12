@@ -1,4 +1,8 @@
-import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import {
+  createSlice,
+  createAsyncThunk,
+  createSelector,
+} from "@reduxjs/toolkit";
 
 // ============================================
 // HELPER - API FETCH WRAPPER
@@ -190,13 +194,13 @@ export const createComment = createAsyncThunk(
  */
 export const updateComment = createAsyncThunk(
   "taskTimeline/updateComment",
-  async ({ taskId, commentId, message }, { rejectWithValue }) => {
+  async ({ taskId, commentId, message, mentions = [] }, { rejectWithValue }) => {
     try {
       const result = await apiFetch(
         `/api/admin_ops/tasks/${taskId}/comments/${commentId}`,
         {
           method: "PATCH",
-          body: JSON.stringify({ message }),
+          body: JSON.stringify({ message, mentions }),
         }
       );
 
@@ -366,11 +370,15 @@ const taskTimelineSlice = createSlice({
       .addCase(fetchTimeline.fulfilled, (state, action) => {
         const { taskId, type, items, next_cursor } = action.payload;
 
+        if (state.currentTaskId && state.currentTaskId !== taskId) {
+          return; // ⛔ ignore stale response
+        }
+
         // Store in appropriate array (oldest to newest for WhatsApp-style display)
         if (type === "COMMENT") {
-          state.comments = items.reverse(); // Reverse to show oldest first
+          state.comments = [...items].reverse();
         } else if (type === "ACTIVITY") {
-          state.activities = items.reverse();
+          state.activities = [...items].reverse();
         }
 
         state.currentTaskId = taskId;
@@ -397,7 +405,11 @@ const taskTimelineSlice = createSlice({
         state.error[type] = null;
       })
       .addCase(loadMoreTimeline.fulfilled, (state, action) => {
-        const { type, items, next_cursor } = action.payload;
+        const { taskId,type, items, next_cursor } = action.payload;
+
+        if (state.currentTaskId && state.currentTaskId !== taskId) {
+          return; // ⛔ ignore stale response
+        }
 
         // Prepend older items (they come in newest first from API)
         const reversedItems = [...items].reverse();
@@ -512,48 +524,66 @@ export const {
 // ============================================
 // SELECTORS
 // ============================================
+const selectTimelineState = (state) => state.taskTimeline || initialState;
+// ============================================
+// SELECTORS (PATCHED & SAFE)
+// ============================================
 
-// Get items based on type
+// Base arrays
 export const selectItemsByType = (state, type) => {
-  return type === "COMMENT"
-    ? state.taskTimeline.comments
-    : state.taskTimeline.activities;
+  const s = selectTimelineState(state);
+  return type === "COMMENT" ? s.comments : s.activities;
 };
 
-// Get items grouped by date for specific type
-export const selectTimelineGroupedByDate = (state, type) => {
-  const items = selectItemsByType(state, type);
-  return groupByDate(items);
+// Grouped by date (memoized)
+export const selectTimelineGroupedByDate = createSelector(
+  [selectItemsByType],
+  (items) => groupByDate(items)
+);
+
+// Pagination info (memoized, stable reference)
+export const selectPaginationInfo = createSelector(
+  [selectTimelineState, (_, type) => type],
+  (s, type) => ({
+    nextCursor: s.pagination?.[type]?.nextCursor ?? null,
+    hasMore: s.pagination?.[type]?.hasMore ?? false,
+  })
+);
+
+// Has more items
+export const selectHasMore = (state, type) => {
+  const s = selectTimelineState(state);
+  return s.pagination?.[type]?.hasMore ?? false;
 };
 
-// Get pagination info for specific type
-export const selectPaginationInfo = (state, type) => ({
-  nextCursor: state.taskTimeline.pagination[type]?.nextCursor,
-  hasMore: state.taskTimeline.pagination[type]?.hasMore,
-});
+// Current task id
+export const selectCurrentTaskId = (state) =>
+  selectTimelineState(state).currentTaskId;
 
-// Check if has more items to load
-export const selectHasMore = (state, type) =>
-  state.taskTimeline.pagination[type]?.hasMore;
-
-// Get current task ID
-export const selectCurrentTaskId = (state) => state.taskTimeline.currentTaskId;
-
-// Get loading states
+// Loading states (safe)
 export const selectIsLoading = (state, type, action = "initial") => {
+  const s = selectTimelineState(state);
+
   if (action === "create" || action === "update" || action === "delete") {
-    return state.taskTimeline.loading[action];
+    return s.loading?.[action] ?? false;
   }
-  return state.taskTimeline.loading[type]?.[action];
+
+  return s.loading?.[type]?.[action] ?? false;
 };
 
-// Get error states
-export const selectError = (state, type) => state.taskTimeline.error[type];
+// Error states (safe)
+export const selectError = (state, type) => {
+  const s = selectTimelineState(state);
+  return s.error?.[type] ?? null;
+};
 
-// Get success states
-export const selectSuccess = (state, type) => state.taskTimeline.success[type];
+// Success states (safe)
+export const selectSuccess = (state, type) => {
+  const s = selectTimelineState(state);
+  return s.success?.[type] ?? false;
+};
 
-// Get total items count for type
+// Total items count
 export const selectTotalItemsCount = (state, type) =>
   selectItemsByType(state, type).length;
 

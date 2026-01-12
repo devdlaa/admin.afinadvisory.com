@@ -469,28 +469,60 @@ export function removeEmptyFields(input) {
   return input;
 }
 
-export function removeUndefined(input) {
-  if (Array.isArray(input)) {
-    return input
-      .map(removeUndefined)
-      .filter((item) => item !== undefined);
+export function safeForFirestore(input) {
+  return sanitize(input);
+}
+
+function sanitize(value) {
+  if (value === undefined) return undefined;
+  if (value === null) return null;
+
+  const t = typeof value;
+
+  if (t === "string" || t === "number" || t === "boolean") {
+    return value;
   }
 
-  if (input !== null && typeof input === "object") {
-    const cleaned = {};
-    for (const key in input) {
-      if (!Object.prototype.hasOwnProperty.call(input, key)) continue;
+  if (t === "bigint") {
+    return value.toString();
+  }
 
-      const value = removeUndefined(input[key]);
+  if (t === "function") {
+    return undefined;
+  }
 
-      if (value !== undefined) {
-        cleaned[key] = value;
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+
+  // Prisma / Decimal.js
+  if (
+    typeof value === "object" &&
+    value !== null &&
+    (value?.constructor?.name === "Decimal" ||
+      ("d" in value && "e" in value && "s" in value))
+  ) {
+    return value.toString();
+  }
+
+  if (Array.isArray(value)) {
+    return value.map(sanitize).filter((v) => v !== undefined);
+  }
+
+  if (typeof value === "object") {
+    const out = {};
+    for (const key in value) {
+      if (!Object.prototype.hasOwnProperty.call(value, key)) continue;
+
+      const sanitized = sanitize(value[key]);
+      if (sanitized !== undefined) {
+        out[key] = sanitized;
       }
     }
-    return cleaned;
+    return out;
   }
 
-  return input === undefined ? undefined : input;
+  return String(value);
 }
 
 export const formatDate = (dateString) => {

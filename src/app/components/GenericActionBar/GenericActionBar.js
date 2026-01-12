@@ -134,7 +134,7 @@ const FilterDropdown = ({
   const showEmpty =
     !isSearching && filteredOptions.length === 0 && searchQuery.trim();
 
-  console.log("filteredOptions", filteredOptions);
+ 
 
   return (
     <div className="filter-dropdown" ref={dropdownRef}>
@@ -752,7 +752,7 @@ const GenericActionBar = ({
                   type="button"
                 >
                   <Filter size={18} />
-                  Advanced
+                  Filter
                 </button>
               )}
             </>

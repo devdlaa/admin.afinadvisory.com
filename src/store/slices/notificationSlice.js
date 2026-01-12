@@ -82,11 +82,32 @@ const notificationSlice = createSlice({
     highlightBell: false,
     hasLoadedInitial: false,
     isMarkingAllRead: false,
+    soundEnabled: true,
   },
   reducers: {
     togglePanel: (state) => {
       state.isPanelOpen = !state.isPanelOpen;
     },
+    setSoundEnabled: (state, action) => {
+      state.soundEnabled = action.payload;
+      if (typeof window !== "undefined") {
+        localStorage.setItem(
+          "notification_sound_enabled",
+          String(action.payload)
+        );
+      }
+    },
+
+    toggleSound: (state) => {
+      state.soundEnabled = !state.soundEnabled; 
+      if (typeof window !== "undefined") {
+        localStorage.setItem(
+          "notification_sound_enabled",
+          String(state.soundEnabled)
+        );
+      }
+    },
+
     closePanel: (state) => {
       state.isPanelOpen = false;
     },
@@ -99,7 +120,7 @@ const notificationSlice = createSlice({
         state.unreadCount += 1;
         state.highlightBell = true;
       }
-      playNotificationSound();
+      playNotificationSound(state.soundEnabled);
     },
     decrementUnreadCount: (state) => {
       state.unreadCount = Math.max(0, state.unreadCount - 1);
@@ -140,7 +161,7 @@ const notificationSlice = createSlice({
 
         if (state.unreadCount > 0 && !state.isPanelOpen) {
           state.highlightBell = true;
-          playNotificationSound();
+          playNotificationSound(state.soundEnabled);
         }
       })
       .addCase(fetchNotifications.rejected, (state, action) => {
@@ -179,6 +200,7 @@ const notificationSlice = createSlice({
 });
 
 export const {
+  setSoundEnabled,toggleSound,
   togglePanel,
   closePanel,
   openPanel,

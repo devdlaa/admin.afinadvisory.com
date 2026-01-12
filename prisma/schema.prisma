@@ -151,6 +151,7 @@ model Entity {
   deleter AdminUser? @relation("entity_deleter", fields: [deleted_by], references: [id])
 
   tasks Task[]
+  custom_fields EntityCustomField[]
 
   @@index([name])
   @@index([pan])
@@ -160,6 +161,23 @@ model Entity {
   @@index([deleted_at])
   @@index([status, created_at])
 }
+
+
+
+model EntityCustomField {
+  id         String   @id @default(uuid()) @db.Uuid
+  entity_id  String   @db.Uuid
+  name       String   @db.VarChar(50)
+  value      String?  @db.VarChar(255)
+
+  entity     Entity   @relation(fields: [entity_id], references: [id], onDelete: Cascade)
+
+  created_at DateTime @default(now())
+
+  @@unique([entity_id, name])   // field name unique per entity
+  @@index([entity_id])
+}
+
 
 model AdminUser {
   id                                    String           @id @default(uuid()) @db.Uuid

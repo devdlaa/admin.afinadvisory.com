@@ -30,9 +30,7 @@ const ClientsPage = () => {
   // Redux state
   const clients = useSelector(selectListEntities);
   const loading = useSelector((state) => selectIsLoading(state, "list"));
-  const deleteLoading = useSelector((state) =>
-    selectIsLoading(state, "delete")
-  );
+
   const error = useSelector((state) => selectError(state, "list"));
 
   // Initial data fetch
@@ -59,18 +57,12 @@ const ClientsPage = () => {
     filterDialogRef.current?.showModal();
   };
 
-  // Handle Export Click
-  const handleExportClick = () => {
-    console.log("Export clicked");
-  };
-
   return (
     <div className={styles.clientsPage}>
       {/* Action Bar */}
       <GenericActionBar
         {...clientsActionBarConfig}
         onFilterClick={handleFilterClick}
-        onExport={handleExportClick}
         onAddNew={handleAddNewClient}
       />
 

@@ -55,7 +55,7 @@ const TaskPrimaryInfo = ({
           <CustomDropdown
             label="Priority"
             placeholder="Select Priority"
-            options={priorityOptions}
+            options={priorityOptions.slice(1)}
             selectedValue={primaryInfo.priority}
             onSelect={(opt) => onPrimaryInfoChange("priority", opt.value)}
           />

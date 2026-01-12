@@ -78,6 +78,58 @@
   }
 }
 
+.tabs {
+  display: flex;
+  border-bottom: 1px solid #e9ecef;
+  background-color: #f8f9fa;
+  flex-shrink: 0;
+
+  .tab {
+    flex: 1;
+    padding: 16px 24px;
+    border: none;
+    background: transparent;
+    font-size: 14px;
+    font-weight: 600;
+    color: #6c757d;
+    cursor: pointer;
+    transition: all 0.2s;
+    border-bottom: 3px solid transparent;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+
+    &:hover:not(:disabled) {
+      color: #3b82f6;
+      background-color: rgba(59, 130, 246, 0.05);
+    }
+
+    &.activeTab {
+      color: #3b82f6;
+      border-bottom-color: #3b82f6;
+      background-color: rgba(59, 130, 246, 0.05);
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .badge {
+      background-color: #3b82f6;
+      color: white;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 10px;
+      min-width: 18px;
+      text-align: center;
+    }
+  }
+}
+
 .errorBanner {
   background-color: #fee;
   border: 1px solid #fcc;
@@ -100,10 +152,12 @@
   &::-webkit-scrollbar {
     display: none;
   }
+
   .inner {
     padding: 24px 32px 32px;
-    padding-bottom: 80px;
+    padding-bottom: 125px;
   }
+
   .formRow {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -166,7 +220,6 @@
 
     select {
       cursor: pointer;
-
       appearance: none;
       -webkit-appearance: none;
       -moz-appearance: none;
@@ -178,6 +231,164 @@
       margin-top: 6px;
       font-weight: 500;
     }
+  }
+}
+
+// Additional Fields Styles
+.additionalFields {
+  .additionalHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    gap: 16px;
+
+    .additionalDescription {
+      margin: 0;
+      font-size: 14px;
+      color: #6c757d;
+      flex: 1;
+    }
+
+    .addFieldBtn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      background-color: #3b82f6;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+
+      &:hover:not(:disabled) {
+        background-color: #2563eb;
+      }
+
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+    }
+  }
+
+  .errorMessage {
+    background-color: #fee;
+    border: 1px solid #fcc;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    color: #c33;
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  .emptyState {
+    text-align: center;
+    padding: 48px 24px;
+    color: #6c757d;
+
+    p {
+      margin: 0 0 8px 0;
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .emptySubtext {
+      font-size: 14px;
+      font-weight: 400;
+      color: #adb5bd;
+    }
+  }
+
+  .customFieldsList {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .customFieldRow {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 16px;
+    background-color: #f8f9fa;
+    border-radius: 12px;
+    border: 1px solid #e9ecef;
+    transition: all 0.2s;
+
+    &:hover {
+      border-color: #ced4da;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+
+    .fieldNumber {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      background-color: #3b82f6;
+      color: white;
+      border-radius: 50%;
+      font-size: 14px;
+      font-weight: 700;
+      flex-shrink: 0;
+      margin-top: 28px;
+    }
+
+    .customFieldInputs {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+
+      .formGroup {
+        margin-bottom: 0;
+      }
+    }
+
+    .removeFieldBtn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      background-color: transparent;
+      color: #fa5252;
+      border: 1px solid #fa5252;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+      flex-shrink: 0;
+      margin-top: 28px;
+
+      &:hover:not(:disabled) {
+        background-color: #fa5252;
+        color: white;
+      }
+
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+    }
+  }
+
+  .maxFieldsWarning {
+    margin-top: 16px;
+    padding: 12px 16px;
+    background-color: #fff3cd;
+    border: 1px solid #ffc107;
+    border-radius: 8px;
+    color: #856404;
+    font-size: 14px;
+    font-weight: 500;
+    text-align: center;
   }
 }
 
@@ -193,6 +404,7 @@
   bottom: 0;
   left: 0;
   width: 100%;
+
   button {
     padding: 10px 24px;
     border-radius: 8px;
@@ -273,8 +485,17 @@
     }
   }
 
+  .tabs {
+    .tab {
+      padding: 14px 16px;
+      font-size: 13px;
+    }
+  }
+
   .form {
-    padding: 20px;
+    .inner {
+      padding: 20px;
+    }
 
     .formRow {
       grid-template-columns: 1fr;
@@ -287,6 +508,36 @@
 
     .formGroup {
       margin-bottom: 16px;
+    }
+  }
+
+  .additionalFields {
+    .additionalHeader {
+      flex-direction: column;
+      align-items: flex-start;
+
+      .addFieldBtn {
+        width: 100%;
+        justify-content: center;
+      }
+    }
+
+    .customFieldRow {
+      flex-direction: column;
+      gap: 12px;
+
+      .fieldNumber {
+        margin-top: 0;
+      }
+
+      .customFieldInputs {
+        grid-template-columns: 1fr;
+      }
+
+      .removeFieldBtn {
+        width: 100%;
+        margin-top: 0;
+      }
     }
   }
 

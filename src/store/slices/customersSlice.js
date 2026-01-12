@@ -1,5 +1,8 @@
-import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import { ConstructionIcon } from "lucide-react";
+import {
+  createSlice,
+  createAsyncThunk,
+  createSelector,
+} from "@reduxjs/toolkit";
 
 // Async thunks for API calls
 export const fetchCustomers = createAsyncThunk(
@@ -164,7 +167,7 @@ export const updateCustomer = createAsyncThunk(
         updateData,
       };
     } catch (error) {
-      console.log("error.message",error.message);
+      console.log("error.message", error.message);
       return rejectWithValue(error.message);
     }
   }
@@ -224,8 +227,6 @@ export const addNewUser = createAsyncThunk(
         meta: data.meta,
       };
     } catch (error) {
-
-
       // Handle network errors or other unexpected errors
       return rejectWithValue({
         type: "network_error",
@@ -525,7 +526,7 @@ const customersSlice = createSlice({
       .addCase(filterCustomers.fulfilled, (state, action) => {
         state.filterLoading = false;
         const { mode, customers, filters, resultsCount } = action.payload;
-   
+
         if (mode === "filter") {
           state.filteredCustomers = customers?.data?.customers;
           state.isFilterActive = true;
@@ -533,7 +534,10 @@ const customersSlice = createSlice({
 
           // Show first page of filtered results
           state.currentPage = 1;
-          const endIndex = Math.min(state.itemsPerPage, customers?.data?.customers.length);
+          const endIndex = Math.min(
+            state.itemsPerPage,
+            customers?.data?.customers.length
+          );
           state.customers = customers?.data?.customers.slice(0, endIndex);
         }
 
@@ -604,8 +608,7 @@ const customersSlice = createSlice({
       .addCase(addNewUser.fulfilled, (state, action) => {
         state.isAddingNewUser = false;
         const { newUser } = action.payload;
- 
-      
+
         state.newUserData = newUser.data.user;
         state.passwordResetLink = newUser?.data?.passwordResetLink;
 
@@ -625,7 +628,8 @@ const customersSlice = createSlice({
         // Handle structured error object
         if (action.payload && typeof action.payload === "object") {
           const errorPayload = action.payload;
-          const erroMsgStr = action.payload.message?.details?.errors?.join(",") || "N/a";
+          const erroMsgStr =
+            action.payload.message?.details?.errors?.join(",") || "N/a";
 
           switch (errorPayload.type) {
             case "duplicate_data":
@@ -771,24 +775,54 @@ export const selectCustomersStats = (state) => {
   };
 };
 
-export const selectLoadingStates = (state) => ({
-  loading: state.customers.loading,
-  searchLoading: state.customers.searchLoading,
-  filterLoading: state.customers.filterLoading,
-  exportLoading: state.customers.exportLoading,
-  isUpdatingCustomer: state.customers.isUpdatingCustomer,
-  isAddingNewUser: state.customers.isAddingNewUser,
-});
+// ✅ CORRECT - Memoized selectors
+export const selectLoadingStates = createSelector(
+  [
+    (state) => state.customers.loading,
+    (state) => state.customers.searchLoading,
+    (state) => state.customers.filterLoading,
+    (state) => state.customers.exportLoading,
+    (state) => state.customers.isUpdatingCustomer,
+    (state) => state.customers.isAddingNewUser,
+  ],
+  (
+    loading,
+    searchLoading,
+    filterLoading,
+    exportLoading,
+    isUpdatingCustomer,
+    isAddingNewUser
+  ) => ({
+    loading,
+    searchLoading,
+    filterLoading,
+    exportLoading,
+    isUpdatingCustomer,
+    isAddingNewUser,
+  })
+);
 
-export const selectActiveStates = (state) => ({
-  isSearchActive: state.customers.isSearchActive,
-  isFilterActive: state.customers.isFilterActive,
-});
+export const selectActiveStates = createSelector(
+  [
+    (state) => state.customers.isSearchActive,
+    (state) => state.customers.isFilterActive,
+  ],
+  (isSearchActive, isFilterActive) => ({
+    isSearchActive,
+    isFilterActive,
+  })
+);
 
-export const selectSearchState = (state) => ({
-  query: state.customers.currentSearch.query,
-  field: state.customers.currentSearch.field,
-});
+export const selectSearchState = createSelector(
+  [
+    (state) => state.customers.currentSearch.query,
+    (state) => state.customers.currentSearch.field,
+  ],
+  (query, field) => ({
+    query,
+    field,
+  })
+);
 
 // Updated selector to provide better error information
 export const selectAddUserStates = (state) => ({
@@ -802,7 +836,7 @@ export const selectAddUserStates = (state) => ({
 export const selectAddUserErrorMessage = (state) => {
   const error = state?.customers?.addUserError?.message;
   if (!error) return null;
-  
+
   switch (error?.type) {
     case "duplicate":
       return {

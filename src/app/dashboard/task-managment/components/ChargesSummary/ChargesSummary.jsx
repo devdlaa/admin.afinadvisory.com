@@ -1,14 +1,12 @@
-
 import { useState, useEffect } from "react";
 import { Save, Loader2, ChevronDown } from "lucide-react";
 import styles from "./ChargesSummary.module.scss";
 import { formatCurrency } from "@/utils/server/utils";
 
-
 const practiceFirmOptions = [
   { value: "DLAA_CA_FIRM", label: "DLAA CA Firm" },
   { value: "AFIN_ADVISORY_PVT_LTD", label: "Afin Advisory Pvt Ltd" },
-  { value: "MUTUAL_FUND_ADVISORY", label: "Mutual Fund Advisory" },
+  { value: "MUTUAL_FUND_ADVISORY", label: "Other" },
 ];
 
 const ChargesSummary = ({
@@ -31,12 +29,16 @@ const ChargesSummary = ({
   onSaveInvoiceDetails = () => {},
   isSavingInvoiceDetails = false,
 }) => {
-  const [localInvoiceNumber, setLocalInvoiceNumber] = useState(initialInvoiceNumber);
-  const [localPracticeFirm, setLocalPracticeFirm] = useState(initialPracticeFirm);
-  
+  const [localInvoiceNumber, setLocalInvoiceNumber] =
+    useState(initialInvoiceNumber);
+  const [localPracticeFirm, setLocalPracticeFirm] =
+    useState(initialPracticeFirm);
+
   // Track original values for change detection
-  const [originalInvoiceNumber, setOriginalInvoiceNumber] = useState(initialInvoiceNumber);
-  const [originalPracticeFirm, setOriginalPracticeFirm] = useState(initialPracticeFirm);
+  const [originalInvoiceNumber, setOriginalInvoiceNumber] =
+    useState(initialInvoiceNumber);
+  const [originalPracticeFirm, setOriginalPracticeFirm] =
+    useState(initialPracticeFirm);
 
   // Sync with props when they change
   useEffect(() => {
@@ -93,7 +95,9 @@ const ChargesSummary = ({
             <div className={styles.summaryRow}>
               <div className={styles.labelSection}>
                 <h3 className={styles.label}>Written-off by Firm</h3>
-                <p className={styles.subLabel}>(Expenses Written-off by firm)</p>
+                <p className={styles.subLabel}>
+                  (Expenses Written-off by firm)
+                </p>
               </div>
               <div className={`${styles.amount} ${styles.deduction}`}>
                 (-) {formatCurrency(summary.writtenOff)}
@@ -144,7 +148,9 @@ const ChargesSummary = ({
               </div>
 
               <div className={styles.breakdownItem}>
-                <span className={styles.breakdownLabel}>External Expenses </span>
+                <span className={styles.breakdownLabel}>
+                  External Expenses{" "}
+                </span>
                 <span className={styles.breakdownAmount}>
                   {formatCurrency(summary.breakdown.externalExpenses)}
                 </span>
@@ -166,11 +172,11 @@ const ChargesSummary = ({
       {/* Invoice Details Section - Separate Row */}
       <div className={styles.invoiceDetailsCard}>
         <h4 className={styles.invoiceDetailsTitle}>Invoice Details</h4>
-        
+
         <div className={styles.invoiceDetailsForm}>
           {/* Practice Firm Dropdown */}
           <div className={styles.inputGroup}>
-            <label className={styles.inputLabel}>Practice Firm</label>
+            <label className={styles.inputLabel}>Bill From</label>
             <div className={styles.selectWrapper}>
               <select
                 className={styles.selectInput}

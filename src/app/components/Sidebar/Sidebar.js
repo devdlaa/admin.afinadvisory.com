@@ -21,7 +21,7 @@ import {
   LayoutDashboard,
 } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
-
+import Avatar from "../newui/Avatar/Avatar";
 import { useRouter, usePathname } from "next/navigation";
 import styles from "./Sidebar.module.scss";
 
@@ -160,8 +160,6 @@ const SIDEBAR_CONFIG = {
 
 import { getProfileUrl } from "@/utils/shared/shared_util";
 
-
-
 // ============================================================================
 // SIDEBAR COMPONENT
 // ============================================================================
@@ -298,7 +296,7 @@ const Sidebar = () => {
     <div className={styles.sidebarContainer}>
       {/* User Profile with Skeleton Loading */}
       <div className={styles.userProfile}>
-        {isSessionLoading || imageLoading ? (
+        {isSessionLoading ? (
           <>
             <div className={styles.userAvatarSkeleton} />
             <div className={styles.userInfo}>
@@ -309,19 +307,17 @@ const Sidebar = () => {
           </>
         ) : user ? (
           <>
-            <div className={styles.userAvatar}>
-              <Avatar
-                src={getProfileUrl(user.id)}
-                alt={user.name}
-                size={32}
-                fallbackText={user.name}
-              />
-            </div>
+            <Avatar
+              src={getProfileUrl(user.id)}
+              alt={user.name}
+              size={32}
+              fallbackText={user.name}
+            />
+
             <div className={styles.userInfo}>
               <div className={styles.userName}>{user.name || "User"}</div>
               <div className={styles.userEmail}>{user.email || ""}</div>
             </div>
-            <ChevronDown size={16} className={styles.userProfileChevron} />
           </>
         ) : null}
       </div>

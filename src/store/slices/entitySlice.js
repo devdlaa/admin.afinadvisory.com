@@ -1,4 +1,8 @@
-import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import {
+  createSlice,
+  createAsyncThunk,
+  createSelector,
+} from "@reduxjs/toolkit";
 
 // ============================================
 // HELPER - API FETCH WRAPPER
@@ -13,19 +17,25 @@ const apiFetch = async (url, options = {}) => {
     ...options,
   });
 
-  const result = await response.json();
-
-  // Handle error response: { success: false, error: { message, code, details } }
-  if (!response.ok || !result.success) {
-    throw {
-      status: response.status,
-      message: result.error?.message || result.message || "Request failed",
-      code: result.error?.code || "UNKNOWN_ERROR",
-      details: result.error?.details || null,
-    };
+  let result;
+  try {
+    result = await response.json();
+  } catch {
+    const err = new Error("Invalid server response");
+    err.status = response.status;
+    throw err;
   }
 
-  // Return success response: { success: true, message, data, meta }
+  if (!response.ok || !result.success) {
+    const err = new Error(
+      result.error?.message || result.message || "Request failed"
+    );
+    err.status = response.status;
+    err.code = result.error?.code || "UNKNOWN_ERROR";
+    err.details = result.error?.details || null;
+    throw err;
+  }
+
   return result;
 };
 
@@ -33,9 +43,6 @@ const apiFetch = async (url, options = {}) => {
 // ASYNC THUNKS
 // ============================================
 
-/**
- * Fetch paginated entities with filters
- */
 export const fetchEntities = createAsyncThunk(
   "entity/fetchEntities",
   async (filters = {}, { rejectWithValue }) => {
@@ -65,10 +72,6 @@ export const fetchEntities = createAsyncThunk(
   }
 );
 
-/**
- * Quick search for autocomplete/dropdowns
- * Searches cache first, then API
- */
 export const quickSearchEntities = createAsyncThunk(
   "entity/quickSearchEntities",
   async (
@@ -76,7 +79,6 @@ export const quickSearchEntities = createAsyncThunk(
     { getState, rejectWithValue }
   ) => {
     try {
-      // If not forcing refresh, check cache first
       if (!forceRefresh && search) {
         const state = getState().entity;
         const cachedResults = searchInCache(state.entities, search, limit);
@@ -90,7 +92,6 @@ export const quickSearchEntities = createAsyncThunk(
         }
       }
 
-      // Fallback to API
       const params = new URLSearchParams({
         search: search || "",
         page_size: limit,
@@ -100,8 +101,15 @@ export const quickSearchEntities = createAsyncThunk(
       const result = await apiFetch(
         `/api/admin_ops/entity?${params.toString()}`
       );
+
+      const entities = Array.isArray(result.data?.data)
+        ? result.data.data
+        : Array.isArray(result.data)
+        ? result.data
+        : [];
+
       return {
-        data: result.data.data, // Extract entities array from pagination response
+        data: entities,
         fromCache: false,
         search,
       };
@@ -115,15 +123,12 @@ export const quickSearchEntities = createAsyncThunk(
   }
 );
 
-/**
- * Get single entity by ID
- */
 export const fetchEntityById = createAsyncThunk(
   "entity/fetchEntityById",
   async (entityId, { rejectWithValue }) => {
     try {
       const result = await apiFetch(`/api/admin_ops/entity/${entityId}`);
-      return result.data; // Single entity object
+      return result.data;
     } catch (error) {
       return rejectWithValue({
         message: error.message || "Failed to fetch entity",
@@ -134,9 +139,6 @@ export const fetchEntityById = createAsyncThunk(
   }
 );
 
-/**
- * Create new entity
- */
 export const createEntity = createAsyncThunk(
   "entity/createEntity",
   async (entityData, { rejectWithValue }) => {
@@ -145,7 +147,7 @@ export const createEntity = createAsyncThunk(
         method: "POST",
         body: JSON.stringify(entityData),
       });
-      return result.data; // Newly created entity
+      return result.data;
     } catch (error) {
       return rejectWithValue({
         message: error.message || "Failed to create entity",
@@ -156,9 +158,6 @@ export const createEntity = createAsyncThunk(
   }
 );
 
-/**
- * Update entity
- */
 export const updateEntity = createAsyncThunk(
   "entity/updateEntity",
   async ({ id, data: entityData }, { rejectWithValue }) => {
@@ -167,7 +166,7 @@ export const updateEntity = createAsyncThunk(
         method: "PUT",
         body: JSON.stringify(entityData),
       });
-      return result.data; // Updated entity
+      return result.data;
     } catch (error) {
       return rejectWithValue({
         message: error.message || "Failed to update entity",
@@ -178,9 +177,6 @@ export const updateEntity = createAsyncThunk(
   }
 );
 
-/**
- * Delete entity (soft delete)
- */
 export const deleteEntity = createAsyncThunk(
   "entity/deleteEntity",
   async (entityId, { rejectWithValue }) => {
@@ -188,7 +184,7 @@ export const deleteEntity = createAsyncThunk(
       const result = await apiFetch(`/api/admin_ops/entity/${entityId}`, {
         method: "DELETE",
       });
-      return { id: entityId, ...result.data }; // Deleted entity data
+      return { id: entityId, ...result.data };
     } catch (error) {
       return rejectWithValue({
         message: error.message || "Failed to delete entity",
@@ -200,12 +196,9 @@ export const deleteEntity = createAsyncThunk(
 );
 
 // ============================================
-// HELPER FUNCTIONS
+// HELPERS
 // ============================================
 
-/**
- * Search entities in local cache
- */
 const searchInCache = (entities, searchTerm, limit = 20) => {
   if (!searchTerm || !searchTerm.trim()) return [];
 
@@ -223,25 +216,13 @@ const searchInCache = (entities, searchTerm, limit = 20) => {
     .slice(0, limit);
 };
 
-/**
- * Normalize entities into object for O(1) lookup
- */
-const normalizeEntities = (entities) => {
-  return entities.reduce((acc, entity) => {
-    acc[entity.id] = entity;
-    return acc;
-  }, {});
-};
-
 // ============================================
 // SLICE
 // ============================================
 
 const initialState = {
-  // Normalized entities { [id]: entity }
   entities: {},
 
-  // Current list view
   list: {
     ids: [],
     pagination: {
@@ -259,17 +240,14 @@ const initialState = {
     },
   },
 
-  // Quick search results (for autocomplete)
   quickSearch: {
     results: [],
     lastSearch: "",
     fromCache: false,
   },
 
-  // Currently selected entity
   selectedEntity: null,
 
-  // Loading states
   loading: {
     list: false,
     detail: false,
@@ -279,7 +257,6 @@ const initialState = {
     quickSearch: false,
   },
 
-  // Error states
   error: {
     list: null,
     detail: null,
@@ -294,57 +271,44 @@ const entitySlice = createSlice({
   name: "entity",
   initialState,
   reducers: {
-    // Set filters for list view
     setFilters: (state, action) => {
       state.list.filters = { ...state.list.filters, ...action.payload };
     },
 
-    // Reset filters
     resetFilters: (state) => {
-      state.list.filters = initialState.list.filters;
+      state.list.filters = { ...initialState.list.filters };
     },
 
-    // Clear selected entity
     clearSelectedEntity: (state) => {
       state.selectedEntity = null;
     },
 
-    // Clear quick search results
     clearQuickSearch: (state) => {
-      state.quickSearch = initialState.quickSearch;
+      state.quickSearch = { ...initialState.quickSearch };
     },
 
-    // Clear all errors
     clearErrors: (state) => {
-      state.error = initialState.error;
+      state.error = { ...initialState.error };
     },
 
-    // Clear specific error
     clearError: (state, action) => {
-      const errorKey = action.payload;
-      if (state.error[errorKey]) {
-        state.error[errorKey] = null;
-      }
+      const key = action.payload;
+      if (state.error[key]) state.error[key] = null;
     },
 
-    // Manually add entity to cache (useful for optimistic updates)
     addEntityToCache: (state, action) => {
       const entity = action.payload;
       state.entities[entity.id] = entity;
     },
 
-    // Manually remove entity from cache
     removeEntityFromCache: (state, action) => {
-      const entityId = action.payload;
-      delete state.entities[entityId];
-      state.list.ids = state.list.ids.filter((id) => id !== entityId);
+      const id = action.payload;
+      delete state.entities[id];
+      state.list.ids = state.list.ids.filter((x) => x !== id);
     },
   },
 
   extraReducers: (builder) => {
-    // ============================================
-    // FETCH ENTITIES (LIST)
-    // ============================================
     builder
       .addCase(fetchEntities.pending, (state) => {
         state.loading.list = true;
@@ -353,12 +317,15 @@ const entitySlice = createSlice({
       .addCase(fetchEntities.fulfilled, (state, action) => {
         const { data, pagination } = action.payload;
 
-        // Normalize and store entities
-        state.entities = { ...state.entities, ...normalizeEntities(data) };
+        data.forEach((entity) => {
+          state.entities[entity.id] = {
+            ...state.entities[entity.id],
+            ...entity,
+          };
+        });
 
-        // Update list view
-        state.list.ids = data.map((entity) => entity.id);
-        state.list.pagination = pagination;
+        state.list.ids = data.map((e) => e.id);
+        state.list.pagination = { ...state.list.pagination, ...pagination };
 
         state.loading.list = false;
       })
@@ -368,9 +335,6 @@ const entitySlice = createSlice({
           action.payload?.message || "Failed to fetch entities";
       });
 
-    // ============================================
-    // QUICK SEARCH
-    // ============================================
     builder
       .addCase(quickSearchEntities.pending, (state) => {
         state.loading.quickSearch = true;
@@ -379,17 +343,16 @@ const entitySlice = createSlice({
       .addCase(quickSearchEntities.fulfilled, (state, action) => {
         const { data, fromCache, search } = action.payload;
 
-        // If from API, add to cache
         if (!fromCache) {
-          state.entities = { ...state.entities, ...normalizeEntities(data) };
+          data.forEach((entity) => {
+            state.entities[entity.id] = {
+              ...state.entities[entity.id],
+              ...entity,
+            };
+          });
         }
 
-        state.quickSearch = {
-          results: data,
-          lastSearch: search,
-          fromCache,
-        };
-
+        state.quickSearch = { results: data, lastSearch: search, fromCache };
         state.loading.quickSearch = false;
       })
       .addCase(quickSearchEntities.rejected, (state, action) => {
@@ -397,9 +360,6 @@ const entitySlice = createSlice({
         state.error.quickSearch = action.payload?.message || "Search failed";
       });
 
-    // ============================================
-    // FETCH ENTITY BY ID
-    // ============================================
     builder
       .addCase(fetchEntityById.pending, (state) => {
         state.loading.detail = true;
@@ -407,8 +367,11 @@ const entitySlice = createSlice({
       })
       .addCase(fetchEntityById.fulfilled, (state, action) => {
         const entity = action.payload;
-        state.entities[entity.id] = entity;
-        state.selectedEntity = entity;
+        state.entities[entity.id] = {
+          ...state.entities[entity.id],
+          ...entity,
+        };
+        state.selectedEntity = state.entities[entity.id];
         state.loading.detail = false;
       })
       .addCase(fetchEntityById.rejected, (state, action) => {
@@ -417,9 +380,6 @@ const entitySlice = createSlice({
           action.payload?.message || "Failed to fetch entity";
       });
 
-    // ============================================
-    // CREATE ENTITY
-    // ============================================
     builder
       .addCase(createEntity.pending, (state) => {
         state.loading.create = true;
@@ -427,11 +387,8 @@ const entitySlice = createSlice({
       })
       .addCase(createEntity.fulfilled, (state, action) => {
         const newEntity = action.payload;
-
-        // Add to cache
         state.entities[newEntity.id] = newEntity;
 
-        // Add to list if we're on first page
         if (state.list.pagination.page === 1) {
           state.list.ids.unshift(newEntity.id);
         }
@@ -444,23 +401,20 @@ const entitySlice = createSlice({
           action.payload?.message || "Failed to create entity";
       });
 
-    // ============================================
-    // UPDATE ENTITY
-    // ============================================
     builder
       .addCase(updateEntity.pending, (state) => {
         state.loading.update = true;
         state.error.update = null;
       })
       .addCase(updateEntity.fulfilled, (state, action) => {
-        const updatedEntity = action.payload;
+        const updated = action.payload;
+        state.entities[updated.id] = {
+          ...state.entities[updated.id],
+          ...updated,
+        };
 
-        // Update in cache
-        state.entities[updatedEntity.id] = updatedEntity;
-
-        // Update selected entity if it's the one being updated
-        if (state.selectedEntity?.id === updatedEntity.id) {
-          state.selectedEntity = updatedEntity;
+        if (state.selectedEntity?.id === updated.id) {
+          state.selectedEntity = state.entities[updated.id];
         }
 
         state.loading.update = false;
@@ -471,25 +425,17 @@ const entitySlice = createSlice({
           action.payload?.message || "Failed to update entity";
       });
 
-    // ============================================
-    // DELETE ENTITY
-    // ============================================
     builder
       .addCase(deleteEntity.pending, (state) => {
         state.loading.delete = true;
         state.error.delete = null;
       })
       .addCase(deleteEntity.fulfilled, (state, action) => {
-        const entityId = action.payload.id;
+        const id = action.payload.id;
+        delete state.entities[id];
+        state.list.ids = state.list.ids.filter((x) => x !== id);
 
-        // Remove from cache
-        delete state.entities[entityId];
-
-        // Remove from list
-        state.list.ids = state.list.ids.filter((id) => id !== entityId);
-
-        // Clear selected if it was deleted
-        if (state.selectedEntity?.id === entityId) {
+        if (state.selectedEntity?.id === id) {
           state.selectedEntity = null;
         }
 
@@ -506,6 +452,7 @@ const entitySlice = createSlice({
 // ============================================
 // ACTIONS
 // ============================================
+
 export const {
   setFilters,
   resetFilters,
@@ -518,52 +465,97 @@ export const {
 } = entitySlice.actions;
 
 // ============================================
-// SELECTORS
+// BASE SELECTORS
 // ============================================
 
-// Get all entities as array
-export const selectAllEntities = (state) =>
-  Object.values(state.entity.entities);
+export const selectAllEntities = createSelector(
+  [(state) => state.entity.entities],
+  (entities) => Object.values(entities)
+);
 
-// Get entity by ID
 export const selectEntityById = (state, entityId) =>
   state.entity.entities[entityId];
 
-// Get current list view entities (respects pagination)
-export const selectListEntities = (state) =>
-  state.entity.list.ids
-    .map((id) => state?.entity?.entities[id])
-    .filter(Boolean);
+export const selectListEntities = createSelector(
+  [(state) => state.entity.list.ids, (state) => state.entity.entities],
+  (ids, entities) => ids.map((id) => entities[id]).filter(Boolean)
+);
 
-// Get pagination info
 export const selectPagination = (state) => state.entity.list.pagination;
-
-// Get current filters
 export const selectFilters = (state) => state.entity.list.filters;
-
-// Get selected entity
 export const selectSelectedEntity = (state) => state.entity.selectedEntity;
 
-// Get quick search results
-export const selectQuickSearchResults = (state) =>
-  state.entity.quickSearch.results;
+export const selectQuickSearchResults = createSelector(
+  [(state) => state.entity.quickSearch.results],
+  (results) => results
+);
 
-// Get loading states
 export const selectIsLoading = (state, type = "list") =>
   state.entity.loading[type];
 
-// Get error states
 export const selectError = (state, type = "list") => state.entity.error[type];
 
-// Check if entity exists in cache
-export const selectIsEntityCached = (state, entityId) =>
-  !!state.entity.entities[entityId];
+export const selectCachedEntitiesCount = createSelector(
+  [(state) => state.entity.entities],
+  (entities) => Object.keys(entities).length
+);
 
-// Get entities count in cache
-export const selectCachedEntitiesCount = (state) =>
-  Object.keys(state.entity.entities).length;
+// ============================================
+// GENERIC ACTION BAR SELECTORS (MEMOIZED)
+// ============================================
+
+export const selectEntityStats = createSelector(
+  [selectPagination, selectListEntities],
+  (pagination, entities) => ({
+    currentPage: pagination.page,
+    itemsPerPage: pagination.page_size,
+    canGoNext: pagination.has_more,
+    canGoPrev: pagination.page > 1,
+    needsMoreData: false,
+    cursor: null,
+    totalCached: pagination.total_items,
+    currentPageSize: entities.length,
+  })
+);
+
+export const selectEntityLoadingStates = createSelector(
+  [
+    (state) => selectIsLoading(state, "list"),
+    (state) => selectIsLoading(state, "quickSearch"),
+  ],
+  (loading, searchLoading) => ({
+    loading,
+    searchLoading,
+    exportLoading: false,
+  })
+);
+
+export const selectEntityActiveStates = createSelector(
+  [selectFilters],
+  (filters) => ({
+    isSearchActive: !!filters.search,
+    isFilterActive: !!(filters.entity_type || filters.status || filters.state),
+  })
+);
+
+export const selectEntitySearchState = createSelector(
+  [(state) => state.entity.list.filters.search],
+  (search) => ({
+    query: search || "",
+    field: "search",
+  })
+);
+
+export const selectEntityFilterLoadingStates = createSelector(
+  [(state) => selectIsLoading(state, "list")],
+  (loading) => ({
+    loading,
+    exportLoading: false,
+  })
+);
 
 // ============================================
 // EXPORT REDUCER
 // ============================================
+
 export default entitySlice.reducer;

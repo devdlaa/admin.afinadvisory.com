@@ -1,7 +1,15 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { Loader2, ListTodo, IndianRupee, Rocket, Save } from "lucide-react";
+import {
+  Loader2,
+  ListTodo,
+  IndianRupee,
+  Rocket,
+  Save,
+  Trash2,
+} from "lucide-react";
+import { useSearchParams, useRouter } from "next/navigation";
 
 // Components
 import TaskTimeline from "../TaskTimeline/TaskTimeline";
@@ -12,8 +20,8 @@ import TaskPrimaryInfo from "../TaskPrimaryInfo";
 import CreatorInfoCard from "../CreatorInfoCard";
 import ClientInfoCard from "../ClientInfoCard";
 import ClientSelectionDialog from "../ClientSelectionDialog";
-
 import AssignmentInfoCard from "../AssignmentInfoCard";
+import ConfirmationDialog from "@/app/components/ConfirmationDialog/ConfirmationDialog";
 
 // Redux
 import {
@@ -22,6 +30,7 @@ import {
   selectManageDialogOpen,
   selectManageDialogTaskId,
   updateTaskAssignmentsInList,
+  deleteTask,
 } from "@/store/slices/taskSlice";
 
 import {
@@ -57,10 +66,21 @@ const TaskManageDrawer = () => {
   const taskId = useSelector(selectManageDialogTaskId);
   const task = useSelector(selectCurrentTask);
   const categories = useSelector(selectAllCategories);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showConfirmClose, setShowConfirmClose] = useState(false);
+
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const urlTab = searchParams.get("tab");
+
+  // Refs
+  const drawerRef = useRef(null);
+  const isClosingRef = useRef(false);
 
   // Loading states
   const isLoading = useSelector((state) => state.taskDetail.loading.task);
   const isUpdating = useSelector((state) => state.task.loading.update);
+  const isDeleting = useSelector((state) => state.task.loading.delete);
   const isSyncingChecklist = useSelector(
     (state) => state.taskDetail.loading.checklist
   );
@@ -69,6 +89,11 @@ const TaskManageDrawer = () => {
   );
   const isSavingAssignments = useSelector(
     (state) => state.taskDetail.loading.assignments
+  );
+
+  // NEW: Get charge operations from state
+  const chargeOperations = useSelector(
+    (state) => state.taskDetail.loading.chargeOperations || {}
   );
 
   // Local state
@@ -105,6 +130,7 @@ const TaskManageDrawer = () => {
     if (isOpen && taskId) {
       dispatch(fetchTaskById(taskId));
       dispatch(fetchCategories({ page: 1, page_size: 100 }));
+      isClosingRef.current = false;
     }
   }, [isOpen, taskId, dispatch]);
 
@@ -128,9 +154,18 @@ const TaskManageDrawer = () => {
 
       if (task.entity) {
         setSelectedEntityData(task.entity);
+      } else {
+        setSelectedEntityData(null);
       }
     }
   }, [task]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    if (!urlTab) return;
+
+    setActiveTab(urlTab);
+  }, [urlTab, isOpen]);
 
   // Entity search with debouncing
   useEffect(() => {
@@ -180,25 +215,66 @@ const TaskManageDrawer = () => {
       ).unwrap();
 
       setOriginalPrimaryInfo({ ...primaryInfo });
-    } catch (error) {
-      // Error handled by toast middleware
-    }
+    } catch (error) {}
   };
 
-  const handleClose = () => {
-    if (hasPrimaryInfoChanges()) {
-      if (
-        window.confirm(
-          "You have unsaved changes. Are you sure you want to close?"
-        )
-      ) {
-        dispatch(closeManageDialog());
-        setActiveTab("checklist");
-      }
-    } else {
-      dispatch(closeManageDialog());
-      setActiveTab("checklist");
+  const setTab = (tab) => {
+    setActiveTab(tab);
+
+    const params = new URLSearchParams(window.location.search);
+    params.set("tab", tab);
+
+    router.replace(`${window.location.pathname}?${params.toString()}`, {
+      scroll: false,
+    });
+  };
+
+  const handleClose = (force = false) => {
+    // Prevent double-clicking from triggering multiple close attempts
+    if (isClosingRef.current) {
+      return;
     }
+
+    const isForced = force === true;
+
+    if (!isForced && hasPrimaryInfoChanges()) {
+      setShowConfirmClose(true);
+      return;
+    }
+
+    // Mark as closing to prevent double-triggers
+    isClosingRef.current = true;
+
+    dispatch(closeManageDialog());
+    window.__closingTaskDrawer = true;
+    setActiveTab("checklist");
+    setSelectedEntityData(null);
+
+    const params = new URLSearchParams(window.location.search);
+    params.delete("taskId");
+    params.delete("tab");
+
+    const newUrl = params.toString()
+      ? `${window.location.pathname}?${params.toString()}`
+      : window.location.pathname;
+
+    router.replace(newUrl, { scroll: false });
+  };
+
+  const handleOverlayClick = (e) => {
+    e.stopPropagation();
+
+    // Prevent closing if we're already in the process of closing
+    if (isClosingRef.current) {
+      return;
+    }
+
+    // Prevent closing if deleting
+    if (isDeleting) {
+      return;
+    }
+
+    handleClose();
   };
 
   // Client dialog handlers
@@ -228,7 +304,7 @@ const TaskManageDrawer = () => {
     }
 
     try {
-      await dispatch(
+      const updatedTask = await dispatch(
         updateTask({
           taskId: task.id,
           data: {
@@ -238,7 +314,7 @@ const TaskManageDrawer = () => {
         })
       ).unwrap();
 
-      setSelectedEntityData(nextEntityId ? tempSelectedEntity : null);
+      setSelectedEntityData(updatedTask.task.entity);
 
       const updatedInfo = {
         ...primaryInfo,
@@ -249,9 +325,7 @@ const TaskManageDrawer = () => {
       setOriginalPrimaryInfo(updatedInfo);
 
       handleCloseClientDialog();
-    } catch (error) {
-      // Error handled by toast middleware
-    }
+    } catch (error) {}
   };
 
   const handleCloseClientDialog = () => {
@@ -382,10 +456,14 @@ const TaskManageDrawer = () => {
   return (
     <>
       {/* Overlay */}
-      <div className="task-drawer-overlay" onClick={handleClose} />
+      <div className="task-drawer-overlay" onClick={handleOverlayClick} />
 
       {/* Drawer */}
-      <div className="task-drawer">
+      <div
+        className="task-drawer"
+        ref={drawerRef}
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Loading State */}
         {isLoading && <TaskDrawerSkeleton />}
 
@@ -394,8 +472,9 @@ const TaskManageDrawer = () => {
           <div className="task-drawer__body">
             {/* Left Panel */}
             <div
-            
-              className="task-drawer__left"
+              className={`task-drawer__left ${
+                !isActivityTab ? "scrollable" : ""
+              }`}
             >
               <TaskPrimaryInfo
                 primaryInfo={primaryInfo}
@@ -411,7 +490,7 @@ const TaskManageDrawer = () => {
                   className={`task-drawer__tab ${
                     activeTab === "checklist" ? "active" : ""
                   }`}
-                  onClick={() => setActiveTab("checklist")}
+                  onClick={() => setTab("checklist")}
                 >
                   <ListTodo size={16} />
                   <span>Checklist / Sub Tasks</span>
@@ -421,7 +500,7 @@ const TaskManageDrawer = () => {
                   className={`task-drawer__tab ${
                     activeTab === "payment" ? "active" : ""
                   }`}
-                  onClick={() => setActiveTab("payment")}
+                  onClick={() => setTab("payment")}
                 >
                   <IndianRupee size={16} />
                   <span>Payment & Summary</span>
@@ -431,7 +510,7 @@ const TaskManageDrawer = () => {
                   className={`task-drawer__tab ${
                     activeTab === "task-activity" ? "active" : ""
                   }`}
-                  onClick={() => setActiveTab("task-activity")}
+                  onClick={() => setTab("task-activity")}
                 >
                   <Rocket size={16} />
                   <span>Task Activity</span>
@@ -439,7 +518,11 @@ const TaskManageDrawer = () => {
               </div>
 
               {/* Tab Content */}
-              <div className="task-drawer__tab-content">
+              <div
+                className={`task-drawer__tab-content ${
+                  !isActivityTab ? "scrollable" : ""
+                }`}
+              >
                 {activeTab === "checklist" && (
                   <Checklist
                     initialItems={
@@ -465,11 +548,12 @@ const TaskManageDrawer = () => {
                     isSavingInvoiceDetails={isSavingInvoiceDetails}
                     invoiceNumber={task.invoice_number || ""}
                     practiceFirm={task.practice_firm || null}
+                    chargeOperations={chargeOperations}
                   />
                 )}
 
                 {activeTab === "task-activity" && (
-                  <TaskTimeline taskId={task?.id} />
+                  <TaskTimeline taskId={task?.id} task={task} />
                 )}
               </div>
             </div>
@@ -487,6 +571,26 @@ const TaskManageDrawer = () => {
                 selectedEntityData={selectedEntityData}
                 onOpenClientDialog={() => setShowClientDialog(true)}
               />
+
+              <div className="task-danger-zone">
+                <button
+                  className="task-delete-btn"
+                  disabled={isDeleting}
+                  onClick={() => setShowDeleteConfirm(true)}
+                >
+                  {isDeleting ? (
+                    <>
+                      <Loader2 size={16} className="spin" />
+                      Deleting...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 size={16} />
+                      Delete Task
+                    </>
+                  )}
+                </button>
+              </div>
 
               {/* Save Primary Info Button */}
               {hasPrimaryInfoChanges() && (
@@ -514,6 +618,23 @@ const TaskManageDrawer = () => {
           </div>
         )}
       </div>
+      <ConfirmationDialog
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        actionName="Delete this task?"
+        actionInfo="This action cannot be undone."
+        confirmText="Delete Task"
+        cancelText="Cancel"
+        variant="danger"
+        onConfirm={async () => {
+          try {
+            await dispatch(deleteTask(task.id)).unwrap();
+            setShowDeleteConfirm(false);
+            handleClose(true);
+          } catch (e) {}
+        }}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
 
       {/* Client Selection Dialog */}
       <ClientSelectionDialog
@@ -551,6 +672,21 @@ const TaskManageDrawer = () => {
           }}
         />
       )}
+
+      <ConfirmationDialog
+        isOpen={showConfirmClose}
+        onClose={() => setShowConfirmClose(false)}
+        actionName="Discard unsaved changes?"
+        actionInfo="You have unsaved changes. If you close now, they will be lost."
+        confirmText="Discard changes"
+        cancelText="Keep editing"
+        variant="warning"
+        onConfirm={() => {
+          setShowConfirmClose(false);
+          handleClose(true);
+        }}
+        onCancel={() => setShowConfirmClose(false)}
+      />
     </>
   );
 };

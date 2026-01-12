@@ -1,4 +1,8 @@
-import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import {
+  createSlice,
+  createAsyncThunk,
+  createSelector,
+} from "@reduxjs/toolkit";
 
 // ============================================
 // CACHE CONFIGURATION
@@ -87,7 +91,6 @@ export const fetchTasks = createAsyncThunk(
       const params = new URLSearchParams();
       params.append("page", currentPage);
       params.append("page_size", pageSize);
-
 
       Object.entries(filters).forEach(([key, value]) => {
         if (value !== null && value !== "" && value !== undefined) {
@@ -307,8 +310,10 @@ const initialState = {
   filters: {
     entity_id: null,
     status: "PENDING", // null means "All"
+
     priority: null, // null means "All"
     task_category_id: null,
+
     created_by: null,
     assigned_to: null,
     due_date_from: null,
@@ -380,6 +385,23 @@ const updateTaskInList = (tasks, updatedTask) => {
 };
 
 /**
+ * Check if task matches current filters
+ */
+const doesTaskMatchFilters = (task, filters) => {
+  if (filters.status && task.status !== filters.status) return false;
+  if (filters.priority && task.priority !== filters.priority) return false;
+  if (filters.assigned_to && task.assigned_to !== filters.assigned_to)
+    return false;
+  if (
+    filters.task_category_id &&
+    task.task_category_id !== filters.task_category_id
+  )
+    return false;
+  if (filters.entity_id && task.entity_id !== filters.entity_id) return false;
+  return true;
+};
+
+/**
  * Update multiple tasks in list by IDs
  */
 const updateMultipleTasksInList = (tasks, taskIds, updates) => {
@@ -439,6 +461,18 @@ const invalidateCache = (state) => {
   state.cache = {};
   state.cacheKeys = [];
   state.lastCacheCleanup = Date.now();
+};
+
+/**
+ * Update global status counts from response
+ */
+const updateGlobalCounts = (state, statusCounts) => {
+  if (statusCounts?.global) {
+    state.statusCounts.global = {
+      ...state.statusCounts.global,
+      ...statusCounts.global,
+    };
+  }
 };
 
 // ============================================
@@ -573,7 +607,14 @@ const taskSlice = createSlice({
         // Update cache if not from cache
         if (!fromCache && cacheKey) {
           state.cache[cacheKey] = {
-            data: action.payload,
+            data: {
+              tasks,
+              page,
+              page_size,
+              total,
+              total_pages,
+              status_counts,
+            },
             timestamp: Date.now(),
           };
 
@@ -607,11 +648,14 @@ const taskSlice = createSlice({
         state.error.create = null;
       })
       .addCase(createTask.fulfilled, (state, action) => {
-        const newTask = action.payload;
+        const { task, status_counts } = action.payload;
 
         if (state.currentPage === 1) {
-          state.tasks.unshift(newTask);
+          state.tasks.unshift(task);
         }
+
+        // Update global counts
+        updateGlobalCounts(state, status_counts);
 
         state.createDialogOpen = false;
         state.loading.create = false;
@@ -633,8 +677,18 @@ const taskSlice = createSlice({
         state.error.update = null;
       })
       .addCase(updateTask.fulfilled, (state, action) => {
-        const updatedTask = action.payload;
-        state.tasks = updateTaskInList(state.tasks, updatedTask);
+        const { task, status_counts } = action.payload;
+
+        state.tasks = updateTaskInList(state.tasks, task);
+
+        // 🔥 remove if it no longer matches filters
+        state.tasks = state.tasks.filter((t) =>
+          doesTaskMatchFilters(t, state.filters)
+        );
+
+        // Update global counts if status changed
+        updateGlobalCounts(state, status_counts);
+
         state.loading.update = false;
 
         // Invalidate cache
@@ -654,12 +708,15 @@ const taskSlice = createSlice({
         state.error.delete = null;
       })
       .addCase(deleteTask.fulfilled, (state, action) => {
-        const { taskId } = action.payload;
+        const { taskId, status_counts } = action.payload;
 
         state.tasks = removeTaskFromList(state.tasks, taskId);
         state.selectedTaskIds = state.selectedTaskIds.filter(
           (id) => id !== taskId
         );
+
+        // Update global counts
+        updateGlobalCounts(state, status_counts);
 
         state.manageDialogOpen = false;
         state.manageDialogTaskId = null;
@@ -683,17 +740,24 @@ const taskSlice = createSlice({
         state.bulkActionInProgress = true;
       })
       .addCase(bulkUpdateTaskStatus.fulfilled, (state, action) => {
-        const { updated_task_ids, new_status } = action.payload;
+        const { updated_task_ids, new_status, status_counts } = action.payload;
 
         state.tasks = updateMultipleTasksInList(state.tasks, updated_task_ids, {
           status: new_status,
         });
 
+        // Remove tasks that no longer match active filters
+        state.tasks = state.tasks.filter((task) =>
+          doesTaskMatchFilters(task, state.filters)
+        );
+
+        // Update global counts
+        updateGlobalCounts(state, status_counts);
+
         state.selectedTaskIds = [];
         state.loading.bulkStatus = false;
         state.bulkActionInProgress = false;
 
-        // Invalidate cache
         invalidateCache(state);
       })
       .addCase(bulkUpdateTaskStatus.rejected, (state, action) => {
@@ -719,11 +783,15 @@ const taskSlice = createSlice({
           priority: new_priority,
         });
 
+        // Remove tasks that no longer match active filters
+        state.tasks = state.tasks.filter((task) =>
+          doesTaskMatchFilters(task, state.filters)
+        );
+
         state.selectedTaskIds = [];
         state.loading.bulkPriority = false;
         state.bulkActionInProgress = false;
 
-        // Invalidate cache
         invalidateCache(state);
       })
       .addCase(bulkUpdateTaskPriority.rejected, (state, action) => {
@@ -795,39 +863,95 @@ export const {
 } = taskSlice.actions;
 
 // ============================================
-// SELECTORS
+// SELECTORS (PATCHED - memoized & stable)
 // ============================================
-export const selectTasks = (state) => state.task.tasks;
-export const selectPagination = (state) => ({
-  currentPage: state.task.currentPage,
-  pageSize: state.task.pageSize,
-  totalTasks: state.task.totalTasks,
-  totalPages: state.task.totalPages,
-});
-export const selectFilters = (state) => state.task.filters;
-export const selectActiveFilterCount = (state) => state.task.activeFilterCount;
-export const selectSelectedTaskIds = (state) => state.task.selectedTaskIds;
-export const selectSelectedTasksCount = (state) =>
-  state.task.selectedTaskIds.length;
-export const selectHasSelectedTasks = (state) =>
-  state.task.selectedTaskIds.length > 0;
-export const selectCreateDialogOpen = (state) => state.task.createDialogOpen;
-export const selectManageDialogOpen = (state) => state.task.manageDialogOpen;
-export const selectManageDialogTaskId = (state) =>
-  state.task.manageDialogTaskId;
-export const selectAssignmentReport = (state) => state.task.assignmentReport;
+const selectTaskState = (state) => state.task || initialState;
+
+export const selectTasks = createSelector(
+  [selectTaskState],
+  (task) => task.tasks
+);
+
+export const selectPagination = createSelector([selectTaskState], (task) => ({
+  currentPage: task.currentPage,
+  pageSize: task.pageSize,
+  totalTasks: task.totalTasks,
+  totalPages: task.totalPages,
+}));
+
+export const selectFilters = createSelector(
+  [selectTaskState],
+  (task) => task.filters
+);
+
+export const selectActiveFilterCount = createSelector(
+  [selectTaskState],
+  (task) => task.activeFilterCount
+);
+
+export const selectSelectedTaskIds = createSelector(
+  [selectTaskState],
+  (task) => task.selectedTaskIds
+);
+
+export const selectSelectedTasksCount = createSelector(
+  [selectTaskState],
+  (task) => task.selectedTaskIds.length
+);
+
+export const selectHasSelectedTasks = createSelector(
+  [selectTaskState],
+  (task) => task.selectedTaskIds.length > 0
+);
+
+export const selectCreateDialogOpen = createSelector(
+  [selectTaskState],
+  (task) => task.createDialogOpen
+);
+
+export const selectManageDialogOpen = createSelector(
+  [selectTaskState],
+  (task) => task.manageDialogOpen
+);
+
+export const selectManageDialogTaskId = createSelector(
+  [selectTaskState],
+  (task) => task.manageDialogTaskId
+);
+
+export const selectAssignmentReport = createSelector(
+  [selectTaskState],
+  (task) => task.assignmentReport
+);
+
+export const selectStatusCounts = createSelector(
+  [selectTaskState],
+  (task) => task.statusCounts
+);
+
 export const selectIsLoading =
   ({ type = "list" } = {}) =>
   (state) =>
     state?.task?.loading?.[type] ?? false;
-export const selectError = (state, type = "list") => state.task.error[type];
-export const selectBulkActionInProgress = (state) =>
-  state.task.bulkActionInProgress;
-export const selectAssignmentReportLoading = (state) =>
-  state.task.assignmentReportLoading;
-export const selectHasAssignmentReportData = (state) =>
-  state.task.assignmentReport && state.task.assignmentReport.length > 0;
-export const selectStatusCounts = (state) => state.task.statusCounts;
+
+export const selectError = (state, type = "list") =>
+  state?.task?.error?.[type] ?? null;
+
+export const selectBulkActionInProgress = createSelector(
+  [selectTaskState],
+  (task) => task.bulkActionInProgress
+);
+
+export const selectAssignmentReportLoading = createSelector(
+  [selectTaskState],
+  (task) => task.assignmentReportLoading
+);
+
+export const selectHasAssignmentReportData = createSelector(
+  [selectTaskState],
+  (task) =>
+    Array.isArray(task.assignmentReport) && task.assignmentReport.length > 0
+);
 
 // ============================================
 // EXPORT REDUCER

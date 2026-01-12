@@ -7,6 +7,7 @@ import "./customers.scss";
 import GenericActionBar from "@/app/components/GenericActionBar/GenericActionBar";
 import GenericFilterDialog from "@/app/components/GenericFilterDialog/GenericFilterDialog";
 import { fetchCustomers } from "@/store/slices/customersSlice";
+
 import {
   customersActionBarConfig,
   customersFilterConfig,

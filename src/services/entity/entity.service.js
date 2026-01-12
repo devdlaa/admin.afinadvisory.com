@@ -17,6 +17,63 @@ const validatePAN = (pan) => {
   }
 };
 
+const validateCustomFields = (fields) => {
+  if (fields === undefined) return [];
+
+  if (!Array.isArray(fields)) {
+    throw new ValidationError("custom_fields must be an array");
+  }
+
+  if (fields.length > 10) {
+    throw new ValidationError("Maximum 10 custom fields allowed");
+  }
+
+  const seen = new Set();
+
+  return fields.map((field) => {
+    if (!field || typeof field !== "object") {
+      throw new ValidationError("Invalid custom field object");
+    }
+
+    const name = field.name?.trim();
+    if (!name) {
+      throw new ValidationError("Custom field name is required");
+    }
+
+    if (name.length > 50) {
+      throw new ValidationError("Custom field name too long (max 50)");
+    }
+
+    if (!/^[a-zA-Z0-9 _-]+$/.test(name)) {
+      throw new ValidationError(`Invalid characters in field name: ${name}`);
+    }
+
+    const key = name.toLowerCase();
+    if (seen.has(key)) {
+      throw new ValidationError(`Duplicate custom field name: ${name}`);
+    }
+    seen.add(key);
+
+    let value = null;
+
+    if (field.value !== undefined && field.value !== null) {
+      if (typeof field.value !== "string") {
+        throw new ValidationError(`Value for '${name}' must be a string`);
+      }
+
+      const trimmed = field.value.trim();
+
+      if (trimmed.length > 255) {
+        throw new ValidationError(`Value for '${name}' is too long (max 255)`);
+      }
+
+      value = trimmed;
+    }
+
+    return { name, value };
+  });
+};
+
 const createEntity = async (data, created_by) => {
   return prisma.$transaction(async (tx) => {
     // normalize optional PAN
@@ -41,6 +98,8 @@ const createEntity = async (data, created_by) => {
         throw new ConflictError("Entity with this PAN already exists");
       }
     }
+
+    const validatedCustomFields = validateCustomFields(data.custom_fields);
 
     const entity = await tx.entity.create({
       data: {
@@ -67,7 +126,27 @@ const createEntity = async (data, created_by) => {
       },
     });
 
-    return entity;
+    if (validatedCustomFields.length > 0) {
+      await tx.entityCustomField.createMany({
+        data: validatedCustomFields.map((f) => ({
+          entity_id: entity.id,
+          name: f.name,
+          value: f.value,
+        })),
+      });
+    }
+
+    const fullEntity = await tx.entity.findUnique({
+      where: { id: entity.id },
+      include: {
+        creator: {
+          select: { id: true, name: true, email: true },
+        },
+        custom_fields: true,
+      },
+    });
+
+    return fullEntity;
   });
 };
 
@@ -121,6 +200,56 @@ const updateEntity = async (entity_id, data, updated_by) => {
       }
     }
 
+    // ---------- CUSTOM FIELDS SYNC (NEW) ----------
+
+    if (Object.prototype.hasOwnProperty.call(data, "custom_fields")) {
+      const validatedFields = validateCustomFields(data.custom_fields);
+
+      const existingFields = await tx.entityCustomField.findMany({
+        where: { entity_id },
+      });
+
+      const existingMap = new Map(
+        existingFields.map((f) => [f.name.toLowerCase(), f])
+      );
+
+      const incomingMap = new Map(
+        validatedFields.map((f) => [f.name.toLowerCase(), f])
+      );
+
+      // create or update
+      for (const field of validatedFields) {
+        const key = field.name.toLowerCase();
+        const existing = existingMap.get(key);
+
+        if (!existing) {
+          // create
+          await tx.entityCustomField.create({
+            data: {
+              entity_id,
+              name: field.name,
+              value: field.value,
+            },
+          });
+        } else if (existing.value !== field.value) {
+          // update
+          await tx.entityCustomField.update({
+            where: { id: existing.id },
+            data: { value: field.value },
+          });
+        }
+      }
+
+      // delete removed
+      for (const existing of existingFields) {
+        if (!incomingMap.has(existing.name.toLowerCase())) {
+          await tx.entityCustomField.delete({
+            where: { id: existing.id },
+          });
+        }
+      }
+    }
+    // ---------- UPDATE ENTITY CORE ----------
     const updatedEntity = await tx.entity.update({
       where: { id: entity_id },
       data: {
@@ -194,6 +323,7 @@ const updateEntity = async (entity_id, data, updated_by) => {
       include: {
         creator: { select: { id: true, name: true, email: true } },
         updater: { select: { id: true, name: true, email: true } },
+        custom_fields: true,
       },
     });
 
@@ -281,7 +411,7 @@ const listEntities = async (filters = {}) => {
       LIMIT 1000
     `;
 
-    const entityIds = searchResults.map(r => r.id);
+    const entityIds = searchResults.map((r) => r.id);
 
     // If no results found, return empty
     if (entityIds.length === 0) {
@@ -364,6 +494,10 @@ const getEntityById = async (entity_id) => {
           name: true,
           email: true,
         },
+      },
+
+      custom_fields: {
+        orderBy: { name: "asc" },
       },
 
       _count: {

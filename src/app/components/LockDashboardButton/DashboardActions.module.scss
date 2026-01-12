@@ -15,6 +15,7 @@
   box-shadow: rgba(0, 0, 0, 0.25) 0px 0.0625em 0.0625em,
     rgba(0, 0, 0, 0.25) 0px 0.125em 0.5em,
     rgba(255, 255, 255, 0.1) 0px 0px 0px 1px inset;
+
   &__btn {
     display: flex;
     align-items: center;
@@ -52,6 +53,27 @@
       transform: none;
     }
 
+    // Muted/Sound OFF state - more prominent styling
+    &--muted {
+      background: #ef4444 !important;
+      color: white !important;
+      border-color: #dc2626 !important;
+      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2),
+        0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+
+      &:hover:not(:disabled) {
+        background: #dc2626 !important;
+        color: white !important;
+        border-color: #b91c1c !important;
+        box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.25),
+          0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      }
+
+      svg {
+        animation: pulse 2s ease-in-out infinite;
+      }
+    }
+
     &--success {
       background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
       color: white;
@@ -60,6 +82,14 @@
       &:hover:not(:disabled) {
         background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
       }
+    }
+
+    svg {
+      transition: transform 0.15s ease;
+    }
+
+    &:active svg {
+      transform: scale(0.9);
     }
   }
 
@@ -97,6 +127,13 @@
         background: #0f172a;
       }
     }
+
+    // Keep muted state prominent in dark mode too
+    &__btn--muted {
+      background: #ef4444 !important;
+      color: white !important;
+      border-color: #dc2626 !important;
+    }
   }
 }
 
@@ -106,5 +143,15 @@
   }
   to {
     transform: rotate(360deg);
+  }
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
   }
 }

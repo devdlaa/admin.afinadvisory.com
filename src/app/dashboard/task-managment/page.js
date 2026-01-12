@@ -1,12 +1,19 @@
 "use client";
-import { Building2, Tag, Users } from "lucide-react";
-import { useState, useEffect, useCallback, useMemo, Suspense } from "react";
+import { Building2, Tag, Users, IndianRupee } from "lucide-react";
+import {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  Suspense,
+  useRef,
+} from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useRouter, useSearchParams } from "next/navigation";
 
+import ForceNotification from "./components/ForceNotification/ForceNotification.jsx";
 import TaskTable from "./components/TasksTable/TasksTable.jsx";
 import TaskActionBar from "./components/TaskActionBar/TaskActionBar.jsx";
-
 import TaskManageDrawer from "./components/TaskManageDrawer/TaskManageDrawer.jsx";
 import TaskCategoryBoard from "@/app/components/TaskCategoryBoard/TaskCategoryBoard.jsx";
 import TaskWorkload from "./components/TaskWorkload/TaskWorkload.jsx";
@@ -24,6 +31,7 @@ import {
   selectPagination,
   selectStatusCounts,
   selectIsLoading,
+  selectManageDialogTaskId,
 } from "@/store/slices/taskSlice";
 
 import { quickSearchEntities } from "@/store/slices/entitySlice";
@@ -49,16 +57,19 @@ function TasksPageContent() {
   const categoriesLoading = useSelector((state) =>
     selectCategoryLoading(state, "list")
   );
-  const users = useSelector((state) => state.user.users);
-  const usersLoading = useSelector((state) => state.user.loading);
+
+  // Harden selectors
+  const users = useSelector((state) => state.user?.users || []);
+  const usersLoading = useSelector((state) => state.user?.loading || false);
 
   const tasks = useSelector(selectTasks);
   const { currentPage, totalPages } = useSelector(selectPagination);
-  const totalCount = useSelector((state) => state.task.totalTasks);
+
+  const totalCount = useSelector((state) => state.task?.totalTasks || 0);
   const statusCounts = useSelector(selectStatusCounts);
   const tasksLoading = useSelector(selectIsLoading({ type: "list" }));
+  const currentTaskId = useSelector(selectManageDialogTaskId);
 
-  // Get actual total from global status counts
   const globalCounts = statusCounts?.global || {};
   const actualTotal =
     Object.values(globalCounts).reduce((sum, count) => sum + count, 0) ||
@@ -72,14 +83,19 @@ function TasksPageContent() {
   const [showCategoryDialog, setShowCategoryDialog] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
 
-  // Parse URL params and sync with Redux on mount
-  useEffect(() => {
-    if (isInitialized) return;
+  const hasLoadedCategories = useRef(false);
+  const hasLoadedUsers = useRef(false);
+  const ignoreNextDeepLink = useRef(false);
 
+  const isUpdatingFromUrl = useRef(false);
+
+  const deepLinkTaskId = searchParams.get("taskId");
+
+  // FIX: Parse URL params and sync to Redux on mount AND when URL changes
+  useEffect(() => {
     const urlFilters = {};
     const urlPage = searchParams.get("page");
 
-    // Parse filter params
     const filterKeys = [
       "entity_id",
       "task_category_id",
@@ -87,59 +103,122 @@ function TasksPageContent() {
       "status",
       "priority",
       "search",
+      "is_billable",
     ];
+
+    let hasChanges = false;
 
     filterKeys.forEach((key) => {
       const value = searchParams.get(key);
-      if (value) {
-        urlFilters[key] = value;
+      if (value !== null) {
+        // Convert boolean strings to actual booleans for is_billable
+        if (key === "is_billable") {
+          urlFilters[key] = value === "true";
+        } else {
+          urlFilters[key] = value;
+        }
+
+        // Check if different from current filter
+        if (currentFilters[key] !== urlFilters[key]) {
+          hasChanges = true;
+        }
+      } else {
+        // URL doesn't have this filter, should be null
+        if (currentFilters[key] !== null) {
+          urlFilters[key] = null;
+          hasChanges = true;
+        }
       }
     });
 
-    // If no filters in URL, don't set default (null = "All")
-    // The slice already has the proper defaults
+    const parsedPage = urlPage ? parseInt(urlPage) : 1;
+    if (currentPage !== parsedPage) {
+      hasChanges = true;
+    }
 
-    // Update Redux with filters if any exist
-    if (Object.keys(urlFilters).length > 0) {
+    // Only update Redux if there are actual changes
+    if (hasChanges || !isInitialized) {
+      isUpdatingFromUrl.current = true;
+
       dispatch(setFilters(urlFilters));
+
+      if (parsedPage !== currentPage) {
+        dispatch(setPage(parsedPage));
+      }
+
+      dispatch(fetchTasks());
+
+      // Reset flag after a tick
+      setTimeout(() => {
+        isUpdatingFromUrl.current = false;
+      }, 0);
     }
 
-    if (urlPage && !isNaN(parseInt(urlPage))) {
-      dispatch(setPage(parseInt(urlPage)));
+    if (!isInitialized) {
+      setIsInitialized(true);
     }
+  }, [searchParams]); // Re-run when URL changes
 
-    // Fetch tasks with URL params
-    dispatch(fetchTasks());
-    setIsInitialized(true);
-  }, [dispatch, searchParams, isInitialized]);
-
-  // Update URL when filters or page change
+  // FIX: Sync Redux state to URL (only when not updating from URL)
   useEffect(() => {
-    if (!isInitialized) return;
+    if (!isInitialized || isUpdatingFromUrl.current) return;
 
-    const params = new URLSearchParams();
+    const params = new URLSearchParams(window.location.search);
 
-    // Add filters to URL
-    Object.entries(currentFilters).forEach(([key, value]) => {
+    // Filters
+    const filterKeys = [
+      "entity_id",
+      "task_category_id",
+      "assigned_to",
+      "status",
+      "priority",
+      "search",
+      "is_billable",
+    ];
+
+    filterKeys.forEach((key) => {
+      const value = currentFilters[key];
       if (value !== null && value !== "" && value !== undefined) {
-        params.set(key, value);
+        params.set(key, value.toString());
+      } else {
+        params.delete(key);
       }
     });
 
-    // Add page to URL if not page 1
+    // Page
     if (currentPage > 1) {
       params.set("page", currentPage.toString());
+    } else {
+      params.delete("page");
     }
 
-    // Update URL without reloading
-    const newUrl = params.toString()
-      ? `${window.location.pathname}?${params.toString()}`
-      : window.location.pathname;
+    // Drawer state
+    if (currentTaskId) {
+      params.set("taskId", currentTaskId);
+    } else {
+      params.delete("taskId");
+      params.delete("tab");
+    }
 
-    router.replace(newUrl, { scroll: false });
-  }, [currentFilters, currentPage, router, isInitialized]);
+    const newUrl = `${window.location.pathname}?${params.toString()}`;
 
-  // Handle entity async search
+    if (newUrl !== window.location.pathname + window.location.search) {
+      router.replace(newUrl, { scroll: false });
+    }
+  }, [currentFilters, currentPage, currentTaskId, router, isInitialized]);
+
+  // Handle deep link task opening
+  useEffect(() => {
+    if (window.__closingTaskDrawer) {
+      window.__closingTaskDrawer = false;
+      return;
+    }
+
+    if (!deepLinkTaskId || currentTaskId === deepLinkTaskId) return;
+
+    dispatch(openManageDialog(deepLinkTaskId));
+  }, [deepLinkTaskId, currentTaskId, dispatch]);
+
   const handleEntitySearch = useCallback(
     async (query) => {
       if (!query || !query.trim()) {
@@ -152,9 +231,13 @@ function TasksPageContent() {
         const result = await dispatch(
           quickSearchEntities({ search: query, limit: 20 })
         ).unwrap();
-        setEntitySearchResults(result.data || []);
-      } catch (error) {
-        console.error("Entity search failed:", error);
+
+        const safeData = Array.isArray(result?.data)
+          ? result.data.filter((e) => e && e.id && e.name)
+          : [];
+
+        setEntitySearchResults(safeData);
+      } catch {
         setEntitySearchResults([]);
       } finally {
         setIsSearchingEntities(false);
@@ -163,11 +246,10 @@ function TasksPageContent() {
     [dispatch]
   );
 
-  // Keep selected entity in results
   const selectedEntity = useSelector((state) => {
     const entityId = currentFilters.entity_id;
     if (!entityId) return null;
-    return state.entity.entities[entityId];
+    return state.entity?.entities?.[entityId] || null;
   });
 
   const entityOptions = useMemo(() => {
@@ -179,18 +261,20 @@ function TasksPageContent() {
       : entitySearchResults;
   }, [selectedEntity, entitySearchResults]);
 
-  // Lazy load callbacks
   const handleLoadCategories = useCallback(() => {
+    if (hasLoadedCategories.current) return;
+    hasLoadedCategories.current = true;
     dispatch(fetchCategories({ page: 1, page_size: 100 }));
   }, [dispatch]);
 
   const handleLoadUsers = useCallback(() => {
+    if (hasLoadedUsers.current) return;
+    hasLoadedUsers.current = true;
     dispatch(fetchUsers({ page: 1, limit: 100 }));
   }, [dispatch]);
 
-  // Create filter dropdowns
   const filterDropdowns = useMemo(() => {
-    const dropdowns = [
+    return [
       {
         filterKey: "entity_id",
         label: "Client",
@@ -199,7 +283,7 @@ function TasksPageContent() {
         options: entityOptions.map((entity) => ({
           value: entity.id,
           label: entity.name,
-          subtitle: entity.pan || entity.email,
+          subtitle: entity.pan || entity.email || "",
         })),
         onSearchChange: handleEntitySearch,
         enableLocalSearch: false,
@@ -240,9 +324,17 @@ function TasksPageContent() {
         lazyLoad: true,
         onLazyLoad: handleLoadUsers,
       },
+      {
+        filterKey: "is_billable",
+        label: "Billing",
+        placeholder: "All Tasks",
+        icon: IndianRupee,
+        options: [
+          { value: true, label: "Billable" },
+          { value: false, label: "Non-billable" },
+        ],
+      },
     ];
-
-    return dropdowns;
   }, [
     entityOptions,
     categories,
@@ -255,33 +347,31 @@ function TasksPageContent() {
     handleLoadUsers,
   ]);
 
-  // Handle filter change
   const handleFilterChange = useCallback(
     (filterKey, value) => {
       dispatch(setFilters({ [filterKey]: value }));
       dispatch(setPage(1));
-      dispatch(fetchTasks(true)); // Force refresh to update counts
+      dispatch(fetchTasks(true));
     },
     [dispatch]
   );
 
-  // Handle clear all filters
   const handleClearAllFilters = useCallback(() => {
     dispatch(
       setFilters({
         entity_id: null,
         task_category_id: null,
         assigned_to: null,
-        status: null,
+        // status: null, // FIX: Preserve status filter when clearing
         priority: null,
         search: null,
+        is_billable: null,
       })
     );
     dispatch(setPage(1));
-    dispatch(fetchTasks(true)); // Force refresh
+    dispatch(fetchTasks(true));
   }, [dispatch]);
 
-  // Handlers
   const handleCreateTask = useCallback(() => {
     dispatch(openCreateDialog());
   }, [dispatch]);
@@ -291,7 +381,7 @@ function TasksPageContent() {
   }, []);
 
   const handleRefresh = useCallback(() => {
-    dispatch(fetchTasks(true)); // Force refresh to get latest counts
+    dispatch(fetchTasks(true));
   }, [dispatch]);
 
   const handlePageChange = useCallback(
@@ -302,7 +392,6 @@ function TasksPageContent() {
     [dispatch]
   );
 
-  // Task table handlers
   const handleTaskClick = useCallback(
     (task) => {
       dispatch(openManageDialog(task.id));
@@ -310,65 +399,58 @@ function TasksPageContent() {
     [dispatch]
   );
 
-  const handleManageTask = useCallback(
-    (task) => {
-      dispatch(openManageDialog(task.id));
-    },
-    [dispatch]
-  );
-
   return (
-    <div className={style.tasksPage}>
-      <TaskActionBar
-        filterDropdowns={filterDropdowns}
-        activeFilters={{
-          entity_id: currentFilters.entity_id,
-          task_category_id: currentFilters.task_category_id,
-          assigned_to: currentFilters.assigned_to,
-        }}
-        onFilterChange={handleFilterChange}
-        onClearAllFilters={handleClearAllFilters}
-        onCreateTask={handleCreateTask}
-        onToggleWorkload={handleToggleWorkload}
-        onRefresh={handleRefresh}
-        showWorkload={showWorkload}
-        totalCount={actualTotal}
-        filteredCount={filteredCount}
-        currentPage={currentPage}
-        totalPages={totalPages}
-        onPageChange={handlePageChange}
-        isPaginationLoading={tasksLoading}
-        isTaskLoading={tasksLoading}
-      />
+    <ForceNotification>
+      <div className={style.tasksPage}>
+        <TaskActionBar
+          filterDropdowns={filterDropdowns}
+          activeFilters={{
+            entity_id: currentFilters.entity_id,
+            task_category_id: currentFilters.task_category_id,
+            assigned_to: currentFilters.assigned_to,
+            is_billable: currentFilters.is_billable,
+          }}
+          onFilterChange={handleFilterChange}
+          onClearAllFilters={handleClearAllFilters}
+          onCreateTask={handleCreateTask}
+          onToggleWorkload={handleToggleWorkload}
+          onRefresh={handleRefresh}
+          showWorkload={showWorkload}
+          totalCount={actualTotal}
+          filteredCount={filteredCount}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={handlePageChange}
+          isPaginationLoading={tasksLoading}
+          isTaskLoading={tasksLoading}
+        />
 
-      {/* Task Status Board */}
-      <TaskStatusBoard statusCounts={statusCounts} loading={tasksLoading} />
+        <TaskStatusBoard statusCounts={statusCounts} loading={tasksLoading} />
 
-      {showWorkload && <TaskWorkload />}
+        {showWorkload && <TaskWorkload />}
 
-      <TaskTable
-        tasks={tasks}
-        onTaskClick={handleTaskClick}
-        onManageTask={handleManageTask}
-        loading={tasksLoading}
-        activeStatusFilter={currentFilters.status}
-        activePriorityFilter={currentFilters.priority}
-        statusCounts={statusCounts}
-      />
+        <TaskTable
+          tasks={tasks}
+          onTaskClick={handleTaskClick}
+          loading={tasksLoading}
+          activeStatusFilter={currentFilters.status}
+          activePriorityFilter={currentFilters.priority}
+          statusCounts={statusCounts}
+        />
 
-      <TaskCreateDialog />
-      <TaskManageDrawer />
+        <TaskCreateDialog />
+        <TaskManageDrawer />
 
-      <TaskCategoryBoard
-        isOpen={showCategoryDialog}
-        onClose={() => setShowCategoryDialog(false)}
-        mode="list"
-      />
-    </div>
+        <TaskCategoryBoard
+          isOpen={showCategoryDialog}
+          onClose={() => setShowCategoryDialog(false)}
+          mode="list"
+        />
+      </div>
+    </ForceNotification>
   );
 }
 
-// Main component with Suspense boundary
 export default function TasksPage() {
   return (
     <Suspense fallback={<div>Loading...</div>}>

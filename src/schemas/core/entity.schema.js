@@ -20,6 +20,36 @@ export const EntityTypeEnum = z.enum([
   "GOVERNMENT_COMPANY",
 ]);
 
+const CustomFieldSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(1, "Field name is required")
+    .max(50, "Field name too long")
+    .regex(/^[a-zA-Z0-9 _-]+$/, "Invalid characters in field name"),
+
+  value: z.string().trim().max(255, "Value too long").optional().nullable(),
+});
+
+const CustomFieldsArraySchema = z
+  .array(CustomFieldSchema)
+  .max(10, "Maximum 10 custom fields allowed")
+  .superRefine((fields, ctx) => {
+    const seen = new Set();
+
+    for (const f of fields) {
+      const key = f.name.toLowerCase();
+      if (seen.has(key)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Duplicate custom field name: ${f.name}`,
+          path: ["custom_fields"],
+        });
+      }
+      seen.add(key);
+    }
+  });
+
 export const EntityStatusEnum = z.enum(["ACTIVE", "INACTIVE", "SUSPENDED"]);
 
 const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
@@ -79,6 +109,8 @@ const EntityBaseSchema = z.object({
   is_retainer: z.boolean().default(false),
 
   status: EntityStatusEnum.default("INACTIVE"),
+
+  custom_fields: CustomFieldsArraySchema.optional(),
 });
 // -------------------------------------------
 // CREATE SCHEMA (refinement lives only here)

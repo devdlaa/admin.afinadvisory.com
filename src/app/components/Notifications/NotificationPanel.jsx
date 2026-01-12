@@ -42,10 +42,22 @@ function NotificationItem({ notification, onClose }) {
   const colorClass = NOTIFICATION_COLORS[notification.type] || "";
 
   const handleClick = () => {
-    if (notification.link) {
-      router.push(notification.link);
-      onClose();
+    if (!notification.link) return;
+
+    const currentParams = new URLSearchParams(window.location.search);
+
+    const linkQuery = notification.link.split("?")[1] || "";
+    const notificationParams = new URLSearchParams(linkQuery);
+
+    // Merge notification params into current params
+    for (const [key, value] of notificationParams.entries()) {
+      currentParams.set(key, value);
     }
+
+    const newUrl = `${window.location.pathname}?${currentParams.toString()}`;
+
+    router.push(newUrl);
+    onClose();
   };
 
   return (

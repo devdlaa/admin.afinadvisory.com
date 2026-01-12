@@ -68,7 +68,9 @@ const TaskCategoryBoard = ({
 
   // Fetch categories on mount (only if not cached)
   useEffect(() => {
-    if (isOpen && !isCached) {
+    if (!isOpen) return;
+
+    if (!isCached) {
       dispatch(fetchCategories({ page: 1, page_size: 100 }));
     }
   }, [isOpen, isCached, dispatch]);
@@ -133,18 +135,19 @@ const TaskCategoryBoard = ({
   const handleCreate = async (e) => {
     e.preventDefault();
 
-    const result = await dispatch(createCategory(formData));
+    const result = dispatch(createCategory(formData));
 
     if (!result.error) {
       setViewMode("list");
       setFormData({ name: "", description: "" });
     }
   };
-
   const handleUpdate = async (e) => {
     e.preventDefault();
 
-    const result = await dispatch(
+    if (!editingCategory?.id) return;
+
+    const result = dispatch(
       updateCategory({ id: editingCategory.id, data: formData })
     );
 
@@ -156,7 +159,7 @@ const TaskCategoryBoard = ({
   };
 
   const handleDelete = async (categoryId) => {
-    const result = await dispatch(deleteCategory(categoryId));
+    const result = dispatch(deleteCategory(categoryId));
 
     if (!result.error) {
       setDeleteConfirm(null);

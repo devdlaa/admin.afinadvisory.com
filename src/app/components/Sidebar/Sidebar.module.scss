@@ -82,6 +82,7 @@
   color: #64748b;
   white-space: nowrap;
   overflow: hidden;
+  font-weight: 500;
   text-overflow: ellipsis;
 }
 
@@ -321,8 +322,6 @@
     color: #ffffff;
     background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
     border-color: rgba(220, 38, 38, 0.3);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(220, 38, 38, 0.25);
   }
 
   &:disabled {

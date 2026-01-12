@@ -4,6 +4,15 @@ import { z } from "zod";
 const uuid = z.string().uuid("Invalid UUID format");
 
 // ---------------------------------------------------
+// Shared schemas
+// ---------------------------------------------------
+
+export const mentionSchema = z.object({
+  id: uuid,
+  name: z.string().min(1, "User name is required"),
+});
+
+// ---------------------------------------------------
 // Types for timeline entries stored in Firestore
 // ---------------------------------------------------
 
@@ -19,9 +28,8 @@ export const taskCommentCreateSchema = z.object({
     .min(1, "Message cannot be empty")
     .max(3000, "Message too long"),
 
-  // optional: we accept mentions but do not *require* or *enforce* yet
   mentions: z
-    .array(uuid)
+    .array(mentionSchema)
     .max(10, "You can mention a maximum of 10 users")
     .optional()
     .default([]),
@@ -37,7 +45,11 @@ export const taskCommentUpdateSchema = z.object({
     .min(1, "Message cannot be empty")
     .max(3000, "Message too long"),
 
-  // mentions cannot be changed after creation (keeps things sane)
+  mentions: z
+    .array(mentionSchema)
+    .max(10, "You can mention a maximum of 10 users")
+    .optional()
+    .default([]),
 });
 
 // ---------------------------------------------------
@@ -46,14 +58,16 @@ export const taskCommentUpdateSchema = z.object({
 
 export const TaskCommentQuerySchema = z
   .object({
-    task_id: z.string().uuid("Invalid task ID"),
+    task_id: uuid,
     limit: z
       .string()
       .optional()
       .transform((val) => (val ? parseInt(val, 10) : 20))
       .pipe(z.number().int().min(1).max(100))
       .default(20),
+
     cursor: z.string().optional().nullable(),
+
     type: z.enum(["COMMENT", "ACTIVITY", "ALL"]).optional().default("COMMENT"),
   })
   .refine((data) => data.limit || data.cursor || data.type, {
@@ -70,6 +84,5 @@ export const taskActivitySchema = z.object({
   old_value: z.any().optional().nullable(),
   new_value: z.any().optional().nullable(),
 
-  // optional structured metadata
   meta: z.record(z.any()).optional(),
 });

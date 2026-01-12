@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   X,
@@ -7,7 +7,6 @@ import {
   Building2,
   Tag,
   Flag,
-  Calendar,
   AlertCircle,
 } from "lucide-react";
 
@@ -15,6 +14,7 @@ import Button from "@/app/components/Button/Button";
 import FilterDropdown from "@/app/components/FilterDropdown/FilterDropdown";
 
 import {
+  clearErrors,
   createTask,
   closeCreateDialog,
   selectCreateDialogOpen,
@@ -24,16 +24,20 @@ import { quickSearchEntities } from "@/store/slices/entitySlice";
 import {
   fetchCategories,
   selectAllCategories,
+  selectIsCached,
 } from "@/store/slices/taskCategorySlice";
 
 import "./TaskCreateDialog.scss";
 
 const TaskCreateDialog = () => {
   const dispatch = useDispatch();
+  const dialogRef = useRef(null);
+  
   const isOpen = useSelector(selectCreateDialogOpen);
   const categories = useSelector(selectAllCategories);
   const isCreating = useSelector((state) => state.task.loading.create);
   const createError = useSelector((state) => state.task.error.create);
+  const isCategoryCached = useSelector(selectIsCached);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -54,14 +58,15 @@ const TaskCreateDialog = () => {
 
   // Load categories on mount
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && !isCategoryCached) {
       dispatch(fetchCategories({ page: 1, page_size: 100 }));
     }
-  }, [isOpen, dispatch]);
+  }, [isOpen, isCategoryCached, dispatch]);
 
   // Reset form when dialog opens
   useEffect(() => {
     if (isOpen) {
+      dispatch(clearErrors());
       setFormData({
         title: "",
         description: "",
@@ -73,7 +78,7 @@ const TaskCreateDialog = () => {
       setEntitySearchResults([]);
       setSelectedEntityData(null);
     }
-  }, [isOpen]);
+  }, [isOpen, dispatch]);
 
   // Handle entity search
   const handleEntitySearch = useCallback(
@@ -83,18 +88,26 @@ const TaskCreateDialog = () => {
         return;
       }
 
+      let active = true;
       setIsSearchingEntities(true);
+
       try {
         const result = await dispatch(
           quickSearchEntities({ search: query, limit: 20 })
         ).unwrap();
-        setEntitySearchResults(result.data || []);
-      } catch (error) {
-        console.error("Entity search failed:", error);
-        setEntitySearchResults([]);
+
+        if (active) {
+          setEntitySearchResults(result.data || []);
+        }
+      } catch {
+        if (active) setEntitySearchResults([]);
       } finally {
-        setIsSearchingEntities(false);
+        if (active) setIsSearchingEntities(false);
       }
+
+      return () => {
+        active = false;
+      };
     },
     [dispatch]
   );
@@ -135,14 +148,20 @@ const TaskCreateDialog = () => {
 
   // Handle entity selection
   const handleEntitySelect = (option) => {
-    if (option.value) {
-      const entity = entitySearchResults.find((e) => e.id === option.value);
-      if (entity) {
-        setSelectedEntityData(entity);
-      }
-    } else {
+    if (!option?.value) {
       setSelectedEntityData(null);
+      handleChange("entity_id", null);
+      return;
     }
+
+    const entity =
+      entitySearchResults.find((e) => e.id === option.value) ||
+      selectedEntityData;
+
+    if (entity) {
+      setSelectedEntityData(entity);
+    }
+
     handleChange("entity_id", option.value);
   };
 
@@ -167,6 +186,7 @@ const TaskCreateDialog = () => {
   // Handle submit
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isCreating) return;
 
     if (!validateForm()) {
       return;
@@ -190,14 +210,23 @@ const TaskCreateDialog = () => {
 
   // Handle close
   const handleClose = () => {
+    if (isCreating) return;
     dispatch(closeCreateDialog());
+  };
+
+  // Handle overlay click
+  const handleOverlayClick = (e) => {
+    // Only close if clicking the overlay itself, not its children
+    if (e.target === e.currentTarget) {
+      handleClose();
+    }
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="task-create-dialog-overlay" onClick={handleClose}>
-      <div className="task-create-dialog" onClick={(e) => e.stopPropagation()}>
+    <div className="task-create-dialog-overlay" onClick={handleOverlayClick}>
+      <div className="task-create-dialog" ref={dialogRef}>
         {/* Header */}
         <div className="task-create-dialog__header">
           <div className="task-create-dialog__header-content">
@@ -215,6 +244,8 @@ const TaskCreateDialog = () => {
             className="task-create-dialog__close"
             onClick={handleClose}
             type="button"
+            disabled={isCreating}
+            aria-label="Close dialog"
           >
             <X size={20} />
           </button>
@@ -223,16 +254,17 @@ const TaskCreateDialog = () => {
         {/* Error Message */}
         {createError && (
           <div className="task-create-dialog__error-banner">
-            <AlertCircle size={20} />
+            <AlertCircle size={18} />
             <span>{createError}</span>
           </div>
         )}
 
         {/* Form */}
         <form className="task-create-dialog__form" onSubmit={handleSubmit}>
-
+          {/* Title */}
           <div className="task-create-dialog__field">
             <input
+              id="task_create_title"
               type="text"
               className={`task-create-dialog__input ${
                 errors.title ? "task-create-dialog__input--error" : ""
@@ -242,6 +274,7 @@ const TaskCreateDialog = () => {
               onChange={(e) => handleChange("title", e.target.value)}
               disabled={isCreating}
               autoFocus
+              autoComplete="off"
             />
             {errors.title && (
               <span className="task-create-dialog__error-text">
@@ -250,13 +283,13 @@ const TaskCreateDialog = () => {
             )}
           </div>
 
-       
+          {/* Description */}
           <div className="task-create-dialog__field">
             <textarea
               className={`task-create-dialog__textarea ${
                 errors.description ? "task-create-dialog__input--error" : ""
               }`}
-              placeholder="Enter task description..."
+              placeholder="Enter task description (optional)..."
               rows={3}
               value={formData.description}
               onChange={(e) => handleChange("description", e.target.value)}
@@ -289,6 +322,7 @@ const TaskCreateDialog = () => {
                 hintMessage="Start typing to search clients..."
                 enableLocalSearch={false}
                 className="task-create-dialog__dropdown"
+                disabled={isCreating}
               />
             </div>
 
@@ -307,6 +341,7 @@ const TaskCreateDialog = () => {
                 }
                 enableLocalSearch={true}
                 className="task-create-dialog__dropdown"
+                disabled={isCreating}
               />
             </div>
           </div>
@@ -333,6 +368,7 @@ const TaskCreateDialog = () => {
               onSelect={(option) => handleChange("priority", option.value)}
               enableLocalSearch={false}
               className="task-create-dialog__dropdown"
+              disabled={isCreating}
             />
           </div>
 

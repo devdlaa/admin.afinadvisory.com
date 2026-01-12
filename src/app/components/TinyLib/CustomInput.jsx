@@ -46,8 +46,7 @@ const CustomInput = ({
   const inputRef = useRef(null);
 
   // 🔹 NEW: normalize regex (string OR RegExp)
-  const resolvedRegex =
-    typeof regex === "string" ? new RegExp(regex) : regex;
+  const resolvedRegex = typeof regex === "string" ? new RegExp(regex) : regex;
 
   // Validation logic
   const validateInput = (val) => {
@@ -145,7 +144,7 @@ const CustomInput = ({
 
         {/* Input Field */}
         <div className={styles.inputFieldContainer}>
-          <InputComponent
+          <input
             ref={inputRef}
             type={type === "password" && showPassword ? "text" : type}
             value={value}
@@ -157,9 +156,7 @@ const CustomInput = ({
             readOnly={readOnly}
             rows={multiline ? rows : undefined}
             maxLength={maxLength || undefined}
-            className={`${styles.input} ${
-              multiline ? styles.textarea : ""
-            }`}
+            className={`${styles.input} ${multiline ? styles.textarea : ""}`}
             aria-invalid={showError}
           />
 
@@ -191,9 +188,7 @@ const CustomInput = ({
 
       {/* Error Message */}
       {showError && (
-        <div className={styles.errorMessage}>
-          {validation.error}
-        </div>
+        <div className={styles.errorMessage}>{validation.error}</div>
       )}
 
       {/* Helper / Counter */}

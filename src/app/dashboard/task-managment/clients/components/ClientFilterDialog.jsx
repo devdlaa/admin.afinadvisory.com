@@ -10,22 +10,58 @@ import {
   selectIsLoading,
 } from "@/store/slices/entitySlice";
 
-import { clientsFilterConfig } from "@/config/clientsActionBarConfig";
 import styles from "./ClientFilterDialog.module.scss";
+
+/* ================================
+   Local filter configuration
+================================ */
+
+const ENTITY_TYPES = [
+  { label: "All Types", value: "" },
+  { label: "Unregistered", value: "UN_REGISTRED" },
+  { label: "Individual", value: "INDIVIDUAL" },
+  { label: "Private Limited Company", value: "PRIVATE_LIMITED_COMPANY" },
+  { label: "Public Limited Company", value: "PUBLIC_LIMITED_COMPANY" },
+  { label: "One Person Company", value: "ONE_PERSON_COMPANY" },
+  { label: "Section 8 Company", value: "SECTION_8_COMPANY" },
+  { label: "Producer Company", value: "PRODUCER_COMPANY" },
+  { label: "Sole Proprietorship", value: "SOLE_PROPRIETORSHIP" },
+  { label: "Partnership Firm", value: "PARTNERSHIP_FIRM" },
+  {
+    label: "Limited Liability Partnership",
+    value: "LIMITED_LIABILITY_PARTNERSHIP",
+  },
+  { label: "Association Of Person", value: "ASSOCIATION_OF_PERSON" },
+  { label: "HUF", value: "HUF" },
+  { label: "Trust", value: "TRUST" },
+  { label: "Society", value: "SOCIETY" },
+  { label: "Cooperative Society", value: "COOPERATIVE_SOCIETY" },
+  { label: "Foreign Company", value: "FOREIGN_COMPANY" },
+  { label: "Government Company", value: "GOVERNMENT_COMPANY" },
+];
+
+const STATUS_OPTIONS = [
+  { label: "All Status", value: "" },
+  { label: "Active", value: "ACTIVE" },
+  { label: "Inactive", value: "INACTIVE" },
+  { label: "Suspended", value: "SUSPENDED" },
+];
+
+/* ================================
+   Component
+================================ */
 
 const ClientFilterDialog = forwardRef((props, ref) => {
   const dispatch = useDispatch();
   const currentFilters = useSelector(selectFilters);
   const loading = useSelector((state) => selectIsLoading(state, "list"));
 
-  // Local filter state
   const [localFilters, setLocalFilters] = useState({
     entity_type: "",
     status: "",
     state: "",
   });
 
-  // Sync with Redux state when dialog opens
   useEffect(() => {
     setLocalFilters({
       entity_type: currentFilters.entity_type || "",
@@ -34,20 +70,14 @@ const ClientFilterDialog = forwardRef((props, ref) => {
     });
   }, [currentFilters]);
 
-  // Handle filter change
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
-    setLocalFilters((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setLocalFilters((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Apply filters
   const handleApplyFilters = (e) => {
     e.preventDefault();
 
-    // Clean up empty strings
     const cleanedFilters = Object.entries(localFilters).reduce(
       (acc, [key, value]) => {
         if (value) acc[key] = value;
@@ -61,38 +91,35 @@ const ClientFilterDialog = forwardRef((props, ref) => {
       fetchEntities({
         ...cleanedFilters,
         page: 1,
-        page_size: currentFilters.page_size || 20,
+        page_size: 20,
       })
     );
 
     ref.current?.close();
   };
 
-  // Reset filters
   const handleResetFilters = () => {
     setLocalFilters({
       entity_type: "",
       status: "",
       state: "",
     });
+
     dispatch(resetFilters());
     dispatch(fetchEntities({ page: 1, page_size: 20 }));
     ref.current?.close();
   };
 
-  // Handle close
   const handleClose = () => {
     ref.current?.close();
   };
 
-  // Check if any filter is active
   const hasActiveFilters =
     localFilters.entity_type || localFilters.status || localFilters.state;
 
   return (
     <dialog ref={ref} className={styles.dialog}>
       <div className={styles.dialogContent}>
-        {/* Header */}
         <div className={styles.header}>
           <div className={styles.headerLeft}>
             <Filter size={24} className={styles.headerIcon} />
@@ -111,9 +138,7 @@ const ClientFilterDialog = forwardRef((props, ref) => {
           </button>
         </div>
 
-        {/* Form */}
         <form onSubmit={handleApplyFilters} className={styles.form}>
-          {/* Entity Type Filter */}
           <div className={styles.formGroup}>
             <label htmlFor="entity_type">Entity Type</label>
             <select
@@ -123,7 +148,7 @@ const ClientFilterDialog = forwardRef((props, ref) => {
               onChange={handleFilterChange}
               disabled={loading}
             >
-              {clientsFilterConfig.entityTypes.map((type) => (
+              {ENTITY_TYPES.map((type) => (
                 <option key={type.value} value={type.value}>
                   {type.label}
                 </option>
@@ -131,7 +156,6 @@ const ClientFilterDialog = forwardRef((props, ref) => {
             </select>
           </div>
 
-          {/* Status Filter */}
           <div className={styles.formGroup}>
             <label htmlFor="status">Status</label>
             <select
@@ -141,7 +165,7 @@ const ClientFilterDialog = forwardRef((props, ref) => {
               onChange={handleFilterChange}
               disabled={loading}
             >
-              {clientsFilterConfig.statusOptions.map((status) => (
+              {STATUS_OPTIONS.map((status) => (
                 <option key={status.value} value={status.value}>
                   {status.label}
                 </option>
@@ -149,7 +173,6 @@ const ClientFilterDialog = forwardRef((props, ref) => {
             </select>
           </div>
 
-          {/* State Filter */}
           <div className={styles.formGroup}>
             <label htmlFor="state">State</label>
             <input
@@ -161,12 +184,8 @@ const ClientFilterDialog = forwardRef((props, ref) => {
               disabled={loading}
               placeholder="e.g., Rajasthan, Maharashtra"
             />
-            <span className={styles.hint}>
-              Enter state name to filter clients by location
-            </span>
           </div>
 
-          {/* Active Filters Summary */}
           {hasActiveFilters && (
             <div className={styles.activeFiltersSummary}>
               <p className={styles.summaryTitle}>Active Filters:</p>
@@ -174,7 +193,7 @@ const ClientFilterDialog = forwardRef((props, ref) => {
                 {localFilters.entity_type && (
                   <span className={styles.filterTag}>
                     Type:{" "}
-                    {clientsFilterConfig.entityTypes.find(
+                    {ENTITY_TYPES.find(
                       (t) => t.value === localFilters.entity_type
                     )?.label || localFilters.entity_type}
                   </span>
@@ -182,9 +201,8 @@ const ClientFilterDialog = forwardRef((props, ref) => {
                 {localFilters.status && (
                   <span className={styles.filterTag}>
                     Status:{" "}
-                    {clientsFilterConfig.statusOptions.find(
-                      (s) => s.value === localFilters.status
-                    )?.label || localFilters.status}
+                    {STATUS_OPTIONS.find((s) => s.value === localFilters.status)
+                      ?.label || localFilters.status}
                   </span>
                 )}
                 {localFilters.state && (
@@ -196,7 +214,6 @@ const ClientFilterDialog = forwardRef((props, ref) => {
             </div>
           )}
 
-          {/* Footer Actions */}
           <div className={styles.footer}>
             <button
               type="button"
@@ -207,6 +224,7 @@ const ClientFilterDialog = forwardRef((props, ref) => {
               <RotateCcw size={16} />
               Reset All
             </button>
+
             <div className={styles.footerRight}>
               <button
                 type="button"
@@ -221,17 +239,8 @@ const ClientFilterDialog = forwardRef((props, ref) => {
                 className={styles.applyBtn}
                 disabled={loading || !hasActiveFilters}
               >
-                {loading ? (
-                  <>
-                    <div className={styles.spinner} />
-                    Applying...
-                  </>
-                ) : (
-                  <>
-                    <Filter size={16} />
-                    Apply Filters
-                  </>
-                )}
+                <Filter size={16} />
+                Apply Filters
               </button>
             </div>
           </div>

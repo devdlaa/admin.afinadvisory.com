@@ -1,7 +1,29 @@
 import React from "react";
-import { Building2, Mail, Phone, CreditCard, Users, Edit2, Plus } from "lucide-react";
+import {
+  Building2,
+  Mail,
+  Phone,
+  CreditCard,
+  Users,
+  Edit2,
+  Plus,
+  FileText,
+} from "lucide-react";
 
 const ClientInfoCard = ({ selectedEntityData, onOpenClientDialog }) => {
+
+
+  // Sort custom fields to show "Client Code" first
+  const sortedCustomFields = selectedEntityData?.custom_fields
+    ? [...selectedEntityData.custom_fields]
+        .sort((a, b) => {
+          if (a.name === "Client Code") return -1;
+          if (b.name === "Client Code") return 1;
+          return 0;
+        })
+        .slice(0, 5)
+    : [];
+
   return (
     <div className="client-card">
       {selectedEntityData ? (
@@ -66,6 +88,23 @@ const ClientInfoCard = ({ selectedEntityData, onOpenClientDialog }) => {
                   </div>
                 </div>
               </div>
+            )}
+
+            {/* Custom Fields */}
+            {sortedCustomFields.length > 0 && (
+              <>
+                {sortedCustomFields.map((field) => (
+                  <div className="client-card__row" key={field.id}>
+                    <FileText size={14} />
+                    <div>
+                      <div className="client-card__label">{field.name}</div>
+                      <div className="client-card__value">
+                        {field.value || "—"}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </>
             )}
           </div>
 

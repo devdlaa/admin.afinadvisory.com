@@ -1,6 +1,8 @@
 import { prisma } from "@/utils/server/db.js";
 import { NotFoundError, ValidationError } from "../../utils/server/errors.js";
 import { notify } from "../shared/notifications.service.js";
+import { addTaskActivityLog } from "./taskComment.service.js";
+import { buildActivityMessage } from "@/utils/server/activityBulder.js";
 export const syncTaskAssignments = async (
   task_id,
   user_ids,
@@ -17,12 +19,12 @@ export const syncTaskAssignments = async (
 
     if (!task) throw new NotFoundError("Task not found");
 
-    // ------------------------------ VALIDATIONS ------------------------------
+    // ---------------- VALIDATIONS ----------------
 
     if (
       assigned_to_all === true &&
       Array.isArray(user_ids) &&
-      user_ids.length > 0
+      user_ids.length
     ) {
       throw new ValidationError(
         "Cannot provide specific assignees when assigned_to_all is true"
@@ -31,27 +33,21 @@ export const syncTaskAssignments = async (
 
     if (assigned_to_all !== true) {
       if (!Array.isArray(user_ids)) {
-        throw new ValidationError(
-          "user_ids must be provided when not assigned to all"
-        );
+        throw new ValidationError("user_ids must be provided");
       }
 
       user_ids = [...new Set(user_ids)];
 
       if (user_ids.length === 0) {
-        throw new ValidationError(
-          "At least one user must be assigned when not assigned to all"
-        );
+        throw new ValidationError("At least one user must be assigned");
       }
 
       if (user_ids.length > 5) {
-        throw new ValidationError(
-          "A maximum of 5 assignees is allowed per task"
-        );
+        throw new ValidationError("Maximum 5 assignees allowed");
       }
     }
 
-    // ------------------------------ UPDATE TASK FLAGS ------------------------------
+    // ---------------- UPDATE TASK FLAGS ----------------
 
     await tx.task.update({
       where: { id: task_id },
@@ -63,26 +59,35 @@ export const syncTaskAssignments = async (
       },
     });
 
-    // ------------------------------ ASSIGNED TO ALL CASE ------------------------------
+    const changes = [];
+
+    // ---------------- ASSIGNED TO ALL ----------------
 
     if (assigned_to_all === true) {
       await tx.taskAssignment.deleteMany({ where: { task_id } });
 
-      const assignments = []; // none in this mode
+      changes.push({
+        action: "ASSIGNED_TO_ALL",
+        from: false,
+        to: true,
+      });
 
       return {
         assigned_to_all: true,
         toAdd: [],
         task,
-        assignments,
+        assignments: [],
+        changes,
       };
     }
 
-    // ------------------------------ SYNC SPECIFIC ASSIGNEES ------------------------------
+    // ---------------- SPECIFIC ASSIGNMENTS ----------------
 
     const current = await tx.taskAssignment.findMany({
       where: { task_id },
-      select: { admin_user_id: true },
+      include: {
+        assignee: { select: { id: true, name: true } },
+      },
     });
 
     const currentIds = current.map((a) => a.admin_user_id);
@@ -93,13 +98,13 @@ export const syncTaskAssignments = async (
     const toAdd = [...newSet].filter((id) => !oldSet.has(id));
     const toRemove = [...oldSet].filter((id) => !newSet.has(id));
 
-    if (toRemove.length > 0) {
+    if (toRemove.length) {
       await tx.taskAssignment.deleteMany({
         where: { task_id, admin_user_id: { in: toRemove } },
       });
     }
 
-    if (toAdd.length > 0) {
+    if (toAdd.length) {
       await tx.taskAssignment.createMany({
         data: toAdd.map((admin_user_id) => ({
           task_id,
@@ -111,31 +116,48 @@ export const syncTaskAssignments = async (
       });
     }
 
-    // ------------------------------ HYDRATED ASSIGNMENT LIST RETURN ------------------------------
-
     const assignments = await tx.taskAssignment.findMany({
       where: { task_id },
       orderBy: { assigned_at: "asc" },
       include: {
         assignee: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
+          select: { id: true, name: true, email: true },
         },
       },
     });
+
+    // additions
+    for (const id of toAdd) {
+      const user = assignments.find((a) => a.admin_user_id === id)?.assignee;
+      changes.push({
+        action: "ASSIGNEE_ADDED",
+        from: null,
+        to: user ? { id: user.id, name: user.name } : null,
+      });
+    }
+
+    // removals
+    for (const id of toRemove) {
+      const old = current.find((a) => a.admin_user_id === id);
+      changes.push({
+        action: "ASSIGNEE_REMOVED",
+        from: old?.assignee
+          ? { id: old.assignee.id, name: old.assignee.name }
+          : null,
+        to: null,
+      });
+    }
 
     return {
       assigned_to_all: false,
       toAdd,
       task,
       assignments,
+      changes,
     };
   });
 
-  // ------------------------------ POST-COMMIT NOTIFICATIONS ------------------------------
+  // ---------------- NOTIFICATIONS ----------------
 
   try {
     if (!result.assigned_to_all && result.toAdd.length > 0) {
@@ -147,19 +169,28 @@ export const syncTaskAssignments = async (
         entity_id: result.task.entity_id ?? "",
         actor_id: result.task.updated_by,
         actor_name: result.task.creator?.name ?? null,
-        link: `/dashboard/task-managment/tasks/${result.task.id}`,
+        link: `/dashboard/task-managment?taskId=${result.task.id}`,
       });
     }
   } catch (err) {
     console.error("Assignment notification failed:", err);
   }
 
-  // ------------------------------ FINAL API RESPONSE ------------------------------
+  // ---------------- ACTIVITY LOG ----------------
+
+  if (result.changes.length > 0) {
+    await addTaskActivityLog(task_id, updated_by, {
+      action: "TASK_UPDATED",
+      message: buildActivityMessage(result.changes),
+      meta: { changes: result.changes },
+    });
+  }
+
+  // ---------------- RESPONSE ----------------
 
   return {
     task_id,
     assigned_to_all: result.assigned_to_all,
-
     assignments: result.assignments.map((a) => ({
       id: a.id,
       task_id: a.task_id,
@@ -167,7 +198,6 @@ export const syncTaskAssignments = async (
       assigned_at: a.assigned_at,
       assigned_by: a.assigned_by,
       assignment_source: a.assignment_source,
-
       assignee: a.assignee,
     })),
   };

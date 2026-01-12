@@ -116,7 +116,7 @@ const ClientsTable = ({ clients, onEdit, loading }) => {
       await dispatch(deleteEntity(clientId)).unwrap();
       handleCloseDialog();
     } catch (error) {
-      // Error will be handled by toast middleware
+    
       setDeletingEntityId(null);
     }
   };

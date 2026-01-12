@@ -31,65 +31,60 @@ import {
   RefreshCw,
 } from "lucide-react";
 import styles from "./TaskTimeline.module.scss";
-import {
-  buildFallbackMessage,
- 
-} from "@/utils/shared/shared_util";
+import { buildFallbackMessage } from "@/utils/shared/shared_util";
+
+const formatValue = (val) => {
+  if (val === null || val === undefined) return "None";
+
+  if (typeof val === "object") {
+    if (val.name) return val.name;
+    return JSON.stringify(val);
+  }
+
+  if (typeof val === "string" && /^\d{4}-\d{2}-\d{2}T/.test(val)) {
+    return new Date(val).toLocaleDateString();
+  }
+
+  return String(val);
+};
+
+const humanizeKey = (key) =>
+  key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
 const renderChangeDetails = (changes = []) => {
   if (!Array.isArray(changes) || changes.length === 0) return null;
 
   return (
     <div className={styles.activityDetails}>
-      {changes.map((change, index) => {
-        let label = "";
-        let from = "";
-        let to = "";
+      {changes.map((change, idx) => {
+        const from = change.from || {};
+        const to = change.to || {};
 
-        switch (change.action) {
-          case "STATUS_CHANGED":
-            label = "Status";
-            from = change.from;
-            to = change.to;
-            break;
-
-          case "PRIORITY_CHANGED":
-            label = "Priority";
-            from = change.from;
-            to = change.to;
-            break;
-
-          case "CATEGORY_CHANGED":
-            label = "Category";
-            from = change.from?.name ?? "None";
-            to = change.to?.name ?? "None";
-            break;
-
-          case "ENTITY_ASSIGNED":
-          case "ENTITY_UNASSIGNED":
-            label = "Assignee";
-            from = change.from?.name ?? "None";
-            to = change.to?.name ?? "None";
-            break;
-
-          case "DUE_DATE_CHANGED":
-            label = "Due date";
-            from = change.from
-              ? new Date(change.from).toLocaleDateString()
-              : "None";
-            to = change.to ? new Date(change.to).toLocaleDateString() : "None";
-            break;
-
-          default:
-            return null;
-        }
+        const keys = new Set([...Object.keys(from), ...Object.keys(to)]);
 
         return (
-          <div key={index} className={styles.activityDetailRow}>
-            <span className={styles.activityDetailLabel}>{label}:</span>
-            <span className={styles.activityDetailValue}>
-              {from} → {to}
-            </span>
+          <div key={idx} className={styles.activityChangeBlock}>
+            {[...keys].map((key) => {
+              const a = from[key];
+              const b = to[key];
+
+              if (JSON.stringify(a) === JSON.stringify(b)) return null;
+
+              return (
+                <div key={key} className={styles.activityDetailRow}>
+                  <span className={styles.activityDetailLabel}>
+                    {humanizeKey(key)}
+                  </span>
+                  <span className={styles.activityDetailFrom}>
+                    {formatValue(a)}
+                  </span>
+                  <span className={styles.activityArrow}>→</span>
+                  <span className={styles.activityDetailTo}>
+                    {formatValue(b)}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         );
       })}
@@ -110,6 +105,7 @@ const TaskTimeline = ({ taskId, task }) => {
 
   // Local state
   const [activeTab, setActiveTab] = useState("COMMENT");
+  const [isMentioning, setIsMentioning] = useState(false);
   const [message, setMessage] = useState("");
   const [mentionedUsers, setMentionedUsers] = useState([]);
   const [showMentions, setShowMentions] = useState(false);
@@ -206,29 +202,41 @@ const TaskTimeline = ({ taskId, task }) => {
     const value = e.target.value;
     const cursorPos = e.target.selectionStart;
 
+
     setMessage(value);
 
-    // Check if user deleted a mention
-    mentionedUsers.forEach((user) => {
-      if (!value.includes(`@${user.name}`)) {
-        setMentionedUsers((prev) => prev.filter((u) => u.id !== user.id));
-      }
-    });
-
     const textBeforeCursor = value.slice(0, cursorPos);
-    const lastAtIndex = textBeforeCursor.lastIndexOf("@");
 
-    if (lastAtIndex !== -1) {
-      const textAfterAt = textBeforeCursor.slice(lastAtIndex + 1);
+    // detect @ trigger
+    if (textBeforeCursor.endsWith("@")) {
+   
+      setIsMentioning(true);
+      setMentionQuery("");
+      setShowMentions(true);
+      return;
+    }
 
-      if (!textAfterAt.includes(" ") && textAfterAt.length <= 50) {
-        setMentionQuery(textAfterAt);
-        setShowMentions(true);
-      } else {
+    // if currently mentioning, update query
+    if (isMentioning) {
+      const lastAt = textBeforeCursor.lastIndexOf("@");
+
+      if (lastAt === -1) {
+        setIsMentioning(false);
         setShowMentions(false);
+        return;
       }
-    } else {
-      setShowMentions(false);
+
+      const q = textBeforeCursor.slice(lastAt + 1);
+
+      // stop mentioning on space
+      if (q.includes(" ")) {
+        setIsMentioning(false);
+        setShowMentions(false);
+        return;
+      }
+
+      setMentionQuery(q);
+      setShowMentions(true);
     }
   };
 
@@ -236,19 +244,20 @@ const TaskTimeline = ({ taskId, task }) => {
   const handleMentionSelect = (user) => {
     if (mentionedUsers.find((u) => u.id === user.id)) {
       setShowMentions(false);
+      setIsMentioning(false);
       return;
     }
 
-    const cursorPos = inputRef.current.selectionStart;
-    const textBeforeCursor = message.slice(0, cursorPos);
-    const lastAtIndex = textBeforeCursor.lastIndexOf("@");
-    const beforeMention = message.slice(0, lastAtIndex);
-    const afterMention = message.slice(cursorPos);
-    const newMessage = `${beforeMention}@${user.name} ${afterMention}`;
+    // remove the trailing "@query" from textarea
+    setMessage((prev) => {
+      const idx = prev.lastIndexOf("@");
+      return idx !== -1 ? prev.slice(0, idx).trimEnd() + " " : prev;
+    });
 
-    setMessage(newMessage);
-    setMentionedUsers([...mentionedUsers, user]);
+    setMentionedUsers((prev) => [...prev, user]);
+
     setShowMentions(false);
+    setIsMentioning(false);
 
     setTimeout(() => inputRef.current?.focus(), 0);
   };
@@ -257,7 +266,6 @@ const TaskTimeline = ({ taskId, task }) => {
   const handleRemoveMention = (userId) => {
     const user = mentionedUsers.find((u) => u.id === userId);
     if (user) {
-      setMessage((prev) => prev.replace(`@${user.name}`, "").trim());
       setMentionedUsers((prev) => prev.filter((u) => u.id !== userId));
     }
   };
@@ -266,26 +274,24 @@ const TaskTimeline = ({ taskId, task }) => {
   const handleSendComment = async () => {
     if (!message.trim()) return;
 
-    const mentions = mentionedUsers.map((u) => u.id);
+    const mentions = mentionedUsers.map((u) => ({
+      id: u.id,
+      name: u.name,
+    }));
+
 
     if (editingCommentId) {
-       dispatch(
+      dispatch(
         updateComment({
           taskId,
-          commentId: editingCommentId,
+          commentId : editingCommentId,
           message: message.trim(),
           mentions,
         })
       );
       setEditingCommentId(null);
     } else {
-      dispatch(
-        createComment({
-          taskId,
-          message: message.trim(),
-          mentions,
-        })
-      );
+      dispatch(createComment({ taskId, message: message.trim(), mentions }));
     }
 
     setMessage("");
@@ -295,28 +301,28 @@ const TaskTimeline = ({ taskId, task }) => {
 
   // Handle key press
   const handleKeyDown = (e) => {
+    if (e.key === " " && isMentioning) {
+      setIsMentioning(false);
+      setShowMentions(false);
+    }
+
+    if (e.key === "Escape") {
+      setIsMentioning(false);
+      setShowMentions(false);
+    }
+
     if (e.key === "Enter" && !e.shiftKey && !showMentions) {
       e.preventDefault();
       handleSendComment();
-    } else if (e.key === "Escape" && editingCommentId) {
-      handleCancelEdit();
     }
   };
 
   // Start editing
   const handleStartEdit = (comment) => {
+
     setEditingCommentId(comment.id);
     setMessage(comment.message);
-
-    // Extract mentioned users from message
-    const mentionRegex = /@(\w+(?:\s+\w+)*)/g;
-    const mentions = [];
-    let match;
-    while ((match = mentionRegex.exec(comment.message)) !== null) {
-      mentions.push({ id: match[1], name: match[1] });
-    }
-    setMentionedUsers(mentions);
-
+    setMentionedUsers(comment.mentions || []);
     setTimeout(() => inputRef.current?.focus(), 0);
   };
 
@@ -369,40 +375,6 @@ const TaskTimeline = ({ taskId, task }) => {
       .join("")
       .toUpperCase()
       .slice(0, 2);
-  };
-
-  // Render formatted message with highlighted mentions
-  const renderMessageWithMentions = (message) => {
-    const mentionRegex = /@(\w+(?:\s+\w+)*)/g;
-    const parts = [];
-    let lastIndex = 0;
-    let match;
-
-    while ((match = mentionRegex.exec(message)) !== null) {
-      if (match.index > lastIndex) {
-        parts.push(
-          <span key={`text-${lastIndex}`}>
-            {message.slice(lastIndex, match.index)}
-          </span>
-        );
-      }
-
-      parts.push(
-        <span key={`mention-${match.index}`} className={styles.mention}>
-          {match[0]}
-        </span>
-      );
-
-      lastIndex = match.index + match[0].length;
-    }
-
-    if (lastIndex < message.length) {
-      parts.push(
-        <span key={`text-${lastIndex}`}>{message.slice(lastIndex)}</span>
-      );
-    }
-
-    return parts.length > 0 ? parts : message;
   };
 
   // Render activity entry
@@ -506,7 +478,17 @@ const TaskTimeline = ({ taskId, task }) => {
             </div>
 
             <div className={styles.commentMessage}>
-              {renderMessageWithMentions(comment.message)}
+              {comment.mentions?.length > 0 && (
+                <div className={styles.mentionsRow}>
+                  {comment.mentions.map((u) => (
+                    <span key={u.id} className={styles.mention}>
+                      @{u.name}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              <span className={styles.comment_txt}>{comment.message}</span>
             </div>
 
             {comment.updated_at !== comment.created_at && (
@@ -731,7 +713,9 @@ const TaskTimeline = ({ taskId, task }) => {
                 ) : editingCommentId ? (
                   <Check size={18} />
                 ) : (
-                  <Send size={18} />
+                  <>
+                    <Send size={18} />
+                  </>
                 )}
               </button>
             </div>

@@ -9,11 +9,7 @@ export const fetchInfluencers = createAsyncThunk(
   ) => {
     const state = getState().influencers;
 
-    // Prevent concurrent fetches for fresh requests
-    // if (fresh && state.isFetching) {
-    //   return rejectWithValue("Already fetching");
-    // }
-
+ 
     const payload = cursor ? { limit, cursor } : { limit };
     try {
       const response = await fetch("/api/admin/influencers/get", {

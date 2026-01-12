@@ -27,6 +27,23 @@ const apiFetch = async (url, options = {}) => {
 };
 
 // ============================================
+// HELPER - Extract charges array from API response
+// ============================================
+const extractChargesArray = (chargesData) => {
+  // If it's already an array, return it
+  if (Array.isArray(chargesData)) {
+    return chargesData;
+  }
+
+  // If it has the spec structure, return empty array (server will return fresh list)
+  if (chargesData?.spec) {
+    return [];
+  }
+
+  return [];
+};
+
+// ============================================
 // ASYNC THUNKS
 // ============================================
 
@@ -64,7 +81,12 @@ export const addCharge = createAsyncThunk(
         method: "POST",
         body: JSON.stringify(chargeData),
       });
-      return result.data; // { task_id, charges }
+
+      // Return task_id and extracted charges array
+      return {
+        task_id: result.data.task_id,
+        charges: result.data.charges,
+      };
     } catch (error) {
       return rejectWithValue({
         message: error.message || "Failed to add charge",
@@ -89,12 +111,18 @@ export const updateCharge = createAsyncThunk(
           body: JSON.stringify(data),
         }
       );
-      return result.data; // { task_id, charges }
+
+      return {
+        task_id: result.data.task_id,
+        charges: result.data.charges,
+        chargeId,
+      };
     } catch (error) {
       return rejectWithValue({
         message: error.message || "Failed to update charge",
         code: error.code,
         details: error.details,
+        chargeId,
       });
     }
   }
@@ -113,12 +141,18 @@ export const deleteCharge = createAsyncThunk(
           method: "DELETE",
         }
       );
-      return result.data; // { task_id, charges }
+
+      return {
+        task_id: result.data.task_id,
+        charges: extractChargesArray(result.data.charges),
+        chargeId, // Include chargeId for loading state tracking
+      };
     } catch (error) {
       return rejectWithValue({
         message: error.message || "Failed to delete charge",
         code: error.code,
         details: error.details,
+        chargeId, // Include chargeId for error tracking
       });
     }
   }
@@ -171,8 +205,8 @@ export const syncAssignments = createAsyncThunk(
           body: JSON.stringify({ user_ids, assigned_to_all }),
         }
       );
-     
-      return result.data; 
+
+      return result.data;
     } catch (error) {
       return rejectWithValue({
         message: error.message || "Failed to sync assignments",
@@ -196,6 +230,8 @@ const initialState = {
     charges: false,
     checklist: false,
     assignments: false,
+    // Track loading per charge ID
+    chargeOperations: {}, // { [chargeId]: 'adding' | 'updating' | 'deleting' }
   },
 
   // Error states
@@ -279,22 +315,24 @@ const taskDetailSlice = createSlice({
     builder
       .addCase(addCharge.pending, (state) => {
         state.loading.charges = true;
+        state.loading.chargeOperations["new"] = "adding";
         state.error.charges = null;
         state.success.chargeAdded = false;
       })
       .addCase(addCharge.fulfilled, (state, action) => {
         const { task_id, charges } = action.payload;
 
-        // Update charges in current task
         if (state.currentTask && state.currentTask.id === task_id) {
           state.currentTask.charges = charges;
         }
 
         state.loading.charges = false;
+        delete state.loading.chargeOperations["new"];
         state.success.chargeAdded = true;
       })
       .addCase(addCharge.rejected, (state, action) => {
         state.loading.charges = false;
+        delete state.loading.chargeOperations["new"];
         state.error.charges = action.payload?.message || "Failed to add charge";
       });
 
@@ -302,24 +340,31 @@ const taskDetailSlice = createSlice({
     // UPDATE CHARGE
     // ============================================
     builder
-      .addCase(updateCharge.pending, (state) => {
+      .addCase(updateCharge.pending, (state, action) => {
+        const chargeId = action.meta.arg.chargeId;
         state.loading.charges = true;
+        state.loading.chargeOperations[chargeId] = "updating";
         state.error.charges = null;
         state.success.chargeUpdated = false;
       })
       .addCase(updateCharge.fulfilled, (state, action) => {
-        const { task_id, charges } = action.payload;
+        const { task_id, charges, chargeId } = action.payload;
 
-        // Update charges in current task
+        // Update charges in current task with fresh array from server
         if (state.currentTask && state.currentTask.id === task_id) {
           state.currentTask.charges = charges;
         }
 
         state.loading.charges = false;
+        delete state.loading.chargeOperations[chargeId];
         state.success.chargeUpdated = true;
       })
       .addCase(updateCharge.rejected, (state, action) => {
+        const chargeId = action.payload?.chargeId;
         state.loading.charges = false;
+        if (chargeId) {
+          delete state.loading.chargeOperations[chargeId];
+        }
         state.error.charges =
           action.payload?.message || "Failed to update charge";
       });
@@ -328,24 +373,31 @@ const taskDetailSlice = createSlice({
     // DELETE CHARGE
     // ============================================
     builder
-      .addCase(deleteCharge.pending, (state) => {
+      .addCase(deleteCharge.pending, (state, action) => {
+        const chargeId = action.meta.arg.chargeId;
         state.loading.charges = true;
+        state.loading.chargeOperations[chargeId] = "deleting";
         state.error.charges = null;
         state.success.chargeDeleted = false;
       })
       .addCase(deleteCharge.fulfilled, (state, action) => {
-        const { task_id, charges } = action.payload;
+        const { task_id, charges, chargeId } = action.payload;
 
-        // Update charges in current task
+        // Update charges in current task with fresh array from server
         if (state.currentTask && state.currentTask.id === task_id) {
           state.currentTask.charges = charges;
         }
 
         state.loading.charges = false;
+        delete state.loading.chargeOperations[chargeId];
         state.success.chargeDeleted = true;
       })
       .addCase(deleteCharge.rejected, (state, action) => {
+        const chargeId = action.payload?.chargeId;
         state.loading.charges = false;
+        if (chargeId) {
+          delete state.loading.chargeOperations[chargeId];
+        }
         state.error.charges =
           action.payload?.message || "Failed to delete charge";
       });
@@ -387,7 +439,7 @@ const taskDetailSlice = createSlice({
       })
       .addCase(syncAssignments.fulfilled, (state, action) => {
         const { task_id, assigned_to_all, assignments } = action.payload;
-   
+
         // Update assignments in current task
         if (state.currentTask && state.currentTask.id === task_id) {
           state.currentTask.assigned_to_all = assigned_to_all;
@@ -420,35 +472,37 @@ export const {
 // SELECTORS
 // ============================================
 
-// Get current task
-export const selectCurrentTask = (state) => state.taskDetail.currentTask;
+const selectTaskDetailState = (state) => state.taskDetail || initialState;
 
-// Get charges
-export const selectCharges = (state) =>
-  state.taskDetail.currentTask?.charges || [];
+export const selectCurrentTask = (state) =>
+  selectTaskDetailState(state).currentTask;
 
-// Get checklist items
+export const selectCharges = (state) => {
+  const charges = selectTaskDetailState(state).currentTask?.charges;
+  return Array.isArray(charges) ? charges : [];
+};
+
 export const selectChecklistItems = (state) =>
-  state.taskDetail.currentTask?.checklist_items || [];
+  selectTaskDetailState(state).currentTask?.checklist_items || [];
 
-// Get assignments
 export const selectAssignments = (state) =>
-  state.taskDetail.currentTask?.assignments || [];
+  selectTaskDetailState(state).currentTask?.assignments || [];
 
-// Check if assigned to all
 export const selectIsAssignedToAll = (state) =>
-  state.taskDetail.currentTask?.is_assigned_to_all || false;
+  selectTaskDetailState(state).currentTask?.assigned_to_all || false;
 
-// Get loading states
 export const selectIsLoading = (state, type = "task") =>
-  state.taskDetail.loading[type];
+  selectTaskDetailState(state).loading?.[type] ?? false;
 
-// Get error states
 export const selectError = (state, type = "task") =>
-  state.taskDetail.error[type];
+  selectTaskDetailState(state).error?.[type] ?? null;
 
-// Get success states
-export const selectSuccess = (state, type) => state.taskDetail.success[type];
+export const selectSuccess = (state, type) =>
+  selectTaskDetailState(state).success?.[type] ?? false;
+
+// New selector for charge-specific loading states
+export const selectChargeOperation = (state, chargeId) =>
+  selectTaskDetailState(state).loading?.chargeOperations?.[chargeId] ?? null;
 
 // ============================================
 // EXPORT REDUCER

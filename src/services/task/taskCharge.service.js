@@ -1,5 +1,7 @@
 import { prisma } from "@/utils/server/db";
 import { NotFoundError } from "@/utils/server/errors";
+import { addTaskActivityLog } from "./taskComment.service";
+import { buildActivityMessage } from "@/utils/server/activityBulder";
 
 // helpers
 const taskExists = async (taskId) => {
@@ -17,8 +19,8 @@ const chargeExists = async (chargeId) => {
 };
 
 // list charges for reuse
-const fetchChargesForTask = (taskId) => {
-  return prisma.taskCharge.findMany({
+const fetchChargesForTask = async (taskId) => {
+  const res = await prisma.taskCharge.findMany({
     where: {
       task_id: taskId,
       deleted_at: null,
@@ -33,6 +35,7 @@ const fetchChargesForTask = (taskId) => {
       },
     },
   });
+  return res;
 };
 
 // CREATE charge
@@ -40,11 +43,11 @@ export const createTaskCharge = async (taskId, data, adminUserId) => {
   const exists = await taskExists(taskId);
   if (!exists) throw new NotFoundError("Task not found");
 
-  await prisma.taskCharge.create({
+  const charge = await prisma.taskCharge.create({
     data: {
       task_id: taskId,
       title: data.title,
-      amount: data.amount,
+      amount: data.amount.toString(),
       charge_type: data.charge_type,
       bearer: data.bearer,
       status: data.status,
@@ -52,17 +55,30 @@ export const createTaskCharge = async (taskId, data, adminUserId) => {
       created_by: adminUserId,
       updated_by: adminUserId,
     },
-    include: {
-      creator: {
-        select: { id: true, name: true, email: true },
-      },
-      updater: {
-        select: { id: true, name: true, email: true },
-      },
-    },
   });
 
   const charges = await fetchChargesForTask(taskId);
+
+  const changes = [
+    {
+      action: "CHARGE_CREATED",
+      from: null,
+      to: {
+        title: charge.title,
+        amount: charge.amount.toString(),
+        charge_type: charge.charge_type,
+        bearer: charge.bearer,
+        status: charge.status,
+        remark: charge.remark,
+      },
+    },
+  ];
+
+  await addTaskActivityLog(taskId, adminUserId, {
+    action: "TASK_UPDATED",
+    message: buildActivityMessage(changes),
+    meta: { changes },
+  });
 
   return {
     task_id: taskId,
@@ -72,34 +88,64 @@ export const createTaskCharge = async (taskId, data, adminUserId) => {
 
 // UPDATE charge
 export const updateTaskCharge = async (id, data, adminUserId) => {
-  const charge = await chargeExists(id);
-  if (!charge) throw new NotFoundError("Charge not found");
+  const previous = await chargeExists(id);
+  if (!previous) throw new NotFoundError("Charge not found");
 
-  await prisma.taskCharge.update({
+  const updated = await prisma.taskCharge.update({
     where: { id },
     data: {
       ...data,
       updated_by: adminUserId,
     },
-    include: {
-      creator: {
-        select: { id: true, name: true, email: true },
-      },
-      updater: {
-        select: { id: true, name: true, email: true },
-      },
-    },
   });
 
-  return fetchChargesForTask(charge.task_id);
-};
+  const from = {};
+  const to = {};
 
-// LIST charges
-export const listTaskCharges = async (taskId) => {
-  const exists = await taskExists(taskId);
-  if (!exists) throw new NotFoundError("Task not found");
+  const fields = [
+    "title",
+    "amount",
+    "charge_type",
+    "bearer",
+    "status",
+    "remark",
+  ];
 
-  return fetchChargesForTask(taskId);
+  for (const field of fields) {
+    if (data[field] !== undefined && data[field] !== previous[field]) {
+      from[field] = previous[field];
+      to[field] = updated[field];
+    }
+  }
+
+  if (Object.keys(from).length > 0) {
+    const titleChanged = "title" in from;
+
+    if (!titleChanged) {
+      from.title = previous.title;
+      to.title = data.title ?? previous.title;
+    }
+
+    const changes = [
+      {
+        action: "CHARGE_UPDATED",
+        from,
+        to,
+      },
+    ];
+
+    await addTaskActivityLog(previous.task_id, adminUserId, {
+      action: "TASK_UPDATED",
+      message: buildActivityMessage(changes),
+      meta: { changes },
+    });
+  }
+
+  const charges = await fetchChargesForTask(previous.task_id);
+  return {
+    task_id: previous.task_id,
+    charges,
+  };
 };
 
 // DELETE charge (soft delete)
@@ -115,10 +161,39 @@ export const deleteTaskCharge = async (id, adminUserId) => {
     },
   });
 
+  const changes = [
+    {
+      action: "CHARGE_DELETED",
+      from: {
+        title: charge.title,
+        amount: charge.amount.toString(),
+        charge_type: charge.charge_type,
+        bearer: charge.bearer,
+        status: charge.status,
+        remark: charge.remark,
+      },
+      to: null,
+    },
+  ];
+
+  await addTaskActivityLog(charge.task_id, adminUserId, {
+    action: "TASK_UPDATED",
+    message: buildActivityMessage(changes),
+    meta: { changes },
+  });
+
   const charges = await fetchChargesForTask(charge.task_id);
 
   return {
     task_id: charge.task_id,
     charges,
   };
+};
+
+// LIST charges
+export const listTaskCharges = async (taskId) => {
+  const exists = await taskExists(taskId);
+  if (!exists) throw new NotFoundError("Task not found");
+
+  return fetchChargesForTask(taskId);
 };
