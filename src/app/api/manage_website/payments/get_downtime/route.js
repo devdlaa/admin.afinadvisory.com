@@ -24,22 +24,24 @@ function formatDate(timestamp) {
 function aggregateDowntime(items) {
   const grouped = {};
 
-  items.forEach(item => {
+  items.forEach((item) => {
     const method = item.method;
     if (!grouped[method]) grouped[method] = [];
 
     let instrumentInfo = "";
     if (item.instrument) {
       if (item.instrument.bank) instrumentInfo = item.instrument.bank;
-      else if (item.instrument.vpa_handle) instrumentInfo = item.instrument.vpa_handle;
-      else if (item.instrument.network) instrumentInfo = item.instrument.network;
+      else if (item.instrument.vpa_handle)
+        instrumentInfo = item.instrument.vpa_handle;
+      else if (item.instrument.network)
+        instrumentInfo = item.instrument.network;
     }
 
     grouped[method].push({
-      status: item.status,                  // started / ended
-      severity: item.severity,              // high / medium / low
-      instrument: instrumentInfo,           // Bank, VPA, or Network
-      begin: formatDate(item.begin),        // Downtime started
+      status: item.status, // started / ended
+      severity: item.severity, // high / medium / low
+      instrument: instrumentInfo, // Bank, VPA, or Network
+      begin: formatDate(item.begin), // Downtime started
       end: item.end ? formatDate(item.end) : null,
       scheduled: item.scheduled,
       message: item.message || "",
@@ -47,7 +49,7 @@ function aggregateDowntime(items) {
   });
 
   // Format for dashboard card
-  const formatted = Object.keys(grouped).map(method => ({
+  const formatted = Object.keys(grouped).map((method) => ({
     method,
     issues: grouped[method],
   }));
@@ -57,10 +59,8 @@ function aggregateDowntime(items) {
 
 export async function GET(req) {
   try {
-
-     // Permission check placeholder
-        const permissionCheck = await requirePermission(req, "payments.access");
-        if (permissionCheck) return permissionCheck;
+    const [permissionError] = await requirePermission(req, "payments.access");
+    if (permissionError) return permissionError;
     // Fetch all payment downtime info
     const downtimeData = await razorpay.payments.fetchPaymentDowntime();
 

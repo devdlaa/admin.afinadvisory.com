@@ -30,7 +30,7 @@ export async function POST(request, { params }) {
     const result = await createTaskCharge(
       parsed.params.task_id,
       parsed.body,
-      session.user.id
+      session.user
     );
 
     return createSuccessResponse("Charge added successfully", result);
@@ -41,7 +41,7 @@ export async function POST(request, { params }) {
 
 export async function GET(request, { params }) {
   try {
-    const [permissionError] = await requirePermission(
+    const [permissionError,session] = await requirePermission(
       request,
       "tasks.charge.manage"
     );
@@ -53,7 +53,7 @@ export async function GET(request, { params }) {
       params: resolvedParams,
     });
 
-    const charges = await listTaskCharges(parsed.params.task_id);
+    const charges = await listTaskCharges(parsed.params.task_id,session.user);
 
     return createSuccessResponse(
       "Task charges retrieved successfully",

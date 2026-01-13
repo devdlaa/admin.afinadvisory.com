@@ -1,10 +1,12 @@
 import admin from "@/lib/firebase-admin";
 import { z } from "zod";
-import {   createSuccessResponse,
-  createErrorResponse, } from "@/utils/server/apiResponse";
+import {
+  createSuccessResponse,
+  createErrorResponse,
+} from "@/utils/server/apiResponse";
 
 const db = admin.firestore();
-
+import { requirePermission } from "@/utils/server/requirePermission";
 // ✅ Zod schema for request body
 const SearchSchema = z.object({
   searchValue: z.string().min(1, "Search value is required"),
@@ -16,6 +18,8 @@ const phoneRegex = /^\+?[0-9]{7,15}$/; // supports international format
 
 export async function POST(req) {
   try {
+    const [permissionError] = await requirePermission(req, "customers.access");
+    if (permissionError) return permissionError;
     const body = await req.json();
     const parse = SearchSchema.safeParse(body);
 
@@ -85,10 +89,7 @@ export async function POST(req) {
       phoneNumber: data.phoneNumber,
     };
 
-    return createSuccessResponse(
-      "Customer retrieved successfully",
-      customer
-    );
+    return createSuccessResponse("Customer retrieved successfully", customer);
   } catch (err) {
     console.error("Search customer API error:", err);
     return createErrorResponse(

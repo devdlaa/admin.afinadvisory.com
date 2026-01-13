@@ -4,13 +4,27 @@ import { addTaskActivityLog } from "./taskComment.service";
 import { buildActivityMessage } from "@/utils/server/activityBulder";
 
 // helpers
-const taskExists = async (taskId) => {
-  const task = await prisma.task.findUnique({
-    where: { id: taskId },
+export async function ensureUserCanAccessTask(taskId, user) {
+  if (user.admin_role === "SUPER_ADMIN") return true;
+
+  const task = await prisma.task.findFirst({
+    where: {
+      id: taskId,
+      OR: [
+        { created_by: user.id },
+        { assigned_to_all: true },
+        { assignments: { some: { admin_user_id: user.id } } },
+      ],
+    },
     select: { id: true },
   });
-  return !!task;
-};
+
+  if (!task) {
+    throw new ForbiddenError("You do not have access to this task");
+  }
+
+  return true;
+}
 
 const chargeExists = async (chargeId) => {
   return prisma.taskCharge.findUnique({
@@ -39,9 +53,8 @@ const fetchChargesForTask = async (taskId) => {
 };
 
 // CREATE charge
-export const createTaskCharge = async (taskId, data, adminUserId) => {
-  const exists = await taskExists(taskId);
-  if (!exists) throw new NotFoundError("Task not found");
+export const createTaskCharge = async (taskId, data, currentUser) => {
+  await ensureUserCanAccessTask(taskId, currentUser);
 
   const charge = await prisma.taskCharge.create({
     data: {
@@ -52,8 +65,8 @@ export const createTaskCharge = async (taskId, data, adminUserId) => {
       bearer: data.bearer,
       status: data.status,
       remark: data.remark ?? null,
-      created_by: adminUserId,
-      updated_by: adminUserId,
+      created_by: currentUser.id,
+      updated_by: currentUser.id,
     },
   });
 
@@ -74,28 +87,27 @@ export const createTaskCharge = async (taskId, data, adminUserId) => {
     },
   ];
 
-  await addTaskActivityLog(taskId, adminUserId, {
+  await addTaskActivityLog(taskId, currentUser.id, {
     action: "TASK_UPDATED",
     message: buildActivityMessage(changes),
     meta: { changes },
   });
 
-  return {
-    task_id: taskId,
-    charges,
-  };
+  return { task_id: taskId, charges };
 };
 
 // UPDATE charge
-export const updateTaskCharge = async (id, data, adminUserId) => {
+export const updateTaskCharge = async (id, data, currentUser) => {
   const previous = await chargeExists(id);
   if (!previous) throw new NotFoundError("Charge not found");
+
+  await ensureUserCanAccessTask(previous.task_id, currentUser);
 
   const updated = await prisma.taskCharge.update({
     where: { id },
     data: {
       ...data,
-      updated_by: adminUserId,
+      updated_by: currentUser.id,
     },
   });
 
@@ -134,7 +146,7 @@ export const updateTaskCharge = async (id, data, adminUserId) => {
       },
     ];
 
-    await addTaskActivityLog(previous.task_id, adminUserId, {
+    await addTaskActivityLog(previous.task_id, currentUser.id, {
       action: "TASK_UPDATED",
       message: buildActivityMessage(changes),
       meta: { changes },
@@ -149,15 +161,17 @@ export const updateTaskCharge = async (id, data, adminUserId) => {
 };
 
 // DELETE charge (soft delete)
-export const deleteTaskCharge = async (id, adminUserId) => {
+export const deleteTaskCharge = async (id, currentUser) => {
   const charge = await chargeExists(id);
   if (!charge) throw new NotFoundError("Charge not found");
+
+  await ensureUserCanAccessTask(charge.task_id, currentUser);
 
   await prisma.taskCharge.update({
     where: { id },
     data: {
       deleted_at: new Date(),
-      deleted_by: adminUserId,
+      deleted_by: currentUser.id,
     },
   });
 
@@ -176,7 +190,7 @@ export const deleteTaskCharge = async (id, adminUserId) => {
     },
   ];
 
-  await addTaskActivityLog(charge.task_id, adminUserId, {
+  await addTaskActivityLog(charge.task_id, currentUser.id, {
     action: "TASK_UPDATED",
     message: buildActivityMessage(changes),
     meta: { changes },
@@ -184,16 +198,11 @@ export const deleteTaskCharge = async (id, adminUserId) => {
 
   const charges = await fetchChargesForTask(charge.task_id);
 
-  return {
-    task_id: charge.task_id,
-    charges,
-  };
+  return { task_id: charge.task_id, charges };
 };
 
 // LIST charges
-export const listTaskCharges = async (taskId) => {
-  const exists = await taskExists(taskId);
-  if (!exists) throw new NotFoundError("Task not found");
-
+export const listTaskCharges = async (taskId, currentUser) => {
+  await ensureUserCanAccessTask(taskId, currentUser);
   return fetchChargesForTask(taskId);
 };

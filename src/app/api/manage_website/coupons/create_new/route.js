@@ -55,8 +55,8 @@ const couponSchema = z.object({
 
 export async function POST(req) {
   try {
-    const permissionCheck = await requirePermission(req, "coupons.create");
-    if (permissionCheck) return permissionCheck;
+    const [permissionError] = await requirePermission(req, "coupons.create");
+    if (permissionError) return permissionError;
 
     await connectToDatabase();
 

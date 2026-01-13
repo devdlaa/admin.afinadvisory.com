@@ -13,7 +13,7 @@ export async function POST(req, { params }) {
   try {
     const [permissionError] = await requirePermission(
       req,
-      "admin_users.manage"
+      "admin_users.update"
     );
     if (permissionError) return permissionError;
     const { id } = await params;

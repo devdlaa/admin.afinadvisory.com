@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import admin from "@/lib/firebase-admin";
 import { z } from "zod";
-
+import { requirePermission } from "@/utils/server/requirePermission";
 const db = admin.firestore();
 
 // Zod schema for input validation
@@ -20,6 +20,9 @@ function detectField(value) {
 
 export async function POST(req) {
   const startTime = Date.now();
+
+  const [permissionError] = await requirePermission(req, "influencers.access");
+  if (permissionError) return permissionError;
 
   try {
     const body = await req.json();
@@ -43,7 +46,7 @@ export async function POST(req) {
     }
 
     let influencers = [];
-    console.log("matchedField", matchedField);
+
     if (matchedField === "id") {
       const doc = await db.collection("influencers").doc(value).get();
       if (doc.exists) influencers.push({ id: doc.id, ...doc.data() });

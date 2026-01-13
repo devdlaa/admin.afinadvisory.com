@@ -4,9 +4,14 @@ import {
 } from "@/utils/server/apiResponse";
 import { requirePermission } from "@/utils/server/requirePermission";
 export async function GET(request) {
-  // Permission check
-  const permissionCheck = await requirePermission(request, "influencers.access");
-  if (permissionCheck) return permissionCheck;
+
+
+  
+      const [permissionError] = await requirePermission(
+      req,
+      "influencers.access"
+    );
+    if (permissionError) return permissionError;
 
   const brevoApiKey = process.env.BREVO_API_KEY;
   const brevoListId = process.env.BREVO_JOIN_PARRNTER_LIST_ID;

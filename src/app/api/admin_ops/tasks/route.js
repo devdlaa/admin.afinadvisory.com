@@ -1,5 +1,4 @@
-
-import { createTask,listTasks } from "@/services/task/task.service";
+import { createTask, listTasks } from "@/services/task/task.service";
 
 import { requirePermission } from "@/utils/server/requirePermission";
 import { schemas } from "@/schemas";
@@ -38,8 +37,6 @@ export async function GET(request) {
 
     const { searchParams } = new URL(request.url);
 
-
-
     const params = {
       page: searchParams.get("page"),
       page_size: searchParams.get("page_size"),
@@ -74,7 +71,7 @@ export async function GET(request) {
 
     const validatedParams = schemas.task.query.parse(params);
 
-    const result = await listTasks(validatedParams);
+    const result = await listTasks(validatedParams, session.user);
 
     return createSuccessResponse("Tasks retrieved successfully", result);
   } catch (error) {

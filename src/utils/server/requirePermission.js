@@ -1,13 +1,12 @@
-import { NextResponse } from "next/server";
 import { auth } from "@/utils/server/auth";
+import { prisma } from "@/utils/server/db";
+import { createErrorResponse } from "./apiResponse";
 
 export async function requirePermission(req, required) {
   const session = await auth();
 
-  // Not authenticated
   if (!session) {
-    const res = new NextResponse("Unauthorized", { status: 401 });
-    return [res, null];
+    return [createErrorResponse("Unauthorized", 401, "UNAUTHORIZED"), null];
   }
 
   if (
@@ -18,30 +17,49 @@ export async function requirePermission(req, required) {
     return [null, session];
   }
 
-  // Normalize required permissions into array
   const requiredArray = Array.isArray(required) ? required : [required];
-  const userPermissions = session.user?.permissions || [];
 
-  // Check permissions
+  const user = await prisma.adminUser.findUnique({
+    where: { id: session.user.id },
+    select: {
+      id: true,
+      status: true,
+      deleted_at: true,
+      permissions: {
+        select: {
+          permission: { select: { code: true } },
+        },
+      },
+    },
+  });
+
+  // 🚪 Account invalid → force logout
+  if (!user || user.deleted_at || user.status !== "ACTIVE") {
+    return [
+      createErrorResponse(
+        "Account is inactive or suspended",
+        401,
+        "ACCOUNT_DISABLED",
+        {
+          forceLogout: true,
+        }
+      ),
+      null,
+    ];
+  }
+
+  const userPermissions = user.permissions.map((p) => p.permission.code);
+
   const hasAll = requiredArray.every((perm) => userPermissions.includes(perm));
 
   if (!hasAll) {
-    const res = NextResponse.json(
-      {
-        success: false,
-        error: {
-          message: "Access Denied",
-          code: "",
-          details: {
-            errors: ["Access Denied", "Ask Admin to Provide Permission"],
-          },
-          timestamp: new Date().toISOString(),
-        },
-      },
-      { status: 403 }
-    );
-
-    return [res, session];
+    return [
+      createErrorResponse("Access Denied", 403, "PERMISSION_DENIED", {
+        forceLogout: false,
+        reason: "MISSING_PERMISSION",
+      }),
+      session,
+    ];
   }
 
   return [null, session];

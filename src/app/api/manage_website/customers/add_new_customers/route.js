@@ -10,8 +10,6 @@ import { auth as clientAuth } from "@/utils/server/auth";
 const db = admin.firestore();
 const auth = admin.auth();
 
-
-
 import { AddUserWithMandatoryEmailSchema as AddUserSchema } from "@/app/schemas/ClientSchema";
 
 // FIXED: Enhanced duplicate checking with proper error handling
@@ -90,17 +88,12 @@ export async function POST(req) {
 
   try {
     // FIXED: Properly handle session check
-    let session;
-    try {
-      session = await clientAuth();
-    } catch (authError) {
-      console.error("Authentication error:", authError);
-      return createErrorResponse("Authentication failed", 401, "AUTH_FAILED");
-    }
 
-    // Permission check - uncomment and configure based on your permission mapping
-    const permissionCheck = await requirePermission(req, "customers.create");
-    if (permissionCheck) return permissionCheck;
+    const [permissionError, session] = await requirePermission(
+      req,
+      "customers.create"
+    );
+    if (permissionError) return permissionError;
 
     // FIXED: Parse and validate request body with better error handling
     let body;

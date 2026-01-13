@@ -1,6 +1,6 @@
 import {
   createSuccessResponse,
-  handleApiError,
+  createErrorResponse,
 } from "@/utils/server/apiResponse";
 import { prisma } from "@/utils/server/db";
 import { requirePermission } from "@/utils/server/requirePermission";
@@ -32,6 +32,10 @@ export async function POST(request) {
 
     return createSuccessResponse("Token registered");
   } catch (err) {
-    return handleApiError(err);
+    return createErrorResponse(
+      "Failed to register token",
+      500,
+      "PUSH_TOKEN_ERROR"
+    );
   }
 }

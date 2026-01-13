@@ -1,12 +1,9 @@
-import admin from "@/lib/firebase-admin";
 import {
   createSuccessResponse,
   handleApiError,
 } from "@/utils/server/apiResponse";
 import { requirePermission } from "@/utils/server/requirePermission";
 import { markAllAsRead } from "@/services/shared/notifications.service";
-
-
 
 export async function POST(request) {
   try {

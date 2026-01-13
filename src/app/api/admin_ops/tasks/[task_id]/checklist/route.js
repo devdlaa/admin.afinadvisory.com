@@ -26,11 +26,7 @@ export async function POST(request, { params }) {
 
     const { items } = schemas.taskChecklist.sync.parse(body);
 
-    const result = await syncTaskChecklist(
-      parsedTaskId,
-      items,
-      session.user.id
-    );
+    const result = await syncTaskChecklist(parsedTaskId, items, session.user);
 
     return createSuccessResponse("Checklist synced successfully", result);
   } catch (err) {

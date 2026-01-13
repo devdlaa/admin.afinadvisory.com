@@ -40,12 +40,13 @@
       color: #3b82f6;
       margin-top: 4px;
       flex-shrink: 0;
+      display: none;
     }
 
     h2 {
       margin: 0 0 4px 0;
       font-size: 24px;
-      font-weight: 700;
+      font-weight: 600;
       color: #212529;
     }
 
@@ -315,19 +316,19 @@
     display: flex;
     gap: 12px;
     align-items: flex-start;
-    padding: 16px;
-    background-color: #f8f9fa;
+   
+
     border-radius: 12px;
-    border: 1px solid #e9ecef;
+  
     transition: all 0.2s;
 
     &:hover {
       border-color: #ced4da;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    
     }
 
     .fieldNumber {
-      display: flex;
+      display: none;
       align-items: center;
       justify-content: center;
       width: 32px;

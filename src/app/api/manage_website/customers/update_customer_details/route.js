@@ -197,9 +197,10 @@ export async function POST(req) {
   let requestBody;
 
   try {
-    // Permission check - uncomment and configure based on your permission mapping
-    const permissionCheck = await requirePermission(req, "customers.update");
-    if (permissionCheck) return permissionCheck;
+
+
+    const [permissionError] = await requirePermission(req, "customers.update");
+    if (permissionError) return permissionError;
 
     // Parse and validate request body
     try {
@@ -280,8 +281,6 @@ export async function POST(req) {
       }).filter(([_, v]) => v !== undefined && v !== null)
     );
 
-
-
     // Handle nested address updates (merge with existing)
     if (sanitizedUpdateData.address && currentData.address) {
       sanitizedUpdateData.address = {
@@ -299,7 +298,7 @@ export async function POST(req) {
         active: ["inactive", "suspended"],
         inactive: ["active"],
         suspended: ["active", "banned"],
-        banned: [], 
+        banned: [],
       };
 
       const currentStatus = currentData.accountStatus || "active";

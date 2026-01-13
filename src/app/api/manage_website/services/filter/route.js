@@ -2,9 +2,9 @@ import { NextResponse } from "next/server";
 import admin from "@/lib/firebase-admin";
 import { auth } from "@/utils/server/auth";
 import { z } from "zod";
+import { requirePermission } from "@/utils/server/requirePermission";
 
 const db = admin.firestore();
-const { Filter } = admin.firestore; // ✅ Import Filter
 
 // Kill switch from .env
 const FEATURE_ENABLED = process.env.ASSIGNMENT_FEATURE_ENABLED === "true";
@@ -88,13 +88,11 @@ export async function POST(req) {
   const startTime = Date.now();
 
   try {
-    const session = await auth();
-    if (!session || !session.user?.email) {
-      return NextResponse.json(
-        { success: false, message: "Unauthorized" },
-        { status: 401 }
-      );
-    }
+    const [permissionError, session] = await requirePermission(
+      req,
+      "bookings.access"
+    );
+    if (permissionError) return permissionError;
 
     const userEmail = session.user.email.toLowerCase();
     const userCode = session.user.userCode;

@@ -10,12 +10,12 @@ const db = admin.firestore();
 
 export async function POST(req) {
   try {
-    // Permission check placeholder
-    const permissionCheck = await requirePermission(
+    const [permissionError] = await requirePermission(
       req,
       "service_pricing.access"
     );
-    if (permissionCheck) return permissionCheck;
+    if (permissionError) return permissionError;
+
     const body = await req.json();
 
     // ✅ Validate body with zod

@@ -1,122 +1,99 @@
 import { NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 
-// ============================================================================
-// CONFIGURATION
-// ============================================================================
 const CONFIG = {
-  // Routes that require authentication
   PROTECTED_ROUTES: ["/dashboard"],
-
-  // Auth pages (redirect authenticated users away from these)
   AUTH_PAGES: ["/login", "/user-onboarding", "/reset-password"],
 
-  // Permission-based route access
-  PERMISSION_ROUTES: {
-    // "/dashboard/customers": ["customers.access"],
-    // "/dashboard/service-bookings": ["bookings.access"],
-    // "/dashboard/payments": ["payments.access"],
-    // "/dashboard/payment-links": ["bookings.create_new_link"],
-    // "/dashboard/service-pricing": ["service_pricing.access"],
-    // "/dashboard/marketing/partners": ["influencers.access"],
-    // "/dashboard/marketing/coupons": ["coupons.access"],
-    // "/dashboard/marketing/comissions": ["commissions.access"],
-    // "/dashboard/manage-team": ["users.access"],
-  },
+  PERMISSION_ROUTES: {},
 
-  // Public API routes (no auth required)
   PUBLIC_API_ROUTES: [
     "/api/auth",
+    "/api/auth/reset-identity",
+    "/api/auth/verify",
     "/api/auth/onboarding/initiate-onboarding",
     "/api/auth/onboarding/verify-onboarding",
     "/api/verify-turnstile",
-    "/api/admin/users/unlock-dashboard",
-    "/api/admin_ops/entity/unlock-dashboard",
-    "/api/admin_ops/notifications/test",
   ],
 
-  // Default redirects
   DEFAULT_LOGIN_REDIRECT: "/login",
-  DEFAULT_AUTH_REDIRECT: "/dashboard",
+  DEFAULT_AUTH_REDIRECT: "/dashboard/task-managment",
 };
 
-// ============================================================================
-// UTILITY FUNCTIONS
-// ============================================================================
+const ALLOWED_ORIGINS =
+  process.env.NODE_ENV === "production"
+    ? ["https://admin.afinadvisory.com"]
+    : ["http://localhost:3000", "https://admin.afinadvisory.com"];
 
-// Check if pathname matches any path in the array
 function matchesPath(pathname, paths) {
   return paths.some((path) => {
-    if (path.endsWith("*")) {
-      return pathname.startsWith(path.slice(0, -1));
-    }
+    if (path.endsWith("*")) return pathname.startsWith(path.slice(0, -1));
     return pathname === path || pathname.startsWith(path + "/");
   });
 }
 
-// Get required permissions for a route
 function getRequiredPermissions(pathname) {
-  // Exact match
-  if (CONFIG.PERMISSION_ROUTES[pathname]) {
+  if (CONFIG.PERMISSION_ROUTES[pathname])
     return CONFIG.PERMISSION_ROUTES[pathname];
-  }
 
-  // Wildcard match
-  for (const [route, permissions] of Object.entries(CONFIG.PERMISSION_ROUTES)) {
-    if (route.endsWith("*") && pathname.startsWith(route.slice(0, -1))) {
-      return permissions;
-    }
-    if (pathname.startsWith(route + "/")) {
-      return permissions;
-    }
+  for (const [route, perms] of Object.entries(CONFIG.PERMISSION_ROUTES)) {
+    if (route.endsWith("*") && pathname.startsWith(route.slice(0, -1)))
+      return perms;
+    if (pathname.startsWith(route + "/")) return perms;
   }
 
   return null;
 }
 
-// Check if user has required permissions
 function hasPermissions(token, pathname) {
   if (!token) return false;
 
-  // Dashboard is accessible to all authenticated users
-  if (pathname === "/dashboard") return true;
+  if (token.admin_role === "SUPER_ADMIN") return true;
 
-  const requiredPermissions = getRequiredPermissions(pathname);
+  const required = getRequiredPermissions(pathname);
+  if (!required) return true;
 
-  // No specific permissions required
-  if (!requiredPermissions) return true;
-
-  // Check if user has all required permissions
   const userPermissions = token.permissions || [];
-  return requiredPermissions.every((perm) => userPermissions.includes(perm));
+  return required.every((p) => userPermissions.includes(p));
 }
 
-// Add security headers
-function addSecurityHeaders(response) {
-  response.headers.set("X-Frame-Options", "DENY");
-  response.headers.set("X-Content-Type-Options", "nosniff");
-  response.headers.set("X-XSS-Protection", "1; mode=block");
-  response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
-  response.headers.set(
+function addSecurityHeaders(res) {
+  res.headers.set("X-Frame-Options", "DENY");
+  res.headers.set("X-Content-Type-Options", "nosniff");
+  res.headers.set("X-XSS-Protection", "1; mode=block");
+  res.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  res.headers.set(
     "Permissions-Policy",
     "camera=(), microphone=(), geolocation=()"
   );
-  return response;
+  return res;
 }
 
-// Create permission error response
-function createPermissionError(pathname, isApiRoute, req) {
-  if (isApiRoute) {
+function addCorsHeaders(req, res) {
+  const origin = req.headers.get("origin");
+
+  if (origin && ALLOWED_ORIGINS.includes(origin)) {
+    res.headers.set("Access-Control-Allow-Origin", origin);
+    res.headers.set(
+      "Access-Control-Allow-Methods",
+      "GET, POST, PUT, DELETE, OPTIONS"
+    );
+    res.headers.set(
+      "Access-Control-Allow-Headers",
+      "Content-Type, Authorization"
+    );
+    res.headers.set("Access-Control-Allow-Credentials", "true");
+  }
+}
+
+function createPermissionError(pathname, isApi, req) {
+  if (isApi) {
     return new NextResponse(
       JSON.stringify({
         error: "Insufficient permissions",
-        message: "You don't have permission to access this resource.",
         code: "PERMISSION_DENIED",
       }),
-      {
-        status: 403,
-        headers: { "Content-Type": "application/json" },
-      }
+      { status: 403, headers: { "Content-Type": "application/json" } }
     );
   }
 
@@ -125,53 +102,43 @@ function createPermissionError(pathname, isApiRoute, req) {
   return NextResponse.redirect(url);
 }
 
-// ============================================================================
-// MAIN MIDDLEWARE
-// ============================================================================
 export async function middleware(req) {
   const { pathname, search } = req.nextUrl;
   const url = req.nextUrl.clone();
 
-  // --- CORS Handling ---
-  const origin = req.headers.get("origin");
-  const allowedOrigins = [
-    "http://localhost:3000",
-    "https://admin.afinadvisory.com",
-  ];
-
-  if (allowedOrigins.includes(origin)) {
-    const corsHeaders = {
-      "Access-Control-Allow-Origin": origin,
-      "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type, Authorization",
-      "Access-Control-Allow-Credentials": "true",
-    };
-
-    if (req.method === "OPTIONS") {
-      return new NextResponse(null, { status: 204, headers: corsHeaders });
-    }
-
-    const res = NextResponse.next();
-    Object.entries(corsHeaders).forEach(([key, value]) => {
-      res.headers.set(key, value);
-    });
+  // Handle preflight safely
+  if (req.method === "OPTIONS") {
+    const res = new NextResponse(null, { status: 204 });
+    addCorsHeaders(req, res);
     return addSecurityHeaders(res);
   }
 
   try {
-    // --- Public API Routes (no auth needed) ---
+    // Public APIs
     if (matchesPath(pathname, CONFIG.PUBLIC_API_ROUTES)) {
-      return addSecurityHeaders(NextResponse.next());
+      const res = NextResponse.next();
+      addCorsHeaders(req, res);
+      return addSecurityHeaders(res);
     }
 
-    // --- Get Authentication Token ---
     const token = await getToken({
       req,
       secret: process.env.NEXTAUTH_SECRET,
       secureCookie: process.env.NODE_ENV === "production",
     });
 
-    // --- Dashboard Lock Check ---
+    // Block inactive users globally
+    if (token && token.status !== "ACTIVE") {
+      if (pathname.startsWith("/api/")) {
+        return new NextResponse(JSON.stringify({ error: "Account inactive" }), {
+          status: 403,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      return NextResponse.redirect(new URL("/login", req.url));
+    }
+
+    // Dashboard lock
     if (
       token?.isDashboardLocked &&
       !pathname.startsWith("/dashboard/locked") &&
@@ -190,23 +157,13 @@ export async function middleware(req) {
       );
     }
 
-    // --- Access Denied Page (requires auth) ---
-    if (pathname.startsWith("/dashboard/access-denied")) {
-      if (!token) {
-        const loginUrl = new URL(CONFIG.DEFAULT_LOGIN_REDIRECT, req.url);
-        loginUrl.searchParams.set("callbackUrl", "/dashboard");
-        return NextResponse.redirect(loginUrl);
-      }
-      return addSecurityHeaders(NextResponse.next());
-    }
-
-    // --- Root Route Redirect ---
+    // Root redirect
     if (pathname === "/") {
       url.pathname = token ? "/dashboard" : "/login";
       return NextResponse.redirect(url);
     }
 
-    // --- Protected Routes (require auth) ---
+    // Protected pages
     if (matchesPath(pathname, CONFIG.PROTECTED_ROUTES)) {
       if (!token) {
         const loginUrl = new URL(CONFIG.DEFAULT_LOGIN_REDIRECT, req.url);
@@ -214,13 +171,12 @@ export async function middleware(req) {
         return NextResponse.redirect(loginUrl);
       }
 
-      // Check permissions
       if (!hasPermissions(token, pathname)) {
         return createPermissionError(pathname, false, req);
       }
     }
 
-    // --- Auth Pages (redirect if already authenticated) ---
+    // Auth pages redirect
     if (token && matchesPath(pathname, CONFIG.AUTH_PAGES)) {
       const callbackUrl = req.nextUrl.searchParams.get("callbackUrl");
       url.pathname =
@@ -231,11 +187,8 @@ export async function middleware(req) {
       return NextResponse.redirect(url);
     }
 
-    // --- Protected API Routes ---
-    if (
-      pathname.startsWith("/api/") &&
-      !matchesPath(pathname, CONFIG.PUBLIC_API_ROUTES)
-    ) {
+    // Protected APIs
+    if (pathname.startsWith("/api/")) {
       if (!token) {
         return new NextResponse(
           JSON.stringify({ error: "Authentication required" }),
@@ -248,22 +201,15 @@ export async function middleware(req) {
       }
     }
 
-    // --- Allow Request ---
-    return addSecurityHeaders(NextResponse.next());
-  } catch (error) {
-    console.error("Middleware error:", error);
-    return new NextResponse(
-      process.env.NODE_ENV === "production"
-        ? "Internal Server Error"
-        : `Error: ${error.message}`,
-      { status: 500 }
-    );
+    const res = NextResponse.next();
+    addCorsHeaders(req, res);
+    return addSecurityHeaders(res);
+  } catch (err) {
+    console.error("Middleware error:", err);
+    return new NextResponse("Internal Server Error", { status: 500 });
   }
 }
 
-// ============================================================================
-// MIDDLEWARE CONFIGURATION
-// ============================================================================
 export const config = {
   matcher: [
     "/((?!_next/static|_next/image|favicon.ico|public|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",

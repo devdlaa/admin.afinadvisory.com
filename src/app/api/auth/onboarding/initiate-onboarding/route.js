@@ -27,7 +27,7 @@ const InitiateOnboardingSchema = z
   });
 
 // JWT secret for decoding invitation token
-const INVITE_JWT_SECRET = process.env.JWT_SECRET;
+const INVITE_JWT_SECRET = process.env.JWT_ADMIN_SECRET;
 const COMPANY_NAME = process.env.COMPANY_NAME || "AFINTHRIVE ADVISORY";
 
 // Hash function to match stored token hash

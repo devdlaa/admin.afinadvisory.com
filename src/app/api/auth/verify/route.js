@@ -28,7 +28,7 @@ export async function POST(request) {
     // Check deleted
     if (user.deleted_at) {
       return NextResponse.json(
-        { success: false, error: "This account has been deleted" },
+        { success: false, error: "Invalid credentials" },
         { status: 403 }
       );
     }
@@ -59,7 +59,7 @@ export async function POST(request) {
       return NextResponse.json(
         {
           success: false,
-          error: "Password not set. Please complete onboarding.",
+          error: "Please complete Account Setup.",
         },
         { status: 400 }
       );

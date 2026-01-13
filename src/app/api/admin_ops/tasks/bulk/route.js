@@ -22,7 +22,7 @@ export async function POST(request) {
     if (permissionError) return permissionError;
 
     const { searchParams } = new URL(request.url);
-    const action = searchParams.get("action"); // "status" | "priority"
+    const action = searchParams.get("action");
 
     const body = await request.json();
 
@@ -37,7 +37,7 @@ export async function POST(request) {
       result = await bulkUpdateTaskStatus(
         validated.task_ids,
         validated.status,
-        updated_by
+        session.user
       );
 
       return createSuccessResponse(
@@ -53,7 +53,7 @@ export async function POST(request) {
       result = await bulkUpdateTaskPriority(
         validated.task_ids,
         validated.priority,
-        updated_by
+        session.user
       );
 
       return createSuccessResponse(

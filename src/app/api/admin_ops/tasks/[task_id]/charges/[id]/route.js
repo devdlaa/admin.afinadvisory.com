@@ -31,7 +31,7 @@ export async function PATCH(request, { params }) {
     const updated = await updateTaskCharge(
       parsed.params.id,
       parsed.body,
-      session.user.id
+      session.user
     );
 
     return createSuccessResponse("Charge updated successfully", updated);
@@ -55,7 +55,7 @@ export async function DELETE(request, { params }) {
       params: resolvedParams,
     });
 
-    const deleted = await deleteTaskCharge(parsed.params.id, session.user.id);
+    const deleted = await deleteTaskCharge(parsed.params.id, session.user);
 
     return createSuccessResponse("Charge deleted successfully", deleted);
   } catch (error) {

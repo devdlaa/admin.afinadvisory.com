@@ -38,9 +38,9 @@ export async function PUT(req, { params }) {
     const p = await params;
     const admin_user_id = uuidSchema.parse(p.id);
 
-    const [permissionError, session] = await requirePermission(
+    const [permissionError] = await requirePermission(
       req,
-      "admin_users.manage"
+      "admin_users.update"
     );
     if (permissionError) return permissionError;
 
@@ -62,7 +62,6 @@ export async function PUT(req, { params }) {
       updatedPermissions
     );
   } catch (error) {
- 
     return handleApiError(error);
   }
 }

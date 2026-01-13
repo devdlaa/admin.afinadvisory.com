@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/utils/server/auth";
+
 import { markServiceFulfilledByAdmin } from "@/utils/server/service_mutation_helpers";
 import { requirePermission } from "@/utils/server/requirePermission";
 import { z } from "zod";
@@ -10,15 +10,11 @@ const bodySchema = z.object({
 
 export async function POST(req) {
   try {
-    // ✅ require all three permissions
-    const permissionCheck = await requirePermission(req, [
-      "bookings.access",
-      "bookings.mark_fulfilled",
-      "bookings.unmark_fulfilled",
-    ]);
-    if (permissionCheck) return permissionCheck;
-
-    const session = await auth();
+    const [permissionError, session] = await requirePermission(
+      req,
+      "bookings.access"
+    );
+    if (permissionError) return permissionError;
 
     const body = await req.json();
     const parsed = bodySchema.safeParse(body);

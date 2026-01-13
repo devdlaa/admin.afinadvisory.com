@@ -11,7 +11,7 @@ import {
   selectLoadingStates,
 } from "@/store/slices/servicesSlice";
 
-import { tabs, DEFAULT_ACTIONS, TAB_IDS } from "@/app/constants/bookings";
+import { tabs, DEFAULT_ACTIONS, TAB_IDS } from "@/constants/bookings";
 
 import {
   matchesTabFilter,

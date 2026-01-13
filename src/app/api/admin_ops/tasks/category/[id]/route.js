@@ -34,7 +34,7 @@ export async function PATCH(request, { params }) {
   try {
     const [permissionError, session] = await requirePermission(
       request,
-      "tasks.access"
+      "tasks.manage"
     );
     if (permissionError) return permissionError;
 
@@ -54,7 +54,7 @@ export async function PATCH(request, { params }) {
 
 export async function DELETE(request, { params }) {
   try {
-    const [permissionError,session] = await requirePermission(request, "tasks.access");
+    const [permissionError,session] = await requirePermission(request, "tasks.manage");
     if (permissionError) return permissionError;
 
     const { id } = schemas.taskCategory.id.parse(params);

@@ -11,17 +11,11 @@ import {
 
 import jwt from "jsonwebtoken";
 
-const JWT_SECRET = process.env.JWT_SECRET;
+const JWT_SECRET = process.env.JWT_ADMIN_SECRET;
 const INVITE_TOKEN_TTL = "24h";
 const RESEND_COOLDOWN_MINUTES = 15;
 const PASSWORD_RESET_COOLDOWN_MINUTES = 15;
 const ONBOARDING_RESET_COOLDOWN_MINUTES = 15;
-
-const ROLE_HIERARCHY = {
-  SUPER_ADMIN: 3,
-  ADMIN: 2,
-  VIEWER: 1,
-};
 
 const hashToken = (token) =>
   crypto.createHash("sha256").update(token).digest("hex");

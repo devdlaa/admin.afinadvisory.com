@@ -111,7 +111,7 @@ export async function POST(req) {
     // 7️⃣ Check if user is deleted
     if (user.deleted_at) {
       return NextResponse.json(
-        { success: false, error: "User account has been deleted" },
+        { success: false, error: "Invalid User Account" },
         { status: 403 }
       );
     }
@@ -214,7 +214,6 @@ export async function POST(req) {
       );
     }
 
-    console.error("Password reset error:", err);
     return NextResponse.json(
       { success: false, error: "Internal server error" },
       { status: 500 }

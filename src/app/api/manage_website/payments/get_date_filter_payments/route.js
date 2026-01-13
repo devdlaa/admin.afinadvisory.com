@@ -6,9 +6,8 @@ const DEFAULT_SKIP = 0;
 
 export async function POST(req) {
   try {
-    // Permission check placeholder
-    const permissionCheck = await requirePermission(req, "payments.access");
-    if (permissionCheck) return permissionCheck;
+    const [permissionError] = await requirePermission(req, "payments.access");
+    if (permissionError) return permissionError;
     const body = await req.json();
     const count = parseInt(body.count) || DEFAULT_COUNT;
     const skip = parseInt(body.skip) || DEFAULT_SKIP;

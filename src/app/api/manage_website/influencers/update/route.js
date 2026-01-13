@@ -263,8 +263,6 @@ async function rollbackAuthStatus(authUid, originalStatus) {
   }
 }
 
-
-
 export async function PATCH(req) {
   let db;
   let influencerId;
@@ -277,9 +275,11 @@ export async function PATCH(req) {
   };
 
   try {
-    // Permission check
-    const permissionCheck = await requirePermission(req, "influencers.update");
-    if (permissionCheck) return permissionCheck;
+    const [permissionError] = await requirePermission(
+      req,
+      "influencers.update"
+    );
+    if (permissionError) return permissionError;
 
     // Validate URL parameters
     const { searchParams } = new URL(req.url);

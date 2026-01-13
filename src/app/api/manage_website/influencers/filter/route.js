@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import admin from "@/lib/firebase-admin";
 import { z } from "zod";
+import { requirePermission } from "@/utils/server/requirePermission";
 
 const db = admin.firestore();
 
@@ -71,6 +72,9 @@ function getDateRange(quickRange) {
 
 export async function POST(req) {
   const startTime = Date.now();
+
+  const [permissionError] = await requirePermission(req, "influencers.access");
+  if (permissionError) return permissionError;
 
   try {
     const body = await req.json();

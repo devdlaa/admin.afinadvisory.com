@@ -1,3 +1,4 @@
+"use client";
 import { useState, useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { motion } from "framer-motion";
@@ -20,53 +21,11 @@ import {
   uploadProfileImage,
   deleteProfileImage,
 } from "@/store/slices/userSlice";
+import { getProfileUrl } from "@/utils/shared/shared_util";
 import "./EditUserDialog.scss";
 
 // Indian States from Prisma schema
-const INDIAN_STATES = [
-  { value: "ANDHRA_PRADESH", label: "Andhra Pradesh" },
-  { value: "ARUNACHAL_PRADESH", label: "Arunachal Pradesh" },
-  { value: "ASSAM", label: "Assam" },
-  { value: "BIHAR", label: "Bihar" },
-  { value: "CHHATTISGARH", label: "Chhattisgarh" },
-  { value: "GOA", label: "Goa" },
-  { value: "GUJARAT", label: "Gujarat" },
-  { value: "HARYANA", label: "Haryana" },
-  { value: "HIMACHAL_PRADESH", label: "Himachal Pradesh" },
-  { value: "JHARKHAND", label: "Jharkhand" },
-  { value: "KARNATAKA", label: "Karnataka" },
-  { value: "KERALA", label: "Kerala" },
-  { value: "MADHYA_PRADESH", label: "Madhya Pradesh" },
-  { value: "MAHARASHTRA", label: "Maharashtra" },
-  { value: "MANIPUR", label: "Manipur" },
-  { value: "MEGHALAYA", label: "Meghalaya" },
-  { value: "MIZORAM", label: "Mizoram" },
-  { value: "NAGALAND", label: "Nagaland" },
-  { value: "ODISHA", label: "Odisha" },
-  { value: "PUNJAB", label: "Punjab" },
-  { value: "RAJASTHAN", label: "Rajasthan" },
-  { value: "SIKKIM", label: "Sikkim" },
-  { value: "TAMIL_NADU", label: "Tamil Nadu" },
-  { value: "TELANGANA", label: "Telangana" },
-  { value: "TRIPURA", label: "Tripura" },
-  { value: "UTTAR_PRADESH", label: "Uttar Pradesh" },
-  { value: "UTTARAKHAND", label: "Uttarakhand" },
-  { value: "WEST_BENGAL", label: "West Bengal" },
-  {
-    value: "ANDAMAN_AND_NICOBAR_ISLANDS",
-    label: "Andaman and Nicobar Islands",
-  },
-  { value: "CHANDIGARH", label: "Chandigarh" },
-  {
-    value: "DADRA_AND_NAGAR_HAVELI_AND_DAMAN_AND_DIU",
-    label: "Dadra and Nagar Haveli and Daman and Diu",
-  },
-  { value: "DELHI", label: "Delhi" },
-  { value: "JAMMU_AND_KASHMIR", label: "Jammu and Kashmir" },
-  { value: "LADAKH", label: "Ladakh" },
-  { value: "LAKSHADWEEP", label: "Lakshadweep" },
-  { value: "PUDUCHERRY", label: "Puducherry" },
-];
+import { INDIAN_STATES } from "@/utils/server/utils";
 
 const EditUserDialog = ({ open, onClose, user }) => {
   const dispatch = useDispatch();
@@ -87,8 +46,8 @@ const EditUserDialog = ({ open, onClose, user }) => {
   });
 
   const [errors, setErrors] = useState({});
-  const [profileImageUrl, setProfileImageUrl] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
+  const [imageError, setImageError] = useState(false);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -104,7 +63,9 @@ const EditUserDialog = ({ open, onClose, user }) => {
         state: user.state || "",
       });
 
-      setImagePreview(null);
+      // Set initial image preview using getProfileUrl
+      setImagePreview(getProfileUrl(user.id));
+      setImageError(false);
     }
   }, [user]);
 
@@ -158,20 +119,25 @@ const EditUserDialog = ({ open, onClose, user }) => {
   const handleImageUpload = async (file) => {
     try {
       await dispatch(uploadProfileImage({ userId: user.id, file })).unwrap();
+
+      setImagePreview(getProfileUrl(user.id) + `?t=${Date.now()}`);
+      setImageError(false);
       setErrors((prev) => ({ ...prev, image: "" }));
     } catch (err) {
-      console.error("Failed to upload image:", err);
-      setImagePreview(null);
+      alert("Failed to upload image:");
+
+      setImagePreview(getProfileUrl(user.id));
+      setImageError(false);
     }
   };
 
   const handleImageDelete = async () => {
-    if (!profileImageUrl && !imagePreview) return;
+    if (!imagePreview) return;
 
     try {
       await dispatch(deleteProfileImage({ userId: user.id })).unwrap();
-      setProfileImageUrl(null);
       setImagePreview(null);
+      setImageError(true);
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
@@ -256,7 +222,15 @@ const EditUserDialog = ({ open, onClose, user }) => {
 
   if (!open || !user) return null;
 
-  const currentImageUrl = imagePreview || profileImageUrl;
+  // Get initials for avatar fallback
+  const getInitials = (name) => {
+    if (!name) return "U";
+    const parts = name.trim().split(" ");
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    }
+    return name.slice(0, 2).toUpperCase();
+  };
 
   return (
     <div className="eu-dialog-backdrop" onClick={handleBackdropClick}>
@@ -317,12 +291,18 @@ const EditUserDialog = ({ open, onClose, user }) => {
             <div className="eu-user-header">
               <div className="eu-profile-image-section">
                 <div className="eu-profile-image-container">
-                  <Avatar
-                    src={getProfileUrl(user.id)}
-                    alt={user.name}
-                    size={32}
-                    fallbackText={user.name}
-                  />
+                  {imagePreview && !imageError ? (
+                    <img
+                      src={imagePreview}
+                      alt={user.name}
+                      className="eu-profile-image"
+                      onError={() => setImageError(true)}
+                    />
+                  ) : (
+                    <div className="eu-profile-image-fallback">
+                      <span>{getInitials(user.name)}</span>
+                    </div>
+                  )}
 
                   {uploadingImage && (
                     <div className="eu-image-uploading-overlay">
@@ -362,12 +342,12 @@ const EditUserDialog = ({ open, onClose, user }) => {
                     ) : (
                       <>
                         <Camera size={14} />
-                        {currentImageUrl ? "Change" : "Upload"}
+                        {imagePreview && !imageError ? "Change" : "Upload"}
                       </>
                     )}
                   </button>
 
-                  {currentImageUrl && (
+                  {imagePreview && !imageError && (
                     <button
                       type="button"
                       className="eu-image-action-btn eu-delete-btn"
@@ -383,14 +363,6 @@ const EditUserDialog = ({ open, onClose, user }) => {
                 {errors.image && (
                   <span className="eu-error-text">{errors.image}</span>
                 )}
-              </div>
-
-              <div className="eu-user-meta">
-                <span>
-                  <h3>{user.name}</h3>
-                  <p>{user.email}</p>
-                </span>
-                <span className="eu-employee-code">{user.user_code}</span>
               </div>
             </div>
 

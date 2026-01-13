@@ -59,8 +59,8 @@ const couponUpdateSchema = z.object({
 
 export async function PATCH(req, context) {
   try {
-    const permissionCheck = await requirePermission(req, "coupons.update");
-    if (permissionCheck) return permissionCheck;
+    const [permissionError] = await requirePermission(req, "coupons.update");
+    if (permissionError) return permissionError;
     await connectToDatabase();
     const { id } = context.params;
 

@@ -37,7 +37,7 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
-    const [permissionError,session] = await requirePermission(request, "tasks.access");
+    const [permissionError,session] = await requirePermission(request, "tasks.manage");
     if (permissionError) return permissionError;
 
     const body = await request.json();

@@ -1,4 +1,4 @@
-import { tabs,TAB_IDS,STATUS } from "@/app/constants/bookings";
+import { tabs,TAB_IDS,STATUS } from "@/constants/bookings";
 export const matchesTabFilter = (booking, tabId) => {
   const isNotAssigned =
     booking?.assignmentManagement?.members?.length <= 0 &&

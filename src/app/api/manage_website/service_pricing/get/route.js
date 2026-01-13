@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
-
+import { requirePermission } from "@/utils/server/requirePermission";
 export async function GET() {
   try {
+    const [permissionError] = await requirePermission(req);
+    if (permissionError) return permissionError;
+
     const configDir = path.join(process.cwd(), "src/config/pricing");
 
     // Find the latest generated static JSON file

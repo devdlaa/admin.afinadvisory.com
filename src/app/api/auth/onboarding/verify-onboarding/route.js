@@ -16,7 +16,7 @@ const VerifyOnboardingSchema = z.object({
 });
 
 // JWT secret
-const INVITE_JWT_SECRET = process.env.JWT_SECRET;
+const INVITE_JWT_SECRET = process.env.JWT_ADMIN_SECRET;
 const OWNER_EMAIL = process.env.OWNER_EMAIL;
 
 // Hash function to match stored token hash

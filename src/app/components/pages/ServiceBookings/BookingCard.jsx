@@ -8,7 +8,7 @@ import {
   CircleCheck,
 } from "lucide-react";
 import { formatDate, truncateText } from "@/utils/server/utils";
-import { statusConfig }   from "@/app/constants/bookings";
+import { statusConfig }   from "@/constants/bookings";
 import "./BookingCard.scss";
 
 const StatusBadge = React.memo(({ status }) => {

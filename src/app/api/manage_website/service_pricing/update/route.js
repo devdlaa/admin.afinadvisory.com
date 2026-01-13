@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { z, ZodError } from "zod";
 import admin from "@/lib/firebase-admin";
-import { auth } from "@/utils/server/auth";
 
 import { requirePermission } from "@/utils/server/requirePermission";
 
@@ -115,7 +114,7 @@ async function triggerClientRevalidation(slug, serviceId) {
   try {
     // Trigger Next.js revalidation
     if (CLIENT_REVALIDATE_SECRET) {
-      console.log("CLIENT_REVALIDATE_SECRET",CLIENT_REVALIDATE_SECRET);
+      console.log("CLIENT_REVALIDATE_SECRET", CLIENT_REVALIDATE_SECRET);
       const revalidateRes = await fetch(`${CLIENT_BASE_URL}/api/revalidate`, {
         method: "POST",
         headers: {
@@ -158,13 +157,11 @@ const db = admin.firestore();
 
 export async function POST(req) {
   try {
-    const session = await auth();
-    // TODO: Add permission check
-    const permissionCheck = await requirePermission(
+    const [permissionError, session] = await requirePermission(
       req,
       "service_pricing.update"
     );
-    if (permissionCheck) return permissionCheck;
+    if (permissionError) return permissionError;
 
     // Parse request body
     let body;
@@ -178,15 +175,11 @@ export async function POST(req) {
       );
     }
 
-   
-
     // Validate input using Zod schema
     let validatedData;
     try {
       validatedData = schema.parse(body);
-      console.log("validatedData",body);
     } catch (validationError) {
-           console.log("validatedData",body);
       if (validationError instanceof ZodError) {
         const formattedErrors = validationError?.errors?.map((error) => ({
           field: error.path.join("."),
@@ -372,7 +365,3 @@ export async function POST(req) {
     );
   }
 }
-
-
-
-

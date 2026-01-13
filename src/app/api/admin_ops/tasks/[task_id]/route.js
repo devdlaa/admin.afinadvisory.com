@@ -21,12 +21,12 @@ const uuidSchema = z.string().uuid("Invalid task ID format");
 // -------------------- GET --------------------
 export async function GET(request, { params }) {
   try {
-    const [permissionError] = await requirePermission(request, "tasks.access");
+    const [permissionError,session] = await requirePermission(request, "tasks.access");
     if (permissionError) return permissionError;
 
     const task_id = uuidSchema.parse((await params).task_id);
 
-    const result = await getTaskById(task_id);
+    const result = await getTaskById(task_id,session.user);
 
     return createSuccessResponse("Task retrieved successfully", result);
   } catch (error) {
@@ -65,7 +65,7 @@ export async function PATCH(request, { params }) {
       );
     }
 
-    const result = await updateTask(task_id, validatedData, session.user.id);
+    const result = await updateTask(task_id, validatedData, session.user);
 
     return createSuccessResponse("Task updated successfully", result);
   } catch (error) {
@@ -86,7 +86,7 @@ export async function DELETE(request, { params }) {
 
     const task_id = uuidSchema.parse((await params).task_id);
 
-    const result = await deleteTask(task_id, session.user.id);
+    const result = await deleteTask(task_id, session.user);
 
     return createSuccessResponse("Task deleted successfully", result);
   } catch (error) {

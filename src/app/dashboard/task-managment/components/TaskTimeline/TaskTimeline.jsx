@@ -57,16 +57,42 @@ const renderChangeDetails = (changes = []) => {
   return (
     <div className={styles.activityDetails}>
       {changes.map((change, idx) => {
-        const from = change.from || {};
-        const to = change.to || {};
+        const from = change.from;
+        const to = change.to;
 
-        const keys = new Set([...Object.keys(from), ...Object.keys(to)]);
+
+        if (
+          (typeof from !== "object" || from === null) &&
+          (typeof to !== "object" || to === null)
+        ) {
+          return (
+            <div key={idx} className={styles.activityChangeBlock}>
+              <div className={styles.activityDetailRow}>
+                <span className={styles.activityDetailLabel}>
+                  {humanizeKey(change.action || "Change")}
+                </span>
+                <span className={styles.activityDetailFrom}>
+                  {formatValue(from)}
+                </span>
+                <span className={styles.activityArrow}>→</span>
+                <span className={styles.activityDetailTo}>
+                  {formatValue(to)}
+                </span>
+              </div>
+            </div>
+          );
+        }
+
+        // For objects, iterate over keys
+        const fromObj = from || {};
+        const toObj = to || {};
+        const keys = new Set([...Object.keys(fromObj), ...Object.keys(toObj)]);
 
         return (
           <div key={idx} className={styles.activityChangeBlock}>
             {[...keys].map((key) => {
-              const a = from[key];
-              const b = to[key];
+              const a = fromObj[key];
+              const b = toObj[key];
 
               if (JSON.stringify(a) === JSON.stringify(b)) return null;
 
@@ -202,14 +228,12 @@ const TaskTimeline = ({ taskId, task }) => {
     const value = e.target.value;
     const cursorPos = e.target.selectionStart;
 
-
     setMessage(value);
 
     const textBeforeCursor = value.slice(0, cursorPos);
 
     // detect @ trigger
     if (textBeforeCursor.endsWith("@")) {
-   
       setIsMentioning(true);
       setMentionQuery("");
       setShowMentions(true);
@@ -279,12 +303,11 @@ const TaskTimeline = ({ taskId, task }) => {
       name: u.name,
     }));
 
-
     if (editingCommentId) {
       dispatch(
         updateComment({
           taskId,
-          commentId : editingCommentId,
+          commentId: editingCommentId,
           message: message.trim(),
           mentions,
         })
@@ -319,7 +342,6 @@ const TaskTimeline = ({ taskId, task }) => {
 
   // Start editing
   const handleStartEdit = (comment) => {
-
     setEditingCommentId(comment.id);
     setMessage(comment.message);
     setMentionedUsers(comment.mentions || []);

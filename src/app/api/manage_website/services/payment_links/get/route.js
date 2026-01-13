@@ -14,12 +14,11 @@ export async function POST(req) {
   const startTime = Date.now();
 
   try {
-            // Permission check placeholder
-    const permissionCheck = await requirePermission(
+    const [permissionError] = await requirePermission(
       req,
       "payment_link.access"
     );
-    if (permissionCheck) return permissionCheck;
+    if (permissionError) return permissionError;
 
     const body = await req.json();
     const parse = PaginationSchema.safeParse(body);
@@ -65,7 +64,9 @@ export async function POST(req) {
       resultsCount: payment_links.length,
       payment_links,
       hasMore,
-      cursor: payment_links.length ? payment_links[payment_links.length - 1].id : null,
+      cursor: payment_links.length
+        ? payment_links[payment_links.length - 1].id
+        : null,
       meta: {
         executionTimeMs,
         requestedLimit: limit,

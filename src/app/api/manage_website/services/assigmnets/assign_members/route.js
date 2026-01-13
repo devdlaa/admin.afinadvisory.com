@@ -19,12 +19,11 @@ const payloadSchema = z.object({
 
 export async function POST(req) {
   try {
-    // 1) permission guard
-    const permissionCheck = await requirePermission(
+    const [permissionError] = await requirePermission(
       req,
       "bookings.assign_member"
     );
-    if (permissionCheck) return permissionCheck;
+    if (permissionError) return permissionError;
 
     // 2) session check
     const session = await auth();

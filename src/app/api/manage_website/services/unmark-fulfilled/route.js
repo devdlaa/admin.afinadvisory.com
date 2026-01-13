@@ -10,10 +10,13 @@ const bodySchema = z.object({
 
 export async function POST(req) {
   try {
-    const permissionCheck = await requirePermission(req, [
-      "bookings.unmark_fulfilled",
-    ]);
-    if (permissionCheck) return permissionCheck;
+   
+
+    const [permissionError] = await requirePermission(
+      req,
+      "bookings.unmark_fulfilled"
+    );
+    if (permissionError) return permissionError;
 
     const body = await req.json();
     const session = await auth();

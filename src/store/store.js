@@ -18,6 +18,7 @@ import taskReducer from "./slices/taskSlice";
 import TaskDetailReducer from "./slices/taskDetailsSlice";
 import taskCategoryReducer from "./slices/taskCategorySlice";
 import TaskTimelineReducer from "./slices/taskTimelineSlice";
+import { forceLogoutMiddleware } from "@/lib/forceLogoutMiddleware";
 
 export const store = configureStore({
   reducer: {
@@ -39,7 +40,9 @@ export const store = configureStore({
     taskTimeline: TaskTimelineReducer,
   },
   middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware().concat(toastMiddleware),
+    getDefaultMiddleware()
+      .concat(forceLogoutMiddleware) // 👈 add here
+      .concat(toastMiddleware),
 });
 
 /* -----------------------------

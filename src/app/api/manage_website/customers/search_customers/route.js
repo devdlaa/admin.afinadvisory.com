@@ -1,9 +1,12 @@
 import admin from "@/lib/firebase-admin";
 import { z } from "zod";
-import {   createSuccessResponse,
-  createErrorResponse, } from "@/utils/server/apiResponse";
+import {
+  createSuccessResponse,
+  createErrorResponse,
+} from "@/utils/server/apiResponse";
 
 const db = admin.firestore();
+import { requirePermission } from "@/utils/server/requirePermission";
 
 // ✅ Zod schema for input validation
 const SearchSchema = z.object({
@@ -20,6 +23,9 @@ function detectField(value) {
 
 export async function POST(req) {
   const startTime = Date.now();
+
+  const [permissionError] = await requirePermission(req, "customers.access");
+  if (permissionError) return permissionError;
 
   try {
     const body = await req.json();

@@ -2,16 +2,21 @@ import { NextResponse } from "next/server";
 import admin from "@/lib/firebase-admin";
 import { z } from "zod";
 
+import { requirePermission } from "@/utils/server/requirePermission";
+
 const db = admin.firestore();
 
 // Zod schema for pagination input
 const PaginationSchema = z.object({
   limit: z.number().int().positive().max(50).default(10),
-  cursor: z.string().optional(), 
+  cursor: z.string().optional(),
 });
 
 export async function POST(req) {
   const startTime = Date.now();
+
+  const [permissionError] = await requirePermission(req, "influencers.access");
+  if (permissionError) return permissionError;
 
   try {
     const body = await req.json();
@@ -44,7 +49,7 @@ export async function POST(req) {
 
     const hasMore = docs.length > limit;
     const influncers = hasMore ? docs.slice(0, limit) : docs;
-    
+
     const executionTimeMs = Date.now() - startTime;
 
     return NextResponse.json({

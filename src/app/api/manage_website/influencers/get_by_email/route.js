@@ -4,6 +4,7 @@ import {
   createSuccessResponse,
   createErrorResponse,
 } from "@/utils/server/apiResponse";
+import { requirePermission } from "@/utils/server/requirePermission";
 
 const db = admin.firestore();
 
@@ -14,6 +15,9 @@ const EmailSchema = z.object({
 
 export async function POST(req) {
   const startTime = Date.now();
+
+  const [permissionError] = await requirePermission(req, "influencers.access");
+  if (permissionError) return permissionError;
 
   try {
     // Parse request body

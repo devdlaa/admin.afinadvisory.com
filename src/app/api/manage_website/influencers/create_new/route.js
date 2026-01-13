@@ -1,6 +1,6 @@
 import admin from "@/lib/firebase-admin";
 import { z, ZodError } from "zod";
-import { auth } from "@/utils/server/auth";
+
 import { v4 as uuidv4 } from "uuid";
 import { SEND_EMAIL } from "@/utils/server/sendemail";
 
@@ -225,7 +225,6 @@ async function cleanupAuth(uid) {
   try {
     if (uid) {
       await admin.auth().deleteUser(uid);
-  
     }
   } catch (error) {
     console.error(`Failed to rollback auth user ${uid}:`, error);
@@ -250,11 +249,11 @@ export async function POST(req) {
   let resetLink = null;
 
   try {
-    const session = await auth();
-
-    // Check permissions
-    const permissionCheck = await requirePermission(req, "influencers.create");
-    if (permissionCheck) return permissionCheck;
+    const [permissionError, session] = await requirePermission(
+      req,
+      "influencers.create"
+    );
+    if (permissionError) return permissionError;
 
     const db = admin.firestore();
 
@@ -314,8 +313,6 @@ export async function POST(req) {
       const existingAuthUser = await admin
         .auth()
         .getUserByEmail(validatedData.email);
-
-  
 
       return createErrorResponse(
         "Existing Account: Email Already in Use",
@@ -406,8 +403,6 @@ export async function POST(req) {
           url:
             process.env.NEXT_PUBLIC_APP_URL || "https://share.afinadvisory.com",
         });
-
-  
     } catch (resetLinkError) {
       console.error("Failed to generate password reset link:", resetLinkError);
 
@@ -456,7 +451,6 @@ export async function POST(req) {
       };
 
       await db.collection("influencers").doc(id).set(influencerDoc);
- 
     } catch (firestoreError) {
       console.error("Failed to create Firestore document:", firestoreError);
 
@@ -488,8 +482,6 @@ export async function POST(req) {
           expiryHours: 24,
         },
       });
-
-
     } catch (emailError) {
       console.error("Failed to send password reset email:", emailError);
 

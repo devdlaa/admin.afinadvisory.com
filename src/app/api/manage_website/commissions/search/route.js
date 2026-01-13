@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import admin from "@/lib/firebase-admin";
 import { z } from "zod";
+import { requirePermission } from "@/utils/server/requirePermission";
 
 const db = admin.firestore();
 
@@ -25,6 +26,12 @@ function detectField(value) {
 }
 
 export async function POST(req) {
+  const [permissionError, session] = await requirePermission(
+    req,
+    "commissions.access"
+  );
+  if (permissionError) return permissionError;
+
   const startTime = Date.now();
 
   try {

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import admin from "@/lib/firebase-admin";
 import { z } from "zod";
+import { requirePermission } from "@/utils/server/requirePermission";
 
 const db = admin.firestore();
 
@@ -11,6 +12,12 @@ const PaginationSchema = z.object({
 });
 
 export async function POST(req) {
+  const [permissionError, session] = await requirePermission(
+    req,
+    "commissions.access"
+  );
+  if (permissionError) return permissionError;
+
   const startTime = Date.now();
 
   try {
@@ -40,7 +47,6 @@ export async function POST(req) {
 
     const snap = await query.get();
 
-  
     const docs = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
 
     const hasMore = docs.length > limit;
@@ -53,7 +59,9 @@ export async function POST(req) {
       resultsCount: commissions.length,
       commissions,
       hasMore,
-      cursor: commissions.length ? commissions[commissions.length - 1].id : null, 
+      cursor: commissions.length
+        ? commissions[commissions.length - 1].id
+        : null,
       meta: {
         executionTimeMs,
         requestedLimit: limit,

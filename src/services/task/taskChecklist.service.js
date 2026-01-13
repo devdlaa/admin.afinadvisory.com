@@ -1,13 +1,44 @@
 import { prisma } from "@/utils/server/db";
 
 import { NotFoundError } from "@/utils/server/errors";
-export const syncTaskChecklist = async (task_id, items, user_id) => {
-  return prisma.$transaction(async (tx) => {
+
+async function ensureUserCanAccessTask(tx, task_id, user) {
+  if (user.admin_role === "SUPER_ADMIN") {
     const task = await tx.task.findUnique({
       where: { id: task_id },
+      select: { id: true },
     });
-
     if (!task) throw new NotFoundError("Task not found");
+    return task;
+  }
+
+  const task = await tx.task.findFirst({
+    where: {
+      id: task_id,
+      OR: [
+        { created_by: user.id },
+        { assigned_to_all: true },
+        {
+          assignments: {
+            some: { admin_user_id: user.id },
+          },
+        },
+      ],
+    },
+    select: { id: true },
+  });
+
+  if (!task) {
+    throw new ForbiddenError("You do not have access to this task");
+  }
+
+  return task;
+}
+
+export const syncTaskChecklist = async (task_id, items, currentUser) => {
+  return prisma.$transaction(async (tx) => {
+    // 🔐 Enforce task visibility
+    await ensureUserCanAccessTask(tx, task_id, currentUser);
 
     const existing = await tx.taskChecklistItem.findMany({
       where: { task_id },
@@ -37,7 +68,7 @@ export const syncTaskChecklist = async (task_id, items, user_id) => {
             title: item.title,
             is_done: item.is_done,
             order: item.order ?? 0,
-            updated_by: user_id, 
+            updated_by: currentUser.id,
           },
         });
       } else {
@@ -47,8 +78,8 @@ export const syncTaskChecklist = async (task_id, items, user_id) => {
             title: item.title,
             is_done: item.is_done ?? false,
             order: item.order ?? 0,
-            created_by: user_id,
-            updated_by: user_id, 
+            created_by: currentUser.id,
+            updated_by: currentUser.id,
           },
         });
       }

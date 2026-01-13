@@ -2,11 +2,18 @@ import { NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
 import fs from "fs/promises";
 import path from "path";
+import { requirePermission } from "@/utils/server/requirePermission";
 
 const prisma = new PrismaClient();
 
 export async function GET() {
   try {
+    const [permissionError] = await requirePermission(
+      req,
+      "admin_users.access"
+    );
+    if (permissionError) return permissionError;
+
     // 1) load roles + roleDefaults from JSON file
     const filePath = path.join(
       process.cwd(),

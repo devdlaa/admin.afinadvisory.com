@@ -1,9 +1,13 @@
 import { NextResponse } from "next/server";
 import admin from "@/lib/firebase-admin";
+import { requirePermission } from "@/utils/server/requirePermission";
 
 // GET /api/admin/booking-stats
 export async function GET() {
   try {
+    const [permissionError] = await requirePermission(req, "bookings.access");
+    if (permissionError) return permissionError;
+
     const db = admin.firestore();
     const docRef = db
       .collection("service_quick_states")

@@ -18,9 +18,8 @@ const deleteCouponSchema = z.object({
 
 export async function DELETE(req) {
   try {
-    // Permission check placeholder
-    const permissionCheck = await requirePermission(req, "coupons.delete");
-    if (permissionCheck) return permissionCheck;
+    const [permissionError] = await requirePermission(req, "coupons.delete");
+    if (permissionError) return permissionError;
 
     await connectToDatabase();
 

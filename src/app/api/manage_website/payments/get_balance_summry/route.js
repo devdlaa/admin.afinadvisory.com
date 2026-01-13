@@ -20,9 +20,10 @@ function formatDate(timestamp) {
 
 export async function GET(req) {
   try {
-    // Permission check placeholder
-    const permissionCheck = await requirePermission(req, "payments.access");
-    if (permissionCheck) return permissionCheck;
+   
+
+    const [permissionError] = await requirePermission(req, "payments.access");
+    if (permissionError) return permissionError;
 
     // 1️⃣ Last processed settlement (most recent completed)
     const processedSettlements = razorpay.settlements.all({

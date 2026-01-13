@@ -14,7 +14,7 @@ export async function POST(req) {
 
     const [permissionError, session] = await requirePermission(
       req,
-      "admin_users.manage"
+      "admin_users.update"
     );
     if (permissionError) return permissionError;
 

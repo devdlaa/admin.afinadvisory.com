@@ -20,6 +20,37 @@ const EDIT_WINDOW_HOURS = 48;
 // Helpers
 // ------------------------------------------------------------------
 
+async function ensureUserCanAccessTask(task_id, user) {
+  if (user.admin_role === "SUPER_ADMIN") return true;
+
+  const task = await prisma.task.findFirst({
+    where: {
+      id: task_id,
+      OR: [
+        { created_by: user.id },
+        { assigned_to_all: true },
+        {
+          assignments: {
+            some: { admin_user_id: user.id },
+          },
+        },
+      ],
+    },
+    select: {
+      id: true,
+      title: true,
+      created_by: true,
+      assigned_to_all: true,
+    },
+  });
+
+  if (!task) {
+    throw new ForbiddenError("You do not have access to this task");
+  }
+
+  return task;
+}
+
 async function getValidAdminUser(user_id) {
   const user = await prisma.adminUser.findFirst({
     where: {
@@ -57,49 +88,6 @@ function stripMentionsFromMessage(message, mentions) {
   return clean.replace(/\s+/g, " ").trim();
 }
 
-async function getTaskOrFail(task_id) {
-  const task = await prisma.task.findFirst({
-    where: {
-      id: task_id,
-    },
-    select: {
-      id: true,
-      title: true,
-      created_by: true,
-      assigned_to_all: true,
-    },
-  });
-
-  if (!task) throw new NotFoundError("Task not found");
-
-  return task;
-}
-
-/**
- * Ensure user is allowed to interact with task comments
- */
-export const ensureUserCanComment = async (task, user_id) => {
-  // creator always allowed
-  if (task.created_by === user_id) return true;
-
-  // assigned to all
-  if (task.assigned_to_all === true) return true;
-
-  // otherwise must be explicitly assigned
-  const assignment = await prisma.taskAssignment.findFirst({
-    where: {
-      task_id: task.id,
-      admin_user_id: user_id,
-    },
-  });
-
-  if (!assignment) {
-    throw new ForbiddenError("You are not assigned to this task");
-  }
-
-  return true;
-};
-
 // ------------------------------------------------------------------
 // CREATE COMMENT
 // ------------------------------------------------------------------
@@ -110,12 +98,9 @@ export const createTaskComment = async (
   rawMessage,
   mentions = []
 ) => {
-  const task = await getTaskOrFail(task_id);
   const user = await getValidAdminUser(user_id);
+  const task = await ensureUserCanAccessTask(task_id, user);
 
-  await ensureUserCanComment(task, user.id);
-
-  // ✅ sanitize message
   const cleanedMessage = stripMentionsFromMessage(
     (rawMessage || "").trim(),
     mentions
@@ -233,7 +218,7 @@ export const addTaskActivityLog = async (task_id, actor_id, activity) => {
     type: "ACTIVITY",
     user_id: user.id,
     user_name: user.name,
-    message: activity.message, 
+    message: activity.message,
     activity: {
       action: activity.action,
       meta: activity.meta ?? null,
@@ -265,9 +250,10 @@ export const listTaskTimeline = async (
     limit = 20,
     cursor = null,
     type = "ALL", // COMMENT | ACTIVITY | ALL
-  } = {}
+  } = {},
+  currentUser
 ) => {
-  await getTaskOrFail(task_id);
+  await ensureUserCanAccessTask(task_id, currentUser);
 
   if (limit <= 0 || limit > 100) {
     throw new ValidationError("Invalid pagination limit");
@@ -348,6 +334,8 @@ export const updateTaskComment = async (
 ) => {
   const user = await getValidAdminUser(user_id);
 
+  await ensureUserCanAccessTask(task_id, user);
+
   const commentRef = db
     .collection(COMMENTS_COLLECTION)
     .doc(task_id)
@@ -360,17 +348,19 @@ export const updateTaskComment = async (
 
   const data = doc.data();
 
+  const isOwner = data.user_id === user.id;
+  const isAdmin = user.admin_role === "SUPER_ADMIN";
+
+  if (!isOwner && !isAdmin) {
+    throw new ForbiddenError("You may only edit your own comments");
+  }
+
   if (data.type === "ACTIVITY") {
     throw new ForbiddenError("Activity entries cannot be edited");
   }
 
   if (data.deleted) {
     throw new ValidationError("Comment has been deleted");
-  }
-
-  // Only author can edit
-  if (data.user_id !== user.id) {
-    throw new ForbiddenError("You may only edit your own comments");
   }
 
   const now = new Date();
@@ -411,6 +401,8 @@ export const updateTaskComment = async (
 
 export const deleteTaskComment = async (task_id, comment_id, user_id) => {
   const user = await getValidAdminUser(user_id);
+
+  await ensureUserCanAccessTask(task_id, user);
 
   const commentRef = db
     .collection(COMMENTS_COLLECTION)

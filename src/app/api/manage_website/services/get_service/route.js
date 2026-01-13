@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import admin from "@/lib/firebase-admin";
-import { auth } from "@/utils/server/auth";
+
 import { z } from "zod";
+import { requirePermission } from "@/utils/server/requirePermission";
 
 const db = admin.firestore();
 const { Filter } = admin.firestore;
@@ -16,13 +17,11 @@ const Schema = z.object({
 
 export async function POST(req) {
   try {
-    const session = await auth();
-    if (!session || !session.user?.email) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
+    const [permissionError, session] = await requirePermission(
+      req,
+      "bookings.access"
+    );
+    if (permissionError) return permissionError;
 
     const userEmail = session.user.email.toLowerCase();
     const userRole = session.user.admin_role;

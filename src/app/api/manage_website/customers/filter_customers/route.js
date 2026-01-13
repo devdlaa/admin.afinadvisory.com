@@ -3,8 +3,10 @@ import { z } from "zod";
 
 import { requirePermission } from "@/utils/server/requirePermission";
 
-import {   createSuccessResponse,
-  createErrorResponse, } from "@/utils/server/apiResponse";
+import {
+  createSuccessResponse,
+  createErrorResponse,
+} from "@/utils/server/apiResponse";
 const db = admin.firestore();
 
 // Valid quick ranges with clear definitions
@@ -154,8 +156,8 @@ export async function POST(req) {
 
   try {
     // Permission check - uncomment and configure based on your permission mapping
-    const permissionCheck = await requirePermission(req, "customers.access");
-    if (permissionCheck) return permissionCheck;
+    const [permissionError] = await requirePermission(req, "customers.access");
+    if (permissionError) return permissionError;
 
     // Parse and validate request body
     let body;

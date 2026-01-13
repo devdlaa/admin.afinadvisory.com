@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { connectToDatabase } from "@/lib/mongodb";
 import Coupon from "@/schemas/coupons/Coupon";
-
+import { requirePermission } from "@/utils/server/requirePermission";
 // Zod schema for request validation
 const ValidateCouponSchema = z.object({
   code: z.string().min(1, "Coupon code is required"),
@@ -12,6 +12,9 @@ const ValidateCouponSchema = z.object({
 
 export async function POST(req) {
   try {
+    const [permissionError] = await requirePermission(req);
+    if (permissionError) return permissionError;
+
     const json = await req.json();
 
     // Validate input

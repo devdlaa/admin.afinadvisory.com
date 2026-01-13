@@ -35,12 +35,6 @@ const SIDEBAR_CONFIG = {
       title: "Task Management",
       items: [
         {
-          id: "task-home",
-          label: "Dashboard",
-          icon: LayoutDashboard,
-          path: "/dashboard/task-managment/home",
-        },
-        {
           id: "task-clients",
           label: "Clients",
           icon: Briefcase,
@@ -50,7 +44,7 @@ const SIDEBAR_CONFIG = {
           id: "task-tasks",
           label: "Tasks",
           icon: CheckSquare,
-          path: "/dashboard/task-managment/tasks",
+          path: "/dashboard/task-managment",
         },
       ],
     },
@@ -167,8 +161,6 @@ const Sidebar = () => {
   const [activeItem, setActiveItem] = useState("");
   const [loggingOut, setLoggingOut] = useState(false);
   const [expandedItems, setExpandedItems] = useState({});
-  const [profileImageUrl, setProfileImageUrl] = useState(null);
-  const [imageLoading, setImageLoading] = useState(true);
 
   const router = useRouter();
   const pathname = usePathname();

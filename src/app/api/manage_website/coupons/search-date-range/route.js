@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
 import Coupon from "@/schemas/coupons/Coupon";
-
+import { requirePermission } from "@/utils/server/requirePermission";
 export async function POST(req) {
   try {
+    const [permissionError] = await requirePermission(req, "coupons.access");
+    if (permissionError) return permissionError;
     await connectToDatabase();
 
     const { startDate, endDate } = await req.json();

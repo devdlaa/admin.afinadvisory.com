@@ -443,6 +443,9 @@ const listEntities = async (filters = {}) => {
             email: true,
           },
         },
+        custom_fields: {
+          orderBy: { name: "asc" },
+        },
         _count: {
           select: {
             tasks: true,

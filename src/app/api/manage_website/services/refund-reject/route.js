@@ -10,16 +10,14 @@ const bodySchema = z.object({
 
 export async function POST(req) {
   try {
-    // Permission check placeholder
-    const permissionCheck = await requirePermission(
+    const [permissionError, session] = await requirePermission(
       req,
       "bookings.reject_refund"
     );
-    if (permissionCheck) return permissionCheck;
+    if (permissionError) return permissionError;
 
     const body = await req.json();
     const parsed = bodySchema.safeParse(body);
-    const session = await auth();
 
     if (!parsed.success) {
       return NextResponse.json(
@@ -33,7 +31,11 @@ export async function POST(req) {
 
     const { service_booking_id, adminNote } = parsed.data;
 
-    const result = await markRefundRejected(service_booking_id, adminNote,session);
+    const result = await markRefundRejected(
+      service_booking_id,
+      adminNote,
+      session
+    );
 
     if (!result || result.success === false) {
       return NextResponse.json(

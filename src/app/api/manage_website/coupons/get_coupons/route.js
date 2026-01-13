@@ -3,9 +3,7 @@ import { connectToDatabase } from "@/lib/mongodb";
 import Coupon from "@/schemas/coupons/Coupon";
 import { z } from "zod";
 
-
 import { requirePermission } from "@/utils/server/requirePermission";
-
 
 const getCouponsQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
@@ -26,8 +24,8 @@ const getCouponsQuerySchema = z.object({
 
 export async function GET(req) {
   try {
-    const permissionCheck = await requirePermission(req, "coupons.access");
-    if (permissionCheck) return permissionCheck;
+    const [permissionError] = await requirePermission(req, "coupons.access");
+    if (permissionError) return permissionError;
 
     await connectToDatabase();
 

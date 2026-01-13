@@ -23,9 +23,11 @@ export async function DELETE(req) {
   let authDeleted = false;
 
   try {
-    // Permission check
-    const permissionCheck = await requirePermission(req, "influencers.delete");
-    if (permissionCheck) return permissionCheck;
+    const [permissionError] = await requirePermission(
+      req,
+      "influencers.delete"
+    );
+    if (permissionError) return permissionError;
 
     // Extract and validate query parameters
     const { searchParams } = new URL(req.url);
@@ -70,8 +72,6 @@ export async function DELETE(req) {
     influencerData = influencerDoc.data();
     authUid = influencerData.authUid;
 
-  
-
     const commissionQuery = await db
       .collection("commissions")
       .where("influencerId", "==", influencerId)
@@ -102,13 +102,11 @@ export async function DELETE(req) {
       try {
         await admin.auth().deleteUser(authUid);
         authDeleted = true;
-       
       } catch (authError) {
         console.error("Failed to delete Auth user:", authError);
 
         // If auth user not found, it's okay to continue
         if (authError.code === "auth/user-not-found") {
-        
         } else {
           // For other auth errors, return error without deleting Firestore
           return createErrorResponse(
