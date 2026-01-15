@@ -1,5 +1,5 @@
 import React from "react";
-import { LayoutDashboard } from "lucide-react"; // lucid icon
+import { LayoutDashboard } from "lucide-react"; 
 import "./dashboard.scss";
 
 const Page = () => {

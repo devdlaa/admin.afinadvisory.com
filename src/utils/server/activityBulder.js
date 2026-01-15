@@ -1,3 +1,4 @@
+
 export const buildActivityMessage = (changes) => {
   if (!Array.isArray(changes) || changes.length === 0) {
     return "updated the task";

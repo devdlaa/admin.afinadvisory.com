@@ -31,7 +31,7 @@ import {
   DialogActions,
   Typography,
 } from "@mui/material";
-import "./UsersTable.scss";
+import styles from "./UsersTable.module.scss";
 import { useSelector } from "react-redux";
 
 const UsersTable = ({
@@ -40,10 +40,7 @@ const UsersTable = ({
   onPermissions,
   onDelete,
   onResendInvite,
-  currentPage,
-  totalPages,
-  onPageChange,
-  totalUsers,
+
   resettingOnboarding,
   onOnboardingResetLinkSend,
   onResetPwdLinkSend,
@@ -144,11 +141,15 @@ const UsersTable = ({
 
   const getStatusBadge = (status) => {
     const statusConfig = {
-      ACTIVE: { icon: CheckCircle, class: "status-active", label: "Active" },
-      INACTIVE: { icon: Clock, class: "status-pending", label: "Inactive" },
+      ACTIVE: {
+        icon: CheckCircle,
+        class: styles.statusActive,
+        label: "Active",
+      },
+      INACTIVE: { icon: Clock, class: styles.statusPending, label: "Inactive" },
       SUSPENDED: {
         icon: XCircle,
-        class: "status-disabled",
+        class: styles.statusDisabled,
         label: "Suspended",
       },
     };
@@ -157,7 +158,7 @@ const UsersTable = ({
     const Icon = config.icon;
 
     return (
-      <span className={`status-badge ${config.class}`}>
+      <span className={`${styles.statusBadge} ${config.class}`}>
         <Icon size={12} />
         {config.label}
       </span>
@@ -165,18 +166,23 @@ const UsersTable = ({
   };
 
   const getRoleBadge = (role) => {
-    const roleLabels = {
-      SUPER_ADMIN: "Super Admin",
-      ADMIN: "Admin",
-      MANAGER: "Manager",
-      EMPLOYEE: "Employee",
-      VIEW_ONLY: "View Only",
+    const roleConfig = {
+      SUPER_ADMIN: { label: "Super Admin", class: styles.roleSuperAdmin },
+      ADMIN: { label: "Admin", class: styles.roleAdmin },
+      MANAGER: { label: "Manager", class: styles.roleManager },
+      EMPLOYEE: { label: "Employee", class: styles.roleEmployee },
+      VIEW_ONLY: { label: "View Only", class: styles.roleViewOnly },
+    };
+
+    const config = roleConfig[role] || {
+      label: role,
+      class: styles.roleDefault,
     };
 
     return (
-      <span className={`role-badge role-${role?.toLowerCase()}`}>
+      <span className={`${styles.roleBadge} ${config.class}`}>
         <Shield size={12} />
-        {roleLabels[role] || role}
+        {config.label}
       </span>
     );
   };
@@ -274,17 +280,17 @@ const UsersTable = ({
       <Dialog
         open={confirmDialog.open}
         onClose={handleConfirmDialogClose}
-        className="teams-management-dialog"
+        className={styles.teamsManagementDialog}
         maxWidth="sm"
         fullWidth
       >
-        <DialogTitle className="teams-management-dialog__title">
+        <DialogTitle className={styles.dialogTitle}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <AlertTriangle size={24} color="#f59e0b" />
             {confirmDialog.title}
           </div>
         </DialogTitle>
-        <DialogContent className="teams-management-dialog__content">
+        <DialogContent className={styles.dialogContent}>
           <Typography
             variant="body1"
             style={{ color: "#374151", lineHeight: 1.6 }}
@@ -292,7 +298,7 @@ const UsersTable = ({
             {confirmDialog.message}
           </Typography>
         </DialogContent>
-        <DialogActions className="teams-management-dialog__actions">
+        <DialogActions className={styles.dialogActions}>
           <Button
             onClick={handleConfirmDialogClose}
             variant="outlined"
@@ -320,51 +326,63 @@ const UsersTable = ({
         </DialogActions>
       </Dialog>
 
-      <div className="users-table-container">
-        <div className="table-wrapper">
-          <table className="users-table">
+      <div className={styles.usersTableContainer}>
+        <div className={styles.tableWrapper}>
+          <table className={styles.usersTable}>
             <thead>
               <tr>
-                <th onClick={() => handleSort("name")} className="sortable">
+                <th
+                  onClick={() => handleSort("name")}
+                  className={styles.sortable}
+                >
                   <span>Name</span>
                   <div
-                    className={`sort-indicator ${
-                      sortField === "name" ? sortDirection : ""
+                    className={`${styles.sortIndicator} ${
+                      sortField === "name" ? styles[sortDirection] : ""
                     }`}
                   />
                 </th>
-                <th onClick={() => handleSort("email")} className="sortable">
+                <th
+                  onClick={() => handleSort("email")}
+                  className={styles.sortable}
+                >
                   <span>Email</span>
                   <div
-                    className={`sort-indicator ${
-                      sortField === "email" ? sortDirection : ""
+                    className={`${styles.sortIndicator} ${
+                      sortField === "email" ? styles[sortDirection] : ""
                     }`}
                   />
                 </th>
                 <th
                   onClick={() => handleSort("admin_role")}
-                  className="sortable"
+                  className={styles.sortable}
                 >
                   <span>Role</span>
                   <div
-                    className={`sort-indicator ${
-                      sortField === "admin_role" ? sortDirection : ""
+                    className={`${styles.sortIndicator} ${
+                      sortField === "admin_role" ? styles[sortDirection] : ""
                     }`}
                   />
                 </th>
-                <th onClick={() => handleSort("phone")} className="sortable">
+                <th
+                  onClick={() => handleSort("phone")}
+                  className={styles.sortable}
+                >
                   <span>Phone</span>
                   <div
-                    className={`sort-indicator ${
-                      sortField === "phone" ? sortDirection : ""
+                    className={`${styles.sortIndicator} ${
+                      sortField === "phone" ? styles[sortDirection] : ""
                     }`}
                   />
                 </th>
-                <th onClick={() => handleSort("status")} className="sortable">
+                <th
+                  onClick={() => handleSort("status")}
+                  className={styles.sortable}
+                >
                   <span>Status</span>
                   <div
-                    className={`sort-indicator ${
-                      sortField === "status" ? sortDirection : ""
+                    className={`${styles.sortIndicator} ${
+                      sortField === "status" ? styles[sortDirection] : ""
                     }`}
                   />
                 </th>
@@ -378,36 +396,36 @@ const UsersTable = ({
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}
-                  className="table-row"
+                  className={styles.tableRow}
                 >
-                  <td className="name-cell">
-                    <div className="user-info">
-                      <div className="user-details">
-                        <div className="user-name">{user.name}</div>
-                        <div className="user-code">{user.user_code}</div>
+                  <td className={styles.nameCell}>
+                    <div className={styles.userInfo}>
+                      <div className={styles.userDetails}>
+                        <div className={styles.userName}>{user.name}</div>
+                        <div className={styles.userCode}>{user.user_code}</div>
                       </div>
                     </div>
                   </td>
-                  <td className="email-cell">
-                    <div className="email-info">
-                      <span className="email">{user.email}</span>
+                  <td className={styles.emailCell}>
+                    <div className={styles.emailInfo}>
+                      <span className={styles.email}>{user.email}</span>
                     </div>
                   </td>
                   <td>{getRoleBadge(user.admin_role)}</td>
-                  <td className="department-cell">
-                    <span className="department">{user.phone}</span>
+                  <td className={styles.departmentCell}>
+                    <span className={styles.department}>{user.phone}</span>
                     {user.alternate_phone && (
-                      <span className="designation">
+                      <span className={styles.designation}>
                         {user.alternate_phone}
                       </span>
                     )}
                   </td>
                   <td>{getStatusBadge(user.status)}</td>
 
-                  <td className="actions-cell">
+                  <td className={styles.actionsCell}>
                     <IconButton
                       size="small"
-                      className="actions-trigger"
+                      className={styles.actionsTrigger}
                       onClick={(event) => {
                         if (!reinviting && !inviting && !loading && !updating) {
                           handleMenuClick(event, user);
@@ -424,11 +442,11 @@ const UsersTable = ({
                       anchorEl={anchorEl}
                       open={Boolean(anchorEl)}
                       onClose={handleMenuClose}
-                      className="actions-dropdown"
+                      className={styles.actionsDropdown}
                     >
                       <MenuItem
                         onClick={() => handleMenuAction(onEdit)}
-                        className="dropdown-item"
+                        className={styles.dropdownItem}
                       >
                         <Edit size={16} style={{ marginRight: 8 }} />
                         <span>Edit User</span>
@@ -436,7 +454,7 @@ const UsersTable = ({
 
                       <MenuItem
                         onClick={() => handleMenuAction(onPermissions)}
-                        className="dropdown-item"
+                        className={styles.dropdownItem}
                       >
                         <Key size={16} style={{ marginRight: 8 }} />
                         <span>Permissions</span>
@@ -444,7 +462,7 @@ const UsersTable = ({
 
                       <MenuItem
                         onClick={handleAccountToggle}
-                        className="dropdown-item"
+                        className={styles.dropdownItem}
                         disabled={togglingStatus}
                       >
                         {togglingStatus ? (
@@ -459,7 +477,7 @@ const UsersTable = ({
                           <MenuItem
                             disabled={reinviting}
                             onClick={() => handleMenuAction(onResendInvite)}
-                            className="dropdown-item"
+                            className={styles.dropdownItem}
                           >
                             {reinviting ? (
                               <CircularProgress size={16} />
@@ -474,7 +492,7 @@ const UsersTable = ({
                           <>
                             <MenuItem
                               onClick={handlePasswordReset}
-                              className="dropdown-item"
+                              className={styles.dropdownItem}
                               disabled={resettingPassword}
                             >
                               {resettingPassword ? (
@@ -490,7 +508,7 @@ const UsersTable = ({
 
                             <MenuItem
                               onClick={handleOnboardingReset}
-                              className="dropdown-item"
+                              className={styles.dropdownItem}
                               disabled={resettingOnboarding}
                             >
                               {resettingOnboarding ? (
@@ -508,7 +526,7 @@ const UsersTable = ({
 
                       <MenuItem
                         onClick={() => handleMenuAction(onDelete)}
-                        className="dropdown-item delete-item"
+                        className={`${styles.dropdownItem} ${styles.deleteItem}`}
                       >
                         <Trash2 size={16} style={{ marginRight: 8 }} />
                         <span>Delete User</span>

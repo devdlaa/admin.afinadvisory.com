@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+
 import { useSession } from "next-auth/react";
 import { signOut } from "next-auth/react";
 import { Shield, LogOut, Loader2 } from "lucide-react";

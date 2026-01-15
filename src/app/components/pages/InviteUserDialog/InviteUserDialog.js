@@ -343,7 +343,7 @@ const InviteUserDialog = ({ open, onClose, onInvite }) => {
               <AlertTriangle size={24} />
               <p>Failed to load permissions data</p>
               <button
-                className={`${styles.stylesbtn} ${styles.stylesbtnPrimary}`}
+                className={`${styles.btn} ${styles.btnPrimary}`}
                 onClick={() => dispatch(fetchPermissions())}
               >
                 Retry
@@ -587,7 +587,7 @@ const InviteUserDialog = ({ open, onClose, onInvite }) => {
                 <div className={styles.formActions}>
                   <button
                     type="button"
-                    className={`${styles.stylesbtn} ${styles.stylesbtnOutline}`}
+                    className={`${styles.btn} ${styles.btnOutline}`}
                     onClick={onClose}
                     disabled={isSubmitting}
                   >
@@ -595,7 +595,7 @@ const InviteUserDialog = ({ open, onClose, onInvite }) => {
                   </button>
                   <button
                     type="submit"
-                    className={`${styles.stylesbtn} ${styles.stylesbtnPrimary}`}
+                    className={`${styles.btn} ${styles.btnPrimary}`}
                     disabled={isSubmitting}
                   >
                     Review Invitation
@@ -646,14 +646,14 @@ const InviteUserDialog = ({ open, onClose, onInvite }) => {
 
                 <div className={styles.confirmationActions}>
                   <button
-                    className={`${styles.stylesbtn} ${styles.stylesbtnOutline}`}
+                    className={`${styles.btn} ${styles.btnOutline}`}
                     onClick={() => setShowConfirmation(false)}
                     disabled={isSubmitting}
                   >
                     Back to Edit
                   </button>
                   <button
-                    className={`${styles.stylesbtn} ${styles.stylesbtnPrimary} ${styles.stylessendInviteBtn}`}
+                    className={`${styles.btn} ${styles.btnPrimary} ${styles.sendInviteBtn}`}
                     onClick={handleConfirmInvite}
                     disabled={isSubmitting}
                   >

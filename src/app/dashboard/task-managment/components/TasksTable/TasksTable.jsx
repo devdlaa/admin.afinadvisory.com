@@ -26,7 +26,7 @@ import {
 } from "@/store/slices/taskSlice";
 import { statusOptions, priorityOptions } from "@/utils/shared/constants";
 import { getProfileUrl, formatDate } from "@/utils/shared/shared_util";
-import { truncateText } from "@/utils/server/utils";
+import { truncateText } from "@/utils/client/cutils";
 
 
 const TaskTable = ({

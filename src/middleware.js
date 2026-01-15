@@ -142,7 +142,9 @@ export async function middleware(req) {
     if (
       token?.isDashboardLocked &&
       !pathname.startsWith("/dashboard/locked") &&
-      !pathname.startsWith("/api/unlock-dashboard")
+      !pathname.startsWith(
+        "/api/admin_ops/staff-managment/admin-users/unlock-dashboard"
+      )
     ) {
       return NextResponse.redirect(new URL("/dashboard/locked", req.url));
     }

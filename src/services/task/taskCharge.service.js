@@ -5,7 +5,7 @@ import { buildActivityMessage } from "@/utils/server/activityBulder";
 
 // helpers
 export async function ensureUserCanAccessTask(taskId, user) {
-  if (user.admin_role === "SUPER_ADMIN") return true;
+  if (user.role === "SUPER_ADMIN") return true;
 
   const task = await prisma.task.findFirst({
     where: {
@@ -27,7 +27,7 @@ export async function ensureUserCanAccessTask(taskId, user) {
 }
 
 export function ensureUserCanManageTask(user) {
-  if (user.admin_role !== "SUPER_ADMIN") {
+  if (user.role !== "SUPER_ADMIN") {
     throw new ForbiddenError("You are not allowed to modify this task");
   }
   return true;

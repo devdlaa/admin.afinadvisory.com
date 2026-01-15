@@ -13,6 +13,7 @@ import {
   Camera,
   Trash2,
   Upload,
+  Shield,
 } from "lucide-react";
 
 import {
@@ -26,6 +27,13 @@ import "./EditUserDialog.scss";
 
 // Indian States from Prisma schema
 import { INDIAN_STATES } from "@/utils/server/utils";
+
+// Admin Roles
+const ADMIN_ROLES = [
+  { value: "SUPER_ADMIN", label: "Super Admin" },
+  { value: "ADMIN", label: "Admin" },
+  { value: "MANAGER", label: "Manager" },
+];
 
 const EditUserDialog = ({ open, onClose, user }) => {
   const dispatch = useDispatch();
@@ -42,7 +50,7 @@ const EditUserDialog = ({ open, onClose, user }) => {
     city: "",
     pincode: "",
     state: "",
-    uid: "",
+    admin_role: "MANAGER",
   });
 
   const [errors, setErrors] = useState({});
@@ -61,6 +69,7 @@ const EditUserDialog = ({ open, onClose, user }) => {
         city: user.city || "",
         pincode: user.pincode || "",
         state: user.state || "",
+        admin_role: user.admin_role || "MANAGER",
       });
 
       // Set initial image preview using getProfileUrl
@@ -164,6 +173,9 @@ const EditUserDialog = ({ open, onClose, user }) => {
     if (formData.pincode && !/^\d{6}$/.test(formData.pincode)) {
       newErrors.pincode = "Please enter a valid 6-digit pincode";
     }
+    if (!formData.admin_role) {
+      newErrors.admin_role = "Admin role is required";
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -251,20 +263,6 @@ const EditUserDialog = ({ open, onClose, user }) => {
         </div>
 
         <div className="eu-edit-content">
-          {/* Error Display */}
-          {(updateError || uploadImageError) && (
-            <div className="eu-error-banner">
-              <AlertCircle size={16} />
-              <span>{updateError || uploadImageError}</span>
-              <button
-                onClick={() => dispatch(clearUpdateError())}
-                className="eu-error-close"
-              >
-                <X size={14} />
-              </button>
-            </div>
-          )}
-
           <div className="eu-tabs">
             <button
               className={`eu-tab ${
@@ -436,6 +434,34 @@ const EditUserDialog = ({ open, onClose, user }) => {
                         {errors.alternate_phone && (
                           <span className="eu-error-text">
                             {errors.alternate_phone}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="eu-form-group">
+                        <label className="eu-form-label">
+                          Admin Role <span className="eu-required">*</span>
+                        </label>
+                        <select
+                          className={`eu-form-select ${
+                            errors.admin_role ? "eu-error" : ""
+                          }`}
+                          value={formData.admin_role}
+                          onChange={(e) =>
+                            handleInputChange("admin_role", e.target.value)
+                          }
+                          disabled={updating}
+                        >
+                          <option value="">Select Role</option>
+                          {ADMIN_ROLES.map((role) => (
+                            <option key={role.value} value={role.value}>
+                              {role.label}
+                            </option>
+                          ))}
+                        </select>
+                        {errors.admin_role && (
+                          <span className="eu-error-text">
+                            {errors.admin_role}
                           </span>
                         )}
                       </div>

@@ -4,7 +4,7 @@ import { ChevronDown, User, Settings, LogOut } from "lucide-react";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import "./TopBar.scss";
-import { truncateText } from "@/utils/server/utils";
+import { truncateText } from "@/utils/client/cutils";
 
 const TopBar = () => {
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);

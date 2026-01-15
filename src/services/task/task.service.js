@@ -4,7 +4,7 @@ import { addTaskActivityLog } from "./taskComment.service.js";
 import { buildActivityMessage } from "@/utils/server/activityBulder.js";
 
 export function buildTaskVisibilityWhere(user) {
-  if (user.admin_role === "SUPER_ADMIN") {
+  if (user.role === "SUPER_ADMIN") {
     return {}; 
   }
 
@@ -379,7 +379,7 @@ export const updateTask = async (task_id, data, currentUser) => {
 
   if (statusChanged) {
     const globalCounts =
-      currentUser.admin_role === "SUPER_ADMIN"
+      currentUser.role === "SUPER_ADMIN"
         ? await getStatusCounts()
         : await getStatusCounts(buildTaskVisibilityWhere(currentUser));
 
@@ -427,7 +427,7 @@ export const deleteTask = async (task_id, currentUser) => {
 
     // Global counts (respect visibility for non-super-admin)
     const globalCounts =
-      currentUser.admin_role === "SUPER_ADMIN"
+      currentUser.role === "SUPER_ADMIN"
         ? await getStatusCounts({}, tx)
         : await getStatusCounts(visibilityWhere, tx);
 
@@ -598,7 +598,7 @@ export const listTasks = async (filters = {}, currentUser) => {
   const where = { AND: andConditions };
 
   const trueGlobalWhere =
-    currentUser?.admin_role === "SUPER_ADMIN" ? {} : { AND: [visibilityWhere] };
+    currentUser?.role === "SUPER_ADMIN" ? {} : { AND: [visibilityWhere] };
 
   const filteredGlobalWhere = {
     AND: andConditions.filter((c) => !("status" in c) && !("priority" in c)),
@@ -721,7 +721,7 @@ export const bulkUpdateTaskStatus = async (task_ids, status, currentUser) => {
 
     // Status counts respecting visibility
     const globalCounts =
-      currentUser.admin_role === "SUPER_ADMIN"
+      currentUser.role === "SUPER_ADMIN"
         ? await getStatusCounts({}, tx)
         : await getStatusCounts(visibilityWhere, tx);
 

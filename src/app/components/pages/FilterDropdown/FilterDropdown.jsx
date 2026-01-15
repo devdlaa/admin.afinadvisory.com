@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Search, X, ChevronDown, Loader2, Plus } from "lucide-react";
 import "./FilterDropdown.scss";
-import { truncateText } from "@/utils/server/utils";
+
 
 /**
  * FilterDropdown - A reusable dropdown component with search, loading states, and more
@@ -23,7 +23,12 @@ import { truncateText } from "@/utils/server/utils";
  * @param {boolean} lazyLoad - Load data only when dropdown opens
  * @param {Function} onLazyLoad - Callback to load data on first open
  * @param {string} className - Custom root class for styling
+ * 
+ * 
  */
+
+
+import { truncateText } from "@/utils/client/cutils";
 const FilterDropdown = ({
   label,
   placeholder = "Select...",

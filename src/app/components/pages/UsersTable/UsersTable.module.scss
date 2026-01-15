@@ -1,9 +1,9 @@
-.users-table-container {
+.usersTableContainer {
   width: 100%;
   overflow: hidden;
   font-family: "Poppins" !important;
 
-  .table-wrapper {
+  .tableWrapper {
     overflow-x: auto;
 
     &::-webkit-scrollbar {
@@ -25,7 +25,7 @@
     }
   }
 
-  .users-table {
+  .usersTable {
     width: 100%;
     border-collapse: collapse;
     font-size: 14px;
@@ -83,7 +83,7 @@
     }
   }
 
-  .sort-indicator {
+  .sortIndicator {
     position: absolute;
     top: 50%;
     right: 8px;
@@ -108,13 +108,13 @@
     }
   }
 
-  .name-cell {
+  .nameCell {
     min-width: 200px;
     margin: 0 !important;
     padding: 15px;
   }
 
-  .user-info {
+  .userInfo {
     display: flex;
     align-items: center;
     gap: 12px;
@@ -122,7 +122,7 @@
     background-color: transparent !important;
   }
 
-  .user-avatar {
+  .userAvatar {
     width: 40px;
     height: 40px;
     border-radius: 50%;
@@ -141,28 +141,28 @@
     display: none;
   }
 
-  .user-details {
-    .user-name {
+  .userDetails {
+    .userName {
       font-weight: 600;
       color: black;
       line-height: 1.2;
       margin-bottom: 2px;
     }
 
-    .user-code {
+    .userCode {
       font-size: 12px;
       color: rgb(46, 46, 46);
       line-height: 1.2;
     }
   }
 
-  .email-cell {
+  .emailCell {
     min-width: 250px;
     margin: 0 !important;
     padding: 15px;
   }
 
-  .email-info {
+  .emailInfo {
     display: flex;
     align-items: center;
     gap: 8px;
@@ -171,15 +171,16 @@
       color: black;
     }
 
-    .security-icon {
+    .securityIcon {
       color: var(--primary-green);
       flex-shrink: 0;
     }
   }
 
-  .department-cell {
+  .departmentCell {
     min-width: 180px;
     padding: 15px;
+    
     .department {
       display: block;
       font-weight: 500;
@@ -196,7 +197,7 @@
     }
   }
 
-  .status-badge {
+  .statusBadge {
     display: inline-flex;
     align-items: center;
     gap: 6px;
@@ -207,23 +208,23 @@
     text-transform: uppercase;
     letter-spacing: 0.3px;
 
-    &.status-active {
+    &.statusActive {
       background-color: #dcfce7;
       color: #166534;
     }
 
-    &.status-pending {
+    &.statusPending {
       background-color: #fef3c7;
       color: #92400e;
     }
 
-    &.status-disabled {
+    &.statusDisabled {
       background-color: #fecaca;
       color: #991b1b;
     }
   }
 
-  .role-badge {
+  .roleBadge {
     display: inline-flex;
     align-items: center;
     gap: 6px;
@@ -234,27 +235,38 @@
     text-transform: uppercase;
     letter-spacing: 0.3px;
 
-    &.role-admin {
-      background-color: var(--light-blue);
-      color: var(--primary-blue);
-    }
-
-    &.role-user {
-      background-color: var(--light-green);
-      color: var(--primary-green);
-    }
-
-    &.role-superAdmin {
-      background: linear-gradient(
-        135deg,
-        var(--primary-green),
-        var(--primary-blue)
-      );
+    &.roleSuperAdmin {
+      background: linear-gradient(135deg, #10b981 0%, #3b82f6 100%);
       color: white;
+    }
+
+    &.roleAdmin {
+      background-color: #dbeafe;
+      color: #1e40af;
+    }
+
+    &.roleManager {
+      background-color: #e0e7ff;
+      color: #4338ca;
+    }
+
+    &.roleEmployee {
+      background-color: #d1fae5;
+      color: #065f46;
+    }
+
+    &.roleViewOnly {
+      background-color: #f3f4f6;
+      color: #374151;
+    }
+
+    &.roleDefault {
+      background-color: #f3f4f6;
+      color: #6b7280;
     }
   }
 
-  .last-login-cell {
+  .lastLoginCell {
     min-width: 120px;
     font-size: 13px;
     padding: 15px;
@@ -264,12 +276,12 @@
     color: var(--text-secondary);
   }
 
-  .actions-cell {
+  .actionsCell {
     width: 60px;
     padding: 15px;
   }
 
-  .actions-trigger {
+  .actionsTrigger {
     padding: 8px;
     color: var(--text-secondary);
 
@@ -279,11 +291,11 @@
     }
   }
 
-  .actions-dropdown {
+  .actionsDropdown {
     min-width: 160px;
   }
 
-  .dropdown-item {
+  .dropdownItem {
     display: flex;
     align-items: center;
     gap: 12px;
@@ -296,7 +308,7 @@
       background-color: var(--background);
     }
 
-    &.delete-item {
+    &.deleteItem {
       color: #ef4444;
 
       &:hover {
@@ -306,7 +318,7 @@
     }
   }
 
-  .table-footer {
+  .tableFooter {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -315,18 +327,18 @@
     background-color: var(--background);
   }
 
-  .pagination-info {
+  .paginationInfo {
     font-size: 14px;
     color: var(--text-secondary);
   }
 
-  .pagination-controls {
+  .paginationControls {
     display: flex;
     align-items: center;
     gap: 16px;
   }
 
-  .pagination-nav {
+  .paginationNav {
     display: flex;
     align-items: center;
     gap: 8px;
@@ -350,12 +362,12 @@
     }
   }
 
-  .pagination-numbers {
+  .paginationNumbers {
     display: flex;
     gap: 4px;
   }
 
-  .pagination-btn {
+  .paginationBtn {
     min-width: 36px;
     height: 36px;
     border: 1px solid var(--border-color);
@@ -383,86 +395,87 @@
   }
 }
 
+// Dialog styles
+.teamsManagementDialog {
+  :global(.MuiDialog-paper) {
+    border-radius: 12px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1),
+      0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  }
+}
+
+.dialogTitle {
+  padding: 24px 24px 16px 24px;
+  border-bottom: 1px solid #e5e7eb;
+
+  :global(.MuiDialogTitle-root) {
+    padding: 0;
+    font-weight: 600;
+    font-size: 18px;
+    color: #111827;
+  }
+}
+
+.dialogContent {
+  padding: 20px 24px;
+
+  :global(.MuiDialogContent-root) {
+    padding: 0;
+  }
+}
+
+.dialogActions {
+  padding: 16px 24px 24px 24px;
+  gap: 12px;
+
+  :global(.MuiDialogActions-root) {
+    padding: 0;
+  }
+
+  :global(.MuiButton-root) {
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    min-width: 80px;
+  }
+}
+
 // Mobile responsive
 @media (max-width: 768px) {
-  .users-table {
+  .usersTable {
     min-width: 800px;
   }
 
-  .table-footer {
+  .tableFooter {
     flex-direction: column;
     gap: 16px;
     align-items: stretch;
 
-    .pagination-controls {
+    .paginationControls {
       justify-content: center;
       flex-wrap: wrap;
     }
   }
 
-  .pagination-numbers {
+  .paginationNumbers {
     order: -1;
     justify-content: center;
   }
 }
 
 @media (max-width: 480px) {
-  .pagination-controls {
+  .paginationControls {
     gap: 8px;
   }
 
-  .pagination-nav {
+  .paginationNav {
     padding: 8px 12px;
     font-size: 13px;
   }
 
-  .pagination-btn {
+  .paginationBtn {
     min-width: 32px;
     height: 32px;
     font-size: 13px;
-  }
-}
-
-.teams-management-dialog {
-  .MuiDialog-paper {
-    border-radius: 12px;
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1),
-      0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  }
-
-  &__title {
-    padding: 24px 24px 16px 24px;
-    border-bottom: 1px solid #e5e7eb;
-
-    .MuiDialogTitle-root {
-      padding: 0;
-      font-weight: 600;
-      font-size: 18px;
-      color: #111827;
-    }
-  }
-
-  &__content {
-    padding: 20px 24px;
-
-    .MuiDialogContent-root {
-      padding: 0;
-    }
-  }
-
-  &__actions {
-    padding: 16px 24px 24px 24px;
-    gap: 12px;
-
-    .MuiDialogActions-root {
-      padding: 0;
-    }
-
-    .MuiButton-root {
-      padding: 10px 20px;
-      border-radius: 8px;
-      font-size: 14px;
-      min-width: 80px;
-    }
   }
 }

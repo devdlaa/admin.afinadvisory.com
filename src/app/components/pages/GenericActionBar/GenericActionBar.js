@@ -13,9 +13,11 @@ import {
   Plus,
 } from "lucide-react";
 import { CircularProgress } from "@mui/material";
-import { truncateText } from "@/utils/server/utils";
+
 import "./GenericActionBar.scss";
 
+
+import { truncateText } from "@/utils/client/cutils";
 // Built-in FilterDropdown component
 const FilterDropdown = ({
   label,

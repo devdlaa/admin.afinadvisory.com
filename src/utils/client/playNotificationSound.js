@@ -1,3 +1,4 @@
+"use client";
 let audio;
 
 export function playNotificationSound(soundEnabled) {

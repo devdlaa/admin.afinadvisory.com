@@ -21,7 +21,7 @@ const EDIT_WINDOW_HOURS = 48;
 // ------------------------------------------------------------------
 
 async function ensureUserCanAccessTask(task_id, user) {
-  if (user.admin_role === "SUPER_ADMIN") return true;
+  if (user.role === "SUPER_ADMIN") return true;
 
   const task = await prisma.task.findFirst({
     where: {

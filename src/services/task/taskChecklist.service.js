@@ -3,7 +3,7 @@ import { prisma } from "@/utils/server/db";
 import { NotFoundError } from "@/utils/server/errors";
 
 async function ensureUserCanAccessTask(tx, task_id, user) {
-  if (user.admin_role === "SUPER_ADMIN") {
+  if (user.role === "SUPER_ADMIN") {
     const task = await tx.task.findUnique({
       where: { id: task_id },
       select: { id: true },

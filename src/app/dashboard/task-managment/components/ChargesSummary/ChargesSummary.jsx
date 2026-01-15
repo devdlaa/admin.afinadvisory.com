@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { Save, Loader2, ChevronDown } from "lucide-react";
 import styles from "./ChargesSummary.module.scss";
-import { formatCurrency } from "@/utils/server/utils";
+
+import { formatCurrency } from "@/utils/client/cutils";
 
 const practiceFirmOptions = [
   { value: "DLAA_CA_FIRM", label: "DLAA CA Firm" },
