@@ -71,18 +71,6 @@ const SIDEBAR_CONFIG = {
               path: "/dashboard/service-bookings",
             },
             {
-              id: "payments",
-              label: "Payments & Settlements",
-              icon: IndianRupee,
-              path: "/dashboard/payments",
-            },
-            {
-              id: "payments-links",
-              label: "Payment Links",
-              icon: Link,
-              path: "/dashboard/payment-links",
-            },
-            {
               id: "pricing",
               label: "Service Pricing",
               icon: Tag,
@@ -114,12 +102,6 @@ const SIDEBAR_CONFIG = {
               label: "Coupons",
               icon: TicketPercent,
               path: "/dashboard/marketing/coupons",
-            },
-            {
-              id: "comissions",
-              label: "Commission Records",
-              icon: WalletCardsIcon,
-              path: "/dashboard/marketing/comissions",
             },
             {
               id: "join-list",

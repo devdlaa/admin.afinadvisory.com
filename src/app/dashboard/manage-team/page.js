@@ -30,12 +30,11 @@ import {
   toggleUserStatus,
 } from "@/store/slices/userSlice";
 
-import InviteUserDialog from "../../components/InviteUserDialog/InviteUserDialog";
-import EditUserDialog from "../../components/EditUserDialog/EditUserDialog";
-import PermissionsDialog from "../../components/PermissionsDialog/PermissionsDialog";
-import DeleteUserDialog from "../../components/DeleteUserDialog/DeleteUserDialog";
-import UsersTable from "../../components/UsersTable/UsersTable";
-
+import UsersTable from "@/app/components/pages/UsersTable/UsersTable";
+import DeleteUserDialog from "@/app/components/pages/DeleteUserDialog/DeleteUserDialog";
+import PermissionsDialog from "@/app/components/pages/PermissionsDialog/PermissionsDialog";
+import EditUserDialog from "@/app/components/pages/EditUserDialog/EditUserDialog";
+import InviteUserDialog from "@/app/components/pages/InviteUserDialog/InviteUserDialog";
 import "./UsersPage.scss";
 
 const UsersPage = () => {

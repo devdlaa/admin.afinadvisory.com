@@ -1,11 +1,8 @@
 import React from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Wallet, DollarSign, AlertCircle } from "lucide-react";
-import CustomInput from "../TinyLib/CustomInput";
-// import {
-//   setPaymentType,
-//   setPartialAmount,
-// } from "@/store/slices/createPaymentLink";
+
+import CustomInput from "../../shared/TinyLib/CustomInput";
 
 
 const CreatePaymentLinkStepFive = () => {

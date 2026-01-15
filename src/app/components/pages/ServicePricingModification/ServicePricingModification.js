@@ -12,10 +12,11 @@ import {
 } from "lucide-react";
 import "./ServicePricingModification.scss";
 
-import { InputField, Dropdown } from "../TinyLib/TinyLib";
+import { Dropdown } from "../../shared/TinyLib/TinyLib";
 import { CircularProgress } from "@mui/material";
+import { INDIAN_STATES as indianStates } from "@/utils/server/utils";
 
-import ConfirmationDialog from "../ConfirmationDialog/ConfirmationDialog";
+import ConfirmationDialog from "../../shared/ConfirmationDialog/ConfirmationDialog";
 const ServicePricingModification = ({
   initialConfig,
   onSave,
@@ -26,40 +27,8 @@ const ServicePricingModification = ({
   const [errors, setErrors] = useState({});
   const [isDirty, setIsDirty] = useState(false);
   const [isDialogOpen, setDialogOpen] = useState(false);
-  const [activePlanTab, setActivePlanTab] = useState(0);
 
-  // Indian states for state-wise pricing
-  const indianStates = [
-    "Andhra Pradesh",
-    "Arunachal Pradesh",
-    "Assam",
-    "Bihar",
-    "Chhattisgarh",
-    "Daman and Diu",
-    "Goa",
-    "Gujarat",
-    "Haryana",
-    "Himachal Pradesh",
-    "Jharkhand",
-    "Karnataka",
-    "Kerala",
-    "Madhya Pradesh",
-    "Maharashtra",
-    "Manipur",
-    "Meghalaya",
-    "Mizoram",
-    "Nagaland",
-    "Odisha",
-    "Punjab",
-    "Rajasthan",
-    "Sikkim",
-    "Tamil Nadu",
-    "Telangana",
-    "Tripura",
-    "Uttar Pradesh",
-    "Uttarakhand",
-    "West Bengal",
-  ];
+  const [activePlanTab, setActivePlanTab] = useState(0);
 
   useEffect(() => {
     if (!config.AVAILABLE_PLANS) {

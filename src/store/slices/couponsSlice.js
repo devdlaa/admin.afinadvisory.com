@@ -12,7 +12,7 @@ export const fetchCoupons = createAsyncThunk(
         ...filters,
       });
 
-      const response = await fetch(`/api/admin/coupons/get_coupons?${params}`);
+      const response = await fetch(`/api/manage_website/coupons/get_coupons?${params}`);
       const data = await response.json();
 
       if (!response.ok) {
@@ -30,7 +30,7 @@ export const searchCoupons = createAsyncThunk(
   "coupons/searchCoupons",
   async ({ searchTerm, searchType }, { rejectWithValue }) => {
     try {
-      const response = await fetch("/api/admin/coupons/search", {
+      const response = await fetch("/api/manage_website/coupons/search", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -55,7 +55,7 @@ export const searchCouponsByDateRange = createAsyncThunk(
   "coupons/searchCouponsByDateRange",
   async ({ startDate, endDate }, { rejectWithValue }) => {
     try {
-      const response = await fetch("/api/admin/coupons/search-date-range", {
+      const response = await fetch("/api/manage_website/coupons/search-date-range", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -80,7 +80,7 @@ export const createCoupon = createAsyncThunk(
   "coupons/createCoupon",
   async (couponData, { rejectWithValue }) => {
     try {
-      const response = await fetch("/api/admin/coupons/create_new", {
+      const response = await fetch("/api/manage_website/coupons/create_new", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -105,7 +105,7 @@ export const updateCoupon = createAsyncThunk(
   "coupons/updateCoupon",
   async ({ id, updateData }, { rejectWithValue }) => {
     try {
-      const response = await fetch(`/api/admin/coupons/${id}`, {
+      const response = await fetch(`/api/manage_website/coupons/${id}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -132,7 +132,7 @@ export const deleteCoupon = createAsyncThunk(
   async (id, { rejectWithValue }) => {
     try {
       const response = await fetch(
-        `/api/admin/coupons/delete_coupon?id=${id}`,
+        `/api/manage_website/coupons/delete_coupon?id=${id}`,
         {
           method: "DELETE",
         }
@@ -155,7 +155,7 @@ export const fetchServices = createAsyncThunk(
   "coupons/fetchServices",
   async (_, { rejectWithValue }) => {
     try {
-      const response = await fetch("/api/admin/service_pricing/get");
+      const response = await fetch("/api/manage_website/service_pricing/get");
       const data = await response.json();
 
       if (!response.ok) {
@@ -173,7 +173,7 @@ export const searchInfluencer = createAsyncThunk(
   "coupons/searchInfluencer",
   async ({ email }, { rejectWithValue }) => {
     try {
-      const response = await fetch("/api/admin/influencers/get_by_email", {
+      const response = await fetch("/api/manage_website/influencers/get_by_email", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

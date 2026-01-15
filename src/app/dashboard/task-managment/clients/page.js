@@ -2,8 +2,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 
-import GenericActionBar from "@/app/components/GenericActionBar/GenericActionBar";
 import ClientsTable from "./components/ClientsTable.jsx";
+import GenericActionBar from "@/app/components/pages/GenericActionBar/GenericActionBar.js";
 
 import ClientAddUpdateDialog from "./components/ClientAddUpdateDialog.jsx";
 import ClientFilterDialog from "./components/ClientFilterDialog.jsx";

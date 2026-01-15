@@ -2,21 +2,7 @@ import React from "react";
 import { Loader2 } from "lucide-react";
 import "./Button.scss";
 
-/**
- * Button - A flexible, reusable button component
- *
- * @param {string} variant - Button style: 'primary' | 'secondary' | 'danger' | 'ghost' | 'outline'
- * @param {string} size - Button size: 'sm' | 'md' | 'lg'
- * @param {React.Component} icon - Icon component (from lucide-react)
- * @param {string} iconPosition - Icon position: 'left' | 'right'
- * @param {boolean} loading - Show loading spinner
- * @param {boolean} disabled - Disable button
- * @param {boolean} fullWidth - Make button full width
- * @param {string} className - Custom root class to override styles
- * @param {Function} onClick - Click handler
- * @param {string} type - Button type: 'button' | 'submit' | 'reset'
- * @param {React.ReactNode} children - Button content
- */
+
 const Button = ({
   variant = "primary",
   size = "md",

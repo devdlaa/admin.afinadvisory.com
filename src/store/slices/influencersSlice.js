@@ -12,7 +12,7 @@ export const fetchInfluencers = createAsyncThunk(
  
     const payload = cursor ? { limit, cursor } : { limit };
     try {
-      const response = await fetch("/api/admin/influencers/get", {
+      const response = await fetch("/api/manage_website/influencers/get", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -73,7 +73,7 @@ export const searchInfluencers = createAsyncThunk(
         };
       }
 
-      const response = await fetch("/api/admin/influencers/search", {
+      const response = await fetch("/api/manage_website/influencers/search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ value }),
@@ -108,7 +108,7 @@ export const filterInfluencers = createAsyncThunk(
   "influencers/filterInfluencers",
   async ({ mode = "filter", filters }, { rejectWithValue }) => {
     try {
-      const response = await fetch("/api/admin/influencers/filter", {
+      const response = await fetch("/api/manage_website/influencers/filter", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(filters),
@@ -140,7 +140,7 @@ export const updateInfluencer = createAsyncThunk(
   "influencers/updateInfluencer",
   async ({ id, updateData }, { rejectWithValue }) => {
     try {
-      const response = await fetch(`/api/admin/influencers/update?id=${id}`, {
+      const response = await fetch(`/api/manage_website/influencers/update?id=${id}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -173,7 +173,7 @@ export const deleteInfluencer = createAsyncThunk(
   "influencers/deleteInfluencer",
   async ({ id }, { rejectWithValue }) => {
     try {
-      const response = await fetch(`/api/admin/influencers/delete?id=${id}`, {
+      const response = await fetch(`/api/manage_website/influencers/delete?id=${id}`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
@@ -218,7 +218,7 @@ export const addNewInfluencer = createAsyncThunk(
   "influencers/addNewInfluencer",
   async (influencerData, { rejectWithValue }) => {
     try {
-      const response = await fetch("/api/admin/influencers/create_new", {
+      const response = await fetch("/api/manage_website/influencers/create_new", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

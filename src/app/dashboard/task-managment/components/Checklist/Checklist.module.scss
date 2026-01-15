@@ -251,10 +251,8 @@
 
 .editItemInput {
   background: #ffffff00;
-
   border-radius: 6px;
   padding: 4px 8px;
-
   margin-top: -4px;
 }
 
@@ -294,4 +292,719 @@
   justify-content: center;
   gap: 8px;
   height: 40px;
+}
+
+// ============================================
+// RESPONSIVE STYLES FOR LAPTOPS/DESKTOPS
+// ============================================
+
+// Large desktops (1440px+)
+@media (min-width: 1440px) {
+  .checklistContainer {
+    margin: 18px 0;
+  }
+
+  .header {
+    margin-bottom: 36px;
+  }
+
+  .headerLeft {
+    gap: 14px;
+  }
+
+  .counter {
+    gap: 10px;
+  }
+
+  .progressCircle {
+    width: 44px;
+    height: 44px;
+  }
+
+  .circleSvg {
+    width: 44px;
+    height: 44px;
+  }
+
+  .circleBg,
+  .circleProgress {
+    stroke-width: 3.5;
+  }
+
+  .counterText {
+    font-size: 14px;
+  }
+
+  .title {
+    font-size: 16px;
+  }
+
+  .itemsList {
+    gap: 14px;
+    margin-bottom: 18px;
+    min-height: 44px;
+  }
+
+  .checklistItem {
+    padding: 22px 18px 22px 14px;
+    gap: 14px;
+    border-radius: 13px;
+  }
+
+  .itemContent {
+    gap: 16px;
+    padding-top: 3px;
+  }
+
+  .checkboxIcon,
+  .checkboxPlaceholder {
+    width: 26px;
+    height: 26px;
+    min-width: 26px;
+
+    svg {
+      width: 15px;
+      height: 15px;
+    }
+  }
+
+  .itemText,
+  .newItemInput,
+  .editItemInput {
+    font-size: 16px;
+    line-height: 1.65;
+    min-height: 26px;
+  }
+
+  .itemText {
+    padding: 3px 5px;
+    margin-top: -3px;
+  }
+
+  .newItemInput,
+  .editItemInput {
+    padding: 5px 5px;
+    margin-top: -3px;
+  }
+
+  .editItemInput {
+    padding: 5px 9px;
+    margin-top: -5px;
+  }
+
+  .deleteButton {
+    padding: 7px;
+
+    svg {
+      width: 18px;
+      height: 18px;
+    }
+  }
+
+  .footer {
+    padding-top: 6px;
+  }
+
+  .empty_state {
+    height: 44px;
+    gap: 10px;
+    border-radius: 13px;
+  }
+}
+
+// Medium laptops (1200px - 1366px)
+@media (max-width: 1366px) and (min-width: 1201px) {
+  .checklistContainer {
+    margin: 15px 0;
+  }
+
+  .header {
+    margin-bottom: 30px;
+  }
+
+  .headerLeft {
+    gap: 11px;
+  }
+
+  .counter {
+    gap: 7px;
+  }
+
+  .progressCircle {
+    width: 38px;
+    height: 38px;
+  }
+
+  .circleSvg {
+    width: 38px;
+    height: 38px;
+  }
+
+  .counterText {
+    font-size: 12px;
+  }
+
+  .title {
+    font-size: 14px;
+  }
+
+  .itemsList {
+    gap: 11px;
+    margin-bottom: 15px;
+    min-height: 38px;
+  }
+
+  .checklistItem {
+    padding: 18px 15px 18px 11px;
+    gap: 11px;
+    border-radius: 11px;
+  }
+
+  .dragHandlePlaceholder {
+    width: 17px;
+  }
+
+  .itemContent {
+    gap: 13px;
+  }
+
+  .checkboxIcon,
+  .checkboxPlaceholder {
+    width: 23px;
+    height: 23px;
+    min-width: 23px;
+
+    svg {
+      width: 13px;
+      height: 13px;
+    }
+  }
+
+  .itemText,
+  .newItemInput,
+  .editItemInput {
+    font-size: 14px;
+    min-height: 23px;
+  }
+
+  .deleteButton {
+    padding: 5px;
+
+    svg {
+      width: 17px;
+      height: 17px;
+    }
+  }
+
+  .empty_state {
+    height: 38px;
+    border-radius: 11px;
+  }
+}
+
+// Standard laptops (1024px - 1200px)
+@media (max-width: 1200px) and (min-width: 1025px) {
+  .checklistContainer {
+    margin: 14px 0;
+  }
+
+  .header {
+    margin-bottom: 28px;
+  }
+
+  .headerLeft {
+    gap: 10px;
+  }
+
+  .counter {
+    gap: 7px;
+  }
+
+  .progressCircle {
+    width: 36px;
+    height: 36px;
+  }
+
+  .circleSvg {
+    width: 36px;
+    height: 36px;
+  }
+
+  .circleBg,
+  .circleProgress {
+    stroke-width: 2.5;
+  }
+
+  .counterText {
+    font-size: 11.5px;
+  }
+
+  .title {
+    font-size: 13.5px;
+  }
+
+  .itemsList {
+    gap: 10px;
+    margin-bottom: 14px;
+    min-height: 36px;
+  }
+
+  .checklistItem {
+    padding: 16px 14px 16px 10px;
+    gap: 10px;
+    border-radius: 10px;
+  }
+
+  .dragHandle {
+    padding: 3px 0;
+
+    svg {
+      width: 17px;
+      height: 17px;
+    }
+  }
+
+  .dragHandlePlaceholder {
+    width: 16px;
+  }
+
+  .itemContent {
+    gap: 12px;
+    padding-top: 1px;
+  }
+
+  .checkboxIcon,
+  .checkboxPlaceholder {
+    width: 22px;
+    height: 22px;
+    min-width: 22px;
+    border-width: 1.5px;
+
+    svg {
+      width: 12px;
+      height: 12px;
+    }
+  }
+
+  .itemText,
+  .newItemInput,
+  .editItemInput {
+    font-size: 13.5px;
+    line-height: 1.55;
+    min-height: 22px;
+  }
+
+  .itemText {
+    padding: 2px 3px;
+    margin-top: -2px;
+  }
+
+  .newItemInput,
+  .editItemInput {
+    padding: 3px 3px;
+    margin-top: -2px;
+  }
+
+  .editItemInput {
+    padding: 3px 7px;
+    margin-top: -3px;
+    border-radius: 5px;
+  }
+
+  .deleteButton {
+    padding: 5px;
+    border-radius: 5px;
+
+    svg {
+      width: 16px;
+      height: 16px;
+    }
+  }
+
+  .footer {
+    padding-top: 3px;
+  }
+
+  .empty_state {
+    height: 36px;
+    gap: 7px;
+    border-radius: 10px;
+  }
+}
+
+// Small laptops (900px - 1024px)
+@media (max-width: 1024px) and (min-width: 901px) {
+  .checklistContainer {
+    margin: 13px 0;
+  }
+
+  .header {
+    margin-bottom: 26px;
+  }
+
+  .headerLeft {
+    gap: 9px;
+  }
+
+  .counter {
+    gap: 6px;
+  }
+
+  .progressCircle {
+    width: 34px;
+    height: 34px;
+  }
+
+  .circleSvg {
+    width: 34px;
+    height: 34px;
+  }
+
+  .circleBg,
+  .circleProgress {
+    stroke-width: 2.5;
+  }
+
+  .counterText {
+    font-size: 11px;
+  }
+
+  .title {
+    font-size: 13px;
+  }
+
+  .itemsList {
+    gap: 10px;
+    margin-bottom: 13px;
+    min-height: 34px;
+  }
+
+  .checklistItem {
+    padding: 15px 13px 15px 10px;
+    gap: 10px;
+    border-radius: 10px;
+
+    &:hover {
+      box-shadow: 0 1px 6px rgba(0, 0, 0, 0.04);
+    }
+  }
+
+  .dragHandle {
+    padding: 3px 0;
+
+    svg {
+      width: 16px;
+      height: 16px;
+    }
+  }
+
+  .dragHandlePlaceholder {
+    width: 15px;
+  }
+
+  .itemContent {
+    gap: 11px;
+    padding-top: 1px;
+  }
+
+  .checkboxIcon,
+  .checkboxPlaceholder {
+    width: 21px;
+    height: 21px;
+    min-width: 21px;
+    border-width: 1.5px;
+
+    svg {
+      width: 11px;
+      height: 11px;
+    }
+  }
+
+  .itemText,
+  .newItemInput,
+  .editItemInput {
+    font-size: 13px;
+    line-height: 1.5;
+    min-height: 21px;
+  }
+
+  .itemText {
+    padding: 1px 3px;
+    margin-top: -1px;
+  }
+
+  .newItemInput,
+  .editItemInput {
+    padding: 2px 3px;
+    margin-top: -1px;
+  }
+
+  .editItemInput {
+    padding: 2px 6px;
+    margin-top: -2px;
+    border-radius: 5px;
+  }
+
+  .deleteButton {
+    padding: 4px;
+    border-radius: 5px;
+
+    svg {
+      width: 15px;
+      height: 15px;
+    }
+  }
+
+  .footer {
+    padding-top: 3px;
+  }
+
+  .empty_state {
+    height: 34px;
+    gap: 6px;
+    border-radius: 10px;
+  }
+}
+
+// Compact laptops (769px - 900px)
+@media (max-width: 900px) and (min-width: 769px) {
+  .checklistContainer {
+    margin: 12px 0;
+  }
+
+  .header {
+    margin-bottom: 24px;
+  }
+
+  .headerLeft {
+    gap: 8px;
+  }
+
+  .counter {
+    gap: 6px;
+  }
+
+  .progressCircle {
+    width: 32px;
+    height: 32px;
+  }
+
+  .circleSvg {
+    width: 32px;
+    height: 32px;
+  }
+
+  .circleBg,
+  .circleProgress {
+    stroke-width: 2.5;
+  }
+
+  .counterText {
+    font-size: 10.5px;
+  }
+
+  .title {
+    font-size: 12.5px;
+  }
+
+  .itemsList {
+    gap: 9px;
+    margin-bottom: 12px;
+    min-height: 32px;
+  }
+
+  .checklistItem {
+    padding: 14px 12px 14px 9px;
+    gap: 9px;
+    border-radius: 9px;
+
+    &:hover {
+      box-shadow: 0 1px 5px rgba(0, 0, 0, 0.04);
+
+      .dragHandle {
+        opacity: 1; // Always show on smaller screens
+      }
+
+      .deleteButton {
+        opacity: 1; // Always show on smaller screens
+      }
+    }
+  }
+
+  .dragHandle {
+    padding: 2px 0;
+    opacity: 0.6; // Slightly visible on compact screens
+
+    svg {
+      width: 15px;
+      height: 15px;
+    }
+  }
+
+  .dragHandlePlaceholder {
+    width: 14px;
+  }
+
+  .itemContent {
+    gap: 10px;
+    padding-top: 1px;
+  }
+
+  .checkboxIcon,
+  .checkboxPlaceholder {
+    width: 20px;
+    height: 20px;
+    min-width: 20px;
+    border-width: 1.5px;
+
+    svg {
+      width: 10px;
+      height: 10px;
+    }
+  }
+
+  .itemText,
+  .newItemInput,
+  .editItemInput {
+    font-size: 12.5px;
+    line-height: 1.5;
+    min-height: 20px;
+  }
+
+  .itemText {
+    padding: 1px 3px;
+    margin-top: -1px;
+    border-radius: 3px;
+  }
+
+  .newItemInput,
+  .editItemInput {
+    padding: 2px 3px;
+    margin-top: -1px;
+  }
+
+  .editItemInput {
+    padding: 2px 6px;
+    margin-top: -2px;
+    border-radius: 4px;
+  }
+
+  .deleteButton {
+    padding: 4px;
+    border-radius: 5px;
+    opacity: 0.6; // Slightly visible on compact screens
+
+    svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    &:hover {
+      opacity: 1;
+    }
+  }
+
+  .footer {
+    padding-top: 2px;
+  }
+
+  .empty_state {
+    height: 32px;
+    gap: 6px;
+    border-radius: 9px;
+  }
+}
+
+// Tablet and mobile
+@media (max-width: 768px) {
+  .checklistContainer {
+    margin: 12px 0;
+  }
+
+  .header {
+    margin-bottom: 20px;
+  }
+
+  .headerLeft {
+    gap: 8px;
+  }
+
+  .counter {
+    gap: 6px;
+  }
+
+  .progressCircle {
+    width: 32px;
+    height: 32px;
+  }
+
+  .circleSvg {
+    width: 32px;
+    height: 32px;
+  }
+
+  .counterText {
+    font-size: 10px;
+  }
+
+  .title {
+    font-size: 12px;
+  }
+
+  .itemsList {
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .checklistItem {
+    padding: 12px 10px 12px 8px;
+    gap: 8px;
+    border-radius: 8px;
+  }
+
+  .dragHandle {
+    opacity: 1; // Always visible on mobile
+
+    svg {
+      width: 14px;
+      height: 14px;
+    }
+  }
+
+  .dragHandlePlaceholder {
+    width: 14px;
+  }
+
+  .itemContent {
+    gap: 10px;
+  }
+
+  .checkboxIcon,
+  .checkboxPlaceholder {
+    width: 20px;
+    height: 20px;
+    min-width: 20px;
+  }
+
+  .itemText,
+  .newItemInput,
+  .editItemInput {
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  .deleteButton {
+    opacity: 1; // Always visible on mobile
+    padding: 4px;
+
+    svg {
+      width: 14px;
+      height: 14px;
+    }
+  }
+
+  .empty_state {
+    height: 32px;
+    border-radius: 8px;
+  }
 }

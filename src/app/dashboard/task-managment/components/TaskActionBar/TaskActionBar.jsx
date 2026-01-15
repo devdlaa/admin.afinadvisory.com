@@ -8,28 +8,11 @@ import {
   X,
   ListCheckIcon,
 } from "lucide-react";
-import FilterDropdown from "@/app/components/FilterDropdown/FilterDropdown";
-import Button from "@/app/components/Button/Button";
+
+import FilterDropdown from "@/app/components/pages/FilterDropdown/FilterDropdown";
+import Button from "@/app/components/shared/Button/Button";
 import "./TaskActionBar.scss";
 
-/**
- * TaskActionBar - Custom action bar for the tasks page
- *
- * @param {Array} filterDropdowns - Array of filter dropdown configurations
- * @param {Object} activeFilters - Current filter values {entity_id, task_category_id, assigned_to, is_billable}
- * @param {Function} onFilterChange - Callback when filter changes (filterKey, value) => void
- * @param {Function} onClearAllFilters - Callback to clear all filters
- * @param {Function} onCreateTask - Callback for creating new task
- * @param {Function} onToggleWorkload - Callback for toggling workload view
- * @param {boolean} showWorkload - Current workload visibility state
- * @param {number} totalCount - Total number of tasks
- * @param {number} filteredCount - Number of filtered tasks
- * @param {boolean} isLoading - Loading state for refresh
- * @param {number} currentPage - Current page number
- * @param {number} totalPages - Total number of pages
- * @param {Function} onPageChange - Callback when page changes (page) => void
- * @param {boolean} isPaginationLoading - Loading state for pagination
- */
 const TaskActionBar = ({
   filterDropdowns = [],
   activeFilters = {},

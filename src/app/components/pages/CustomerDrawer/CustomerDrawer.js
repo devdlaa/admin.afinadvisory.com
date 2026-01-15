@@ -22,7 +22,7 @@ import {
 } from "@/store/slices/customersSlice";
 import { CircularProgress } from "@mui/material";
 
-const SelectedCustomersDrawer = () => {
+const CustomersDrawer = () => {
   const dispatch = useDispatch();
   const { isUpdatingCustomer, selectedCustomers, isCustomerDrawnOpen } =
     useSelector((state) => state.customers);
@@ -622,4 +622,4 @@ const SelectedCustomersDrawer = () => {
   );
 };
 
-export default SelectedCustomersDrawer;
+export default CustomersDrawer;

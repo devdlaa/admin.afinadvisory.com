@@ -16,7 +16,8 @@ import {
 } from "lucide-react";
 import style from "./AssignmentDialog.module.scss";
 import { CircularProgress } from "@mui/material";
-import Avatar from "@/app/components/newui/Avatar/Avatar";
+
+import Avatar from "../../shared/newui/Avatar/Avatar";
 import { getProfileUrl } from "@/utils/shared/shared_util";
 
 const AssignmentDialog = ({

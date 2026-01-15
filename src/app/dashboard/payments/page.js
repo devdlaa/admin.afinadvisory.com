@@ -14,13 +14,20 @@ import {
 } from "lucide-react";
 import "./payments.scss";
 
-import PaymentsTable from "@/app/components/PaymentsTable/PaymentsTable";
-import RefundsTable from "@/app/components/RefundsTable/RefundsTable";
-import SettlementsTable from "@/app/components/SettlementsTable/SettlementsTable";
-import RefundModal from "@/app/components/RefundModal/RefundModal";
 
-import BalanceSummary from "@/app/components/BalanceSummary/BalanceSummary";
-import FilterPanel from "@/app/components/FilterPanel/FilterPanel";
+
+
+
+
+import PaymentsTable from "@/app/components/pages/PaymentsTable/PaymentsTable";
+import RefundsTable from "@/app/components/pages/RefundsTable/RefundsTable";
+import SettlementsTable from "@/app/components/pages/SettlementsTable/SettlementsTable";
+import RefundModal from "@/app/components/pages/RefundModal/RefundModal";
+
+import BalanceSummary from "@/app/components/pages/BalanceSummary/BalanceSummary";
+import FilterPanel from "@/app/components/pages/FilterPanel/FilterPanel";
+
+
 
 // Import Redux actions
 import {

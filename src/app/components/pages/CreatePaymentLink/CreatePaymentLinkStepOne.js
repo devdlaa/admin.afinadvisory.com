@@ -3,9 +3,9 @@ import { useDispatch, useSelector } from "react-redux";
 import { CircularProgress } from "@mui/material";
 import { User, UserPlus, Mail, Phone, MapPin } from "lucide-react";
 
-import CustomInput from "../TinyLib/CustomInput";
-import CustomDropdown from "../TinyLib/CustomDropdown";
 
+import CustomInput from "../../shared/TinyLib/CustomInput";
+import CustomDropdown from "../../shared/TinyLib/CustomDropdown";
 import {
   setCustomerTab,
   setNewCustomerData,

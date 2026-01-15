@@ -38,14 +38,17 @@ import {
   Info,
 } from "lucide-react";
 import "./ServiceBookingPage.scss";
-import InfoBanner from "@/app/components/InfoBanner/InfoBanner";
-import { Button } from "@/app/components/TinyLib/TinyLib";
 
+import InfoBanner from "@/app/components/shared/InfoBanner/InfoBanner";
+import { Button } from "@/app/components/shared/TinyLib/TinyLib";
 import { useSelector, useDispatch } from "react-redux";
 
+
+
 import Permission from "@/app/components/Permission";
-import AssignmentDialog from "@/app/components/AssignmentDialog/AssignmentDialog";
-import ConfirmationDialog from "@/app/components/ConfirmationDialog/ConfirmationDialog";
+import AssignmentDialog from "@/app/components/pages/AssignmentDialog/AssignmentDialog";
+import ConfirmationDialog from "@/app/components/shared/ConfirmationDialog/ConfirmationDialog";
+
 import {
   markServiceFulfilled,
   unmarkServiceFulfilled,

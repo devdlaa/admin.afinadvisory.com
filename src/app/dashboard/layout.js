@@ -1,12 +1,13 @@
 import "../globals.css";
 import "./layout.scss";
 import { Poppins } from "next/font/google";
-import Sidebar from "../components/Sidebar/Sidebar";
+
+import Sidebar from "../components/shared/Sidebar/Sidebar";
 
 import { SessionProvider } from "next-auth/react";
 import { Providers } from "../components/providers";
-import LockDashboardButton from "../components/LockDashboardButton/LockDashboardButton";
 
+import LockDashboardButton from "../components/shared/LockDashboardButton/LockDashboardButton";
 const poppins = Poppins({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],

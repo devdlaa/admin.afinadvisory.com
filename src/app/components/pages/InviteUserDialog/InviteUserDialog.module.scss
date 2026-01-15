@@ -1,5 +1,5 @@
 // Dialog Overlay and Container Styles
-.invite_new_user_dialog-overlay {
+.invite_new_user_dialogOverlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -14,7 +14,7 @@
   padding: 20px;
   font-family: "Poppins" !important;
 
-  .dialog-container {
+  .dialogContainer {
     width: 100%;
 
     max-height: 90vh;
@@ -24,7 +24,7 @@
     position: relative;
   }
 
-  .invite-dialog {
+  .inviteDialog {
     background: white;
     border-radius: 12px;
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
@@ -35,7 +35,7 @@
     overflow: hidden;
   }
 
-  .dialog-header {
+  .dialogHeader {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -43,7 +43,7 @@
     border-bottom: 1px solid rgba(0, 0, 0, 0.034);
   }
 
-  .dialog-title {
+  .dialogTitle {
     display: flex;
     align-items: center;
     gap: 12px;
@@ -52,12 +52,12 @@
     padding: 0px !important;
     color: black !important;
     margin-bottom: 0px !important;
-    .title-icon {
+    .titleIcon {
       color: black !important;
     }
   }
 
-  .dialog-close {
+  .dialogClose {
     background: none;
     border: none;
     padding: 8px;
@@ -72,7 +72,7 @@
     }
   }
 
-  .dialog-content {
+  .dialogContent {
     flex: 1;
     overflow: hidden;
   }
@@ -98,7 +98,7 @@
     }
   }
 
-  .btn-primary {
+  .btnPrimary {
     background: var(--primary-blue);
     color: white;
 
@@ -112,7 +112,7 @@
     }
   }
 
-  .btn-outline {
+  .btnOutline {
     background: transparent;
     color: black;
     border: 1px solid rgba(0, 0, 0, 0.075) !important;
@@ -124,7 +124,7 @@
   }
 
   // Form Styles
-  .invite-form {
+  .inviteForm {
     max-height: 70vh;
     overflow-y: auto;
     position: relative !important;
@@ -142,7 +142,7 @@
     }
   }
 
-  .form-sections {
+  .formSections {
     display: grid !important;
     grid-template-columns: 1fr 1fr;
     gap: 15px;
@@ -155,7 +155,7 @@
       height: fit-content;
       position: sticky;
       top: 20px;
-      .form-grid {
+      .formGrid {
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 20px;
@@ -163,8 +163,8 @@
     }
   }
 
-  .form-section {
-    .section-title {
+  .formSection {
+    .sectionTitle {
       display: flex;
       align-items: center;
       gap: 8px;
@@ -183,20 +183,20 @@
     }
   }
 
-  .form-group {
+  .formGroup {
     display: flex;
     flex-direction: column;
     gap: 8px;
   }
 
-  .form-label {
+  .formLabel {
     font-size: 14px;
     font-weight: 500;
     color: black;
   }
 
-  .form-input,
-  .form-select {
+  .formInput,
+  .formSelect {
     padding: 12px 16px;
     border: 1px solid rgba(0, 0, 0, 0.068);
     border-radius: 8px;
@@ -221,7 +221,7 @@
     }
   }
 
-  .form-select {
+  .formSelect {
     cursor: pointer;
 
     option {
@@ -230,24 +230,24 @@
     }
   }
 
-  .error-text {
+  .errorText {
     font-size: 12px;
     color: #ef4444;
     margin-top: 4px;
   }
 
-  .role-selection {
+  .roleSelection {
     margin-bottom: 24px;
   }
 
-  .role-options {
+  .roleOptions {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr !important;
     gap: 12px;
     margin-top: 12px;
   }
 
-  .role-option {
+  .roleOption {
     display: flex;
     flex-direction: column;
     .roal_box_wrapper {
@@ -274,7 +274,7 @@
     }
   }
 
-  .role-radio {
+  .roleRadio {
     width: 20px;
     height: 20px;
     border: 2px solid var(--border-color);
@@ -285,11 +285,11 @@
     flex-shrink: 0;
     transition: all 0.2s ease;
 
-    .role-option.selected & {
+    .roleOption.selected & {
       border-color: var(--primary-blue);
     }
 
-    .radio-dot {
+    .radioDot {
       width: 10px;
       height: 10px;
       background-color: var(--primary-blue);
@@ -297,16 +297,16 @@
     }
   }
 
-  .role-info {
+  .roleInfo {
     flex: 1;
 
-    .role-name {
+    .roleName {
       font-size: 14px;
       font-weight: 600;
       color: black;
     }
 
-    .role-desc {
+    .roleDesc {
       font-size: 13px;
       color: var(--text-secondary);
       line-height: 1.4;
@@ -314,26 +314,26 @@
     }
   }
 
-  .permissions-section {
-    .form-label {
+  .permissionsSection {
+    .formLabel {
       margin-bottom: 16px;
       display: block;
     }
   }
 
-  .permissions-grid {
+  .permissionsGrid {
     display: grid;
     grid-template-columns: 1fr 1fr !important;
     gap: 10px;
   }
 
-  .permission-category {
+  .permissionCategory {
     border: 1px solid rgba(0, 0, 0, 0.041);
     border-radius: 10px;
     padding: 16px;
     background: var(--background);
 
-    .category-title {
+    .categoryTitle {
       font-size: 14px;
       font-weight: 600;
       color: black;
@@ -343,7 +343,7 @@
     }
   }
 
-  .permission-item {
+  .permissionItem {
     display: flex;
     align-items: center;
     gap: 12px;
@@ -352,17 +352,17 @@
     transition: all 0.2s ease;
 
     &:hover {
-      .permission-label {
+      .permissionLabel {
         color: var(--primary-blue);
       }
     }
   }
 
-  .permission-checkbox {
+  .permissionCheckbox {
     display: none;
   }
 
-  .checkbox-custom {
+  .checkboxCustom {
     width: 16px;
     height: 16px;
     border: 2px solid var(--border-color);
@@ -376,30 +376,30 @@
       background-color: #007bff; // or your primary color
       border-color: #007bff;
 
-      .check-icon {
+      .checkIcon {
         color: white;
         opacity: 1;
       }
     }
 
-    .permission-checkbox:checked + & {
+    .permissionCheckbox:checked + & {
       background-color: var(--primary-blue);
       border-color: var(--primary-blue);
 
-      .check-icon {
+      .checkIcon {
         opacity: 1;
       }
     }
   }
 
-  .permission-label {
+  .permissionLabel {
     font-size: 13px;
     color: rgb(32, 32, 32);
     transition: color 0.2s ease;
     flex: 1;
   }
 
-  .form-actions {
+  .formActions {
     display: flex;
     gap: 12px;
     position: sticky;
@@ -413,7 +413,7 @@
     border-top: 1px solid var(--border-color);
   }
 
-  .confirmation-content {
+  .confirmationContent {
     padding: 24px;
     text-align: center;
 
@@ -421,10 +421,10 @@
     margin: 0 auto;
   }
 
-  .confirmation-header {
+  .confirmationHeader {
     margin-bottom: 24px;
 
-    .confirmation-icon {
+    .confirmationIcon {
       width: 60px;
       height: 60px;
       background: var(--light-blue);
@@ -452,7 +452,7 @@
     }
   }
 
-  .confirmation-details {
+  .confirmationDetails {
     background: var(--background);
     border-radius: 10px;
     padding: 20px;
@@ -460,7 +460,7 @@
     text-align: left;
   }
 
-  .detail-group {
+  .detailGroup {
     display: flex;
     justify-content: space-between;
     padding: 8px 0;
@@ -477,14 +477,14 @@
     }
   }
 
-  .confirmation-actions {
+  .confirmationActions {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 12px;
     justify-content: center;
   }
 
-  .send-invite-btn {
+  .sendInviteBtn {
     background: linear-gradient(
       135deg,
       var(--primary-green),
@@ -500,7 +500,7 @@
     }
   }
 
-  .loading-spinner {
+  .loadingSpinner {
     width: 16px;
     height: 16px;
     border: 2px solid transparent;
@@ -510,49 +510,49 @@
 
   // Mobile responsive
   @media (max-width: 768px) {
-    .invite_new_user_dialog-overlay {
+    .invite_new_user_dialogOverlay {
       padding: 10px;
     }
 
-    .dialog-container {
+    .dialogContainer {
       max-width: 100%;
     }
 
-    .invite-dialog {
+    .inviteDialog {
       max-height: 95vh;
       border-radius: 8px;
     }
 
-    .dialog-header {
+    .dialogHeader {
       padding: 16px 16px;
     }
 
-    .invite-form {
+    .inviteForm {
       padding: 0 16px 16px;
     }
 
-    .confirmation-content {
+    .confirmationContent {
       padding: 16px;
     }
 
-    .form-grid {
+    .formGrid {
       grid-template-columns: 1fr;
     }
 
-    .permissions-grid {
+    .permissionsGrid {
       grid-template-columns: 1fr;
     }
 
-    .role-options {
+    .roleOptions {
       gap: 8px;
     }
 
-    .role-option {
+    .roleOption {
       padding: 12px;
     }
 
-    .form-actions,
-    .confirmation-actions {
+    .formActions,
+    .confirmationActions {
       flex-direction: column;
 
       .btn {
@@ -560,19 +560,19 @@
       }
     }
 
-    .dialog-title {
+    .dialogTitle {
       font-size: 18px;
     }
   }
 
   /* Additional styles for InviteUserDialog alerts and loading states */
 
-  .invite-dialog {
-    .invitation-alert {
+  .inviteDialog {
+    .invitationAlert {
       border-radius: 8px;
       margin-bottom: 1rem;
 
-      .email-warning {
+      .emailWarning {
         display: flex;
         align-items: center;
         gap: 0.5rem;
@@ -582,7 +582,7 @@
       }
     }
 
-    .loading-content {
+    .loadingContent {
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -590,7 +590,7 @@
       padding: 3rem 2rem;
       text-align: center;
 
-      .loading-spinner {
+      .loadingSpinner {
         width: 24px;
         height: 24px;
         border: 2px solid #e2e8f0;
@@ -605,7 +605,7 @@
       }
     }
 
-    .error-content {
+    .errorContent {
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -625,14 +625,14 @@
       }
     }
 
-    .role-description {
+    .roleDescription {
       font-size: 0.75rem;
       color: #64748b;
       margin-top: 0.25rem;
       line-height: 1.3;
     }
 
-    .detail-group {
+    .detailGroup {
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
@@ -651,7 +651,7 @@
       }
     }
 
-    .send-invite-btn {
+    .sendInviteBtn {
       position: relative;
       overflow: hidden;
 
@@ -677,12 +677,12 @@
   }
 
   // Alert component overrides for Material-UI
-  .MuiAlert-root {
+  .MuiAlertRoot {
     &.invitation-alert {
       border-radius: 8px !important;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
 
-      .MuiAlert-message {
+      .MuiAlertMessage {
         width: 100%;
       }
     }
@@ -698,7 +698,7 @@
     }
   }
 
-  .loading-spinner {
+  .loadingSpinner {
     animation: spin 1s linear infinite;
   }
 }

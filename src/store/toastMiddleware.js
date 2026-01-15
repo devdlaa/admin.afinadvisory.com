@@ -493,7 +493,9 @@ const toastMiddleware = () => (next) => (action) => {
         break;
 
       case "taskDetail/updateCharge/rejected":
-        showError("Failed to update charge. Please try again.");
+        const updateChargeError =
+          action.payload?.message || action.error?.message;
+        showError(updateChargeError || "Failed to add charge");
         break;
 
       case "taskDetail/deleteCharge/rejected":

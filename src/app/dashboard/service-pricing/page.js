@@ -11,7 +11,9 @@ import {
   Users,
   Building,
 } from "lucide-react";
-import ServicePricingModification from "../../components/ServicePricingModification/ServicePricingModification";
+
+import ServicePricingModification from "@/app/components/pages/ServicePricingModification/ServicePricingModification";
+
 import {
   showSuccess,
   showError,
@@ -105,7 +107,7 @@ const AdminDashboard = () => {
       // Create new abort controller for this request
       abortControllerRef.current = new AbortController();
 
-      const response = await fetch("/api/admin/service_pricing/get", {
+      const response = await fetch("/api/manage_website/service_pricing/get", {
         signal: abortControllerRef.current.signal,
       });
 
@@ -193,7 +195,7 @@ const AdminDashboard = () => {
       // Show loading toast for longer operations
       showInfo("Loading service configuration...");
 
-      const response = await fetch("/api/admin/service_pricing/get_by_id", {
+      const response = await fetch("/api/manage_website/service_pricing/get_by_id", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -237,7 +239,7 @@ const AdminDashboard = () => {
       // Show loading toast
       showInfo("Saving configuration...");
 
-      const response = await fetch("/api/admin/service_pricing/update", {
+      const response = await fetch("/api/manage_website/service_pricing/update", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -421,8 +423,12 @@ const AdminDashboard = () => {
                 <div className="service-pricing-card__header">
                   {getServiceIcon(service.name)}
                   <div className="service-pricing-card__info">
-                    <h3 className="service-pricing-card__name">{service.name}</h3>
-                    <p className="service-pricing-card__id">{service.serviceId}</p>
+                    <h3 className="service-pricing-card__name">
+                      {service.name}
+                    </h3>
+                    <p className="service-pricing-card__id">
+                      {service.serviceId}
+                    </p>
                   </div>
                 </div>
 

@@ -1,5 +1,5 @@
 import { prisma } from "@/utils/server/db";
-import { NotFoundError } from "@/utils/server/errors";
+import { NotFoundError, ForbiddenError } from "@/utils/server/errors";
 import { addTaskActivityLog } from "./taskComment.service";
 import { buildActivityMessage } from "@/utils/server/activityBulder";
 
@@ -20,12 +20,18 @@ export async function ensureUserCanAccessTask(taskId, user) {
   });
 
   if (!task) {
-    throw new ForbiddenError("You do not have access to this task");
+    throw new ForbiddenError("You are not allowed to modify this task");
   }
 
   return true;
 }
 
+export function ensureUserCanManageTask(user) {
+  if (user.admin_role !== "SUPER_ADMIN") {
+    throw new ForbiddenError("You are not allowed to modify this task");
+  }
+  return true;
+}
 const chargeExists = async (chargeId) => {
   return prisma.taskCharge.findUnique({
     where: { id: chargeId },
@@ -54,8 +60,7 @@ const fetchChargesForTask = async (taskId) => {
 
 // CREATE charge
 export const createTaskCharge = async (taskId, data, currentUser) => {
-  await ensureUserCanAccessTask(taskId, currentUser);
-
+  ensureUserCanManageTask(currentUser);
   const charge = await prisma.taskCharge.create({
     data: {
       task_id: taskId,
@@ -101,7 +106,7 @@ export const updateTaskCharge = async (id, data, currentUser) => {
   const previous = await chargeExists(id);
   if (!previous) throw new NotFoundError("Charge not found");
 
-  await ensureUserCanAccessTask(previous.task_id, currentUser);
+  ensureUserCanManageTask(currentUser);
 
   const updated = await prisma.taskCharge.update({
     where: { id },
@@ -165,7 +170,7 @@ export const deleteTaskCharge = async (id, currentUser) => {
   const charge = await chargeExists(id);
   if (!charge) throw new NotFoundError("Charge not found");
 
-  await ensureUserCanAccessTask(charge.task_id, currentUser);
+  ensureUserCanManageTask(currentUser);
 
   await prisma.taskCharge.update({
     where: { id },

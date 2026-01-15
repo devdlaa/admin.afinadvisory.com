@@ -46,20 +46,6 @@
   flex-direction: column;
   animation: slideUp 0.3s ease;
 
-  @media (max-width: 1366px) {
-    max-width: 540px;
-  }
-
-  @media (max-width: 1024px) {
-    max-width: 500px;
-  }
-
-  @media (max-width: 768px) {
-    max-width: 100%;
-    max-height: 100vh;
-    border-radius: 0;
-  }
-
   // Header
   &__header {
     display: flex;
@@ -68,14 +54,6 @@
     padding: 24px 26px 22px;
     border-bottom: 1px solid #e5e7eb;
     flex-shrink: 0;
-
-    @media (max-width: 1366px) {
-      padding: 20px 22px 18px;
-    }
-
-    @media (max-width: 768px) {
-      padding: 18px 20px 16px;
-    }
   }
 
   &__header-content {
@@ -95,16 +73,6 @@
     color: #ffffff;
     flex-shrink: 0;
     box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
-
-    @media (max-width: 768px) {
-      width: 42px;
-      height: 42px;
-
-      svg {
-        width: 18px;
-        height: 18px;
-      }
-    }
   }
 
   &__title {
@@ -113,15 +81,6 @@
     font-weight: 600;
     color: #283042;
     line-height: 1.3;
-
-    @media (max-width: 1366px) {
-      font-size: 18px;
-    }
-
-    @media (max-width: 768px) {
-      font-size: 17px;
-      margin-bottom: 4px;
-    }
   }
 
   &__subtitle {
@@ -129,10 +88,6 @@
     font-size: 13px;
     color: #6b7280;
     line-height: 1.4;
-
-    @media (max-width: 768px) {
-      font-size: 12px;
-    }
   }
 
   &__close {
@@ -162,16 +117,6 @@
     &:active {
       background: #e5e7eb;
     }
-
-    @media (max-width: 768px) {
-      width: 32px;
-      height: 32px;
-
-      svg {
-        width: 18px;
-        height: 18px;
-      }
-    }
   }
 
   // Success Message
@@ -193,15 +138,6 @@
       color: #16a34a;
       width: 18px;
       height: 18px;
-    }
-
-    @media (max-width: 1366px) {
-      margin: 16px 20px;
-    }
-
-    @media (max-width: 768px) {
-      margin: 14px 16px;
-      font-size: 12px;
     }
   }
 
@@ -225,15 +161,6 @@
       width: 18px;
       height: 18px;
     }
-
-    @media (max-width: 1366px) {
-      margin: 16px 20px;
-    }
-
-    @media (max-width: 768px) {
-      margin: 14px 16px;
-      font-size: 12px;
-    }
   }
 
   // Form
@@ -242,18 +169,7 @@
     display: flex;
     flex-direction: column;
     gap: 20px;
-   
     flex: 1;
-
-    @media (max-width: 1366px) {
-      padding: 20px 22px 24px;
-      gap: 18px;
-    }
-
-    @media (max-width: 768px) {
-      padding: 18px 20px 22px;
-      gap: 16px;
-    }
 
     &::-webkit-scrollbar {
       width: 6px;
@@ -294,10 +210,6 @@
       width: 16px;
       height: 16px;
     }
-
-    @media (max-width: 768px) {
-      font-size: 12px;
-    }
   }
 
   &__required {
@@ -319,16 +231,6 @@
     transition: all 0.2s ease;
     font-family: inherit;
     font-weight: 500;
-
-    @media (max-width: 1366px) {
-      padding: 11px 13px;
-      font-size: 13px;
-    }
-
-    @media (max-width: 768px) {
-      padding: 10px 12px;
-      font-size: 13px;
-    }
 
     &::placeholder {
       color: #9ca3af;
@@ -382,10 +284,6 @@
     resize: vertical;
     min-height: 80px;
     line-height: 1.6;
-
-    @media (max-width: 768px) {
-      min-height: 70px;
-    }
   }
 
   &__error-text {
@@ -396,10 +294,6 @@
     align-items: center;
     gap: 4px;
     margin-top: 2px;
-
-    @media (max-width: 768px) {
-      font-size: 11px;
-    }
   }
 
   // Row layouts
@@ -407,15 +301,6 @@
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 16px;
-
-    @media (max-width: 1024px) {
-      gap: 14px;
-    }
-
-    @media (max-width: 768px) {
-      grid-template-columns: 1fr;
-      gap: 16px;
-    }
   }
 
   // Actions
@@ -427,28 +312,8 @@
     padding-top: 22px;
     border-top: 1px solid #e5e7eb;
 
-    @media (max-width: 1366px) {
-      padding-top: 20px;
-    }
-
-    @media (max-width: 768px) {
-      grid-template-columns: 1fr;
-      flex-direction: column-reverse;
-      padding-top: 18px;
-      gap: 10px;
-
-      button {
-        width: 100%;
-        min-width: unset;
-      }
-    }
-
     button {
       min-width: 120px;
-
-      @media (max-width: 1366px) {
-        min-width: 110px;
-      }
     }
   }
 
@@ -459,27 +324,8 @@
     padding: 22px 26px 26px;
     border-top: 1px solid #e5e7eb;
 
-    @media (max-width: 1366px) {
-      padding: 20px 22px 24px;
-    }
-
-    @media (max-width: 768px) {
-      padding: 18px 20px 22px;
-      flex-direction: column-reverse;
-      gap: 10px;
-
-      button {
-        width: 100%;
-        min-width: unset;
-      }
-    }
-
     button {
       min-width: 120px;
-
-      @media (max-width: 1366px) {
-        min-width: 110px;
-      }
     }
   }
 }
@@ -494,14 +340,6 @@
     transition: all 0.2s ease;
     font-weight: 500;
 
-    @media (max-width: 1366px) {
-      padding: 11px 13px;
-    }
-
-    @media (max-width: 768px) {
-      padding: 10px 12px;
-    }
-
     &:hover {
       border-color: #d1d5db;
       background: #ffffff;
@@ -510,10 +348,6 @@
     .filter-dropdown__text {
       color: #6b7280;
       font-size: 14px;
-
-      @media (max-width: 1366px) {
-        font-size: 13px;
-      }
     }
   }
 
@@ -521,10 +355,6 @@
     max-height: 280px;
     border-radius: 10px;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
-
-    @media (max-width: 768px) {
-      max-height: 240px;
-    }
   }
 }
 
@@ -533,16 +363,6 @@
   padding: 14px 16px;
   font-size: 15px;
   font-weight: 600;
-
-  @media (max-width: 1366px) {
-    padding: 13px 15px;
-    font-size: 14px;
-  }
-
-  @media (max-width: 768px) {
-    padding: 12px 14px;
-    font-size: 14px;
-  }
 
   &:focus {
     outline: none;
@@ -564,5 +384,812 @@
 
   &:focus {
     background-color: #ffffff;
+  }
+}
+
+// ============================================
+// RESPONSIVE STYLES FOR LAPTOPS/DESKTOPS
+// ============================================
+
+// Large desktops (1440px+)
+@media (min-width: 1440px) {
+  .task-create-dialog-overlay {
+    padding: 24px;
+  }
+
+  .task-create-dialog {
+    max-width: 580px;
+    border-radius: 18px;
+
+    &__header {
+      padding: 26px 28px 24px;
+    }
+
+    &__header-content {
+      gap: 16px;
+    }
+
+    &__icon {
+      width: 48px;
+      height: 48px;
+
+      svg {
+        width: 22px;
+        height: 22px;
+      }
+    }
+
+    &__title {
+      font-size: 20px;
+      margin-bottom: 7px;
+    }
+
+    &__subtitle {
+      font-size: 14px;
+    }
+
+    &__close {
+      width: 36px;
+      height: 36px;
+
+      svg {
+        width: 21px;
+        height: 21px;
+      }
+    }
+
+    &__success,
+    &__error-banner {
+      margin: 20px 26px;
+      padding: 15px 18px;
+      font-size: 14px;
+
+      svg {
+        width: 19px;
+        height: 19px;
+      }
+    }
+
+    &__form {
+      padding: 24px 28px 28px;
+      gap: 22px;
+    }
+
+    &__field {
+      gap: 9px;
+    }
+
+    &__label {
+      font-size: 14px;
+
+      svg {
+        width: 17px;
+        height: 17px;
+      }
+    }
+
+    &__input,
+    &__textarea {
+      padding: 14px 15px;
+      font-size: 15px;
+    }
+
+    &__textarea {
+      min-height: 90px;
+    }
+
+    &__error-text {
+      font-size: 13px;
+    }
+
+    &__row {
+      gap: 18px;
+    }
+
+    &__actions {
+      gap: 14px;
+      padding-top: 24px;
+
+      button {
+        min-width: 130px;
+      }
+    }
+
+    &__success-actions {
+      padding: 24px 28px 28px;
+      gap: 14px;
+
+      button {
+        min-width: 130px;
+      }
+    }
+  }
+
+  .task-create-dialog__dropdown {
+    button {
+      padding: 13px 15px;
+
+      .filter-dropdown__text {
+        font-size: 15px;
+      }
+    }
+
+    .filter-dropdown__menu {
+      max-height: 300px;
+    }
+  }
+
+  #task_create_title {
+    padding: 15px 17px;
+    font-size: 16px;
+  }
+}
+
+// Medium laptops (1200px - 1366px)
+@media (max-width: 1366px) and (min-width: 1201px) {
+  .task-create-dialog-overlay {
+    padding: 22px;
+  }
+
+  .task-create-dialog {
+    max-width: 540px;
+
+    &__header {
+      padding: 22px 24px 20px;
+    }
+
+    &__header-content {
+      gap: 13px;
+    }
+
+    &__icon {
+      width: 44px;
+      height: 44px;
+
+      svg {
+        width: 20px;
+        height: 20px;
+      }
+    }
+
+    &__title {
+      font-size: 18px;
+      margin-bottom: 5px;
+    }
+
+    &__subtitle {
+      font-size: 12.5px;
+    }
+
+    &__close {
+      width: 33px;
+      height: 33px;
+
+      svg {
+        width: 19px;
+        height: 19px;
+      }
+    }
+
+    &__success,
+    &__error-banner {
+      margin: 17px 22px;
+      padding: 13px 15px;
+      font-size: 12.5px;
+
+      svg {
+        width: 17px;
+        height: 17px;
+      }
+    }
+
+    &__form {
+      padding: 21px 24px 25px;
+      gap: 19px;
+    }
+
+    &__field {
+      gap: 7px;
+    }
+
+    &__label {
+      font-size: 12.5px;
+
+      svg {
+        width: 15px;
+        height: 15px;
+      }
+    }
+
+    &__input,
+    &__textarea {
+      padding: 12px 13px;
+      font-size: 13.5px;
+    }
+
+    &__textarea {
+      min-height: 75px;
+    }
+
+    &__error-text {
+      font-size: 11.5px;
+    }
+
+    &__row {
+      gap: 15px;
+    }
+
+    &__actions {
+      gap: 11px;
+      padding-top: 21px;
+
+      button {
+        min-width: 115px;
+      }
+    }
+
+    &__success-actions {
+      padding: 21px 24px 25px;
+      gap: 11px;
+
+      button {
+        min-width: 115px;
+      }
+    }
+  }
+
+  .task-create-dialog__dropdown {
+    button {
+      padding: 11.5px 13.5px;
+
+      .filter-dropdown__text {
+        font-size: 13.5px;
+      }
+    }
+
+    .filter-dropdown__menu {
+      max-height: 270px;
+    }
+  }
+
+  #task_create_title {
+    padding: 13.5px 15.5px;
+    font-size: 14.5px;
+  }
+}
+
+// Standard laptops (1024px - 1200px)
+@media (max-width: 1200px) and (min-width: 1025px) {
+  .task-create-dialog-overlay {
+    padding: 20px;
+  }
+
+  .task-create-dialog {
+    max-width: 510px;
+    border-radius: 14px;
+
+    &__header {
+      padding: 20px 22px 18px;
+    }
+
+    &__header-content {
+      gap: 12px;
+    }
+
+    &__icon {
+      width: 42px;
+      height: 42px;
+
+      svg {
+        width: 19px;
+        height: 19px;
+      }
+    }
+
+    &__title {
+      font-size: 17px;
+      margin-bottom: 5px;
+    }
+
+    &__subtitle {
+      font-size: 12px;
+    }
+
+    &__close {
+      width: 32px;
+      height: 32px;
+
+      svg {
+        width: 18px;
+        height: 18px;
+      }
+    }
+
+    &__success,
+    &__error-banner {
+      margin: 16px 20px;
+      padding: 12px 14px;
+      font-size: 12px;
+      border-radius: 9px;
+
+      svg {
+        width: 16px;
+        height: 16px;
+      }
+    }
+
+    &__form {
+      padding: 19px 22px 23px;
+      gap: 18px;
+    }
+
+    &__field {
+      gap: 7px;
+    }
+
+    &__label {
+      font-size: 12px;
+
+      svg {
+        width: 15px;
+        height: 15px;
+      }
+    }
+
+    &__input,
+    &__textarea {
+      padding: 11px 12px;
+      font-size: 13px;
+      border-radius: 9px;
+    }
+
+    &__textarea {
+      min-height: 72px;
+    }
+
+    &__error-text {
+      font-size: 11px;
+    }
+
+    &__row {
+      gap: 14px;
+    }
+
+    &__actions {
+      gap: 10px;
+      padding-top: 19px;
+
+      button {
+        min-width: 110px;
+      }
+    }
+
+    &__success-actions {
+      padding: 19px 22px 23px;
+      gap: 10px;
+
+      button {
+        min-width: 110px;
+      }
+    }
+  }
+
+  .task-create-dialog__dropdown {
+    button {
+      padding: 11px 13px;
+      border-radius: 9px;
+
+      .filter-dropdown__text {
+        font-size: 13px;
+      }
+    }
+
+    .filter-dropdown__menu {
+      max-height: 260px;
+      border-radius: 9px;
+    }
+  }
+
+  #task_create_title {
+    padding: 12px 14px;
+    font-size: 14px;
+    border-radius: 9px;
+  }
+}
+
+// Small laptops (900px - 1024px)
+@media (max-width: 1024px) and (min-width: 901px) {
+  .task-create-dialog-overlay {
+    padding: 18px;
+  }
+
+  .task-create-dialog {
+    max-width: 480px;
+    border-radius: 13px;
+
+    &__header {
+      padding: 18px 20px 16px;
+    }
+
+    &__header-content {
+      gap: 11px;
+    }
+
+    &__icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+
+      svg {
+        width: 18px;
+        height: 18px;
+      }
+    }
+
+    &__title {
+      font-size: 16px;
+      margin-bottom: 4px;
+    }
+
+    &__subtitle {
+      font-size: 11.5px;
+    }
+
+    &__close {
+      width: 31px;
+      height: 31px;
+      border-radius: 7px;
+
+      svg {
+        width: 17px;
+        height: 17px;
+      }
+    }
+
+    &__success,
+    &__error-banner {
+      margin: 15px 18px;
+      padding: 11px 13px;
+      font-size: 11.5px;
+      border-radius: 8px;
+
+      svg {
+        width: 15px;
+        height: 15px;
+      }
+    }
+
+    &__form {
+      padding: 17px 20px 21px;
+      gap: 17px;
+    }
+
+    &__field {
+      gap: 6px;
+    }
+
+    &__label {
+      font-size: 11.5px;
+
+      svg {
+        width: 14px;
+        height: 14px;
+      }
+    }
+
+    &__input,
+    &__textarea {
+      padding: 10px 11px;
+      font-size: 12.5px;
+      border-radius: 8px;
+    }
+
+    &__textarea {
+      min-height: 68px;
+    }
+
+    &__error-text {
+      font-size: 10.5px;
+    }
+
+    &__row {
+      gap: 13px;
+    }
+
+    &__actions {
+      gap: 9px;
+      padding-top: 17px;
+
+      button {
+        min-width: 100px;
+      }
+    }
+
+    &__success-actions {
+      padding: 17px 20px 21px;
+      gap: 9px;
+
+      button {
+        min-width: 100px;
+      }
+    }
+  }
+
+  .task-create-dialog__dropdown {
+    button {
+      padding: 10px 12px;
+      border-radius: 8px;
+
+      .filter-dropdown__text {
+        font-size: 12.5px;
+      }
+    }
+
+    .filter-dropdown__menu {
+      max-height: 250px;
+      border-radius: 8px;
+    }
+  }
+
+  #task_create_title {
+    padding: 11px 13px;
+    font-size: 13.5px;
+    border-radius: 8px;
+  }
+}
+
+// Compact laptops (769px - 900px)
+@media (max-width: 900px) and (min-width: 769px) {
+  .task-create-dialog-overlay {
+    padding: 16px;
+  }
+
+  .task-create-dialog {
+    max-width: 460px;
+    border-radius: 12px;
+
+    &__header {
+      padding: 17px 18px 15px;
+    }
+
+    &__header-content {
+      gap: 10px;
+    }
+
+    &__icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 9px;
+
+      svg {
+        width: 17px;
+        height: 17px;
+      }
+    }
+
+    &__title {
+      font-size: 15.5px;
+      margin-bottom: 4px;
+    }
+
+    &__subtitle {
+      font-size: 11px;
+    }
+
+    &__close {
+      width: 30px;
+      height: 30px;
+      border-radius: 7px;
+
+      svg {
+        width: 16px;
+        height: 16px;
+      }
+    }
+
+    &__success,
+    &__error-banner {
+      margin: 14px 16px;
+      padding: 10px 12px;
+      font-size: 11px;
+      border-radius: 8px;
+      gap: 10px;
+
+      svg {
+        width: 14px;
+        height: 14px;
+      }
+    }
+
+    &__form {
+      padding: 16px 18px 19px;
+      gap: 16px;
+    }
+
+    &__field {
+      gap: 6px;
+    }
+
+    &__label {
+      font-size: 11px;
+
+      svg {
+        width: 13px;
+        height: 13px;
+      }
+    }
+
+    &__input,
+    &__textarea {
+      padding: 9px 10px;
+      font-size: 12px;
+      border-radius: 8px;
+    }
+
+    &__textarea {
+      min-height: 64px;
+    }
+
+    &__error-text {
+      font-size: 10px;
+    }
+
+    &__row {
+      gap: 12px;
+    }
+
+    &__actions {
+      gap: 8px;
+      padding-top: 16px;
+
+      button {
+        min-width: 95px;
+      }
+    }
+
+    &__success-actions {
+      padding: 16px 18px 19px;
+      gap: 8px;
+
+      button {
+        min-width: 95px;
+      }
+    }
+  }
+
+  .task-create-dialog__dropdown {
+    button {
+      padding: 9px 11px;
+      border-radius: 8px;
+
+      .filter-dropdown__text {
+        font-size: 12px;
+      }
+    }
+
+    .filter-dropdown__menu {
+      max-height: 240px;
+      border-radius: 8px;
+    }
+  }
+
+  #task_create_title {
+    padding: 10px 12px;
+    font-size: 13px;
+    border-radius: 8px;
+  }
+}
+
+// Tablet and mobile (original breakpoint)
+@media (max-width: 768px) {
+  .task-create-dialog {
+    max-width: 100%;
+    max-height: 100vh;
+    border-radius: 0;
+
+    &__header {
+      padding: 18px 20px 16px;
+    }
+
+    &__icon {
+      width: 42px;
+      height: 42px;
+
+      svg {
+        width: 18px;
+        height: 18px;
+      }
+    }
+
+    &__title {
+      font-size: 17px;
+      margin-bottom: 4px;
+    }
+
+    &__subtitle {
+      font-size: 12px;
+    }
+
+    &__close {
+      width: 32px;
+      height: 32px;
+
+      svg {
+        width: 18px;
+        height: 18px;
+      }
+    }
+
+    &__success,
+    &__error-banner {
+      margin: 14px 16px;
+      font-size: 12px;
+    }
+
+    &__form {
+      padding: 18px 20px 22px;
+      gap: 16px;
+    }
+
+    &__label {
+      font-size: 12px;
+    }
+
+    &__input,
+    &__textarea {
+      padding: 10px 12px;
+      font-size: 13px;
+    }
+
+    &__textarea {
+      min-height: 70px;
+    }
+
+    &__error-text {
+      font-size: 11px;
+    }
+
+    &__row {
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+
+    &__actions {
+      grid-template-columns: 1fr;
+      flex-direction: column-reverse;
+      padding-top: 18px;
+      gap: 10px;
+
+      button {
+        width: 100%;
+        min-width: unset;
+      }
+    }
+
+    &__success-actions {
+      padding: 18px 20px 22px;
+      flex-direction: column-reverse;
+      gap: 10px;
+
+      button {
+        width: 100%;
+        min-width: unset;
+      }
+    }
+  }
+
+  .task-create-dialog__dropdown {
+    button {
+      padding: 10px 12px;
+    }
+
+    .filter-dropdown__menu {
+      max-height: 240px;
+    }
+  }
+
+  #task_create_title {
+    padding: 12px 14px;
+    font-size: 14px;
   }
 }

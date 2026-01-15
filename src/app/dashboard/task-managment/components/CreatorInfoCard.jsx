@@ -1,6 +1,6 @@
 import React from "react";
 import { Calendar } from "lucide-react";
-import Avatar from "@/app/components/newui/Avatar/Avatar";
+import Avatar from "@/app/components/shared/newui/Avatar/Avatar";
 import { getProfileUrl } from "@/utils/shared/shared_util";
 
 const CreatorInfoCard = ({ task }) => {

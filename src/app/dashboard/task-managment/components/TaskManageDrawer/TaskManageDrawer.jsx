@@ -8,6 +8,7 @@ import {
   Rocket,
   Save,
   Trash2,
+  AlertCircle,
 } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
 
@@ -15,14 +16,15 @@ import { useSearchParams, useRouter } from "next/navigation";
 import TaskTimeline from "../TaskTimeline/TaskTimeline";
 import Checklist from "../Checklist/Checklist";
 import ChargesManager from "../ChargesManager/ChargesManager";
-import AssignmentDialog from "@/app/components/AssignmentDialog/AssignmentDialog";
+
+import AssignmentDialog from "@/app/components/pages/AssignmentDialog/AssignmentDialog";
 import TaskPrimaryInfo from "../TaskPrimaryInfo";
 import CreatorInfoCard from "../CreatorInfoCard";
 import ClientInfoCard from "../ClientInfoCard";
 import ClientSelectionDialog from "../ClientSelectionDialog";
 import AssignmentInfoCard from "../AssignmentInfoCard";
-import ConfirmationDialog from "@/app/components/ConfirmationDialog/ConfirmationDialog";
 
+import ConfirmationDialog from "@/app/components/shared/ConfirmationDialog/ConfirmationDialog";
 // Redux
 import {
   updateTask,
@@ -81,6 +83,7 @@ const TaskManageDrawer = () => {
   const isLoading = useSelector((state) => state.taskDetail.loading.task);
   const isUpdating = useSelector((state) => state.task.loading.update);
   const isDeleting = useSelector((state) => state.task.loading.delete);
+   const taskError = useSelector((state) => state.taskDetail.error.task); 
   const isSyncingChecklist = useSelector(
     (state) => state.taskDetail.loading.checklist
   );
@@ -466,9 +469,29 @@ const TaskManageDrawer = () => {
       >
         {/* Loading State */}
         {isLoading && <TaskDrawerSkeleton />}
+        {/* Error State - ADD THIS */}
+        {!isLoading && taskError && (
+          <div className="task-drawer__error">
+            <div className="task-drawer__error-content">
+              <AlertCircle size={48} />
+              <h3>Task Not Found</h3>
+              <p>
+                {taskError === "Task not found"
+                  ? "This task may have been deleted or you don't have permission to view it."
+                  : taskError}
+              </p>
+              <button
+                className="task-drawer__error-btn"
+                onClick={() => handleClose(true)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Content */}
-        {!isLoading && task && (
+        {!isLoading && !taskError && task && (
           <div className="task-drawer__body">
             {/* Left Panel */}
             <div

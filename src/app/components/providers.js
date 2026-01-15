@@ -3,7 +3,8 @@ import { Provider } from "react-redux";
 import { store } from "@/store/store";
 import { ToastContainer } from "react-toastify";
 import SessionLoader from "./SessionLoader";
-import NotificationProvider from "./Notifications/NotificationProvider";
+
+import NotificationProvider from "./shared/Notifications/NotificationProvider";
 
 export function Providers({ children }) {
   return (

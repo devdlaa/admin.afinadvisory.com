@@ -22,9 +22,11 @@ import {
   clearError,
   setCurrentPage,
 } from "@/store/slices/couponsSlice";
-import CouponCard from "../../../components/CouponCard/CouponCard.js";
-import CreateCouponModal from "../../../components/CreateCouponModal/CreateCouponModal.js";
-import SearchFilters from "../../../components/SearchFilters/SearchFilters.js";
+
+
+import CouponCard from "@/app/components/pages/CouponCard/CouponCard.js";
+import CreateCouponModal from "@/app/components/pages/CreateCouponModal/CreateCouponModal.js";
+import SearchFilters from "@/app/components/pages/SearchFilters/SearchFilters.js";
 
 import "./coupons.scss";
 import { CircularProgress } from "@mui/material";

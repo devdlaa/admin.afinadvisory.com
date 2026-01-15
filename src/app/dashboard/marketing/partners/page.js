@@ -4,12 +4,13 @@ import { useDispatch, useSelector } from "react-redux";
 
 import "./InfluencerDashboard.scss";
 
-import InfluencerTable from "@/app/components/partners/InfluencerTable/InfluencerTable";
-import InfluencerDrawer from "@/app/components/partners/InfluencerDrawer/InfluencerDrawer";
-import AddInfluencerDialog from "@/app/components/partners/AddInfluencerDialog/AddInfluencerDialog";
-import GenericActionBar from "@/app/components/GenericActionBar/GenericActionBar";
-import GenericFilterDialog from "@/app/components/GenericFilterDialog/GenericFilterDialog";
 
+
+import InfluencerTable from "@/app/components/pages/partners/InfluencerTable/InfluencerTable";
+import InfluencerDrawer from "@/app/components/pages/partners/InfluencerDrawer/InfluencerDrawer";
+import AddInfluencerDialog from "@/app/components/pages/partners/AddInfluencerDialog/AddInfluencerDialog";
+import GenericActionBar from "@/app/components/pages/GenericActionBar/GenericActionBar";
+import GenericFilterDialog from "@/app/components/pages/GenericFilterDialog/GenericFilterDialog";
 import {
   influencersActionBarConfig,
   influencersFilterConfig,

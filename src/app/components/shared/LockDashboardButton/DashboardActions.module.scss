@@ -97,11 +97,107 @@
     animation: spin 1s linear infinite;
   }
 
-  // Responsive adjustments
-  @media (max-width: 640px) {
+  // ============================================
+  // RESPONSIVE STYLES FOR LAPTOPS/DESKTOPS
+  // ============================================
+
+  // Large desktops (1440px+)
+  @media (min-width: 1440px) {
+    bottom: 28px;
+    right: 28px;
+    gap: 14px;
+    padding: 12px;
+
+    &__btn {
+      width: 52px;
+      height: 52px;
+
+      svg {
+        width: 22px;
+        height: 22px;
+      }
+    }
+  }
+
+  // Medium laptops (1200px - 1366px)
+  @media (max-width: 1366px) and (min-width: 1201px) {
+    bottom: 22px;
+    right: 22px;
+    gap: 11px;
+    padding: 9px;
+
+    &__btn {
+      width: 46px;
+      height: 46px;
+
+      svg {
+        width: 20px;
+        height: 20px;
+      }
+    }
+  }
+
+  // Standard laptops (1024px - 1200px)
+  @media (max-width: 1200px) and (min-width: 1025px) {
     bottom: 20px;
     right: 20px;
     gap: 10px;
+    padding: 9px;
+
+    &__btn {
+      width: 46px;
+      height: 46px;
+
+      svg {
+        width: 20px;
+        height: 20px;
+      }
+    }
+  }
+
+  // Small laptops (900px - 1024px)
+  @media (max-width: 1024px) and (min-width: 901px) {
+    bottom: 20px;
+    right: 20px;
+    gap: 10px;
+    padding: 8px;
+
+    &__btn {
+      width: 44px;
+      height: 44px;
+
+      svg {
+        width: 19px;
+        height: 19px;
+      }
+    }
+  }
+
+  // Compact laptops (769px - 900px)
+  @media (max-width: 900px) and (min-width: 769px) {
+    bottom: 18px;
+    right: 18px;
+    gap: 9px;
+    padding: 8px;
+
+    &__btn {
+      width: 42px;
+      height: 42px;
+      border-width: 1.5px;
+
+      svg {
+        width: 18px;
+        height: 18px;
+      }
+    }
+  }
+
+  // Tablet and smaller (original mobile breakpoint)
+  @media (max-width: 768px) {
+    bottom: 20px;
+    right: 20px;
+    gap: 10px;
+    padding: 8px;
 
     &__btn {
       width: 44px;
@@ -110,6 +206,24 @@
       svg {
         width: 18px;
         height: 18px;
+      }
+    }
+  }
+
+  // Small mobile
+  @media (max-width: 640px) {
+    bottom: 16px;
+    right: 16px;
+    gap: 8px;
+    padding: 7px;
+
+    &__btn {
+      width: 40px;
+      height: 40px;
+
+      svg {
+        width: 17px;
+        height: 17px;
       }
     }
   }

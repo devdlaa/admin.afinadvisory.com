@@ -7,7 +7,7 @@ export const fetchBalanceSummary = createAsyncThunk(
   "payments/fetchBalanceSummary",
   async (_, { rejectWithValue }) => {
     try {
-      const response = await fetch("/api/admin/payments/get_balance_summry");
+      const response = await fetch("/api/manage_website/payments/get_balance_summry");
       const data = await response.json();
       if (!data.success) {
         return rejectWithValue(data.message);
@@ -24,7 +24,7 @@ export const fetchDowntimeStatus = createAsyncThunk(
   "payments/fetchDowntimeStatus",
   async (_, { rejectWithValue }) => {
     try {
-      const response = await fetch("/api/admin/payments/get_downtime");
+      const response = await fetch("/api/manage_website/payments/get_downtime");
       const data = await response.json();
       if (!data.success) {
         return rejectWithValue(data.message);
@@ -42,7 +42,7 @@ export const fetchPayments = createAsyncThunk(
   async (params, { rejectWithValue }) => {
     try {
       const response = await fetch(
-        "/api/admin/payments/get_payments_pagiation",
+        "/api/manage_website/payments/get_payments_pagiation",
         {
           method: "POST",
           headers: {
@@ -68,7 +68,7 @@ export const fetchPaymentsWithDateFilter = createAsyncThunk(
   async (params, { rejectWithValue }) => {
     try {
       const response = await fetch(
-        "/api/admin/payments/get_date_filter_payments",
+        "/api/manage_website/payments/get_date_filter_payments",
         {
           method: "POST",
           headers: {
@@ -93,7 +93,7 @@ export const fetchRefunds = createAsyncThunk(
   "payments/fetchRefunds",
   async (params, { rejectWithValue }) => {
     try {
-      const response = await fetch("/api/admin/payments/refunds/get", {
+      const response = await fetch("/api/manage_website/payments/refunds/get", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -116,7 +116,7 @@ export const fetchRefundsWithDateFilter = createAsyncThunk(
   "payments/fetchRefundsWithDateFilter",
   async (params, { rejectWithValue }) => {
     try {
-      const response = await fetch("/api/admin/payments/refunds/date-wise", {
+      const response = await fetch("/api/manage_website/payments/refunds/date-wise", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -139,7 +139,7 @@ export const fetchRefundsByPaymentId = createAsyncThunk(
   "payments/fetchRefundsByPaymentId",
   async (params, { rejectWithValue }) => {
     try {
-      const response = await fetch("/api/payments/refunds/by-payment", {
+      const response = await fetch("/api/manage_website/payments/refunds/by-payment", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -162,7 +162,7 @@ export const fetchSettlements = createAsyncThunk(
   "payments/fetchSettlements",
   async (params, { rejectWithValue }) => {
     try {
-      const response = await fetch("/api/admin/payments/settlements/get", {
+      const response = await fetch("/api/manage_website/payments/settlements/get", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -186,7 +186,7 @@ export const fetchSettlementsWithDateFilter = createAsyncThunk(
   async (params, { rejectWithValue }) => {
     try {
       const response = await fetch(
-        "/api/admin/payments/settlements/date-wise",
+        "/api/manage_website/payments/settlements/date-wise",
         {
           method: "POST",
           headers: {
@@ -211,7 +211,7 @@ export const fetchSettlementDetails = createAsyncThunk(
   "payments/fetchSettlementDetails",
   async (settlementId, { rejectWithValue }) => {
     try {
-      const response = await fetch("/api/admin/payments/settlements/by-id", {
+      const response = await fetch("/api/manage_website/payments/settlements/by-id", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -234,7 +234,7 @@ export const createRefund = createAsyncThunk(
   "payments/createRefund",
   async (refundData, { rejectWithValue }) => {
     try {
-      const response = await fetch("/api/payments/refund/create", {
+      const response = await fetch("/api/manage_website/payments/refund/create", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -257,7 +257,7 @@ export const exportPayments = createAsyncThunk(
   "payments/exportPayments",
   async (exportParams, { rejectWithValue }) => {
     try {
-      const response = await fetch("/api/payments/export", {
+      const response = await fetch("/api/manage_website/payments/export", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -360,11 +360,9 @@ const taskDetailSlice = createSlice({
         state.success.chargeUpdated = true;
       })
       .addCase(updateCharge.rejected, (state, action) => {
-        const chargeId = action.payload?.chargeId;
         state.loading.charges = false;
-        if (chargeId) {
-          delete state.loading.chargeOperations[chargeId];
-        }
+
+        state.loading.chargeOperations = {};
         state.error.charges =
           action.payload?.message || "Failed to update charge";
       });
@@ -381,7 +379,7 @@ const taskDetailSlice = createSlice({
         state.success.chargeDeleted = false;
       })
       .addCase(deleteCharge.fulfilled, (state, action) => {
-        const { task_id, charges, chargeId } = action.payload;
+        const { task_id, charges } = action.payload;
 
         // Update charges in current task with fresh array from server
         if (state.currentTask && state.currentTask.id === task_id) {
@@ -389,15 +387,12 @@ const taskDetailSlice = createSlice({
         }
 
         state.loading.charges = false;
-        delete state.loading.chargeOperations[chargeId];
+        state.loading.chargeOperations = {};
         state.success.chargeDeleted = true;
       })
       .addCase(deleteCharge.rejected, (state, action) => {
-        const chargeId = action.payload?.chargeId;
         state.loading.charges = false;
-        if (chargeId) {
-          delete state.loading.chargeOperations[chargeId];
-        }
+        state.loading.chargeOperations = {};
         state.error.charges =
           action.payload?.message || "Failed to delete charge";
       });

@@ -16,7 +16,8 @@ import {
 } from "lucide-react";
 import { deleteEntity } from "@/store/slices/entitySlice";
 import styles from "./ClientsTable.module.scss";
-import ConfirmationDialog from "@/app/components/ConfirmationDialog/ConfirmationDialog";
+
+import ConfirmationDialog from "@/app/components/shared/ConfirmationDialog/ConfirmationDialog";
 
 const ClientsTable = ({ clients, onEdit, loading }) => {
   const dispatch = useDispatch();

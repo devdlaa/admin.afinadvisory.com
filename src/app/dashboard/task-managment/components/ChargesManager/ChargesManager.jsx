@@ -4,7 +4,8 @@ import { Plus, List, PieChart } from "lucide-react";
 
 import ChargesSummary from "../ChargesSummary/ChargesSummary";
 import ChargeCard from "../ChargeCard/ChargeCard";
-import ActionButton from "@/app/components/TinyLib/ActionButton";
+
+import ActionButton from "@/app/components/shared/TinyLib/ActionButton";
 
 import "./ChargesManager.scss";
 

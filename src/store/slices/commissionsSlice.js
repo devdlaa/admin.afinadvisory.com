@@ -7,7 +7,7 @@ export const fetchCommissions = createAsyncThunk(
   async ({ limit = 10, cursor = null, fresh = false }, { rejectWithValue }) => {
     const payload = cursor ? { limit, cursor } : { limit };
     try {
-      const response = await fetch("/api/admin/commissions/get", {
+      const response = await fetch("/api/manage_website/commissions/get", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -33,7 +33,7 @@ export const searchCommissions = createAsyncThunk(
   "commissions/searchCommissions",
   async ({ value }, { rejectWithValue }) => {
     try {
-      const response = await fetch("/api/admin/commissions/search", {
+      const response = await fetch("/api/manage_website/commissions/search", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -61,7 +61,7 @@ export const filterCommissions = createAsyncThunk(
     { rejectWithValue }
   ) => {
     try {
-      const response = await fetch("/api/admin/commissions/filter", {
+      const response = await fetch("/api/manage_website/commissions/filter", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -86,7 +86,7 @@ export const updateCommissionStatus = createAsyncThunk(
   "commissions/updateStatus",
   async ({ actionType, ids }, { rejectWithValue }) => {
     try {
-      const response = await fetch("/api/admin/commissions/toggleStatus", {
+      const response = await fetch("/api/manage_website/commissions/toggleStatus", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

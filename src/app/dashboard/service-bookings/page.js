@@ -14,17 +14,18 @@ import {
 import { selectPermissions } from "@/store/slices/sessionSlice";
 
 import "./service_bookings.scss";
-import GenericActionBar from "@/app/components/GenericActionBar/GenericActionBar";
-import GenericFilterDialog from "@/app/components/GenericFilterDialog/GenericFilterDialog";
 
+import GenericActionBar from "@/app/components/pages/GenericActionBar/GenericActionBar";
+import GenericFilterDialog from "@/app/components/pages/GenericFilterDialog/GenericFilterDialog";
 import {
   servicesActionBarConfig,
   servicesFilterConfig,
 } from "@/config/actionBarConfig";
 
-import ServiceBookingsCards from "@/app/components/ServiceBookings/ServiceBookingsCards";
-import ServiceBookingQuickView from "@/app/components/ServiceBookingQuickView/ServiceBookingQuickView";
-import AssignmentDialog from "@/app/components/AssignmentDialog/AssignmentDialog";
+
+import ServiceBookingsCards from "@/app/components/pages/ServiceBookings/ServiceBookingsCards";
+import ServiceBookingQuickView from "@/app/components/pages/ServiceBookingQuickView/ServiceBookingQuickView";
+import AssignmentDialog from "@/app/components/pages/AssignmentDialog/AssignmentDialog";
 
 export default function Home() {
   const dispatch = useDispatch();

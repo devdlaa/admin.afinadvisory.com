@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
 import { requirePermission } from "@/utils/server/requirePermission";
-export async function GET() {
+export async function GET(req) {
   try {
     const [permissionError] = await requirePermission(req);
     if (permissionError) return permissionError;

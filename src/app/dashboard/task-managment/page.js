@@ -15,7 +15,8 @@ import ForceNotification from "./components/ForceNotification/ForceNotification.
 import TaskTable from "./components/TasksTable/TasksTable.jsx";
 import TaskActionBar from "./components/TaskActionBar/TaskActionBar.jsx";
 import TaskManageDrawer from "./components/TaskManageDrawer/TaskManageDrawer.jsx";
-import TaskCategoryBoard from "@/app/components/TaskCategoryBoard/TaskCategoryBoard.jsx";
+
+import TaskCategoryBoard from "@/app/components/pages/TaskCategoryBoard/TaskCategoryBoard.jsx";
 import TaskWorkload from "./components/TaskWorkload/TaskWorkload.jsx";
 import TaskStatusBoard from "./components/TaskStatusBoard/TaskStatusBoard.jsx";
 import TaskCreateDialog from "./components/TaskCreateDialog/TaskCreateDialog.jsx";

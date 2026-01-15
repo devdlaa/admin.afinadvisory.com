@@ -22,7 +22,6 @@ export const fetchUsers = createAsyncThunk(
 
     const re = await response.json();
 
-
     return re?.data || [];
   }
 );
@@ -179,7 +178,7 @@ export const fetchPermissions = createAsyncThunk(
       throw new Error("Failed to fetch permissions");
     }
     const data = await response.json();
-   
+
     return data;
   }
 );
@@ -552,8 +551,6 @@ const usersSlice = createSlice({
 
         const { userId, updatedUser } = action.payload;
 
-
-        
         // update in list
         const idx = state.users.findIndex((u) => u.id === userId?.userId);
         if (idx !== -1) {
@@ -647,8 +644,6 @@ const usersSlice = createSlice({
       });
   },
 });
-
-
 
 export const {
   setSearchTerm,

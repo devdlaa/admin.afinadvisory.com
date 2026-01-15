@@ -15,8 +15,13 @@ export async function POST(req) {
 
   try {
     // Permission check placeholder
-    const permissionCheck = await requirePermission(req, "commissions.update_paid_status");
-    if (permissionCheck) return permissionCheck;
+    const permissionCheck = await requirePermission(
+      req,
+      "commissions.update_paid_status"
+    );
+    if (permissionCheck !== null && permissionCheck !== undefined) {
+      return permissionCheck;
+    }
 
     const body = await req.json();
     const parse = UpdateSchema.safeParse(body);

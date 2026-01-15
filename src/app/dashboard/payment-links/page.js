@@ -1,7 +1,8 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import BookingPaymentModal from "@/app/components/BookingPaymentModal/BookingPaymentModal";
+
+import BookingPaymentModal from "@/app/components/pages/BookingPaymentModal/BookingPaymentModal";
 import {
   Search,
   X,

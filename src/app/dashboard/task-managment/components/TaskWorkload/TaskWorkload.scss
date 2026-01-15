@@ -85,7 +85,6 @@
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     border-bottom: 1px solid #e0e0e0;
-    
   }
 
   &__summary-item {
@@ -396,15 +395,258 @@
 }
 
 // ===================================
-// RESPONSIVE
+// RESPONSIVE STYLES FOR LAPTOPS/DESKTOPS
 // ===================================
-@media (max-width: 1024px) {
+
+// Large desktops (1440px+)
+@media (min-width: 1440px) {
   .workload {
+    &__header {
+      padding: 18px 24px;
+    }
+
+    &__header-left {
+      gap: 12px;
+
+      h2 {
+        font-size: 18px;
+      }
+    }
+
+    &__subtitle {
+      font-size: 14px;
+    }
+
+    &__refresh-btn {
+      padding: 7px 14px;
+      font-size: 14px;
+    }
+
+    &__summary-item {
+      padding: 18px 24px;
+      gap: 8px;
+    }
+
+    &__summary-label {
+      font-size: 13px;
+    }
+
+    &__summary-value {
+      font-size: 26px;
+    }
+
+    &__table-cell {
+      padding: 14px 18px;
+      font-size: 14px;
+
+      .workload__table-header & {
+        font-size: 13px;
+      }
+    }
+
+    &__user-name {
+      font-size: 14px;
+    }
+
+    &__user-email {
+      font-size: 13px;
+    }
+
+    &__count {
+      min-width: 36px;
+      padding: 5px 10px;
+      font-size: 14px;
+    }
+  }
+}
+
+// Medium laptops (1200px - 1366px)
+@media (max-width: 1366px) and (min-width: 1201px) {
+  .workload {
+    &__header {
+      padding: 15px 18px;
+    }
+
+    &__header-left {
+      h2 {
+        font-size: 15px;
+      }
+    }
+
+    &__summary-item {
+      padding: 15px 18px;
+      gap: 5px;
+    }
+
+    &__summary-label {
+      font-size: 11.5px;
+    }
+
+    &__summary-value {
+      font-size: 22px;
+    }
+
+    &__table-cell {
+      padding: 11px 14px;
+      font-size: 12.5px;
+
+      .workload__table-header & {
+        font-size: 11.5px;
+      }
+    }
+
+    &__user {
+      gap: 9px;
+    }
+
+    &__user-name {
+      font-size: 12.5px;
+    }
+
+    &__user-email {
+      font-size: 11.5px;
+    }
+
+    &__count {
+      min-width: 30px;
+      padding: 3px 7px;
+      font-size: 12.5px;
+    }
+  }
+}
+
+// Standard laptops (1024px - 1200px)
+@media (max-width: 1200px) and (min-width: 1025px) {
+  .workload {
+    &__header {
+      padding: 14px 16px;
+    }
+
+    &__header-left {
+      gap: 9px;
+
+      h2 {
+        font-size: 15px;
+      }
+
+      svg {
+        width: 20px;
+        height: 20px;
+      }
+    }
+
+    &__subtitle {
+      font-size: 12px;
+    }
+
+    &__refresh-btn {
+      padding: 5px 10px;
+      font-size: 12px;
+      gap: 5px;
+
+      svg {
+        width: 14px;
+        height: 14px;
+      }
+    }
+
+    &__summary-item {
+      padding: 14px 16px;
+      gap: 5px;
+    }
+
+    &__summary-label {
+      font-size: 11px;
+      letter-spacing: 0.3px;
+    }
+
+    &__summary-value {
+      font-size: 20px;
+    }
+
+    &__table-header,
+    &__table-row {
+      grid-template-columns: 2fr repeat(6, 0.9fr);
+    }
+
+    &__table-cell {
+      padding: 10px 12px;
+      font-size: 12px;
+
+      .workload__table-header & {
+        font-size: 11px;
+        letter-spacing: 0.3px;
+      }
+    }
+
+    &__user {
+      gap: 8px;
+    }
+
+    &__user-name {
+      font-size: 12px;
+    }
+
+    &__user-email {
+      font-size: 11px;
+    }
+
+    &__count {
+      min-width: 28px;
+      padding: 3px 6px;
+      font-size: 12px;
+    }
+
+    &__loading,
+    &__error,
+    &__empty {
+      padding: 50px 20px;
+    }
+  }
+}
+
+// Small laptops (900px - 1024px)
+@media (max-width: 1024px) and (min-width: 901px) {
+  .workload {
+    &__header {
+      padding: 13px 15px;
+    }
+
+    &__header-left {
+      gap: 8px;
+
+      h2 {
+        font-size: 14px;
+      }
+
+      svg {
+        width: 18px;
+        height: 18px;
+      }
+    }
+
+    &__subtitle {
+      font-size: 11.5px;
+    }
+
+    &__refresh-btn {
+      padding: 5px 10px;
+      font-size: 11.5px;
+      gap: 4px;
+
+      svg {
+        width: 13px;
+        height: 13px;
+      }
+    }
+
     &__summary {
       grid-template-columns: repeat(2, 1fr);
     }
 
     &__summary-item {
+      padding: 13px 15px;
+      gap: 4px;
       border-bottom: 1px solid #e0e0e0;
 
       &:nth-child(odd) {
@@ -416,18 +658,193 @@
       }
     }
 
+    &__summary-label {
+      font-size: 10.5px;
+    }
+
+    &__summary-value {
+      font-size: 18px;
+    }
+
     &__table-header,
     &__table-row {
-      grid-template-columns: 2fr repeat(6, 0.8fr);
+      grid-template-columns: 1.8fr repeat(6, 0.8fr);
     }
 
     &__table-cell {
-      padding: 10px 12px;
+      padding: 9px 10px;
+      font-size: 11.5px;
+
+      .workload__table-header & {
+        font-size: 10.5px;
+        letter-spacing: 0.2px;
+      }
+    }
+
+    &__user {
+      gap: 7px;
+    }
+
+    &__user-name {
+      font-size: 11.5px;
+    }
+
+    &__user-email {
+      font-size: 10.5px;
+    }
+
+    &__count {
+      min-width: 26px;
+      padding: 2px 5px;
+      font-size: 11.5px;
+    }
+
+    &__loading,
+    &__error,
+    &__empty {
+      padding: 45px 18px;
+
+      h3 {
+        font-size: 15px;
+      }
+
+      p {
+        font-size: 12px;
+      }
+    }
+  }
+}
+
+// Compact laptops (769px - 900px)
+@media (max-width: 900px) and (min-width: 769px) {
+  .workload {
+    border-radius: 16px;
+
+    &__header {
+      padding: 12px 14px;
+    }
+
+    &__header-left {
+      gap: 7px;
+
+      h2 {
+        font-size: 13.5px;
+      }
+
+      svg {
+        width: 17px;
+        height: 17px;
+      }
+    }
+
+    &__subtitle {
+      font-size: 11px;
+    }
+
+    &__refresh-btn {
+      padding: 4px 9px;
+      font-size: 11px;
+      gap: 4px;
+
+      svg {
+        width: 12px;
+        height: 12px;
+      }
+    }
+
+    &__summary {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    &__summary-item {
+      padding: 12px 14px;
+      gap: 4px;
+      border-bottom: 1px solid #e0e0e0;
+
+      &:nth-child(odd) {
+        border-right: 1px solid #e0e0e0;
+      }
+
+      &:nth-last-child(-n + 2) {
+        border-bottom: none;
+      }
+    }
+
+    &__summary-label {
+      font-size: 10px;
+    }
+
+    &__summary-value {
+      font-size: 17px;
+    }
+
+    &__table-header,
+    &__table-row {
+      grid-template-columns: 1.6fr repeat(6, 0.75fr);
+    }
+
+    &__table-cell {
+      padding: 8px 9px;
+      font-size: 11px;
+
+      .workload__table-header & {
+        font-size: 10px;
+        letter-spacing: 0.2px;
+      }
+    }
+
+    &__user {
+      gap: 6px;
+
+      svg {
+        width: 18px;
+        height: 18px;
+      }
+    }
+
+    &__user-name {
+      font-size: 11px;
+    }
+
+    &__user-email {
+      font-size: 10px;
+    }
+
+    &__count {
+      min-width: 24px;
+      padding: 2px 4px;
+      font-size: 11px;
+      border-radius: 2px;
+    }
+
+    &__loading,
+    &__error,
+    &__empty {
+      padding: 40px 16px;
+
+      svg {
+        width: 36px;
+        height: 36px;
+      }
+
+      h3 {
+        font-size: 14px;
+      }
+
+      p {
+        font-size: 11.5px;
+        max-width: 350px;
+      }
+    }
+
+    &__error-btn {
+      padding: 7px 14px;
       font-size: 12px;
     }
   }
 }
 
+// Original tablet/mobile breakpoints
 @media (max-width: 768px) {
   .workload {
     &__header {

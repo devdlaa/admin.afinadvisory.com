@@ -1,18 +1,11 @@
 "use client";
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import {
-  X,
-  FileText,
-  Building2,
-  Tag,
-  Flag,
-  AlertCircle,
-} from "lucide-react";
+import { X, FileText, Building2, Tag, Flag, AlertCircle } from "lucide-react";
 
-import Button from "@/app/components/Button/Button";
-import FilterDropdown from "@/app/components/FilterDropdown/FilterDropdown";
 
+import Button from "@/app/components/shared/Button/Button";
+import FilterDropdown from "@/app/components/pages/FilterDropdown/FilterDropdown";
 import {
   clearErrors,
   createTask,
@@ -32,7 +25,7 @@ import "./TaskCreateDialog.scss";
 const TaskCreateDialog = () => {
   const dispatch = useDispatch();
   const dialogRef = useRef(null);
-  
+
   const isOpen = useSelector(selectCreateDialogOpen);
   const categories = useSelector(selectAllCategories);
   const isCreating = useSelector((state) => state.task.loading.create);

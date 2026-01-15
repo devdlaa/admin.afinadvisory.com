@@ -6,7 +6,7 @@ import {
   fetchAssignmentReport,
   selectAssignmentReport,
 } from "@/store/slices/taskSlice";
-import Avatar from "@/app/components/newui/Avatar/Avatar";
+import Avatar from "@/app/components/shared/newui/Avatar/Avatar";
 import { getProfileUrl } from "@/utils/shared/shared_util";
 import "./TaskWorkload.scss";
 

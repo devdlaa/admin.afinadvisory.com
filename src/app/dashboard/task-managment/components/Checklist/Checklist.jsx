@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { Plus, GripVertical, Trash2, Save } from "lucide-react";
-import ActionButton from "@/app/components/TinyLib/ActionButton";
+
+import ActionButton from "@/app/components/shared/TinyLib/ActionButton";
 import styles from "./Checklist.module.scss";
 
 const Checklist = ({ initialItems = [], onSave, isSaving = false }) => {

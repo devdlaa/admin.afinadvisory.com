@@ -13,7 +13,7 @@ import {
 import { Alert } from "@mui/material";
 
 import { fetchPermissions, inviteUser } from "@/store/slices/userSlice";
-import "./InviteUserDialog.scss";
+import styles from  "./InviteUserDialog.module.scss";
 
 const InviteUserDialog = ({ open, onClose, onInvite }) => {
   const dispatch = useDispatch();
@@ -316,14 +316,14 @@ const InviteUserDialog = ({ open, onClose, onInvite }) => {
   // Show loading state while fetching permissions
   if (permissionsLoading) {
     return (
-      <div className="invite_new_user_dialog-overlay">
-        <div className="dialog-container">
-          <div className="invite-dialog">
-            <div className="loading-content">
+      <div className={styles.invite_new_user_dialogOverlay}>
+        <div className={styles.dialogContainer}>
+          <div className={styles.inviteDialog}>
+            <div className={styles.loadingContent}>
               <motion.div
                 animate={{ rotate: 360 }}
                 transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                className="loading-spinner"
+                className={styles.loadingSpinner}
               />
               <p>Loading permissions...</p>
             </div>
@@ -336,14 +336,14 @@ const InviteUserDialog = ({ open, onClose, onInvite }) => {
   // Show error state if permissions failed to load
   if (permissionsError) {
     return (
-      <div className="invite_new_user_dialog-overlay">
-        <div className="dialog-container">
-          <div className="invite-dialog">
-            <div className="error-content">
+      <div className={styles.invite_new_user_dialogOverlay}>
+        <div className={styles.dialogContainer}>
+          <div className={styles.inviteDialog}>
+            <div className={styles.errorContent}>
               <AlertTriangle size={24} />
               <p>Failed to load permissions data</p>
               <button
-                className="btn btn-primary"
+                className={`${styles.stylesbtn} ${styles.stylesbtnPrimary}`}
                 onClick={() => dispatch(fetchPermissions())}
               >
                 Retry
@@ -356,27 +356,27 @@ const InviteUserDialog = ({ open, onClose, onInvite }) => {
   }
 
   return (
-    <div className="invite_new_user_dialog-overlay" onClick={onClose}>
-      <div className="dialog-container" onClick={(e) => e.stopPropagation()}>
-        <div className="invite-dialog">
-          <div className="dialog-header">
-            <div className="dialog-title">
-              <Mail className="title-icon" />
+    <div className={styles.invite_new_user_dialogOverlay} onClick={onClose}>
+      <div className={styles.dialogContainer} onClick={(e) => e.stopPropagation()}>
+        <div className={styles.inviteDialog}>
+          <div className={styles.dialogHeader}>
+            <div className={styles.dialogTitle}>
+              <Mail className={styles.titleIcon} />
               Invite New User
             </div>
-            <button className="dialog-close" onClick={onClose}>
+            <button className={styles.dialogClose} onClick={onClose}>
               <X size={20} />
             </button>
           </div>
 
-          <div className="dialog-content">
+          <div className={styles.dialogContent}>
             {/* Show invitation result alert */}
             {invitationResult && (
               <Alert
                 severity={
                   invitationResult?.type === "success" ? "success" : "error"
                 }
-                className="invitation-alert"
+                className={styles.invitationAlert}
                 style={{ marginBottom: "1rem" }}
               >
                 <div>
@@ -417,71 +417,65 @@ const InviteUserDialog = ({ open, onClose, onInvite }) => {
             )}
 
             {!showConfirmation ? (
-              <form onSubmit={handleSubmit} className="invite-form">
-                <div className="form-sections">
-                  <div className="section_wrap">
+              <form onSubmit={handleSubmit} className={styles.inviteForm}>
+                <div className={styles.formSections}>
+                  <div className={styles.section_wrap}>
                     {/* Personal Information */}
-                    <div className="form-section">
-                      <h3 className="section-title">
+                    <div className={styles.formSection}>
+                      <h3 className={styles.sectionTitle}>
                         <User size={16} />
                         Personal Information
                       </h3>
-                      <div className="form-grid">
-                        <div className="form-group">
-                          <label className="form-label">Full Name *</label>
+                      <div className={styles.formGrid}>
+                        <div className={styles.formGroup}>
+                          <label className={styles.formLabel}>Full Name *</label>
                           <input
                             type="text"
                             value={formData.name}
                             onChange={(e) =>
                               handleInputChange("name", e.target.value)
                             }
-                            className={`form-input ${
-                              errors.name ? "error" : ""
-                            }`}
+                            className={`${styles.formInput} ${ errors.name ? styles.error : "" }`}
                             placeholder="Enter full name"
                             maxLength={100}
                           />
                           {errors.name && (
-                            <span className="error-text">{errors.name}</span>
+                            <span className={styles.errorText}>{errors.name}</span>
                           )}
                         </div>
-                        <div className="form-group">
-                          <label className="form-label">Email Address *</label>
+                        <div className={styles.formGroup}>
+                          <label className={styles.formLabel}>Email Address *</label>
                           <input
                             type="email"
                             value={formData.email}
                             onChange={(e) =>
                               handleInputChange("email", e.target.value)
                             }
-                            className={`form-input ${
-                              errors.email ? "error" : ""
-                            }`}
+                            className={`${styles.formInput} ${ errors.email ? styles.error : "" }`}
                             placeholder="Enter email address"
                           />
                           {errors.email && (
-                            <span className="error-text">{errors.email}</span>
+                            <span className={styles.errorText}>{errors.email}</span>
                           )}
                         </div>
-                        <div className="form-group">
-                          <label className="form-label">Phone Number *</label>
+                        <div className={styles.formGroup}>
+                          <label className={styles.formLabel}>Phone Number *</label>
                           <input
                             type="tel"
                             value={formData.phone}
                             onChange={(e) =>
                               handleInputChange("phone", e.target.value)
                             }
-                            className={`form-input ${
-                              errors.phone ? "error" : ""
-                            }`}
+                            className={`${styles.formInput} ${ errors.phone ? styles.error : "" }`}
                             placeholder="9876543210"
                             maxLength={15}
                           />
                           {errors.phone && (
-                            <span className="error-text">{errors.phone}</span>
+                            <span className={styles.errorText}>{errors.phone}</span>
                           )}
                         </div>
-                        <div className="form-group">
-                          <label className="form-label">Alternate Phone</label>
+                        <div className={styles.formGroup}>
+                          <label className={styles.formLabel}>Alternate Phone</label>
                           <input
                             type="tel"
                             value={formData.alternatePhone}
@@ -491,14 +485,12 @@ const InviteUserDialog = ({ open, onClose, onInvite }) => {
                                 e.target.value
                               )
                             }
-                            className={`form-input ${
-                              errors.alternatePhone ? "error" : ""
-                            }`}
+                            className={`${styles.formInput} ${ errors.alternatePhone ? styles.error : "" }`}
                             placeholder="8765432109"
                             maxLength={15}
                           />
                           {errors.alternatePhone && (
-                            <span className="error-text">
+                            <span className={styles.errorText}>
                               {errors.alternatePhone}
                             </span>
                           )}
@@ -508,34 +500,32 @@ const InviteUserDialog = ({ open, onClose, onInvite }) => {
                   </div>
 
                   {/* Role & Permissions */}
-                  <div className="form-section">
-                    <h3 className="section-title">
+                  <div className={styles.formSection}>
+                    <h3 className={styles.sectionTitle}>
                       <Shield size={16} />
                       Role & Permissions
                     </h3>
 
-                    <div className="role-selection">
-                      <label className="form-label">User Role *</label>
+                    <div className={styles.roleSelection}>
+                      <label className={styles.formLabel}>User Role *</label>
                       {errors.role && (
-                        <span className="error-text">{errors.role}</span>
+                        <span className={styles.errorText}>{errors.role}</span>
                       )}
-                      <div className="role-options">
+                      <div className={styles.roleOptions}>
                         {roles.map((role) => (
                           <div
                             key={role.id}
-                            className={`role-option ${
-                              formData.role === role.id ? "selected" : ""
-                            }`}
+                            className={`${styles.roleOption} ${ formData.role === role.id ? styles.selected : "" }`}
                             onClick={() => handleRoleChange(role.id)}
                           >
-                            <div className="roal_box_wrapper">
-                              <div className="role-radio">
+                            <div className={styles.roal_box_wrapper}>
+                              <div className={styles.roleRadio}>
                                 {formData.role === role.id && (
-                                  <div className="radio-dot" />
+                                  <div className={styles.radioDot} />
                                 )}
                               </div>
-                              <div className="role-info">
-                                <div className="role-name">{role.label}</div>
+                              <div className={styles.roleInfo}>
+                                <div className={styles.roleName}>{role.label}</div>
                               </div>
                             </div>
                           </div>
@@ -543,16 +533,16 @@ const InviteUserDialog = ({ open, onClose, onInvite }) => {
                       </div>
                     </div>
 
-                    <div className="permissions-section">
-                      <label className="form-label">Permissions *</label>
+                    <div className={styles.permissionsSection}>
+                      <label className={styles.formLabel}>Permissions *</label>
                       {errors.permissions && (
-                        <span className="error-text">{errors.permissions}</span>
+                        <span className={styles.errorText}>{errors.permissions}</span>
                       )}
-                      <div className="permissions-grid">
+                      <div className={styles.permissionsGrid}>
                         {Object.entries(groupedPermissions).map(
                           ([category, permissions]) => (
-                            <div key={category} className="permission-category">
-                              <h4 className="category-title">{category}</h4>
+                            <div key={category} className={styles.permissionCategory}>
+                              <h4 className={styles.categoryTitle}>{category}</h4>
                               {permissions.map((permission) => {
                                 const isChecked = formData.permissions.includes(
                                   permission.code
@@ -560,7 +550,7 @@ const InviteUserDialog = ({ open, onClose, onInvite }) => {
                                 return (
                                   <label
                                     key={permission.id}
-                                    className="permission-item"
+                                    className={styles.permissionItem}
                                   >
                                     <input
                                       type="checkbox"
@@ -568,21 +558,19 @@ const InviteUserDialog = ({ open, onClose, onInvite }) => {
                                       onChange={() =>
                                         handlePermissionToggle(permission.code)
                                       }
-                                      className="permission-checkbox"
+                                      className={styles.permissionCheckbox}
                                     />
                                     <div
-                                      className={`checkbox-custom ${
-                                        isChecked ? "checked" : ""
-                                      }`}
+                                      className={`${styles.checkboxCustom} ${ isChecked ? styles.checked : "" }`}
                                     >
                                       {isChecked && (
                                         <Check
                                           size={12}
-                                          className="check-icon"
+                                          className={styles.checkIcon}
                                         />
                                       )}
                                     </div>
-                                    <span className="permission-label">
+                                    <span className={styles.permissionLabel}>
                                       {permission.label}
                                     </span>
                                   </label>
@@ -596,10 +584,10 @@ const InviteUserDialog = ({ open, onClose, onInvite }) => {
                   </div>
                 </div>
 
-                <div className="form-actions">
+                <div className={styles.formActions}>
                   <button
                     type="button"
-                    className="btn btn-outline"
+                    className={`${styles.stylesbtn} ${styles.stylesbtnOutline}`}
                     onClick={onClose}
                     disabled={isSubmitting}
                   >
@@ -607,7 +595,7 @@ const InviteUserDialog = ({ open, onClose, onInvite }) => {
                   </button>
                   <button
                     type="submit"
-                    className="btn btn-primary"
+                    className={`${styles.stylesbtn} ${styles.stylesbtnPrimary}`}
                     disabled={isSubmitting}
                   >
                     Review Invitation
@@ -618,54 +606,54 @@ const InviteUserDialog = ({ open, onClose, onInvite }) => {
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="confirmation-content"
+                className={styles.confirmationContent}
               >
-                <div className="confirmation-header">
-                  <div className="confirmation-icon">
+                <div className={styles.confirmationHeader}>
+                  <div className={styles.confirmationIcon}>
                     <Mail size={24} />
                   </div>
                   <h3>Confirm Invitation</h3>
                   <p>Please review the details before sending the invitation</p>
                 </div>
 
-                <div className="confirmation-details">
-                  <div className="detail-group">
+                <div className={styles.confirmationDetails}>
+                  <div className={styles.detailGroup}>
                     <strong>Name:</strong> {formData.name}
                   </div>
-                  <div className="detail-group">
+                  <div className={styles.detailGroup}>
                     <strong>Email:</strong> {formData.email}
                   </div>
-                  <div className="detail-group">
+                  <div className={styles.detailGroup}>
                     <strong>Phone:</strong> {formData.phone}
                   </div>
                   {formData.alternatePhone && (
-                    <div className="detail-group">
+                    <div className={styles.detailGroup}>
                       <strong>Alternate Phone:</strong>{" "}
                       {formData.alternatePhone}
                     </div>
                   )}
-                  <div className="detail-group">
+                  <div className={styles.detailGroup}>
                     <strong>Role:</strong>{" "}
                     {roles.find((r) => r.id === formData.role)?.label ||
                       formData.role}
                   </div>
 
-                  <div className="detail-group">
+                  <div className={styles.detailGroup}>
                     <strong>Permissions:</strong> {formData.permissions.length}{" "}
                     permissions assigned
                   </div>
                 </div>
 
-                <div className="confirmation-actions">
+                <div className={styles.confirmationActions}>
                   <button
-                    className="btn btn-outline"
+                    className={`${styles.stylesbtn} ${styles.stylesbtnOutline}`}
                     onClick={() => setShowConfirmation(false)}
                     disabled={isSubmitting}
                   >
                     Back to Edit
                   </button>
                   <button
-                    className="btn btn-primary send-invite-btn"
+                    className={`${styles.stylesbtn} ${styles.stylesbtnPrimary} ${styles.stylessendInviteBtn}`}
                     onClick={handleConfirmInvite}
                     disabled={isSubmitting}
                   >
@@ -678,7 +666,7 @@ const InviteUserDialog = ({ open, onClose, onInvite }) => {
                             repeat: Infinity,
                             ease: "linear",
                           }}
-                          className="loading-spinner"
+                          className={styles.loadingSpinner}
                         />
                         Sending Invitation...
                       </>

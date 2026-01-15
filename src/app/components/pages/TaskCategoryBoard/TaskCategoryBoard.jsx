@@ -28,7 +28,8 @@ import {
   selectIsCached,
   clearErrors,
 } from "@/store/slices/taskCategorySlice";
-import ConfirmationDialog from "../ConfirmationDialog/ConfirmationDialog";
+
+import ConfirmationDialog from "../../shared/ConfirmationDialog/ConfirmationDialog";
 import { truncateText } from "@/utils/server/utils";
 
 const TaskCategoryBoard = ({

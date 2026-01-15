@@ -8,7 +8,7 @@ export async function GET(request) {
 
   
       const [permissionError] = await requirePermission(
-      req,
+      request,
       "influencers.access"
     );
     if (permissionError) return permissionError;

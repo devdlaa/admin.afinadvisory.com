@@ -15,8 +15,9 @@ import {
 } from "lucide-react";
 import "./TasksTable.scss";
 
-import Button from "@/app/components/Button/Button";
-import Avatar from "@/app/components/newui/Avatar/Avatar";
+
+import Button from "@/app/components/shared/Button/Button";
+import Avatar from "@/app/components/shared/newui/Avatar/Avatar";
 import {
   setFilters,
   fetchTasks,

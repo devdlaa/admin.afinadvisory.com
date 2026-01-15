@@ -19,7 +19,8 @@ import {
 } from "lucide-react";
 import styles from "./WaitlistDashboard.module.scss";
 
-import AddInfluencerDialog from "@/app/components/partners/AddInfluencerDialog/AddInfluencerDialog";
+
+import AddInfluencerDialog from "@/app/components/pages/partners/AddInfluencerDialog/AddInfluencerDialog";
 
 export default function WaitlistDashboard() {
   const [influencers, setInfluencers] = useState([]);
@@ -43,7 +44,7 @@ export default function WaitlistDashboard() {
     setError(null);
     try {
       const res = await fetch(
-        `/api/admin/influencers/brevo/get?page=${pageNum}&limit=${limit}`
+        `/api/manage_website/influencers/brevo/get?page=${pageNum}&limit=${limit}`
       );
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Failed to fetch");
@@ -61,7 +62,7 @@ export default function WaitlistDashboard() {
 
     setActionLoading((prev) => ({ ...prev, [email]: "deleting" }));
     try {
-      const res = await fetch(`/api/admin/influencers/brevo/delete`, {
+      const res = await fetch(`/api/manage_website/influencers/brevo/delete`, {
         body: JSON.stringify({ email }),
         method: "POST",
       });
@@ -82,7 +83,7 @@ export default function WaitlistDashboard() {
   const handleMarkAsCreated = async (email) => {
     setActionLoading((prev) => ({ ...prev, [email]: "marking" }));
     try {
-      const res = await fetch(`/api/admin/influencers/brevo/has-account`, {
+      const res = await fetch(`/api/manage_website/influencers/brevo/has-account`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ hasAccountAlready: true, email }),

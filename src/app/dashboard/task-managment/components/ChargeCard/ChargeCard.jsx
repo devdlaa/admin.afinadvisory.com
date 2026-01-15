@@ -14,14 +14,16 @@ import {
   Loader2,
 } from "lucide-react";
 
-import CustomInput from "@/app/components/TinyLib/CustomInput";
-import CustomDropdown from "@/app/components/TinyLib/CustomDropdown";
-import ActionButton from "@/app/components/TinyLib/ActionButton";
-import Avatar from "@/app/components/newui/Avatar/Avatar";
 
+
+import CustomInput from "@/app/components/shared/TinyLib/CustomInput";
+import CustomDropdown from "@/app/components/shared/TinyLib/CustomDropdown";
+import ActionButton from "@/app/components/shared/TinyLib/ActionButton";
+import Avatar from "@/app/components/shared/TinyLib/Avatar";
+import ConfirmationDialog from "@/app/components/shared/ConfirmationDialog/ConfirmationDialog";
 import styles from "./ChargeCard.module.scss";
 import { getProfileUrl } from "@/utils/shared/shared_util";
-import ConfirmationDialog from "@/app/components/ConfirmationDialog/ConfirmationDialog";
+
 
 const ChargeCard = ({
   charge = {},

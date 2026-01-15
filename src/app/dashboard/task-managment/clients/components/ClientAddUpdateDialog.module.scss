@@ -316,15 +316,11 @@
     display: flex;
     gap: 12px;
     align-items: flex-start;
-   
-
     border-radius: 12px;
-  
     transition: all 0.2s;
 
     &:hover {
       border-color: #ced4da;
-    
     }
 
     .fieldNumber {
@@ -464,6 +460,209 @@
   }
 }
 
+// ========================================
+// RESPONSIVE STYLES FOR LAPTOPS/DESKTOPS
+// ========================================
+
+// Medium laptops (1024px - 1366px)
+@media (max-width: 1366px) and (min-width: 1025px) {
+  .dialog {
+    max-width: 600px;
+  }
+
+  .header {
+    padding: 22px 28px;
+
+    .headerLeft {
+      h2 {
+        font-size: 22px;
+      }
+
+      p {
+        font-size: 13px;
+      }
+    }
+  }
+
+  .form {
+    .inner {
+      padding: 22px 28px 28px;
+      padding-bottom: 120px;
+    }
+
+    .formRow {
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+
+    .formGroup {
+      margin-bottom: 18px;
+
+      input,
+      select {
+        padding: 13px 12px;
+      }
+    }
+  }
+
+  .footer {
+    padding: 18px 28px;
+  }
+
+  .errorBanner {
+    margin: 14px 28px 0 28px;
+  }
+}
+
+// Small laptops (below 1024px but above tablet)
+@media (max-width: 1024px) and (min-width: 769px) {
+  .dialog {
+    max-width: 550px;
+    width: 92vw;
+  }
+
+  .header {
+    padding: 20px 24px;
+
+    .headerLeft {
+      gap: 14px;
+
+      h2 {
+        font-size: 21px;
+      }
+
+      p {
+        font-size: 13px;
+      }
+    }
+  }
+
+  .tabs {
+    .tab {
+      padding: 14px 20px;
+      font-size: 13px;
+      gap: 6px;
+    }
+  }
+
+  .form {
+    .inner {
+      padding: 20px 24px 24px;
+      padding-bottom: 115px;
+    }
+
+    .formRow {
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .formGroup {
+      margin-bottom: 16px;
+
+      label {
+        font-size: 13px;
+      }
+
+      input,
+      select {
+        padding: 12px 12px;
+        font-size: 13px;
+      }
+    }
+  }
+
+  .additionalFields {
+    .additionalHeader {
+      gap: 14px;
+
+      .additionalDescription {
+        font-size: 13px;
+      }
+
+      .addFieldBtn {
+        padding: 9px 18px;
+        font-size: 13px;
+      }
+    }
+
+    .emptyState {
+      padding: 40px 20px;
+
+      p {
+        font-size: 15px;
+      }
+
+      .emptySubtext {
+        font-size: 13px;
+      }
+    }
+
+    .customFieldRow {
+      gap: 10px;
+
+      .fieldNumber {
+        width: 30px;
+        height: 30px;
+        font-size: 13px;
+        margin-top: 26px;
+      }
+
+      .customFieldInputs {
+        gap: 10px;
+      }
+
+      .removeFieldBtn {
+        width: 34px;
+        height: 34px;
+        margin-top: 26px;
+      }
+    }
+  }
+
+  .footer {
+    padding: 16px 24px;
+    gap: 10px;
+
+    button {
+      padding: 9px 20px;
+      font-size: 13px;
+    }
+  }
+
+  .errorBanner {
+    margin: 14px 24px 0 24px;
+    padding: 11px 14px;
+  }
+}
+
+// Compact laptop view (900px - 1024px) - tighter spacing
+@media (max-width: 900px) and (min-width: 769px) {
+  .dialog {
+    max-width: 520px;
+  }
+
+  .form {
+    .formRow {
+      gap: 14px;
+
+      // Stack into single column for better readability on smaller laptops
+      &:has(.formGroup:nth-child(3)) {
+        grid-template-columns: 1fr;
+      }
+    }
+  }
+
+  .additionalFields {
+    .customFieldRow {
+      .customFieldInputs {
+        // Keep 2 columns but with tighter spacing
+        gap: 8px;
+      }
+    }
+  }
+}
+
+// Tablet landscape and below (original mobile breakpoint)
 @media (max-width: 768px) {
   .dialog {
     width: 95vw;

@@ -6,7 +6,7 @@ export const fetchBookings = createAsyncThunk(
   async ({ cursor = null, limit = 10 }, { rejectWithValue }) => {
     const payload = cursor ? { limit, cursor } : { limit };
     try {
-      const response = await fetch("/api/admin/services/get_services", {
+      const response = await fetch("/api/manage_website/services/get_services", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -66,7 +66,7 @@ export const searchBookings = createAsyncThunk(
         };
       }
 
-      const response = await fetch("/api/admin/services/search", {
+      const response = await fetch("/api/manage_website/services/search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ value }),
@@ -101,7 +101,7 @@ export const filterBookings = createAsyncThunk(
   "services/filterBookings",
   async ({ mode = "filter", filters }, { rejectWithValue }) => {
     try {
-      const response = await fetch("/api/admin/services/filter", {
+      const response = await fetch("/api/manage_website/services/filter", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(filters),
@@ -133,7 +133,7 @@ export const markServiceFulfilled = createAsyncThunk(
   "services/markServiceFulfilled",
   async (service_booking_ids, { rejectWithValue }) => {
     try {
-      const response = await fetch("/api/admin/services/mark-fulfilled", {
+      const response = await fetch("/api/manage_website/services/mark-fulfilled", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ service_booking_ids }),
@@ -162,7 +162,7 @@ export const unmarkServiceFulfilled = createAsyncThunk(
   "services/unmarkServiceFulfilled",
   async (service_booking_ids, { rejectWithValue }) => {
     try {
-      const response = await fetch("/api/admin/services/unmark-fulfilled", {
+      const response = await fetch("/api/manage_website/services/unmark-fulfilled", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ service_booking_ids }),
@@ -196,7 +196,7 @@ export const fetchBookingData = createAsyncThunk(
 
     while (attempt <= maxRetries) {
       try {
-        const res = await fetch("/api/admin/services/get_service", {
+        const res = await fetch("/api/manage_website/services/get_service", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ service_booking_id: serviceBookingId }),
@@ -228,7 +228,7 @@ export const rejectRefund = createAsyncThunk(
   "refund/rejectRefund",
   async ({ service_booking_id, adminNote }, { rejectWithValue }) => {
     try {
-      const res = await fetch("/api/admin/services/refund-reject", {
+      const res = await fetch("/api/manage_website/services/refund-reject", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ service_booking_id, adminNote }),

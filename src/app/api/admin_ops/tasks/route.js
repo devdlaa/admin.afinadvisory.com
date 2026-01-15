@@ -32,7 +32,7 @@ export async function POST(request) {
 // GET - List all tasks with filters and pagination
 export async function GET(request) {
   try {
-    const [permissionError] = await requirePermission(request, "tasks.access");
+    const [permissionError,session] = await requirePermission(request, "tasks.access");
     if (permissionError) return permissionError;
 
     const { searchParams } = new URL(request.url);

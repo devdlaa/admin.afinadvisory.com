@@ -5,7 +5,7 @@ export const checkExistingCustomer = createAsyncThunk(
   "paymentLink/checkExistingCustomer",
   async (searchValue, { rejectWithValue }) => {
     try {
-      const response = await fetch("/api/admin/customers/get_customer", {
+      const response = await fetch("/api/manage_website/customers/get_customer", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ searchValue }),
@@ -26,7 +26,7 @@ export const createNewCustomer = createAsyncThunk(
   "paymentLink/createNewCustomer",
   async (customerData, { rejectWithValue }) => {
     try {
-      const response = await fetch("/api/admin/customers/add_new_customers", {
+      const response = await fetch("/api/manage_website/customers/add_new_customers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(customerData),
@@ -47,7 +47,7 @@ export const fetchServices = createAsyncThunk(
   "paymentLink/fetchServices",
   async (_, { rejectWithValue }) => {
     try {
-      const response = await fetch("/api/admin/service_pricing/get");
+      const response = await fetch("/api/manage_website/service_pricing/get");
       const data = await response.json();
 
       if (!response.ok) {
@@ -64,7 +64,7 @@ export const fetchServicePricing = createAsyncThunk(
   "paymentLink/fetchServicePricing",
   async (serviceId, { rejectWithValue }) => {
     try {
-      const response = await fetch("/api/admin/service_pricing/get_by_id", {
+      const response = await fetch("/api/manage_website/service_pricing/get_by_id", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ serviceId }),
@@ -85,7 +85,7 @@ export const validateCoupon = createAsyncThunk(
   "paymentLink/validateCoupon",
   async ({ code, customerId, serviceId }, { rejectWithValue }) => {
     try {
-      const response = await fetch("/api/admin/coupons/validate-promo-code", {
+      const response = await fetch("/api/manage_website/coupons/validate-promo-code", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code, customerId, serviceId }),
@@ -106,7 +106,7 @@ export const createPaymentLink = createAsyncThunk(
   "paymentLink/createPaymentLink",
   async (paymentDetailsObject, { rejectWithValue }) => {
     try {
-      const response = await fetch("/api/admin/services/create_payment_link", {
+      const response = await fetch("/api/manage_website/services/create_payment_link", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(paymentDetailsObject),

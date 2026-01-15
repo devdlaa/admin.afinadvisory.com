@@ -5,7 +5,7 @@ import { buildActivityMessage } from "@/utils/server/activityBulder.js";
 
 export function buildTaskVisibilityWhere(user) {
   if (user.admin_role === "SUPER_ADMIN") {
-    return {}; // no restriction
+    return {}; 
   }
 
   return {

@@ -6,7 +6,7 @@ import { requirePermission } from "@/utils/server/requirePermission";
 
 const prisma = new PrismaClient();
 
-export async function GET() {
+export async function GET(req) {
   try {
     const [permissionError] = await requirePermission(
       req,

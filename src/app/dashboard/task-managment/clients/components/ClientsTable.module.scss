@@ -215,24 +215,338 @@
         color: #fa5252;
       }
     }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
   }
 }
 
-@media (max-width: 1200px) {
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+// ========================================
+// RESPONSIVE STYLES FOR LAPTOPS/DESKTOPS
+// ========================================
+
+// Large desktops and monitors (1440px+)
+@media (min-width: 1440px) {
+  .clientsTable {
+    font-size: 15px;
+
+    thead th {
+      padding: 18px 14px;
+      font-size: 14px;
+    }
+
+    tbody td {
+      padding: 18px 18px;
+    }
+
+    .nameCell {
+      gap: 12px;
+
+      .clientName {
+        font-size: 15px;
+      }
+
+      .contactPerson {
+        font-size: 13px;
+      }
+    }
+
+    .contactInfo {
+      gap: 8px;
+
+      .contactItem {
+        font-size: 14px;
+      }
+    }
+
+    .date {
+      font-size: 14px;
+    }
+  }
+}
+
+// Medium laptops (1200px - 1366px)
+@media (max-width: 1366px) and (min-width: 1201px) {
+  .clientsTable {
+    font-size: 13.5px;
+
+    thead th {
+      padding: 14px 10px;
+      font-size: 12.5px;
+    }
+
+    tbody td {
+      padding: 14px 12px;
+    }
+
+    .nameCell {
+      gap: 9px;
+
+      .clientName {
+        font-size: 14px;
+      }
+
+      .contactPerson {
+        font-size: 11.5px;
+      }
+    }
+
+    .contactInfo {
+      gap: 5px;
+
+      .contactItem {
+        font-size: 12.5px;
+      }
+    }
+
+    .entityType {
+      padding: 3px 9px;
+      font-size: 11.5px;
+    }
+
+    .statusBadge {
+      padding: 3px 11px;
+      font-size: 11.5px;
+    }
+
+    .date {
+      font-size: 12.5px;
+    }
+
+    .actions {
+      gap: 6px;
+    }
+
+    .actionBtn {
+      padding: 7px;
+    }
+  }
+}
+
+// Standard laptops (1024px - 1200px)
+@media (max-width: 1200px) and (min-width: 1025px) {
   .clientsTable {
     font-size: 13px;
 
     thead th {
       padding: 12px 8px;
       font-size: 12px;
+      letter-spacing: 0.3px;
     }
 
     tbody td {
-      padding: 12px 8px;
+      padding: 12px 10px;
+    }
+
+    .nameCell {
+      gap: 8px;
+
+      .icon {
+        margin-top: 1px;
+      }
+
+      .clientName {
+        font-size: 13.5px;
+        margin-bottom: 3px;
+      }
+
+      .contactPerson {
+        font-size: 11px;
+        gap: 3px;
+      }
+    }
+
+    .contactInfo {
+      gap: 4px;
+
+      .contactItem {
+        font-size: 12px;
+        gap: 5px;
+      }
+    }
+
+    .entityType {
+      padding: 3px 8px;
+      font-size: 11px;
+    }
+
+    .statusBadge {
+      padding: 3px 10px;
+      font-size: 11px;
+    }
+
+    .date {
+      font-size: 12px;
+    }
+
+    .actions {
+      gap: 6px;
+    }
+
+    .actionBtn {
+      padding: 6px;
     }
   }
 }
 
+// Small laptops (900px - 1024px)
+@media (max-width: 1024px) and (min-width: 901px) {
+  .clientsTable {
+    font-size: 12.5px;
+
+    thead th {
+      padding: 11px 7px;
+      font-size: 11.5px;
+      letter-spacing: 0.2px;
+    }
+
+    tbody td {
+      padding: 11px 9px;
+    }
+
+    .nameCell {
+      gap: 7px;
+
+      .clientName {
+        font-size: 13px;
+        margin-bottom: 2px;
+      }
+
+      .contactPerson {
+        font-size: 10.5px;
+      }
+    }
+
+    .contactInfo {
+      gap: 4px;
+
+      .contactItem {
+        font-size: 11.5px;
+      }
+    }
+
+    .entityType {
+      padding: 2px 7px;
+      font-size: 10.5px;
+    }
+
+    .statusBadge {
+      padding: 2px 9px;
+      font-size: 10.5px;
+    }
+
+    .pan {
+      font-size: 12.5px;
+    }
+
+    .date {
+      font-size: 11.5px;
+    }
+
+    .actions {
+      gap: 5px;
+    }
+
+    .actionBtn {
+      padding: 6px;
+    }
+  }
+}
+
+// Compact laptops (769px - 900px)
+@media (max-width: 900px) and (min-width: 769px) {
+  .clientsTable {
+    font-size: 12px;
+
+    thead th {
+      padding: 10px 6px;
+      font-size: 11px;
+      letter-spacing: 0.2px;
+    }
+
+    tbody td {
+      padding: 10px 8px;
+    }
+
+    .nameCell {
+      gap: 6px;
+
+      .icon {
+        display: none; // Hide icon on very compact screens for more space
+      }
+
+      .clientName {
+        font-size: 12.5px;
+      }
+
+      .contactPerson {
+        font-size: 10px;
+      }
+    }
+
+    .contactInfo {
+      gap: 3px;
+
+      .contactItem {
+        font-size: 11px;
+
+        svg {
+          width: 14px;
+          height: 14px;
+        }
+      }
+    }
+
+    .entityType {
+      padding: 2px 6px;
+      font-size: 10px;
+    }
+
+    .statusBadge {
+      padding: 2px 8px;
+      font-size: 10px;
+    }
+
+    .pan {
+      font-size: 12px;
+    }
+
+    .date {
+      font-size: 11px;
+    }
+
+    .actions {
+      gap: 4px;
+    }
+
+    .actionBtn {
+      padding: 5px;
+
+      svg {
+        width: 16px;
+        height: 16px;
+      }
+    }
+  }
+}
+
+// Tablet and below (original mobile styles)
 @media (max-width: 768px) {
   .tableWrapper {
     border-radius: 0;
@@ -256,31 +570,5 @@
         font-size: 11px;
       }
     }
-  }
-}
-
-// Add this to your ClientsTable.module.scss file
-
-.spinner {
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-// Also add disabled state styling to action buttons
-.actionBtn {
-  // ... existing styles ...
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    pointer-events: none;
   }
 }

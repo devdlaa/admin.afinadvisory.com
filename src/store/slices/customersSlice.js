@@ -10,7 +10,7 @@ export const fetchCustomers = createAsyncThunk(
   async ({ cursor = null, limit = 10 }, { rejectWithValue }) => {
     const payload = cursor ? { limit, cursor } : { limit };
     try {
-      const response = await fetch("/api/admin/customers/get_customers", {
+      const response = await fetch("/api/manage_website/customers/get_customers", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -70,7 +70,7 @@ export const searchCustomers = createAsyncThunk(
         };
       }
 
-      const response = await fetch("/api/admin/customers/search_customers", {
+      const response = await fetch("/api/manage_website/customers/search_customers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ value }),
@@ -105,7 +105,7 @@ export const filterCustomers = createAsyncThunk(
   "customers/filterCustomers",
   async ({ mode = "filter", filters }, { rejectWithValue }) => {
     try {
-      const response = await fetch("/api/admin/customers/filter_customers", {
+      const response = await fetch("/api/manage_website/customers/filter_customers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(filters),
@@ -138,7 +138,7 @@ export const updateCustomer = createAsyncThunk(
   async ({ id, updateData }, { rejectWithValue }) => {
     try {
       const response = await fetch(
-        "/api/admin/customers/update_customer_details",
+        "/api/manage_website/customers/update_customer_details",
         {
           method: "POST",
           headers: {
@@ -177,7 +177,7 @@ export const addNewUser = createAsyncThunk(
   "customers/addNewUser",
   async (userData, { rejectWithValue }) => {
     try {
-      const response = await fetch("/api/admin/customers/add_new_customers", {
+      const response = await fetch("/api/manage_website/customers/add_new_customers", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

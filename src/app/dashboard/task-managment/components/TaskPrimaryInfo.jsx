@@ -1,7 +1,9 @@
 import React from "react";
 import { Clock } from "lucide-react";
-import CustomDropdown from "@/app/components/TinyLib/CustomDropdown";
-import CustomDatePicker from "@/app/components/TinyLib/CustomDatePicker";
+
+
+import CustomDropdown from "@/app/components/shared/TinyLib/CustomDropdown";
+import CustomDatePicker from "@/app/components/shared/TinyLib/CustomDatePicker";
 import { statusOptions, priorityOptions } from "@/utils/shared/constants";
 
 const TaskPrimaryInfo = ({

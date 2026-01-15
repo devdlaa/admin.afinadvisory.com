@@ -4,8 +4,6 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import "./customers.scss";
 
-import GenericActionBar from "@/app/components/GenericActionBar/GenericActionBar";
-import GenericFilterDialog from "@/app/components/GenericFilterDialog/GenericFilterDialog";
 import { fetchCustomers } from "@/store/slices/customersSlice";
 
 import {
@@ -13,9 +11,12 @@ import {
   customersFilterConfig,
 } from "@/config/actionBarConfig";
 
-import AddUserDialog from "@/app/components/AddUserDialog/AddUserDialog";
-import CustomersTable from "@/app/components/CustomersTable/CustomersTable";
-import CustomerDrawer from "@/app/components/CustomerDrawer/CustomerDrawer";
+import CustomersDrawer from "@/app/components/pages/CustomerDrawer/CustomerDrawer";
+
+import GenericActionBar from "@/app/components/pages/GenericActionBar/GenericActionBar";
+import GenericFilterDialog from "@/app/components/pages/GenericFilterDialog/GenericFilterDialog";
+import AddUserDialog from "@/app/components/pages/AddUserDialog/AddUserDialog";
+import CustomersTable from "@/app/components/pages/CustomersTable/CustomersTable";
 
 export default function CustomersPage() {
   const dispatch = useDispatch();
@@ -102,8 +103,6 @@ export default function CustomersPage() {
         onClose={handleCloseAddUserDialog}
       />
 
-      <CustomerDrawer />
-
       {/* Action Bar */}
       <GenericActionBar
         {...customersActionBarConfig}
@@ -111,6 +110,8 @@ export default function CustomersPage() {
         onExport={handleExportClick}
         onAddNew={handleAddNewCustomer}
       />
+
+      <CustomersDrawer />
 
       <CustomersTable />
 

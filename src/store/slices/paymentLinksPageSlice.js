@@ -9,7 +9,7 @@ export const fetchPaymentLinks = createAsyncThunk(
   ) => {
     try {
       const payload = cursor ? { limit, cursor } : { limit };
-      const response = await fetch("/api/admin/services/payment_links/get", {
+      const response = await fetch("/api/manage_website/services/payment_links/get", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -17,7 +17,8 @@ import {
   selectPaginationInfo,
 } from "@/store/slices/taskTimelineSlice";
 
-import UserMentionsDropdown from "@/app/components/UserMentionsDropdown/UserMentionsDropdown";
+
+import UserMentionsDropdown from "@/app/components/shared/UserMentionsDropdown/UserMentionsDropdown";
 import {
   Send,
   Edit2,
