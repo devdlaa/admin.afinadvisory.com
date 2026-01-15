@@ -195,6 +195,71 @@ export const deleteEntity = createAsyncThunk(
   }
 );
 
+export const bulkImportEntities = createAsyncThunk(
+  "entity/bulkImportEntities",
+  async (file, { rejectWithValue }) => {
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch("/api/admin_ops/entity/import", {
+        method: "POST",
+        body: formData,
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        const err = new Error(
+          result.error?.message || result.message || "Bulk import failed"
+        );
+        err.code = result.error?.code || "BULK_IMPORT_FAILED";
+        err.details = result.error?.details || null;
+        throw err;
+      }
+
+      return result.data;
+    } catch (error) {
+      return rejectWithValue({
+        message: error.message || "Bulk import failed",
+        code: error.code,
+        details: error.details,
+      });
+    }
+  }
+);
+
+export const downloadEntityImportTemplate = createAsyncThunk(
+  "entity/downloadEntityImportTemplate",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await fetch("/api/admin_ops/entity/import/template");
+
+      if (!response.ok) {
+        throw new Error("Failed to download template");
+      }
+
+      const blob = await response.blob();
+
+      // Trigger browser download
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "entity-import-template.xlsx";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+
+      return true;
+    } catch (error) {
+      return rejectWithValue({
+        message: error.message || "Template download failed",
+      });
+    }
+  }
+);
+
 // ============================================
 // HELPERS
 // ============================================
@@ -255,6 +320,8 @@ const initialState = {
     update: false,
     delete: false,
     quickSearch: false,
+    bulkImport: false,
+    templateDownload: false,
   },
 
   error: {
@@ -264,6 +331,8 @@ const initialState = {
     update: null,
     delete: null,
     quickSearch: null,
+    bulkImport: null,
+    templateDownload: null,
   },
 };
 
@@ -399,6 +468,47 @@ const entitySlice = createSlice({
         state.loading.create = false;
         state.error.create =
           action.payload?.message || "Failed to create entity";
+      })
+
+      .addCase(downloadEntityImportTemplate.pending, (state) => {
+        state.loading.templateDownload = true;
+        state.error.templateDownload = null;
+      })
+      .addCase(downloadEntityImportTemplate.fulfilled, (state) => {
+        state.loading.templateDownload = false;
+      })
+      .addCase(downloadEntityImportTemplate.rejected, (state, action) => {
+        state.loading.templateDownload = false;
+        state.error.templateDownload =
+          action.payload?.message || "Template download failed";
+      })
+
+      .addCase(bulkImportEntities.pending, (state) => {
+        state.loading.bulkImport = true;
+        state.error.bulkImport = null;
+      })
+      .addCase(bulkImportEntities.fulfilled, (state, action) => {
+        const { added } = action.payload;
+
+        added.forEach((item) => {
+          const entity = item?.entity;
+
+          if (!entity?.id) return;
+
+          state.entities[entity.id] = entity;
+
+          if (state.list.pagination.page === 1) {
+            state.list.ids.unshift(entity.id);
+          }
+        });
+
+        state.loading.bulkImport = false;
+      })
+
+      .addCase(bulkImportEntities.rejected, (state, action) => {
+        state.loading.bulkImport = false;
+        state.error.bulkImport =
+          action.payload?.message || "Bulk import failed";
       });
 
     builder
@@ -538,6 +648,25 @@ export const selectEntityActiveStates = createSelector(
   })
 );
 
+export const selectBulkImportLoading = createSelector(
+  [(state) => state.entity.loading.bulkImport],
+  (loading) => loading
+);
+
+export const selectBulkImportError = createSelector(
+  [(state) => state.entity.error.bulkImport],
+  (error) => error
+);
+
+export const selectTemplateDownloadLoading = createSelector(
+  [(state) => state.entity.loading.templateDownload],
+  (loading) => loading
+);
+
+export const selectTemplateDownloadError = createSelector(
+  [(state) => state.entity.error.templateDownload],
+  (error) => error
+);
 export const selectEntitySearchState = createSelector(
   [(state) => state.entity.list.filters.search],
   (search) => ({

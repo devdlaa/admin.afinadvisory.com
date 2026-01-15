@@ -117,7 +117,6 @@ const ClientsTable = ({ clients, onEdit, loading }) => {
       await dispatch(deleteEntity(clientId)).unwrap();
       handleCloseDialog();
     } catch (error) {
-    
       setDeletingEntityId(null);
     }
   };
@@ -211,7 +210,7 @@ const ClientsTable = ({ clients, onEdit, loading }) => {
                   </td>
                   <td>
                     <span className={styles.entityType}>
-                      {formatEntityType(client.entity_type)}
+                      {formatEntityType(client.entity_type ?? "UN_REGISTRED")}
                     </span>
                   </td>
                   <td>

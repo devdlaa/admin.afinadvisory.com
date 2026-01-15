@@ -5,6 +5,7 @@ import {
   EntityQuerySchema,
   EntityTypeEnum,
   EntityStatusEnum,
+  EntityBulkImportSchema,
 } from "./core/entity.schema.js";
 
 import {
@@ -61,6 +62,7 @@ export const schemas = Object.freeze({
     create: EntityCreateSchema,
     update: EntityUpdateSchema,
     query: EntityQuerySchema,
+    bulkImport : EntityBulkImportSchema,
     enums: {
       type: EntityTypeEnum,
       status: EntityStatusEnum,

@@ -1,10 +1,10 @@
 "use client";
 
 import React, { useState } from "react";
-import { Calendar, Search } from "lucide-react";
-import "./SearchFilters.scss";
+import { Calendar, Search, X } from "lucide-react";
+import styles from "./SearchFilters.module.scss";
 
-export default function SearchFilters ({ onDateRangeSearch }) {
+export default function SearchFilters({ onDateRangeSearch }) {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
@@ -21,55 +21,56 @@ export default function SearchFilters ({ onDateRangeSearch }) {
   };
 
   return (
-    <div className="search-filters">
-      <div className="filter-section">
-        <h4>Date Range Filter</h4>
-        <form onSubmit={handleDateRangeSearch} className="date-range-form">
-          <div className="date-inputs">
-            <div className="date-input-wrapper">
-              <label>Start Date</label>
-              <div className="input-with-icon">
-                <Calendar size={16} className="date-icon" />
+    <div className={styles.searchFilters}>
+      <div className={styles.filterSection}>
+        <h4 className={styles.sectionTitle}>Date Range Filter</h4>
+        <form onSubmit={handleDateRangeSearch} className={styles.dateRangeForm}>
+          <div className={styles.dateInputs}>
+            <div className={styles.dateInputWrapper}>
+              <label className={styles.label}>Start Date</label>
+              <div className={styles.inputWithIcon}>
+                <Calendar size={16} className={styles.dateIcon} />
                 <input
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className="date-input"
+                  className={styles.dateInput}
                 />
               </div>
             </div>
 
-            <div className="date-input-wrapper">
-              <label>End Date</label>
-              <div className="input-with-icon">
-                <Calendar size={16} className="date-icon" />
+            <div className={styles.dateInputWrapper}>
+              <label className={styles.label}>End Date</label>
+              <div className={styles.inputWithIcon}>
+                <Calendar size={16} className={styles.dateIcon} />
                 <input
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  className="date-input"
+                  className={styles.dateInput}
                   min={startDate}
                 />
               </div>
             </div>
           </div>
 
-          <div className="date-actions">
+          <div className={styles.dateActions}>
             <button
               type="button"
               onClick={clearDates}
-              className="clear-btn"
+              className={styles.clearBtn}
               disabled={!startDate && !endDate}
             >
-              Clear
+              <X size={16} />
+              <span>Clear</span>
             </button>
             <button
               type="submit"
-              className="search-btn"
+              className={styles.searchBtn}
               disabled={!startDate || !endDate}
             >
               <Search size={16} />
-              Search
+              <span>Search</span>
             </button>
           </div>
         </form>

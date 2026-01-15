@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 
 import ClientsTable from "./components/ClientsTable.jsx";
@@ -8,7 +8,8 @@ import GenericActionBar from "@/app/components/pages/GenericActionBar/GenericAct
 import ClientAddUpdateDialog from "./components/ClientAddUpdateDialog.jsx";
 import ClientFilterDialog from "./components/ClientFilterDialog.jsx";
 
-import { clientsActionBarConfig } from "@/config/clientsActionBarConfig.js";
+import BulkClientImportDialog from "./components/BulkClientImportDialop/BulkClientImportDialop.jsx";
+import { createClientsActionBarConfig } from "@/config/clientsActionBarConfig.js";
 
 import {
   fetchEntities,
@@ -22,6 +23,7 @@ const ClientsPage = () => {
   const dispatch = useDispatch();
   const addUpdateDialogRef = useRef(null);
   const filterDialogRef = useRef(null);
+  const bulkImportDialogRef = useRef(null);
 
   // State for dialog modes
   const [dialogMode, setDialogMode] = useState("add");
@@ -30,8 +32,18 @@ const ClientsPage = () => {
   // Redux state
   const clients = useSelector(selectListEntities);
   const loading = useSelector((state) => selectIsLoading(state, "list"));
-
   const error = useSelector((state) => selectError(state, "list"));
+
+  // Handle Bulk Import Click
+  const handleBulkImportClick = () => {
+    bulkImportDialogRef.current?.showModal();
+  };
+
+  // Create config with bulk import handler
+  const clientsActionBarConfig = useMemo(
+    () => createClientsActionBarConfig(handleBulkImportClick),
+    []
+  );
 
   // Initial data fetch
   useEffect(() => {
@@ -59,7 +71,7 @@ const ClientsPage = () => {
 
   return (
     <div className={styles.clientsPage}>
-      {/* Action Bar */}
+      {/* Action Bar with Bulk Import via additionalActions */}
       <GenericActionBar
         {...clientsActionBarConfig}
         onFilterClick={handleFilterClick}
@@ -108,6 +120,9 @@ const ClientsPage = () => {
 
       {/* Filter Dialog */}
       <ClientFilterDialog ref={filterDialogRef} />
+
+      {/* Bulk Import Dialog */}
+      <BulkClientImportDialog ref={bulkImportDialogRef} />
     </div>
   );
 };

@@ -150,6 +150,197 @@ const createEntity = async (data, created_by) => {
   });
 };
 
+const bulkCreateEntities = async (entities, created_by) => {
+  const result = { added: [], skipped: [], failed: [] };
+  if (!entities.length) return result;
+
+  return prisma.$transaction(async (tx) => {
+    // ==================================================
+    // 1. Business validation per row
+    // ==================================================
+    const validEntities = [];
+    const indexMap = new Map();
+
+    entities.forEach((entity, index) => {
+      try {
+        const pan = entity.pan ? entity.pan.toUpperCase() : null;
+
+        // PAN validation rule
+        if (entity.entity_type !== "UN_REGISTRED") {
+          if (!pan) throw new Error("PAN is required for this entity type");
+          validatePAN(pan);
+        }
+
+        const validatedCustomFields = validateCustomFields(
+          entity.custom_fields
+        );
+
+        const normalized = {
+          ...entity,
+          pan,
+          custom_fields: validatedCustomFields,
+        };
+
+        validEntities.push(normalized);
+        indexMap.set(normalized, index);
+      } catch (err) {
+        result.failed.push({
+          row: index + 2,
+          reason: err.message,
+        });
+      }
+    });
+
+    if (!validEntities.length) return result;
+
+    // ==================================================
+    // 2. Detect duplicates (PAN / Email / Phone)
+    // ==================================================
+    const pans = validEntities.map((e) => e.pan).filter(Boolean);
+    const emails = validEntities.map((e) => e.email).filter(Boolean);
+    const phones = validEntities.map((e) => e.primary_phone).filter(Boolean);
+
+    const existing = await tx.entity.findMany({
+      where: {
+        OR: [
+          pans.length ? { pan: { in: pans } } : undefined,
+          emails.length ? { email: { in: emails } } : undefined,
+          phones.length ? { primary_phone: { in: phones } } : undefined,
+        ].filter(Boolean),
+      },
+      select: {
+        pan: true,
+        email: true,
+        primary_phone: true,
+      },
+    });
+
+    const existingPANs = new Set(existing.map((e) => e.pan).filter(Boolean));
+    const existingEmails = new Set(existing.map((e) => e.email));
+    const existingPhones = new Set(existing.map((e) => e.primary_phone));
+
+    const toInsert = [];
+
+    for (const entity of validEntities) {
+      const originalIndex = indexMap.get(entity);
+
+      let duplicateReason = null;
+
+      if (entity.pan && existingPANs.has(entity.pan))
+        duplicateReason = "Duplicate PAN";
+      else if (entity.email && existingEmails.has(entity.email))
+        duplicateReason = "Duplicate email";
+      else if (entity.primary_phone && existingPhones.has(entity.primary_phone))
+        duplicateReason = "Duplicate phone";
+
+      if (duplicateReason) {
+        result.skipped.push({
+          row: originalIndex + 2,
+          reason: duplicateReason,
+        });
+      } else {
+        toInsert.push(entity);
+      }
+    }
+
+    if (!toInsert.length) return result;
+
+    // ==================================================
+    // 3. Bulk insert entities
+    // ==================================================
+    await tx.entity.createMany({
+      data: toInsert.map((e) => ({
+        entity_type: e.entity_type,
+        name: e.name,
+        pan: e.pan,
+        email: e.email,
+        primary_phone: e.primary_phone,
+        contact_person: e.contact_person ?? null,
+        secondary_phone: e.secondary_phone ?? null,
+        address_line1: e.address_line1 ?? null,
+        address_line2: e.address_line2 ?? null,
+        city: e.city ?? null,
+        state: e.state ?? null,
+        pincode: e.pincode ?? null,
+        status: e.status ?? "ACTIVE",
+        created_by,
+      })),
+      skipDuplicates: true, // final DB safety net
+    });
+
+    // ==================================================
+    // 4. Fetch inserted entities
+    // ==================================================
+    const insertedEntities = await tx.entity.findMany({
+      where: {
+        OR: [
+          { pan: { in: toInsert.map((e) => e.pan).filter(Boolean) } },
+          { email: { in: toInsert.map((e) => e.email).filter(Boolean) } },
+          {
+            primary_phone: {
+              in: toInsert.map((e) => e.primary_phone).filter(Boolean),
+            },
+          },
+        ],
+      },
+      include: {
+        creator: true,
+        custom_fields: true,
+        _count: { select: { tasks: true } },
+      },
+    });
+
+    const lookup = new Map();
+
+    insertedEntities.forEach((e) => {
+      if (e.pan) lookup.set(`pan:${e.pan}`, e);
+      if (e.email) lookup.set(`email:${e.email}`, e);
+      if (e.primary_phone) lookup.set(`phone:${e.primary_phone}`, e);
+    });
+
+    // ==================================================
+    // 5. Insert custom fields + build response
+    // ==================================================
+    const customFieldRows = [];
+
+    for (const entity of toInsert) {
+      const originalIndex = indexMap.get(entity);
+
+      const dbEntity =
+        (entity.pan && lookup.get(`pan:${entity.pan}`)) ||
+        (entity.email && lookup.get(`email:${entity.email}`)) ||
+        (entity.primary_phone && lookup.get(`phone:${entity.primary_phone}`));
+
+      if (!dbEntity) {
+        result.skipped.push({
+          row: originalIndex + 2,
+          reason: "Entity already existed (race condition)",
+        });
+        continue;
+      }
+
+      for (const field of entity.custom_fields || []) {
+        customFieldRows.push({
+          entity_id: dbEntity.id,
+          name: field.name,
+          value: field.value,
+        });
+      }
+
+      result.added.push({
+        row: originalIndex + 2,
+        entity: dbEntity, // full object for redux
+      });
+    }
+
+    if (customFieldRows.length) {
+      await tx.entityCustomField.createMany({ data: customFieldRows });
+    }
+
+    return result;
+  });
+};
+
 const updateEntity = async (entity_id, data, updated_by) => {
   return prisma.$transaction(async (tx) => {
     const entity = await tx.entity.findUnique({
@@ -344,21 +535,20 @@ const deleteEntity = async (entity_id, deleted_by) => {
       throw new NotFoundError("Entity not found");
     }
 
-    if (entity.deleted_at) {
-      throw new ValidationError("Entity already deleted");
-    }
-
-    // Soft delete
-    const deletedEntity = await tx.entity.update({
-      where: { id: entity_id },
-      data: {
-        deleted_by,
-        deleted_at: new Date(),
-        status: "SUSPENDED",
-      },
+    // 1. Delete dependent custom fields first (FK safety)
+    await tx.entityCustomField.deleteMany({
+      where: { entity_id },
     });
 
-    return deletedEntity;
+    // 3. Delete the entity itself
+    await tx.entity.delete({
+      where: { id: entity_id },
+    });
+
+    return {
+      id: entity_id,
+      deleted: true,
+    };
   });
 };
 
@@ -524,4 +714,5 @@ export {
   deleteEntity,
   listEntities,
   getEntityById,
+  bulkCreateEntities,
 };

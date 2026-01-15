@@ -139,6 +139,10 @@ export const EntityUpdateSchema = EntityBaseSchema.partial().refine(
   }
 );
 
+export const EntityBulkImportSchema = z
+  .array(EntityCreateSchema)
+  .max(500, "Maximum 500 entities per import");
+
 // -------------------------------------------
 // QUERY SCHEMA
 // -------------------------------------------

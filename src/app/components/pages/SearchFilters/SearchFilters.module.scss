@@ -1,0 +1,156 @@
+.searchFilters {
+  background: #f8f9fa;
+  border: 1px solid #e8e8e8;
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.filterSection {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sectionTitle {
+  font-size: 15px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin: 0;
+}
+
+.dateRangeForm {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.dateInputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.dateInputWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: #2c3e50;
+}
+
+.inputWithIcon {
+  position: relative;
+}
+
+.dateIcon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #95a5a6;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.dateInput {
+  width: 100%;
+  padding: 10px 12px 10px 40px;
+  border: 1px solid #e8e8e8;
+  border-radius: 6px;
+  background: white;
+  font-size: 14px;
+  color: #2c3e50;
+  transition: all 0.2s;
+
+  &:focus {
+    outline: none;
+    border-color: #3498db;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+  }
+
+  &::-webkit-calendar-picker-indicator {
+    opacity: 0;
+    position: absolute;
+    right: 12px;
+    cursor: pointer;
+  }
+}
+
+.dateActions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.clearBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: white;
+  color: #7f8c8d;
+  border: 1px solid #e8e8e8;
+  border-radius: 6px;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover:not(:disabled) {
+    background: #f8f9fa;
+    border-color: #bdc3c7;
+    color: #2c3e50;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.searchBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #3498db;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover:not(:disabled) {
+    background: #2980b9;
+    transform: translateY(-1px);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .dateInputs {
+    grid-template-columns: 1fr;
+  }
+
+  .dateActions {
+    justify-content: stretch;
+
+    .clearBtn,
+    .searchBtn {
+      flex: 1;
+      justify-content: center;
+    }
+  }
+}
