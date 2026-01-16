@@ -50,7 +50,7 @@ const loadTemplate = async (templateName, variables) => {
 
 const client = new SendMailClient({
   url: "https://api.zeptomail.in/v1.1/email",
-  token: process.env.ZEPTO_MAIL_TOKEN,
+  token: process.env.ZEPTO_MAIL_TOKEN_SECONDARY,
 });
 
 export async function SEND_EMAIL({
@@ -78,7 +78,7 @@ export async function SEND_EMAIL({
 
     const payload = {
       from: {
-        address: from || process.env.OFFICE_EMAIL,
+        address: from || process.env.OFFICE_EMAIL_SECONDARY,
         name: "AFINTHRIVE ADVISORY PVT LTD",
       },
 

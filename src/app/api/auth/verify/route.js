@@ -18,6 +18,7 @@ export async function POST(request) {
       where: { email },
     });
 
+
     if (!user) {
       return NextResponse.json(
         { success: false, error: "Invalid credentials" },
@@ -32,7 +33,7 @@ export async function POST(request) {
         { status: 403 }
       );
     }
-
+  
     // Check suspended
     if (user.status === "SUSPENDED" || user.status === "INACTIVE") {
       return NextResponse.json(

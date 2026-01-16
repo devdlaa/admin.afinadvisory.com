@@ -37,7 +37,6 @@ export async function POST(req) {
 
     const resetLink = `${FRONTEND_URL}/user-onboarding?token=${result.resetToken}`;
 
-    // attempt best-effort email send (ZOHO SMTP WILL RETRY-3 TIMES ALREADY)
     SEND_EMAIL({
       to: result.email,
       type: "SEND_USER_ONBOARDING_RESET_LINK",

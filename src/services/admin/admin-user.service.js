@@ -71,6 +71,8 @@ export const createAdminUser = async (data, created_by) => {
     if (data.admin_role && !ADMIN_ROLES.includes(data.admin_role)) {
       throw new ValidationError("Invalid app role");
     }
+    let permissionIds = [];
+    
 
     // uniqueness checks
     const emailExists = await tx.adminUser.findUnique({
@@ -84,13 +86,26 @@ export const createAdminUser = async (data, created_by) => {
     if (phoneExists) throw new ConflictError("Phone number already exists");
 
     // validate permissions (if any, by id)
-    if (data.permission_ids?.length) {
-      const permCount = await tx.permission.count({
-        where: { id: { in: data.permission_ids } },
+    if (data.permission_codes?.length) {
+      const permissions = await tx.permission.findMany({
+        where: {
+          code: { in: data.permission_codes },
+        },
+        select: { id: true, code: true },
       });
-      if (permCount !== data.permission_ids.length) {
-        throw new ValidationError("One or more permissions are invalid");
+
+      if (permissions.length !== data.permission_codes.length) {
+        const foundCodes = permissions.map((p) => p.code);
+        const missing = data.permission_codes.filter(
+          (c) => !foundCodes.includes(c)
+        );
+
+        throw new ValidationError(
+          `Invalid permission codes: ${missing.join(", ")}`
+        );
       }
+
+      permissionIds = permissions.map((p) => p.id);
     }
 
     const userCode = await generateUserCode(tx);
@@ -155,9 +170,9 @@ export const createAdminUser = async (data, created_by) => {
     });
 
     // 5) assign permissions if present
-    if (data.permission_ids?.length) {
+    if (permissionIds.length) {
       await tx.adminUserPermission.createMany({
-        data: data.permission_ids.map((permission_id) => ({
+        data: permissionIds.map((permission_id) => ({
           admin_user_id: user.id,
           permission_id,
         })),

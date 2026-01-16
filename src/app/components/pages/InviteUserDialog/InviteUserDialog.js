@@ -13,7 +13,7 @@ import {
 import { Alert } from "@mui/material";
 
 import { fetchPermissions, inviteUser } from "@/store/slices/userSlice";
-import styles from  "./InviteUserDialog.module.scss";
+import styles from "./InviteUserDialog.module.scss";
 
 const InviteUserDialog = ({ open, onClose, onInvite }) => {
   const dispatch = useDispatch();
@@ -33,7 +33,7 @@ const InviteUserDialog = ({ open, onClose, onInvite }) => {
     alternatePhone: "",
     department: "",
     designation: "",
-    role: "MANAGER", // Fixed: Use uppercase role ID
+    role: "MANAGER",
     dateOfJoining: "",
     permissions: [],
   });
@@ -219,6 +219,7 @@ const InviteUserDialog = ({ open, onClose, onInvite }) => {
           formData.alternatePhone?.replace(/\s/g, "") || undefined,
         department: formData.department?.trim() || undefined,
         designation: formData.designation?.trim() || undefined,
+        permission_codes: formData.permissions,
       };
 
       // Remove undefined values
@@ -248,7 +249,7 @@ const InviteUserDialog = ({ open, onClose, onInvite }) => {
         onClose();
       }, 3000);
     } catch (error) {
-      console.error("Invitation failed:", error);
+      console.error("Invitation failed:");
 
       setInvitationResult({
         type: "error",
@@ -357,7 +358,10 @@ const InviteUserDialog = ({ open, onClose, onInvite }) => {
 
   return (
     <div className={styles.invite_new_user_dialogOverlay} onClick={onClose}>
-      <div className={styles.dialogContainer} onClick={(e) => e.stopPropagation()}>
+      <div
+        className={styles.dialogContainer}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className={styles.inviteDialog}>
           <div className={styles.dialogHeader}>
             <div className={styles.dialogTitle}>
@@ -428,54 +432,74 @@ const InviteUserDialog = ({ open, onClose, onInvite }) => {
                       </h3>
                       <div className={styles.formGrid}>
                         <div className={styles.formGroup}>
-                          <label className={styles.formLabel}>Full Name *</label>
+                          <label className={styles.formLabel}>
+                            Full Name *
+                          </label>
                           <input
                             type="text"
                             value={formData.name}
                             onChange={(e) =>
                               handleInputChange("name", e.target.value)
                             }
-                            className={`${styles.formInput} ${ errors.name ? styles.error : "" }`}
+                            className={`${styles.formInput} ${
+                              errors.name ? styles.error : ""
+                            }`}
                             placeholder="Enter full name"
                             maxLength={100}
                           />
                           {errors.name && (
-                            <span className={styles.errorText}>{errors.name}</span>
+                            <span className={styles.errorText}>
+                              {errors.name}
+                            </span>
                           )}
                         </div>
                         <div className={styles.formGroup}>
-                          <label className={styles.formLabel}>Email Address *</label>
+                          <label className={styles.formLabel}>
+                            Email Address *
+                          </label>
                           <input
                             type="email"
                             value={formData.email}
                             onChange={(e) =>
                               handleInputChange("email", e.target.value)
                             }
-                            className={`${styles.formInput} ${ errors.email ? styles.error : "" }`}
+                            className={`${styles.formInput} ${
+                              errors.email ? styles.error : ""
+                            }`}
                             placeholder="Enter email address"
                           />
                           {errors.email && (
-                            <span className={styles.errorText}>{errors.email}</span>
+                            <span className={styles.errorText}>
+                              {errors.email}
+                            </span>
                           )}
                         </div>
                         <div className={styles.formGroup}>
-                          <label className={styles.formLabel}>Phone Number *</label>
+                          <label className={styles.formLabel}>
+                            Phone Number *
+                          </label>
                           <input
                             type="tel"
                             value={formData.phone}
                             onChange={(e) =>
                               handleInputChange("phone", e.target.value)
                             }
-                            className={`${styles.formInput} ${ errors.phone ? styles.error : "" }`}
+                            className={`${styles.formInput} ${
+                              errors.phone ? styles.error : ""
+                            }`}
                             placeholder="9876543210"
                             maxLength={15}
                           />
                           {errors.phone && (
-                            <span className={styles.errorText}>{errors.phone}</span>
+                            <span className={styles.errorText}>
+                              {errors.phone}
+                            </span>
                           )}
                         </div>
                         <div className={styles.formGroup}>
-                          <label className={styles.formLabel}>Alternate Phone</label>
+                          <label className={styles.formLabel}>
+                            Alternate Phone
+                          </label>
                           <input
                             type="tel"
                             value={formData.alternatePhone}
@@ -485,7 +509,9 @@ const InviteUserDialog = ({ open, onClose, onInvite }) => {
                                 e.target.value
                               )
                             }
-                            className={`${styles.formInput} ${ errors.alternatePhone ? styles.error : "" }`}
+                            className={`${styles.formInput} ${
+                              errors.alternatePhone ? styles.error : ""
+                            }`}
                             placeholder="8765432109"
                             maxLength={15}
                           />
@@ -515,7 +541,9 @@ const InviteUserDialog = ({ open, onClose, onInvite }) => {
                         {roles.map((role) => (
                           <div
                             key={role.id}
-                            className={`${styles.roleOption} ${ formData.role === role.id ? styles.selected : "" }`}
+                            className={`${styles.roleOption} ${
+                              formData.role === role.id ? styles.selected : ""
+                            }`}
                             onClick={() => handleRoleChange(role.id)}
                           >
                             <div className={styles.roal_box_wrapper}>
@@ -525,7 +553,9 @@ const InviteUserDialog = ({ open, onClose, onInvite }) => {
                                 )}
                               </div>
                               <div className={styles.roleInfo}>
-                                <div className={styles.roleName}>{role.label}</div>
+                                <div className={styles.roleName}>
+                                  {role.label}
+                                </div>
                               </div>
                             </div>
                           </div>
@@ -536,13 +566,20 @@ const InviteUserDialog = ({ open, onClose, onInvite }) => {
                     <div className={styles.permissionsSection}>
                       <label className={styles.formLabel}>Permissions *</label>
                       {errors.permissions && (
-                        <span className={styles.errorText}>{errors.permissions}</span>
+                        <span className={styles.errorText}>
+                          {errors.permissions}
+                        </span>
                       )}
                       <div className={styles.permissionsGrid}>
                         {Object.entries(groupedPermissions).map(
                           ([category, permissions]) => (
-                            <div key={category} className={styles.permissionCategory}>
-                              <h4 className={styles.categoryTitle}>{category}</h4>
+                            <div
+                              key={category}
+                              className={styles.permissionCategory}
+                            >
+                              <h4 className={styles.categoryTitle}>
+                                {category}
+                              </h4>
                               {permissions.map((permission) => {
                                 const isChecked = formData.permissions.includes(
                                   permission.code
@@ -561,7 +598,9 @@ const InviteUserDialog = ({ open, onClose, onInvite }) => {
                                       className={styles.permissionCheckbox}
                                     />
                                     <div
-                                      className={`${styles.checkboxCustom} ${ isChecked ? styles.checked : "" }`}
+                                      className={`${styles.checkboxCustom} ${
+                                        isChecked ? styles.checked : ""
+                                      }`}
                                     >
                                       {isChecked && (
                                         <Check
