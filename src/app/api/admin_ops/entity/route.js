@@ -10,7 +10,7 @@ import { requirePermission } from "@/utils/server/requirePermission";
 
 export async function POST(req) {
   try {
-    const [permissionError, session] = await requirePermission(
+    const [permissionError, session,admin_user] = await requirePermission(
       req,
       "entities.manage"
     );
@@ -18,7 +18,7 @@ export async function POST(req) {
 
     const body = schemas.entity.create.parse(await req.json());
 
-    const entity = await createEntity(body, session.user.id);
+    const entity = await createEntity(body, admin_user.id);
 
     return createSuccessResponse("Entity created successfully", entity, 201);
   } catch (e) {

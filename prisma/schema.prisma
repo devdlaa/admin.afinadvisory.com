@@ -242,7 +242,7 @@ model AdminUser {
   created_task_charges TaskCharge[]       @relation("task_charge_creator")
   updated_task_charges TaskCharge[]       @relation("task_charge_updater")
   deleted_task_charges TaskCharge[]       @relation("task_charge_deleter")
-
+  restore_task_charges TaskCharge[]       @relation("task_charge_restorer")
   @@index([email])
   @@index([name])
   @@index([user_code])
@@ -296,11 +296,13 @@ model TaskCharge {
   created_by  String       @db.Uuid
   updated_by  String       @db.Uuid
   deleted_by  String?      @db.Uuid
+  restored_by String?      @db.Uuid
 
   task    Task       @relation(fields: [task_id], references: [id], onDelete: Cascade)
   creator AdminUser  @relation("task_charge_creator", fields: [created_by], references: [id])
   updater AdminUser  @relation("task_charge_updater", fields: [updated_by], references: [id])
   deleter AdminUser? @relation("task_charge_deleter", fields: [deleted_by], references: [id])
+  restorer AdminUser? @relation("task_charge_restorer", fields: [restored_by], references: [id])
 
   @@index([task_id])
   @@index([deleted_at])

@@ -11,9 +11,9 @@ import {
 // POST - Create a new task
 export async function POST(request) {
   try {
-    const [permissionError, session] = await requirePermission(
+    const [permissionError, session, admin_user] = await requirePermission(
       request,
-      "tasks.manage"
+      "tasks.manage",
     );
     if (permissionError) return permissionError;
 
@@ -21,7 +21,7 @@ export async function POST(request) {
 
     const validatedData = schemas.task.create.parse(body);
 
-    const task = await createTask(validatedData, session.user.id);
+    const task = await createTask(validatedData, admin_user.id);
 
     return createSuccessResponse("Task created successfully", task, 201);
   } catch (error) {
@@ -32,7 +32,10 @@ export async function POST(request) {
 // GET - List all tasks with filters and pagination
 export async function GET(request) {
   try {
-    const [permissionError,session] = await requirePermission(request, "tasks.access");
+    const [permissionError, session, admin_user] = await requirePermission(
+      request,
+      "tasks.access",
+    );
     if (permissionError) return permissionError;
 
     const { searchParams } = new URL(request.url);
@@ -66,12 +69,12 @@ export async function GET(request) {
     else delete params.is_billable;
 
     Object.keys(params).forEach(
-      (key) => params[key] === null && delete params[key]
+      (key) => params[key] === null && delete params[key],
     );
 
     const validatedParams = schemas.task.query.parse(params);
 
-    const result = await listTasks(validatedParams, session.user);
+    const result = await listTasks(validatedParams, admin_user);
 
     return createSuccessResponse("Tasks retrieved successfully", result);
   } catch (error) {

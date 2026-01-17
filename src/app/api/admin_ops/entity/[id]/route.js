@@ -13,7 +13,6 @@ import {
 
 import { requirePermission } from "@/utils/server/requirePermission";
 
-
 export async function GET(req, { params }) {
   try {
     const [permissionError] = await requirePermission(req, "entities.access");
@@ -35,9 +34,9 @@ export async function GET(req, { params }) {
  */
 export async function PUT(req, { params }) {
   try {
-    const [permissionError, session] = await requirePermission(
+    const [permissionError, session, admin_user] = await requirePermission(
       req,
-      "entities.manage"
+      "entities.manage",
     );
     if (permissionError) return permissionError;
 
@@ -46,7 +45,7 @@ export async function PUT(req, { params }) {
     // uses conditional PAN rule already baked into schema
     const body = schemas.entity.update.parse(await req.json());
 
-    const entity = await updateEntity(entity_id, body, session.user.id);
+    const entity = await updateEntity(entity_id, body, admin_user.id);
 
     return createSuccessResponse("Entity updated successfully", entity);
   } catch (e) {
@@ -60,15 +59,15 @@ export async function PUT(req, { params }) {
  */
 export async function DELETE(req, { params }) {
   try {
-    const [permissionError, session] = await requirePermission(
+    const [permissionError, session, admin_user] = await requirePermission(
       req,
-      "entities.delete"
+      "entities.delete",
     );
     if (permissionError) return permissionError;
 
     const entity_id = uuidSchema.parse(params.id);
 
-    const entity = await deleteEntity(entity_id, session.user.id);
+    const entity = await deleteEntity(entity_id, admin_user.id);
 
     return createSuccessResponse("Entity deleted successfully", entity);
   } catch (e) {

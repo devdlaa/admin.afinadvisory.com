@@ -25,6 +25,7 @@ import ClientSelectionDialog from "../ClientSelectionDialog";
 import AssignmentInfoCard from "../AssignmentInfoCard";
 
 import ConfirmationDialog from "@/app/components/shared/ConfirmationDialog/ConfirmationDialog";
+
 // Redux
 import {
   updateTask,
@@ -43,6 +44,10 @@ import {
   addCharge,
   updateCharge,
   deleteCharge,
+  fetchDeletedCharges,
+  restoreCharge,
+  hardDeleteCharge,
+  selectDeletedCharges,
 } from "@/store/slices/taskDetailsSlice";
 
 import {
@@ -67,6 +72,7 @@ const TaskManageDrawer = () => {
   const isOpen = useSelector(selectManageDialogOpen);
   const taskId = useSelector(selectManageDialogTaskId);
   const task = useSelector(selectCurrentTask);
+  const deletedCharges = useSelector(selectDeletedCharges);
   const categories = useSelector(selectAllCategories);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showConfirmClose, setShowConfirmClose] = useState(false);
@@ -83,20 +89,22 @@ const TaskManageDrawer = () => {
   const isLoading = useSelector((state) => state.taskDetail.loading.task);
   const isUpdating = useSelector((state) => state.task.loading.update);
   const isDeleting = useSelector((state) => state.task.loading.delete);
-   const taskError = useSelector((state) => state.taskDetail.error.task); 
+  const taskError = useSelector((state) => state.taskDetail.error.task);
   const isSyncingChecklist = useSelector(
-    (state) => state.taskDetail.loading.checklist
+    (state) => state.taskDetail.loading.checklist,
   );
   const isLoadingCharges = useSelector(
-    (state) => state.taskDetail.loading.charges
+    (state) => state.taskDetail.loading.charges,
+  );
+  const isLoadingDeletedCharges = useSelector(
+    (state) => state.taskDetail.loading.deletedCharges,
   );
   const isSavingAssignments = useSelector(
-    (state) => state.taskDetail.loading.assignments
+    (state) => state.taskDetail.loading.assignments,
   );
 
-  // NEW: Get charge operations from state
   const chargeOperations = useSelector(
-    (state) => state.taskDetail.loading.chargeOperations || {}
+    (state) => state.taskDetail.loading.chargeOperations || {},
   );
 
   // Local state
@@ -128,7 +136,6 @@ const TaskManageDrawer = () => {
   // Assignment Dialog
   const [showAssignmentDialog, setShowAssignmentDialog] = useState(false);
 
-  // Load task data on open
   useEffect(() => {
     if (isOpen && taskId) {
       dispatch(fetchTaskById(taskId));
@@ -137,7 +144,6 @@ const TaskManageDrawer = () => {
     }
   }, [isOpen, taskId, dispatch]);
 
-  // Populate form when task loads
   useEffect(() => {
     if (task) {
       const taskData = {
@@ -181,7 +187,7 @@ const TaskManageDrawer = () => {
       setIsSearchingEntities(true);
       try {
         const result = await dispatch(
-          quickSearchEntities({ search: searchQuery, limit: 20 })
+          quickSearchEntities({ search: searchQuery, limit: 20 }),
         ).unwrap();
         setEntitySearchResults(result.data || []);
       } catch (error) {
@@ -214,7 +220,7 @@ const TaskManageDrawer = () => {
             start_date: primaryInfo.start_date || null,
             due_date: primaryInfo.due_date || null,
           },
-        })
+        }),
       ).unwrap();
 
       setOriginalPrimaryInfo({ ...primaryInfo });
@@ -233,7 +239,6 @@ const TaskManageDrawer = () => {
   };
 
   const handleClose = (force = false) => {
-    // Prevent double-clicking from triggering multiple close attempts
     if (isClosingRef.current) {
       return;
     }
@@ -245,7 +250,6 @@ const TaskManageDrawer = () => {
       return;
     }
 
-    // Mark as closing to prevent double-triggers
     isClosingRef.current = true;
 
     dispatch(closeManageDialog());
@@ -267,12 +271,10 @@ const TaskManageDrawer = () => {
   const handleOverlayClick = (e) => {
     e.stopPropagation();
 
-    // Prevent closing if we're already in the process of closing
     if (isClosingRef.current) {
       return;
     }
 
-    // Prevent closing if deleting
     if (isDeleting) {
       return;
     }
@@ -314,7 +316,7 @@ const TaskManageDrawer = () => {
             ...primaryInfo,
             entity_id: nextEntityId,
           },
-        })
+        }),
       ).unwrap();
 
       setSelectedEntityData(updatedTask.task.entity);
@@ -350,11 +352,9 @@ const TaskManageDrawer = () => {
         syncChecklist({
           taskId: task.id,
           items: items,
-        })
+        }),
       ).unwrap();
-    } catch (error) {
-      // Error handled by toast middleware
-    }
+    } catch (error) {}
   };
 
   // Charge handlers
@@ -364,7 +364,7 @@ const TaskManageDrawer = () => {
         addCharge({
           taskId: task.id,
           chargeData,
-        })
+        }),
       ).unwrap();
       return true;
     } catch (error) {
@@ -379,11 +379,9 @@ const TaskManageDrawer = () => {
           taskId: task.id,
           chargeId,
           data: chargeData,
-        })
+        }),
       ).unwrap();
-    } catch (error) {
-      // Error handled by toast middleware
-    }
+    } catch (error) {}
   };
 
   const handleDeleteCharge = async (chargeId) => {
@@ -392,10 +390,36 @@ const TaskManageDrawer = () => {
         deleteCharge({
           taskId: task.id,
           chargeId,
-        })
+        }),
       ).unwrap();
-    } catch (error) {
-      // Error handled by toast middleware
+    } catch (error) {}
+  };
+
+  const handleRestoreCharge = async (chargeId) => {
+    try {
+      await dispatch(
+        restoreCharge({
+          taskId: task.id,
+          chargeId,
+        }),
+      ).unwrap();
+    } catch (error) {}
+  };
+
+  const handleHardDeleteCharge = async (chargeId) => {
+    try {
+      await dispatch(
+        hardDeleteCharge({
+          taskId: task.id,
+          chargeId,
+        }),
+      ).unwrap();
+    } catch (error) {}
+  };
+
+  const handleFetchDeletedCharges = () => {
+    if (task?.id) {
+      dispatch(fetchDeletedCharges(task.id));
     }
   };
 
@@ -409,7 +433,7 @@ const TaskManageDrawer = () => {
             invoice_number: invoiceData.invoice_number,
             practice_firm: invoiceData.practice_firm,
           },
-        })
+        }),
       ).unwrap();
 
       setIsSavingInvoiceDetails(false);
@@ -428,14 +452,12 @@ const TaskManageDrawer = () => {
           taskId: task.id,
           user_ids: assignmentData.user_ids,
           assigned_to_all: assignmentData.assigned_to_all,
-        })
+        }),
       ).unwrap();
 
       dispatch(updateTaskAssignmentsInList(result));
       setShowAssignmentDialog(false);
-    } catch (error) {
-      // Error handled by toast middleware
-    }
+    } catch (error) {}
   };
 
   // Calculate overdue days
@@ -453,7 +475,8 @@ const TaskManageDrawer = () => {
 
   const overdueDays = getOverdueDays();
   const isActivityTab = activeTab === "task-activity";
-
+  const isPaymentTab = activeTab === "payment";
+ 
   if (!isOpen) return null;
 
   return (
@@ -469,7 +492,8 @@ const TaskManageDrawer = () => {
       >
         {/* Loading State */}
         {isLoading && <TaskDrawerSkeleton />}
-        {/* Error State - ADD THIS */}
+
+        {/* Error State */}
         {!isLoading && taskError && (
           <div className="task-drawer__error">
             <div className="task-drawer__error-content">
@@ -496,7 +520,7 @@ const TaskManageDrawer = () => {
             {/* Left Panel */}
             <div
               className={`task-drawer__left ${
-                !isActivityTab ? "scrollable" : ""
+                !isActivityTab && !isPaymentTab ? "scrollable" : ""
               }`}
             >
               <TaskPrimaryInfo
@@ -504,6 +528,7 @@ const TaskManageDrawer = () => {
                 categories={categories}
                 overdueDays={overdueDays}
                 isActivityTab={isActivityTab}
+                isPaymentTab={isPaymentTab}
                 onPrimaryInfoChange={handlePrimaryInfoChange}
               />
 
@@ -543,7 +568,7 @@ const TaskManageDrawer = () => {
               {/* Tab Content */}
               <div
                 className={`task-drawer__tab-content ${
-                  !isActivityTab ? "scrollable" : ""
+                  !isActivityTab && !isPaymentTab ? "scrollable" : ""
                 }`}
               >
                 {activeTab === "checklist" && (
@@ -563,11 +588,16 @@ const TaskManageDrawer = () => {
                 {activeTab === "payment" && (
                   <ChargesManager
                     initialCharges={task.charges || []}
+                    deletedCharges={deletedCharges}
                     onAddCharge={handleAddCharge}
                     onUpdateCharge={handleUpdateCharge}
                     onDeleteCharge={handleDeleteCharge}
+                    onRestoreCharge={handleRestoreCharge}
+                    onHardDeleteCharge={handleHardDeleteCharge}
+                    onFetchDeletedCharges={handleFetchDeletedCharges}
                     onSaveInvoiceDetails={handleSaveInvoiceDetails}
                     isLoading={isLoadingCharges}
+                    isLoadingDeletedCharges={isLoadingDeletedCharges}
                     isSavingInvoiceDetails={isSavingInvoiceDetails}
                     invoiceNumber={task.invoice_number || ""}
                     practiceFirm={task.practice_firm || null}
@@ -641,6 +671,8 @@ const TaskManageDrawer = () => {
           </div>
         )}
       </div>
+
+      {/* Dialogs */}
       <ConfirmationDialog
         isOpen={showDeleteConfirm}
         onClose={() => setShowDeleteConfirm(false)}
@@ -659,7 +691,6 @@ const TaskManageDrawer = () => {
         onCancel={() => setShowDeleteConfirm(false)}
       />
 
-      {/* Client Selection Dialog */}
       <ClientSelectionDialog
         isOpen={showClientDialog}
         selectedEntityData={selectedEntityData}
@@ -676,7 +707,6 @@ const TaskManageDrawer = () => {
         onConfirmSelection={handleConfirmEntitySelection}
       />
 
-      {/* Assignment Dialog */}
       {showAssignmentDialog && (
         <AssignmentDialog
           isOpen={showAssignmentDialog}

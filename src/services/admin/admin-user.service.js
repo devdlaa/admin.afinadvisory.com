@@ -13,9 +13,9 @@ import jwt from "jsonwebtoken";
 
 const JWT_SECRET = process.env.JWT_ADMIN_SECRET;
 const INVITE_TOKEN_TTL = "24h";
-const RESEND_COOLDOWN_MINUTES = 15;
-const PASSWORD_RESET_COOLDOWN_MINUTES = 15;
-const ONBOARDING_RESET_COOLDOWN_MINUTES = 15;
+const RESEND_COOLDOWN_MINUTES = 5;
+const PASSWORD_RESET_COOLDOWN_MINUTES = 5;
+const ONBOARDING_RESET_COOLDOWN_MINUTES = 5;
 
 const hashToken = (token) =>
   crypto.createHash("sha256").update(token).digest("hex");
@@ -72,7 +72,6 @@ export const createAdminUser = async (data, created_by) => {
       throw new ValidationError("Invalid app role");
     }
     let permissionIds = [];
-    
 
     // uniqueness checks
     const emailExists = await tx.adminUser.findUnique({
@@ -97,11 +96,11 @@ export const createAdminUser = async (data, created_by) => {
       if (permissions.length !== data.permission_codes.length) {
         const foundCodes = permissions.map((p) => p.code);
         const missing = data.permission_codes.filter(
-          (c) => !foundCodes.includes(c)
+          (c) => !foundCodes.includes(c),
         );
 
         throw new ValidationError(
-          `Invalid permission codes: ${missing.join(", ")}`
+          `Invalid permission codes: ${missing.join(", ")}`,
         );
       }
 
@@ -151,7 +150,7 @@ export const createAdminUser = async (data, created_by) => {
         purpose: "user_invitation",
       },
       JWT_SECRET,
-      { expiresIn: INVITE_TOKEN_TTL }
+      { expiresIn: INVITE_TOKEN_TTL },
     );
 
     // 3) derive hash and expiry
@@ -289,7 +288,7 @@ export const deleteAdminUser = async (id, deleted_by) => {
     // 3️⃣ CRITICAL: Prevent self-deletion
     if (userToDelete.id === deleted_by) {
       throw new ConflictError(
-        "You cannot delete your own account. Please contact another administrator."
+        "You cannot delete your own account. Please contact another administrator.",
       );
     }
 
@@ -305,7 +304,7 @@ export const deleteAdminUser = async (id, deleted_by) => {
 
       if (superAdminCount <= 1) {
         throw new ConflictError(
-          "Cannot delete the last SUPER_ADMIN. At least one SUPER_ADMIN must exist in the system."
+          "Cannot delete the last SUPER_ADMIN. At least one SUPER_ADMIN must exist in the system.",
         );
       }
     }
@@ -317,7 +316,7 @@ export const deleteAdminUser = async (id, deleted_by) => {
       deletingUser.admin_role !== "SUPER_ADMIN"
     ) {
       throw new ConflictError(
-        "You can only delete users you created, unless you are a SUPER_ADMIN."
+        "You can only delete users you created, unless you are a SUPER_ADMIN.",
       );
     }
 
@@ -414,7 +413,7 @@ export const resendOnboardingInvite = async (id, resent_by) => {
 
     if (user.status !== "INACTIVE") {
       throw new ValidationError(
-        "Cannot resend invite for active/suspended user"
+        "Cannot resend invite for active/suspended user",
       );
     }
 
@@ -425,18 +424,33 @@ export const resendOnboardingInvite = async (id, resent_by) => {
       if (diffMinutes < RESEND_COOLDOWN_MINUTES) {
         throw new ValidationError(
           `Invite already sent recently. Try again after ${Math.ceil(
-            RESEND_COOLDOWN_MINUTES - diffMinutes
-          )} minutes`
+            RESEND_COOLDOWN_MINUTES - diffMinutes,
+          )} minutes`,
         );
       }
     }
 
-    const onboardingToken = crypto.randomBytes(32).toString("hex");
+    const onboardingToken = jwt.sign(
+      {
+        sub: user.id,
+        email: user.email,
+        purpose: "user_invitation",
+      },
+      JWT_SECRET,
+      { expiresIn: INVITE_TOKEN_TTL },
+    );
+
     const onboardingTokenHash = hashToken(onboardingToken);
-    const onboardingTokenExpiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24);
+
+    const decoded = jwt.decode(onboardingToken);
+    if (!decoded || typeof decoded !== "object" || !decoded.exp) {
+      throw new Error("Failed to generate onboarding token");
+    }
+
+    const onboardingTokenExpiresAt = new Date(decoded.exp * 1000);
 
     await tx.adminUser.update({
-      where: { id: id },
+      where: { id },
       data: {
         onboarding_token_hash: onboardingTokenHash,
         onboarding_token_expires_at: onboardingTokenExpiresAt,
@@ -495,7 +509,7 @@ export const generatePasswordResetToken = async (id, updated_by) => {
       purpose: "password_reset",
     },
     JWT_SECRET,
-    { expiresIn: INVITE_TOKEN_TTL }
+    { expiresIn: INVITE_TOKEN_TTL },
   );
 
   // Store only hash
@@ -567,7 +581,7 @@ export const generateOnboardingResetToken = async (id, requested_by) => {
       purpose: "onboarding_reset",
     },
     JWT_SECRET,
-    { expiresIn: INVITE_TOKEN_TTL }
+    { expiresIn: INVITE_TOKEN_TTL },
   );
 
   const resetTokenHash = hashToken(resetToken);
@@ -656,7 +670,7 @@ export async function toggleAdminUserActiveStatus({
   } else if (target.status === "INACTIVE") {
     if (!target.onboarding_completed) {
       throw new ValidationError(
-        "User cannot be activated before completing onboarding"
+        "User cannot be activated before completing onboarding",
       );
     }
     newStatus = "ACTIVE";

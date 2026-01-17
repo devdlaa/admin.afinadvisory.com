@@ -63,12 +63,72 @@ export const fetchTaskById = createAsyncThunk(
         details: error.details,
       });
     }
-  }
+  },
 );
 
 // ============================================
 // CHARGES
 // ============================================
+
+// =======================
+// DELETED CHARGES
+// =======================
+
+export const fetchDeletedCharges = createAsyncThunk(
+  "taskDetail/fetchDeletedCharges",
+  async (taskId, { rejectWithValue }) => {
+    try {
+      const result = await apiFetch(
+        `/api/admin_ops/tasks/${taskId}/charges/deleted`,
+      );
+      return result.data; // { task_id, deleted_charges }
+    } catch (error) {
+      return rejectWithValue({
+        message: error.message || "Failed to fetch deleted charges",
+        code: error.code,
+        details: error.details,
+      });
+    }
+  },
+);
+
+export const restoreCharge = createAsyncThunk(
+  "taskDetail/restoreCharge",
+  async ({ taskId, chargeId }, { rejectWithValue }) => {
+    try {
+      const result = await apiFetch(
+        `/api/admin_ops/tasks/${taskId}/charges/${chargeId}/restore`,
+        { method: "POST" },
+      );
+      return result.data; // { task_id, charges, deleted_charges }
+    } catch (error) {
+      return rejectWithValue({
+        message: error.message || "Failed to restore charge",
+        code: error.code,
+        details: error.details,
+      });
+    }
+  },
+);
+
+export const hardDeleteCharge = createAsyncThunk(
+  "taskDetail/hardDeleteCharge",
+  async ({ taskId, chargeId }, { rejectWithValue }) => {
+    try {
+      const result = await apiFetch(
+        `/api/admin_ops/tasks/${taskId}/charges/${chargeId}/hard`,
+        { method: "DELETE" },
+      );
+      return result.data; // { task_id, charges, deleted_charges }
+    } catch (error) {
+      return rejectWithValue({
+        message: error.message || "Failed to permanently delete charge",
+        code: error.code,
+        details: error.details,
+      });
+    }
+  },
+);
 
 /**
  * Add charge to task
@@ -94,7 +154,7 @@ export const addCharge = createAsyncThunk(
         details: error.details,
       });
     }
-  }
+  },
 );
 
 /**
@@ -109,7 +169,7 @@ export const updateCharge = createAsyncThunk(
         {
           method: "PATCH",
           body: JSON.stringify(data),
-        }
+        },
       );
 
       return {
@@ -125,7 +185,7 @@ export const updateCharge = createAsyncThunk(
         chargeId,
       });
     }
-  }
+  },
 );
 
 /**
@@ -139,7 +199,7 @@ export const deleteCharge = createAsyncThunk(
         `/api/admin_ops/tasks/${taskId}/charges/${chargeId}`,
         {
           method: "DELETE",
-        }
+        },
       );
 
       return {
@@ -155,7 +215,7 @@ export const deleteCharge = createAsyncThunk(
         chargeId, // Include chargeId for error tracking
       });
     }
-  }
+  },
 );
 
 // ============================================
@@ -174,7 +234,7 @@ export const syncChecklist = createAsyncThunk(
         {
           method: "POST",
           body: JSON.stringify({ items }),
-        }
+        },
       );
       return result.data; // { task_id, updated }
     } catch (error) {
@@ -184,7 +244,7 @@ export const syncChecklist = createAsyncThunk(
         details: error.details,
       });
     }
-  }
+  },
 );
 
 // ============================================
@@ -203,7 +263,7 @@ export const syncAssignments = createAsyncThunk(
         {
           method: "POST",
           body: JSON.stringify({ user_ids, assigned_to_all }),
-        }
+        },
       );
 
       return result.data;
@@ -214,7 +274,7 @@ export const syncAssignments = createAsyncThunk(
         details: error.details,
       });
     }
-  }
+  },
 );
 
 // ============================================
@@ -229,6 +289,7 @@ const initialState = {
     task: false,
     charges: false,
     checklist: false,
+    deletedCharges: false,
     assignments: false,
     // Track loading per charge ID
     chargeOperations: {}, // { [chargeId]: 'adding' | 'updating' | 'deleting' }
@@ -449,6 +510,62 @@ const taskDetailSlice = createSlice({
         state.error.assignments =
           action.payload?.message || "Failed to sync assignments";
       });
+    // ============================================
+    // DELETED CHARGES
+    // ============================================
+
+    builder
+      .addCase(fetchDeletedCharges.pending, (state) => {
+        state.loading.deletedCharges = true;
+      })
+      .addCase(fetchDeletedCharges.fulfilled, (state, action) => {
+        const { task_id, deleted_charges } = action.payload;
+
+        if (state.currentTask && state.currentTask.id === task_id) {
+          state.currentTask.deleted_charges = deleted_charges;
+        }
+
+        state.loading.deletedCharges = false;
+      })
+      .addCase(fetchDeletedCharges.rejected, (state, action) => {
+        state.loading.deletedCharges = false;
+        state.error.charges =
+          action.payload?.message || "Failed to fetch deleted charges";
+      });
+
+    builder
+      .addCase(restoreCharge.pending, (state, action) => {
+        const chargeId = action.meta.arg.chargeId;
+        state.loading.chargeOperations[chargeId] = "restoring";
+      })
+      .addCase(restoreCharge.fulfilled, (state, action) => {
+        const { task_id, charges, deleted_charges } = action.payload;
+        if (state.currentTask && state.currentTask.id === task_id) {
+          state.currentTask.charges = charges;
+          state.currentTask.deleted_charges = deleted_charges;
+        }
+        state.loading.chargeOperations = {};
+      })
+      .addCase(restoreCharge.rejected, (state) => {
+        state.loading.chargeOperations = {};
+      });
+
+    builder
+      .addCase(hardDeleteCharge.pending, (state, action) => {
+        const chargeId = action.meta.arg.chargeId;
+        state.loading.chargeOperations[chargeId] = "hard-deleting";
+      })
+      .addCase(hardDeleteCharge.fulfilled, (state, action) => {
+        const { task_id, charges, deleted_charges } = action.payload;
+        if (state.currentTask && state.currentTask.id === task_id) {
+          state.currentTask.charges = charges;
+          state.currentTask.deleted_charges = deleted_charges;
+        }
+        state.loading.chargeOperations = {};
+      })
+      .addCase(hardDeleteCharge.rejected, (state) => {
+        state.loading.chargeOperations = {};
+      });
   },
 });
 
@@ -475,6 +592,11 @@ export const selectCurrentTask = (state) =>
 export const selectCharges = (state) => {
   const charges = selectTaskDetailState(state).currentTask?.charges;
   return Array.isArray(charges) ? charges : [];
+};
+
+export const selectDeletedCharges = (state) => {
+  const deleted = selectTaskDetailState(state).currentTask?.deleted_charges;
+  return Array.isArray(deleted) ? deleted : [];
 };
 
 export const selectChecklistItems = (state) =>

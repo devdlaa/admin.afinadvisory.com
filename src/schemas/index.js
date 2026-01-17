@@ -36,7 +36,9 @@ import {
 import {
   createTaskChargeSchema,
   deleteTaskChargeSchema,
+  hardDeleteTaskChargeSchema,
   listTaskChargesSchema,
+  restoreTaskChargeSchema,
   updateTaskChargeSchema,
 } from "./core/taskCharge.schema.js";
 import {
@@ -95,6 +97,8 @@ export const schemas = Object.freeze({
     update: updateTaskChargeSchema,
     delete: deleteTaskChargeSchema,
     list: listTaskChargesSchema,
+    restore: restoreTaskChargeSchema,
+    hardDelete: hardDeleteTaskChargeSchema,
   },
 
   taskAssignment: {

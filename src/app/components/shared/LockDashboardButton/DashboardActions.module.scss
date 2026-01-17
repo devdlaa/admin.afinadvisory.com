@@ -1,18 +1,19 @@
 .dashboardActions {
   position: fixed;
-  bottom: 24px;
-  right: 24px;
+  bottom: 20px;
+  right: 20px;
   z-index: 1000;
 
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
 
   background: #dbdbdb;
-  padding: 10px;
-  border-radius: 91px;
+  padding: 7px;
+  border-radius: 60px;
   outline: 1px solid #0000004f;
-  box-shadow: rgba(0, 0, 0, 0.25) 0px 0.0625em 0.0625em,
+  box-shadow:
+    rgba(0, 0, 0, 0.25) 0px 0.0625em 0.0625em,
     rgba(0, 0, 0, 0.25) 0px 0.125em 0.5em,
     rgba(255, 255, 255, 0.1) 0px 0px 0px 1px inset;
 
@@ -21,19 +22,20 @@
     align-items: center;
     justify-content: center;
 
-    width: 48px;
-    height: 48px;
+    width: 38px;
+    height: 38px;
 
     background: white;
     color: #64748b;
-    border: 2px solid #e2e8f0;
+    border: 1.5px solid #e2e8f0;
     border-radius: 50%;
 
     cursor: pointer;
     transition: all 0.2s ease;
 
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
-      0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    box-shadow:
+      0 3px 5px -1px rgba(0, 0, 0, 0.1),
+      0 2px 3px -1px rgba(0, 0, 0, 0.06);
 
     &:hover:not(:disabled) {
       color: #0f172a;
@@ -42,31 +44,23 @@
     }
 
     &:active:not(:disabled) {
-      transform: translateY(0) scale(0.98);
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
-        0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      transform: scale(0.96);
     }
 
     &:disabled {
       cursor: not-allowed;
       opacity: 0.6;
-      transform: none;
     }
 
-    // Muted/Sound OFF state - more prominent styling
     &--muted {
       background: #ef4444 !important;
       color: white !important;
       border-color: #dc2626 !important;
-      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2),
-        0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
 
       &:hover:not(:disabled) {
         background: #dc2626 !important;
-        color: white !important;
         border-color: #b91c1c !important;
-        box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.25),
-          0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
       }
 
       svg {
@@ -85,6 +79,8 @@
     }
 
     svg {
+      width: 16px;
+      height: 16px;
       transition: transform 0.15s ease;
     }
 
@@ -97,93 +93,16 @@
     animation: spin 1s linear infinite;
   }
 
-  // ============================================
-  // RESPONSIVE STYLES FOR LAPTOPS/DESKTOPS
-  // ============================================
-
-  // Large desktops (1440px+)
+  // Large desktops
   @media (min-width: 1440px) {
-    bottom: 28px;
-    right: 28px;
-    gap: 14px;
-    padding: 12px;
-
-    &__btn {
-      width: 52px;
-      height: 52px;
-
-      svg {
-        width: 22px;
-        height: 22px;
-      }
-    }
-  }
-
-  // Medium laptops (1200px - 1366px)
-  @media (max-width: 1366px) and (min-width: 1201px) {
     bottom: 22px;
     right: 22px;
-    gap: 11px;
-    padding: 9px;
-
-    &__btn {
-      width: 46px;
-      height: 46px;
-
-      svg {
-        width: 20px;
-        height: 20px;
-      }
-    }
-  }
-
-  // Standard laptops (1024px - 1200px)
-  @media (max-width: 1200px) and (min-width: 1025px) {
-    bottom: 20px;
-    right: 20px;
-    gap: 10px;
-    padding: 9px;
-
-    &__btn {
-      width: 46px;
-      height: 46px;
-
-      svg {
-        width: 20px;
-        height: 20px;
-      }
-    }
-  }
-
-  // Small laptops (900px - 1024px)
-  @media (max-width: 1024px) and (min-width: 901px) {
-    bottom: 20px;
-    right: 20px;
-    gap: 10px;
-    padding: 8px;
-
-    &__btn {
-      width: 44px;
-      height: 44px;
-
-      svg {
-        width: 19px;
-        height: 19px;
-      }
-    }
-  }
-
-  // Compact laptops (769px - 900px)
-  @media (max-width: 900px) and (min-width: 769px) {
-    bottom: 18px;
-    right: 18px;
     gap: 9px;
     padding: 8px;
 
     &__btn {
       width: 42px;
       height: 42px;
-      border-width: 1.5px;
 
       svg {
         width: 18px;
@@ -192,43 +111,60 @@
     }
   }
 
-  // Tablet and smaller (original mobile breakpoint)
-  @media (max-width: 768px) {
-    bottom: 20px;
-    right: 20px;
-    gap: 10px;
-    padding: 8px;
+  // Laptops
+  @media (max-width: 1366px) {
+    bottom: 18px;
+    right: 18px;
+    gap: 8px;
+    padding: 7px;
 
     &__btn {
-      width: 44px;
-      height: 44px;
+      width: 36px;
+      height: 36px;
 
       svg {
-        width: 18px;
-        height: 18px;
+        width: 15px;
+        height: 15px;
+      }
+    }
+  }
+
+  // Tablets
+  @media (max-width: 768px) {
+    bottom: 16px;
+    right: 16px;
+    gap: 7px;
+    padding: 6px;
+
+    &__btn {
+      width: 34px;
+      height: 34px;
+
+      svg {
+        width: 14px;
+        height: 14px;
       }
     }
   }
 
   // Small mobile
   @media (max-width: 640px) {
-    bottom: 16px;
-    right: 16px;
-    gap: 8px;
-    padding: 7px;
+    bottom: 14px;
+    right: 14px;
+    gap: 6px;
+    padding: 5px;
 
     &__btn {
-      width: 40px;
-      height: 40px;
+      width: 32px;
+      height: 32px;
 
       svg {
-        width: 17px;
-        height: 17px;
+        width: 13px;
+        height: 13px;
       }
     }
   }
 
-  // Dark mode support
   @media (prefers-color-scheme: dark) {
     &__btn {
       background: #1e293b;
@@ -242,7 +178,6 @@
       }
     }
 
-    // Keep muted state prominent in dark mode too
     &__btn--muted {
       background: #ef4444 !important;
       color: white !important;

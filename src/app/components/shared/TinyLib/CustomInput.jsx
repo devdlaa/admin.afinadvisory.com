@@ -131,11 +131,11 @@ const CustomInput = ({
 
   const InputComponent = multiline ? "textarea" : "input";
 
+  const safeValue = value ?? "";
+
   return (
-    // 🔹 NEW: rootClassName applied here
     <div className={`${styles.inputContainer} ${rootClassName}`}>
       <div className={inputClasses}>
-        {/* Icon */}
         {icon && !isPhone && (
           <span className={styles.icon} aria-hidden="true">
             {icon}
@@ -147,7 +147,7 @@ const CustomInput = ({
           <input
             ref={inputRef}
             type={type === "password" && showPassword ? "text" : type}
-            value={value}
+            value={safeValue}
             onChange={handleChange}
             onFocus={handleFocus}
             onBlur={handleBlur}

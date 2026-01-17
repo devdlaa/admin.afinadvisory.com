@@ -37,14 +37,14 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
-    const [permissionError,session] = await requirePermission(request, "tasks.manage");
+    const [permissionError,session,admin_user] = await requirePermission(request, "tasks.manage");
     if (permissionError) return permissionError;
 
     const body = await request.json();
 
     const validated = schemas.taskCategory.create.parse(body);
 
-    const category = await createTaskCategory(validated,session.user.id);
+    const category = await createTaskCategory(validated,admin_user.id);
 
     return createSuccessResponse(
       "Task category created successfully",

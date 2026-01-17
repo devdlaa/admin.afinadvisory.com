@@ -149,3 +149,110 @@
     }
   }
 }
+
+// Append these styles to ChargesManager.scss
+
+// Third tab styling for deleted charges
+.charges-manager__view-toggle-container {
+  button {
+    &.charges-manager__active-deleted {
+      background: #fee2e2;
+      color: #dc2626;
+      border-color: #fca5a5;
+
+      svg {
+        color: #dc2626;
+      }
+    }
+  }
+}
+
+// Badge on deleted charges tab
+.charges-manager__tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  margin-left: 6px;
+  background: #dc2626;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 10px;
+}
+
+// Deleted item count variant
+.charges-manager__item-count--deleted {
+  .charges-manager__count {
+ 
+    color: #dc2626;
+  }
+
+  .charges-manager__count-label {
+    color: #dc2626;
+  }
+}
+
+// Deleted charges list styling
+.charges-manager__charges-list--deleted {
+  .charges-manager__empty-icon {
+    color: #9ca3af;
+    margin-bottom: 1rem;
+  }
+
+  .charges-manager__empty-hint {
+    display: block;
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin-top: 0.5rem;
+  }
+}
+
+// Info banner for deleted charges
+.charges-manager__deleted-info {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+
+  .charges-manager__info-icon {
+    flex-shrink: 0;
+    font-size: 1.25rem;
+  }
+
+  p {
+    margin: 0;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: #92400e;
+  }
+}
+
+// Ensure proper spacing for empty states
+.charges-manager__empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1.5rem;
+  text-align: center;
+
+  p {
+    margin: 0;
+    color: #6b7280;
+    font-size: 0.9375rem;
+  }
+}
+
+.charges-manager__loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}

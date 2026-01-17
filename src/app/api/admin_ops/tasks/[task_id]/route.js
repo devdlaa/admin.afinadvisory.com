@@ -21,12 +21,12 @@ const uuidSchema = z.string().uuid("Invalid task ID format");
 // -------------------- GET --------------------
 export async function GET(request, { params }) {
   try {
-    const [permissionError,session] = await requirePermission(request, "tasks.access");
+    const [permissionError,session,admin_user] = await requirePermission(request, "tasks.access");
     if (permissionError) return permissionError;
 
     const task_id = uuidSchema.parse((await params).task_id);
 
-    const result = await getTaskById(task_id,session.user);
+    const result = await getTaskById(task_id,admin_user);
 
     return createSuccessResponse("Task retrieved successfully", result);
   } catch (error) {
@@ -46,7 +46,7 @@ export async function GET(request, { params }) {
 // -------------------- PATCH --------------------
 export async function PATCH(request, { params }) {
   try {
-    const [permissionError, session] = await requirePermission(
+    const [permissionError, session,admin_user] = await requirePermission(
       request,
       "tasks.manage"
     );
@@ -65,7 +65,7 @@ export async function PATCH(request, { params }) {
       );
     }
 
-    const result = await updateTask(task_id, validatedData, session.user);
+    const result = await updateTask(task_id, validatedData, admin_user);
 
     return createSuccessResponse("Task updated successfully", result);
   } catch (error) {
@@ -78,7 +78,7 @@ export async function PATCH(request, { params }) {
 // -------------------- DELETE (Soft delete) --------------------
 export async function DELETE(request, { params }) {
   try {
-    const [permissionError, session] = await requirePermission(
+    const [permissionError, session,admin_user] = await requirePermission(
       request,
       "tasks.delete"
     );
@@ -86,7 +86,7 @@ export async function DELETE(request, { params }) {
 
     const task_id = uuidSchema.parse((await params).task_id);
 
-    const result = await deleteTask(task_id, session.user);
+    const result = await deleteTask(task_id, admin_user);
 
     return createSuccessResponse("Task deleted successfully", result);
   } catch (error) {

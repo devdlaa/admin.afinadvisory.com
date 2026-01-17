@@ -1,7 +1,6 @@
 import React from "react";
 import { Clock } from "lucide-react";
 
-
 import CustomDropdown from "@/app/components/shared/TinyLib/CustomDropdown";
 import CustomDatePicker from "@/app/components/shared/TinyLib/CustomDatePicker";
 import { statusOptions, priorityOptions } from "@/utils/shared/constants";
@@ -11,12 +10,14 @@ const TaskPrimaryInfo = ({
   categories,
   overdueDays,
   isActivityTab,
+  isPaymentTab,
   onPrimaryInfoChange,
 }) => {
+  const shouldHidePrimaryInfo = isActivityTab || isPaymentTab;
   return (
     <section
       className={`task_primary_info_section ${
-        isActivityTab ? "task_primary_info_section_hidden" : ""
+        shouldHidePrimaryInfo ? "task_primary_info_section_hidden" : ""
       }`}
     >
       {/* Title Section */}

@@ -75,3 +75,18 @@ export const listTaskChargesSchema = z.object({
     task_id: z.string().uuid("Invalid task id"),
   }),
 });
+
+
+export const restoreTaskChargeSchema = z.object({
+  params: z.object({
+    task_id: z.string().uuid("Invalid task id"),
+    id: z.string().uuid("Invalid charge id"),
+  }),
+});
+
+export const hardDeleteTaskChargeSchema = z.object({
+  params: z.object({
+    task_id: z.string().uuid("Invalid task id"),
+    id: z.string().uuid("Invalid charge id"),
+  }),
+});

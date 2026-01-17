@@ -4,9 +4,12 @@ import { addTaskActivityLog } from "./taskComment.service.js";
 import { buildActivityMessage } from "@/utils/server/activityBulder.js";
 
 export function buildTaskVisibilityWhere(user) {
+  
   if (user.admin_role === "SUPER_ADMIN") {
-    return {}; 
+    return {};
   }
+
+
 
   return {
     OR: [
@@ -140,6 +143,8 @@ export const createTask = async (data, created_by) => {
                 email: true,
               },
             },
+            deleter: { select: { id: true, name: true, email: true } },
+            restorer: { select: { id: true, name: true, email: true } },
           },
         },
         checklist_items: true,
@@ -155,11 +160,68 @@ export const createTask = async (data, created_by) => {
       },
     });
 
+    const freshTask = await tx.task.findUnique({
+      where: { id: task.id },
+      select: {
+        id: true,
+        title: true,
+        status: true,
+        priority: true,
+        due_date: true,
+        created_at: true,
+
+        assigned_to_all: true,
+
+        assignments: {
+          select: {
+            id: true,
+            task_id: true,
+            admin_user_id: true,
+            assigned_at: true,
+            assigned_by: true,
+            assignment_source: true,
+            assignee: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+          orderBy: { assigned_at: "asc" },
+          take: 3,
+        },
+
+        _count: {
+          select: {
+            assignments: true,
+            charges: true,
+          },
+        },
+      },
+    });
+    const formattedTask = {
+      ...freshTask,
+      is_billable: freshTask._count.charges > 0,
+      assignments: freshTask.assignments.map((a) => ({
+        id: a.id,
+        task_id: a.task_id,
+        admin_user_id: a.admin_user_id,
+        assigned_at: a.assigned_at,
+        assigned_by: a.assigned_by,
+        assignment_source: a.assignment_source,
+        assignee: a.assignee,
+      })),
+      remaining_assignee_count:
+        freshTask._count.assignments > freshTask.assignments.length
+          ? freshTask._count.assignments - freshTask.assignments.length
+          : 0,
+    };
+
     // Get updated global counts after creation
     const globalCounts = await getStatusCounts({}, tx);
 
     return {
-      task,
+      task: formattedTask,
       status_counts: {
         global: globalCounts,
         filtered: null,
@@ -321,15 +383,15 @@ export const updateTask = async (task_id, data, currentUser) => {
           data.start_date === undefined
             ? undefined
             : data.start_date
-            ? new Date(data.start_date)
-            : null,
+              ? new Date(data.start_date)
+              : null,
 
         due_date:
           data.due_date === undefined
             ? undefined
             : data.due_date
-            ? new Date(data.due_date)
-            : null,
+              ? new Date(data.due_date)
+              : null,
 
         end_date: computedEndDate,
 
@@ -411,7 +473,7 @@ export const deleteTask = async (task_id, currentUser) => {
 
     if (task.status === "COMPLETED") {
       throw new ValidationError(
-        "Completed tasks cannot be deleted. Mark cancelled instead."
+        "Completed tasks cannot be deleted. Mark cancelled instead.",
       );
     }
 
@@ -497,6 +559,8 @@ export const getTaskById = async (task_id, currentUser) => {
               email: true,
             },
           },
+          deleter: { select: { id: true, name: true, email: true } },
+          restorer: { select: { id: true, name: true, email: true } },
         },
       },
       checklist_items: true,
@@ -743,7 +807,7 @@ export const bulkUpdateTaskStatus = async (task_ids, status, currentUser) => {
 export const bulkUpdateTaskPriority = async (
   task_ids,
   priority,
-  currentUser
+  currentUser,
 ) => {
   return prisma.$transaction(async (tx) => {
     const visibilityWhere = buildTaskVisibilityWhere(currentUser);

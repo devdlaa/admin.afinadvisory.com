@@ -11,9 +11,9 @@ import {
 
 export async function PATCH(request, { params }) {
   try {
-    const [permissionError, session] = await requirePermission(
+    const [permissionError, session, admin_user] = await requirePermission(
       request,
-      "tasks.access"
+      "tasks.access",
     );
     if (permissionError) return permissionError;
 
@@ -25,14 +25,14 @@ export async function PATCH(request, { params }) {
     const updatedComment = await updateTaskComment(
       task_id,
       comment_id,
-      session.user.id,
+      admin_user.id,
       validatedData.message,
-      validatedData.mentions
+      validatedData.mentions,
     );
 
     return createSuccessResponse(
       "Comment updated successfully",
-      updatedComment
+      updatedComment,
     );
   } catch (error) {
     return handleApiError(error);
@@ -41,15 +41,15 @@ export async function PATCH(request, { params }) {
 
 export async function DELETE(request, { params }) {
   try {
-    const [permissionError, session] = await requirePermission(
+    const [permissionError, session, admin_user] = await requirePermission(
       request,
-      "tasks.access"
+      "tasks.access",
     );
     if (permissionError) return permissionError;
 
     const { task_id, id: comment_id } = params;
 
-    await deleteTaskComment(task_id, comment_id, session.user.id);
+    await deleteTaskComment(task_id, comment_id, admin_user.id);
 
     return createSuccessResponse("Comment deleted successfully", {
       deleted: true,

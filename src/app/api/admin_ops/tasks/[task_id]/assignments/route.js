@@ -16,9 +16,9 @@ import { requirePermission } from "@/utils/server/requirePermission";
 // POST → Sync task assignments
 export async function POST(request, { params }) {
   try {
-    const [permissionError, session] = await requirePermission(
+    const [permissionError, session, admin_user] = await requirePermission(
       request,
-      "task_assignments.manage"
+      "task_assignments.manage",
     );
     if (permissionError) return permissionError;
 
@@ -39,12 +39,12 @@ export async function POST(request, { params }) {
       validated.task_id,
       validated.user_ids,
       validated.assigned_to_all,
-      session.user.id
+      admin_user.id,
     );
 
     return createSuccessResponse(
       "Task assignments synced successfully",
-      result
+      result,
     );
   } catch (error) {
     if (error?.name === "ZodError") {
@@ -52,7 +52,7 @@ export async function POST(request, { params }) {
         "Validation failed",
         400,
         "VALIDATION_ERROR",
-        error.errors
+        error.errors,
       );
     }
 
@@ -75,7 +75,7 @@ export async function GET(request, { params }) {
 
     return createSuccessResponse(
       "Task assignments retrieved successfully",
-      assignments
+      assignments,
     );
   } catch (error) {
     if (error?.name === "ZodError") {
@@ -83,7 +83,7 @@ export async function GET(request, { params }) {
         "Invalid task ID",
         400,
         "VALIDATION_ERROR",
-        error.errors
+        error.errors,
       );
     }
 

@@ -12,7 +12,7 @@ const uuid = z.string().uuid("Invalid task id");
 
 export async function POST(request, { params }) {
   try {
-    const [permissionError, session] = await requirePermission(
+    const [permissionError, session,admin_user] = await requirePermission(
       request,
       "tasks.manage"
     );
@@ -26,7 +26,7 @@ export async function POST(request, { params }) {
 
     const { items } = schemas.taskChecklist.sync.parse(body);
 
-    const result = await syncTaskChecklist(parsedTaskId, items, session.user);
+    const result = await syncTaskChecklist(parsedTaskId, items, admin_user);
 
     return createSuccessResponse("Checklist synced successfully", result);
   } catch (err) {

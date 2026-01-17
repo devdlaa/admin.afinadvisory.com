@@ -192,7 +192,7 @@
   // Footer Section
   .footer {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-start;
     align-items: center;
     padding-top: 20px;
     border-top: 1px solid #e5e7eb;
@@ -218,21 +218,23 @@
   }
 
   .metaLabel {
-    font-size: 0.75rem;
+    font-size: 0.55rem;
     color: #6b7280;
     font-weight: 600;
   }
 
   .metaName {
     font-size: 0.875rem;
-    color: #111827;
-    font-weight: 600;
+    color: #1c2435;
+    font-weight: 500;
   }
 
   .actions {
     display: flex;
     gap: 12px;
     align-items: center;
+    margin-bottom: 10px;
+    justify-content: flex-end;
   }
 }
 
@@ -331,7 +333,7 @@
 
     .collapsedAmount {
       padding: 7px 14px;
-      font-size: 1rem;
+      font-size: 0.75rem;
     }
 
     .collapsedStatus {
@@ -376,11 +378,11 @@
     }
 
     .metaLabel {
-      font-size: 0.8125rem;
+      font-size: 0.75rem;
     }
 
     .metaName {
-      font-size: 0.9375rem;
+      font-size: 0.8375rem;
     }
 
     .actions {
@@ -996,3 +998,36 @@
     }
   }
 }
+
+// Deleted card styling
+.deletedCard {
+  background: #fef8f8;
+  border-color: #fecaca;
+
+  &.collapsed {
+    &:hover {
+      border-color: #fca5a5;
+      background: #fef2f2;
+    }
+  }
+
+  &.expanded {
+    background: #fef2f2;
+  }
+}
+
+// Additional meta item styling for deleted info
+.metaInfo {
+  .metaItem {
+    &:last-child {
+      // Style for deleted by info
+      .metaLabel {
+        strong {
+          color: #dc2626;
+        }
+      }
+    }
+  }
+}
+
+// Add these styles to your ChargeCard.module.scss file

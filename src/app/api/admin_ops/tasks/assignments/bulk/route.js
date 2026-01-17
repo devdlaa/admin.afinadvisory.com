@@ -12,7 +12,7 @@ import {
 
 export async function POST(request) {
   try {
-    const [permissionError, session] = await requirePermission(
+    const [permissionError, session,admin_user] = await requirePermission(
       request,
       "task_assignments.manage"
     );
@@ -25,7 +25,7 @@ export async function POST(request) {
     const result = await bulkAssignUnownedTasks(
       validated.task_ids,
       validated.user_ids,
-      session.user.id
+      admin_user.id
     );
 
     return createSuccessResponse("Tasks bulk assigned successfully", result);

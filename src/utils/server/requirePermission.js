@@ -1,57 +1,72 @@
-
 import { auth } from "@/utils/server/auth";
 import { prisma } from "@/utils/server/db";
 import { createErrorResponse } from "./apiResponse";
-
 export async function requirePermission(req, required) {
   const session = await auth();
 
   if (!session) {
-    return [createErrorResponse("Unauthorized", 401, "UNAUTHORIZED"), null];
+    return [
+      createErrorResponse("Unauthorized", 401, "UNAUTHORIZED"),
+      null,
+      null,
+    ];
   }
 
-  if (
-    required === undefined ||
-    required === null ||
-    (Array.isArray(required) && required.length === 0)
-  ) {
-    return [null, session];
-  }
-
-  const requiredArray = Array.isArray(required) ? required : [required];
-
+  // Always fetch user
   const user = await prisma.adminUser.findUnique({
     where: { id: session.user.id },
-    select: {
-      id: true,
-      status: true,
-      deleted_at: true,
+    include: {
       permissions: {
-        select: {
-          permission: { select: { code: true } },
-        },
+        select: { permission: { select: { code: true } } },
       },
     },
   });
 
+  if (!user) {
+    return [
+      createErrorResponse("Unauthorized", 401, "UNAUTHORIZED"),
+      null,
+      null,
+    ];
+  }
+
+
+  const permissionCodes = user.permissions.map((p) => p.permission.code);
+
+  const normalizedUser = {
+    ...user,
+    permissions: permissionCodes, // now: string[]
+  };
+
   // 🚪 Account invalid → force logout
-  if (!user || user.deleted_at || user.status !== "ACTIVE") {
+  if (normalizedUser.deleted_at || normalizedUser.status !== "ACTIVE") {
     return [
       createErrorResponse(
         "Account is inactive or suspended",
         401,
         "ACCOUNT_DISABLED",
-        {
-          forceLogout: true,
-        }
+        { forceLogout: true },
       ),
+      null,
       null,
     ];
   }
 
-  const userPermissions = user.permissions.map((p) => p.permission.code);
+  // If no permissions required, stop here
+  if (
+    required === undefined ||
+    required === null ||
+    (Array.isArray(required) && required.length === 0)
+  ) {
+    return [null, session, normalizedUser];
+  }
 
-  const hasAll = requiredArray.every((perm) => userPermissions.includes(perm));
+  const requiredArray = Array.isArray(required) ? required : [required];
+
+  // ✅ permissions already flat strings
+  const hasAll = requiredArray.every((perm) =>
+    normalizedUser.permissions.includes(perm),
+  );
 
   if (!hasAll) {
     return [
@@ -60,8 +75,9 @@ export async function requirePermission(req, required) {
         reason: "MISSING_PERMISSION",
       }),
       session,
+      normalizedUser,
     ];
   }
 
-  return [null, session];
+  return [null, session, normalizedUser];
 }

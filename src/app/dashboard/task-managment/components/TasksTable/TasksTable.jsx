@@ -11,28 +11,27 @@ import {
   IndianRupee,
   Plus,
   MoreHorizontal,
-  Flag,
 } from "lucide-react";
 import "./TasksTable.scss";
 
-
 import Button from "@/app/components/shared/Button/Button";
 import Avatar from "@/app/components/shared/newui/Avatar/Avatar";
+import AssignmentDialog from "@/app/components/pages/AssignmentDialog/AssignmentDialog";
 import {
   setFilters,
   fetchTasks,
   bulkUpdateTaskStatus,
   bulkUpdateTaskPriority,
+  updateTaskAssignmentsInList,
 } from "@/store/slices/taskSlice";
+import { syncAssignments } from "@/store/slices/taskDetailsSlice";
 import { statusOptions, priorityOptions } from "@/utils/shared/constants";
 import { getProfileUrl, formatDate } from "@/utils/shared/shared_util";
 import { truncateText } from "@/utils/client/cutils";
 
-
 const TaskTable = ({
   tasks = [],
   onTaskClick,
-  onAssigneeClick,
 
   loading = false,
   activeStatusFilter = null,
@@ -45,6 +44,12 @@ const TaskTable = ({
   const [selectedTasks, setSelectedTasks] = useState([]);
   const [priorityDropdownOpen, setPriorityDropdownOpen] = useState(false);
   const [bulkActionsOpen, setBulkActionsOpen] = useState(false);
+
+  // Assignment Dialog State
+  const [showAssignmentDialog, setShowAssignmentDialog] = useState(false);
+  const [selectedTaskForAssignment, setSelectedTaskForAssignment] =
+    useState(null);
+  const [isSavingAssignments, setIsSavingAssignments] = useState(false);
 
   useEffect(() => {
     setSelectedTasks([]);
@@ -74,7 +79,7 @@ const TaskTable = ({
     setSelectedTasks((prev) =>
       prev.includes(taskId)
         ? prev.filter((id) => id !== taskId)
-        : [...prev, taskId]
+        : [...prev, taskId],
     );
   };
 
@@ -110,7 +115,7 @@ const TaskTable = ({
       bulkUpdateTaskStatus({
         task_ids: selectedTasks,
         status,
-      })
+      }),
     );
 
     setBulkActionsOpen(false);
@@ -123,10 +128,43 @@ const TaskTable = ({
       bulkUpdateTaskPriority({
         task_ids: selectedTasks,
         priority,
-      })
+      }),
     );
 
     setBulkActionsOpen(false);
+  };
+
+  // Assignment Dialog Handlers
+  const handleOpenAssignmentDialog = (task) => {
+    setSelectedTaskForAssignment(task);
+    setShowAssignmentDialog(true);
+  };
+
+  const handleCloseAssignmentDialog = () => {
+    setShowAssignmentDialog(false);
+    setSelectedTaskForAssignment(null);
+  };
+
+  const handleSaveAssignments = async (assignmentData) => {
+    if (!selectedTaskForAssignment) return;
+
+    setIsSavingAssignments(true);
+    try {
+      const result = await dispatch(
+        syncAssignments({
+          taskId: selectedTaskForAssignment.id,
+          user_ids: assignmentData.user_ids,
+          assigned_to_all: assignmentData.assigned_to_all,
+        }),
+      ).unwrap();
+      dispatch(updateTaskAssignmentsInList(result));
+      setShowAssignmentDialog(false);
+      setSelectedTaskForAssignment(null);
+    } catch (error) {
+      setIsSavingAssignments(false);
+    } finally {
+      setIsSavingAssignments(false);
+    }
   };
 
   const isAllSelected =
@@ -177,9 +215,7 @@ const TaskTable = ({
 
     const handleClick = (e) => {
       e.stopPropagation();
-      if (onAssigneeClick) {
-        onAssigneeClick(task);
-      }
+      handleOpenAssignmentDialog(task);
     };
 
     if (assigned_to_all) {
@@ -207,15 +243,17 @@ const TaskTable = ({
     return (
       <div className="task-assignees" onClick={handleClick}>
         <div className="avatar-stack">
-          {assignments.filter(a => a?.assignee?.id).map((a) => (
-            <Avatar
-              key={a.id}
-              src={getProfileUrl(a.assignee.id)}
-              alt={a.assignee.name}
-              size={35}
-              fallbackText={a.assignee.name}
-            />
-          ))}
+          {assignments
+            .filter((a) => a?.assignee?.id)
+            .map((a) => (
+              <Avatar
+                key={a.id}
+                src={getProfileUrl(a.assignee.id)}
+                alt={a.assignee.name}
+                size={35}
+                fallbackText={a.assignee.name}
+              />
+            ))}
 
           {remaining_assignee_count > 0 && (
             <div className="avatar-more">+{remaining_assignee_count}</div>
@@ -243,261 +281,291 @@ const TaskTable = ({
   }
 
   return (
-    <div className="task-table">
-      <div className="controls-bar">
-        <div className="controls-left">
-          <input
-            type="checkbox"
-            checked={isAllSelected}
-            ref={(el) => {
-              if (el) el.indeterminate = isSomeSelected;
-            }}
-            onChange={handleSelectAll}
-            className="checkbox"
-            disabled={tasks.length === 0}
-          />
+    <>
+      <div className="task-table">
+        <div className="controls-bar">
+          <div className="controls-left">
+            <input
+              type="checkbox"
+              checked={isAllSelected}
+              ref={(el) => {
+                if (el) el.indeterminate = isSomeSelected;
+              }}
+              onChange={handleSelectAll}
+              className="checkbox"
+              disabled={tasks.length === 0}
+            />
 
-          {selectedTasks.length === 0 ? (
-            <>
-              <div className="status-tabs">
-                {statusOptions.map((tab) => {
-                  return (
-                    <button
-                      key={tab.value || "all"}
-                      className={`status-tab ${
-                        activeStatusFilter === tab.value ? "active" : ""
-                      }`}
-                      onClick={() => handleStatusChange(tab.value)}
-                      style={{ "--tab-color": tab.txtClr }}
-                    >
-                      {tab.icon}
-                      {tab.label}
-                    </button>
-                  );
-                })}
-              </div>
-
-              <div className="priority-filter" ref={priorityDropdownRef}>
-                <button
-                  className="priority-button"
-                  onClick={() => setPriorityDropdownOpen(!priorityDropdownOpen)}
-                >
-                  <span>{activePriorityLabel}</span>
-                  <ChevronDown size={16} />
-                </button>
-
-                {priorityDropdownOpen && (
-                  <div className="priority-dropdown">
-                    {priorityOptions.map((option) => (
-                      <div
-                        key={option.value || "all"}
-                        className={`priority-option ${
-                          activePriorityFilter === option.value ? "active" : ""
+            {selectedTasks.length === 0 ? (
+              <>
+                <div className="status-tabs">
+                  {statusOptions.map((tab) => {
+                    return (
+                      <button
+                        key={tab.value || "all"}
+                        className={`status-tab ${
+                          activeStatusFilter === tab.value ? "active" : ""
                         }`}
-                        onClick={() => handlePriorityChange(option.value)}
+                        onClick={() => handleStatusChange(tab.value)}
+                        style={{ "--tab-color": tab.txtClr }}
                       >
-                        <div
-                          className="priority-dot"
-                          style={{ backgroundColor: option.color }}
-                        />
-                        {option?.icon}
-                        <span>{option.label}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </>
-          ) : (
-            <div className="bulk-actions">
-              <span className="bulk-count">
-                {selectedTasks.length} selected
-              </span>
-              <div className="bulk-buttons">
-                <div className="bulk-actions-menu" ref={bulkActionsRef}>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    icon={MoreHorizontal}
-                    onClick={() => setBulkActionsOpen(!bulkActionsOpen)}
+                        {tab.icon}
+                        {tab.label}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="priority-filter" ref={priorityDropdownRef}>
+                  <button
+                    className="priority-button"
+                    onClick={() =>
+                      setPriorityDropdownOpen(!priorityDropdownOpen)
+                    }
                   >
-                    Actions
-                  </Button>
+                    <span>{activePriorityLabel}</span>
+                    <ChevronDown size={16} />
+                  </button>
 
-                  {bulkActionsOpen && (
-                    <div className="bulk-dropdown">
-                      <div className="dropdown-section">
-                        <div className="dropdown-label">Update Status</div>
-                        {statusOptions
-                          .filter((opt) => opt.value)
-                          .map((option) => (
-                            <button
-                              key={option.value}
-                              className="dropdown-item"
-                              onClick={() =>
-                                handleBulkStatusUpdate(option.value)
-                              }
-                            >
-                              {option.icon}
-                              <span>{option.label}</span>
-                            </button>
-                          ))}
-                      </div>
-
-                      <div className="dropdown-divider" />
-
-                      <div className="dropdown-section">
-                        <div className="dropdown-label">Update Priority</div>
-                        {priorityOptions
-                          .filter((opt) => opt.value)
-                          .map((option) => (
-                            <button
-                              key={option.value}
-                              className="dropdown-item"
-                              onClick={() =>
-                                handleBulkPriorityUpdate(option.value)
-                              }
-                            >
-                              {option?.icon}
-
-                              <span>{option.label}</span>
-                            </button>
-                          ))}
-                      </div>
+                  {priorityDropdownOpen && (
+                    <div className="priority-dropdown">
+                      {priorityOptions.map((option) => (
+                        <div
+                          key={option.value || "all"}
+                          className={`priority-option ${
+                            activePriorityFilter === option.value
+                              ? "active"
+                              : ""
+                          }`}
+                          onClick={() => handlePriorityChange(option.value)}
+                        >
+                          <div
+                            className="priority-dot"
+                            style={{ backgroundColor: option.color }}
+                          />
+                          {option?.icon}
+                          <span>{option.label}</span>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
+              </>
+            ) : (
+              <div className="bulk-actions">
+                <span className="bulk-count">
+                  {selectedTasks.length} selected
+                </span>
+                <div className="bulk-buttons">
+                  <div className="bulk-actions-menu" ref={bulkActionsRef}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      icon={MoreHorizontal}
+                      onClick={() => setBulkActionsOpen(!bulkActionsOpen)}
+                    >
+                      Actions
+                    </Button>
 
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  icon={X}
-                  onClick={handleClearSelection}
-                >
-                  Clear
-                </Button>
+                    {bulkActionsOpen && (
+                      <div className="bulk-dropdown">
+                        <div className="dropdown-section">
+                          <div className="dropdown-label">Update Status</div>
+                          {statusOptions
+                            .filter((opt) => opt.value)
+                            .map((option) => (
+                              <button
+                                key={option.value}
+                                className="dropdown-item"
+                                onClick={() =>
+                                  handleBulkStatusUpdate(option.value)
+                                }
+                              >
+                                {option.icon}
+                                <span>{option.label}</span>
+                              </button>
+                            ))}
+                        </div>
+
+                        <div className="dropdown-divider" />
+
+                        <div className="dropdown-section">
+                          <div className="dropdown-label">Update Priority</div>
+                          {priorityOptions
+                            .filter((opt) => opt.value)
+                            .map((option) => (
+                              <button
+                                key={option.value}
+                                className="dropdown-item"
+                                onClick={() =>
+                                  handleBulkPriorityUpdate(option.value)
+                                }
+                              >
+                                {option?.icon}
+
+                                <span>{option.label}</span>
+                              </button>
+                            ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    icon={X}
+                    onClick={handleClearSelection}
+                  >
+                    Clear
+                  </Button>
+                </div>
               </div>
+            )}
+          </div>
+        </div>
+
+        <div
+          style={{
+            display: tasks.length === 0 ? "flex" : "grid",
+          }}
+          className="task-list"
+        >
+          {tasks.length === 0 ? (
+            <div className="empty-state">
+              <p>No tasks found</p>
+              <span>Try adjusting your filters or create a new task</span>
             </div>
+          ) : (
+            tasks.map((task) => {
+              const isSelected = selectedTasks.includes(task.id);
+
+              return (
+                <div
+                  key={task.id}
+                  className={`task-card ${isSelected ? "selected" : ""}`}
+                  onClick={() => onTaskClick && onTaskClick(task)}
+                >
+                  <div className="task-checkbox">
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        handleSelectTask(task.id);
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                      className="checkbox"
+                    />
+                  </div>
+
+                  <div className="task-content">
+                    <div className="task-header">
+                      <div className="task-title-group">
+                        <h3 className="task-title">
+                          {truncateText(task.title, 100)}
+                        </h3>
+                        <span className="entity-name">
+                          {task.entity?.name || "No Entity"}
+                        </span>
+                      </div>
+
+                      <div className="task-badges">
+                        <span
+                          className="badge status-badge"
+                          style={{
+                            backgroundColor: `${getStatusColor(task.status)}15`,
+                            color: getStatusColor(task.status),
+                          }}
+                        >
+                          {getStatusLabel(task.status)}
+                        </span>
+                        <span
+                          className="badge priority-badge"
+                          style={{
+                            backgroundColor: `${getPriorityColor(
+                              task.priority,
+                            )}15`,
+                            color: getPriorityColor(task.priority),
+                          }}
+                        >
+                          {getPriorityLabel(task.priority)}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="task-meta">
+                      {task.category && (
+                        <div className="meta-item">
+                          <Tag size={14} />
+                          <span className="meta-item">
+                            {task.category.name}
+                          </span>
+                        </div>
+                      )}
+
+                      {task.creator && (
+                        <div className="meta-item">
+                          <span className="meta-label">Created By</span>
+                          <span className="meta-item">{task.creator.name}</span>
+                        </div>
+                      )}
+
+                      <div className="meta-item">
+                        <Calendar size={14} />
+                        <span className="meta-item">
+                          {formatDate(task.created_at)}
+                        </span>
+                      </div>
+
+                      {task.is_billable && (
+                        <span className="billable-badge">
+                          <IndianRupee /> Billable Task
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="task-footer">
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "10px",
+                        }}
+                      >
+                        {renderAssignees(task)}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
           )}
         </div>
       </div>
 
-      <div
-        style={{
-          display: tasks.length === 0 ? "flex" : "grid",
-        }}
-        className="task-list"
-      >
-        {tasks.length === 0 ? (
-          <div className="empty-state">
-            <p>No tasks found</p>
-            <span>Try adjusting your filters or create a new task</span>
-          </div>
-        ) : (
-          tasks.map((task) => {
-            const isSelected = selectedTasks.includes(task.id);
-
-            return (
-              <div
-                key={task.id}
-                className={`task-card ${isSelected ? "selected" : ""}`}
-                onClick={() => onTaskClick && onTaskClick(task)}
-              >
-                <div className="task-checkbox">
-                  <input
-                    type="checkbox"
-                    checked={isSelected}
-                    onChange={(e) => {
-                      e.stopPropagation();
-                      handleSelectTask(task.id);
-                    }}
-                    onClick={(e) => e.stopPropagation()}
-                    className="checkbox"
-                  />
-                </div>
-
-                <div className="task-content">
-                  <div className="task-header">
-                    <div className="task-title-group">
-                      <h3 className="task-title">
-                        {truncateText(task.title, 100)}
-                      </h3>
-                      <span className="entity-name">
-                        {task.entity?.name || "No Entity"}
-                      </span>
-                    </div>
-
-                    <div className="task-badges">
-                      <span
-                        className="badge status-badge"
-                        style={{
-                          backgroundColor: `${getStatusColor(task.status)}15`,
-                          color: getStatusColor(task.status),
-                        }}
-                      >
-                        {getStatusLabel(task.status)}
-                      </span>
-                      <span
-                        className="badge priority-badge"
-                        style={{
-                          backgroundColor: `${getPriorityColor(
-                            task.priority
-                          )}15`,
-                          color: getPriorityColor(task.priority),
-                        }}
-                      >
-                        {getPriorityLabel(task.priority)}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="task-meta">
-                    {task.category && (
-                      <div className="meta-item">
-                        <Tag size={14} />
-                        <span className="meta-item">{task.category.name}</span>
-                      </div>
-                    )}
-
-                    {task.creator && (
-                      <div className="meta-item">
-                        <span className="meta-label">Created By</span>
-                        <span className="meta-item">{task.creator.name}</span>
-                      </div>
-                    )}
-
-                    <div className="meta-item">
-                      <Calendar size={14} />
-                      <span className="meta-item">
-                        {formatDate(task.created_at)}
-                      </span>
-                    </div>
-
-                    {task.is_billable && (
-                      <span className="billable-badge">
-                        <IndianRupee /> Billable Task
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="task-footer">
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "10px",
-                      }}
-                    >
-                      {renderAssignees(task)}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          })
-        )}
-      </div>
-    </div>
+      {/* Assignment Dialog */}
+      {showAssignmentDialog && selectedTaskForAssignment && (
+        <AssignmentDialog
+          isOpen={showAssignmentDialog}
+          onClose={handleCloseAssignmentDialog}
+          hasPermission={true}
+          isSaving={isSavingAssignments}
+          config={{
+            assignedUsers:
+              selectedTaskForAssignment?.assignments?.map((a) => a.assignee) ||
+              [],
+            assignedToAll: selectedTaskForAssignment?.assigned_to_all || false,
+            creatorId: selectedTaskForAssignment.creator?.id,
+            taskId: selectedTaskForAssignment.id,
+            onSave: handleSaveAssignments,
+            title: "Manage Task Assignments",
+            subtitle: "Drag and drop team members to manage task assignments",
+            maxAssignedUsers: 10,
+          }}
+        />
+      )}
+    </>
   );
 };
 

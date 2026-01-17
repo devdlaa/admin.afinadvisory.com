@@ -20,7 +20,7 @@ const PREDEFINED_FIELD_NAMES = [
 
 export async function POST(req) {
   try {
-    const [permissionError, session] = await requirePermission(
+    const [permissionError, session,admin_user] = await requirePermission(
       req,
       "entities.manage"
     );
@@ -194,7 +194,7 @@ export async function POST(req) {
     const validRows = schemas.entity.bulkImport.parse(nonEmptyRows);
  
     // ---- Service call ----
-    const result = await bulkCreateEntities(validRows, session.user.id);
+    const result = await bulkCreateEntities(validRows, admin_user.id);
 
     return createSuccessResponse("Import completed", {
       summary: {

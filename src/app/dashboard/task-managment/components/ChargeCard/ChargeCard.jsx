@@ -12,17 +12,15 @@ import {
   RefreshCcw,
   DiamondMinus,
   Loader2,
+  RotateCcw,
 } from "lucide-react";
-
-
 
 import CustomInput from "@/app/components/shared/TinyLib/CustomInput";
 import CustomDropdown from "@/app/components/shared/TinyLib/CustomDropdown";
 import ActionButton from "@/app/components/shared/TinyLib/ActionButton";
-import Avatar from "@/app/components/shared/TinyLib/Avatar";
+
 import ConfirmationDialog from "@/app/components/shared/ConfirmationDialog/ConfirmationDialog";
 import styles from "./ChargeCard.module.scss";
-import { getProfileUrl } from "@/utils/shared/shared_util";
 
 
 const ChargeCard = ({
@@ -30,13 +28,18 @@ const ChargeCard = ({
   onUpdate = () => {},
   onCancel = () => {},
   onDelete = () => {},
+  onRestore = () => {},
+  onHardDelete = () => {},
   isNewCharge = false,
   isLoading = false,
-  operationType = null, // 'adding' | 'updating' | 'deleting'
+  operationType = null,
+  mode = "active", // 'active' | 'deleted'
 }) => {
   const [isEditing, setIsEditing] = useState(isNewCharge);
   const [isExpanded, setIsExpanded] = useState(isNewCharge);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showHardDeleteDialog, setShowHardDeleteDialog] = useState(false);
+  const [showRestoreDialog, setShowRestoreDialog] = useState(false);
   const [showValidationDialog, setShowValidationDialog] = useState(false);
   const [formData, setFormData] = useState({
     chargeTitle: charge.chargeTitle,
@@ -47,7 +50,8 @@ const ChargeCard = ({
     remarks: charge.remarks,
   });
 
-  // Start in edit mode and expanded for new charges
+  const isDeletedMode = mode === "deleted";
+
   useEffect(() => {
     if (isNewCharge) {
       setIsEditing(true);
@@ -105,17 +109,14 @@ const ChargeCard = ({
         return;
       }
     }
-
     onUpdate(formData);
     setIsEditing(false);
   };
 
   const handleCancelEdit = () => {
     if (isNewCharge) {
-      // For new charges, call onCancel which will remove the card
       onCancel();
     } else {
-      // For existing charges, just reset the form
       setFormData({
         chargeTitle: charge.chargeTitle,
         chargeType: charge.chargeType,
@@ -132,6 +133,14 @@ const ChargeCard = ({
     setShowDeleteDialog(true);
   };
 
+  const handleHardDelete = () => {
+    setShowHardDeleteDialog(true);
+  };
+
+  const handleRestore = () => {
+    setShowRestoreDialog(true);
+  };
+
   const getStatusConfig = (status) => {
     return paymentStatusOptions.find((opt) => opt.value === status);
   };
@@ -144,17 +153,21 @@ const ChargeCard = ({
     return chargeTypeOptions.find((opt) => opt.value === type)?.label || type;
   };
 
-  // Show overlay when this specific charge is being processed
   const showOverlay =
-    operationType === "updating" || operationType === "deleting";
+    operationType === "updating" ||
+    operationType === "deleting" ||
+    operationType === "restoring" ||
+    operationType === "hard-deleting";
 
-  // Collapsed view - one line summary
+  // Collapsed view
   if (!isExpanded) {
     const statusConfig = getStatusConfig(formData.paymentStatus);
 
     return (
       <div
-        className={`${styles.chargeCard} ${styles.collapsed}`}
+        className={`${styles.chargeCard} ${styles.collapsed} ${
+          isDeletedMode ? styles.deletedCard : ""
+        }`}
         onClick={() => !showOverlay && setIsExpanded(true)}
         style={{
           opacity: showOverlay ? 0.6 : 1,
@@ -204,25 +217,26 @@ const ChargeCard = ({
     <div
       className={`${styles.chargeCard} ${isNewCharge ? styles.newCharge : ""} ${
         styles.expanded
-      }`}
+      } ${isDeletedMode ? styles.deletedCard : ""}`}
       style={{ position: "relative" }}
     >
-      {/* Loading Overlay for updating/deleting */}
+      {/* Loading Overlay */}
       {showOverlay && (
         <div className={styles.loadingOverlay}>
           <div className={styles.loadingContent}>
             <Loader2 size={32} className={styles.spinner} />
             <p className={styles.loadingText}>
-              {operationType === "updating"
-                ? "Updating charge..."
-                : "Deleting charge..."}
+              {operationType === "updating" && "Updating charge..."}
+              {operationType === "deleting" && "Deleting charge..."}
+              {operationType === "restoring" && "Restoring charge..."}
+              {operationType === "hard-deleting" && "Permanently deleting..."}
             </p>
           </div>
         </div>
       )}
 
       {/* Collapse button */}
-      {!isEditing && (
+      {!isEditing && !isDeletedMode && (
         <button
           className={styles.collapseBtn}
           onClick={() => setIsExpanded(false)}
@@ -243,7 +257,7 @@ const ChargeCard = ({
             }
             label="Charge Title"
             placeholder="Enter charge title"
-            disabled={!isEditing || showOverlay}
+            disabled={!isEditing || showOverlay || isDeletedMode}
           />
         </div>
 
@@ -257,7 +271,7 @@ const ChargeCard = ({
             type="text"
             icon={<IndianRupee size={18} />}
             label="Amount"
-            disabled={!isEditing || showOverlay}
+            disabled={!isEditing || showOverlay || isDeletedMode}
           />
         </div>
       </div>
@@ -272,7 +286,7 @@ const ChargeCard = ({
           }
           placeholder="Select charge type"
           label="Charge Type"
-          disabled={!isEditing || showOverlay}
+          disabled={!isEditing || showOverlay || isDeletedMode}
         />
         <CustomDropdown
           icon={Landmark}
@@ -283,7 +297,7 @@ const ChargeCard = ({
           }
           label="Bearer"
           placeholder="Select bearer"
-          disabled={!isEditing || showOverlay}
+          disabled={!isEditing || showOverlay || isDeletedMode}
         />
 
         <CustomDropdown
@@ -294,7 +308,7 @@ const ChargeCard = ({
           }
           placeholder="Select status"
           label="Status"
-          disabled={!isEditing || showOverlay}
+          disabled={!isEditing || showOverlay || isDeletedMode}
         />
       </div>
 
@@ -307,80 +321,172 @@ const ChargeCard = ({
           multiline={true}
           rows={3}
           label="Remarks about this Charge"
-          disabled={!isEditing || showOverlay}
+          disabled={!isEditing || showOverlay || isDeletedMode}
         />
       </div>
-
-      {/* Footer Section */}
-      <div className={styles.footer}>
-        <div className={styles.metaInfo}>
-          {!isNewCharge && (
-            <div className={styles.metaItem}>
-              <Avatar
-                src={getProfileUrl(charge.createdBy.created_by_uid)}
-                alt={charge.createdBy.name}
-                size={36}
-                fallbackText={charge.createdBy.name}
-              />
-              <div className={styles.metaText}>
-                <span className={styles.metaLabel}>
-                  Created On - <strong>{charge.createdBy.date}</strong> By
-                </span>
-                <span className={styles.metaName}>{charge.createdBy.name}</span>
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className={styles.actions}>
-          {!isEditing ? (
-            <>
-              <ActionButton
-                text="Delete"
-                icon={Trash2}
-                onClick={handleDelete}
-                variant="danger"
-                size="small"
-                isLoading={operationType === "deleting"}
-                disabled={showOverlay}
-              />
-              <ActionButton
-                text="Update"
-                icon={Edit2}
-                onClick={handleEdit}
-                variant="light"
-                size="small"
-                disabled={showOverlay}
-              />
-            </>
-          ) : (
-            <>
-              <ActionButton
-                text="Cancel"
-                icon={X}
-                onClick={handleCancelEdit}
-                variant="light"
-                size="small"
-                disabled={isLoading || showOverlay}
-              />
-              <ActionButton
-                text={isNewCharge ? "Save Charge" : "Save Changes"}
-                icon={Save}
-                onClick={handleSave}
-                variant="primary"
-                size="small"
-                isLoading={isLoading}
-                disabled={showOverlay}
-              />
-            </>
-          )}
-        </div>
+      <div className={styles.actions}>
+        {isDeletedMode ? (
+          <>
+            <ActionButton
+              text="Restore"
+              icon={RotateCcw}
+              onClick={handleRestore}
+              variant="secondary"
+              size="small"
+              isLoading={operationType === "restoring"}
+              disabled={showOverlay}
+            />
+            <ActionButton
+              text="Delete Forever"
+              icon={Trash2}
+              onClick={handleHardDelete}
+              variant="danger"
+              size="small"
+              isLoading={operationType === "hard-deleting"}
+              disabled={showOverlay}
+            />
+          </>
+        ) : !isEditing ? (
+          <>
+            <ActionButton
+              text="Delete"
+              icon={Trash2}
+              onClick={handleDelete}
+              variant="danger"
+              size="small"
+              isLoading={operationType === "deleting"}
+              disabled={showOverlay}
+            />
+            <ActionButton
+              text="Update"
+              icon={Edit2}
+              onClick={handleEdit}
+              variant="light"
+              size="small"
+              disabled={showOverlay}
+            />
+          </>
+        ) : (
+          <>
+            <ActionButton
+              text="Cancel"
+              icon={X}
+              onClick={handleCancelEdit}
+              variant="light"
+              size="small"
+              disabled={isLoading || showOverlay}
+            />
+            <ActionButton
+              text={isNewCharge ? "Save Charge" : "Save Changes"}
+              icon={Save}
+              onClick={handleSave}
+              variant="primary"
+              size="small"
+              isLoading={isLoading}
+              disabled={showOverlay}
+            />
+          </>
+        )}
       </div>
+      {/* Footer Section with Enhanced Metadata */}
+      <div className={styles.footer}>
+        {!isNewCharge && (
+          <>
+            {/* Created By */}
+            {charge.creator && (
+              <div className={styles.metaItem}>
+                <div className={styles.metaText}>
+                  <span className={styles.metaLabel}>
+                    Created On -{" "}
+                    <strong>
+                      {new Date(charge.created_at).toLocaleDateString("en-GB", {
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                      })}
+                    </strong>
+                  </span>
+                  <span className={styles.metaName}>{charge.creator.name}</span>
+                
+                </div>
+              </div>
+            )}
+
+            {/* Updated By - Only show if different from creator and exists */}
+            {charge.updater && !isDeletedMode && charge.updater.id && (
+              <div className={styles.metaItem}>
+                <div className={styles.metaText}>
+                  <span className={styles.metaLabel}>
+                    Updated On -{" "}
+                    <strong>
+                      {new Date(charge.updated_at).toLocaleDateString("en-GB", {
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                      })}
+                    </strong>
+                  </span>
+                  <span className={styles.metaName}>{charge.updater.name}</span>
+                 
+                </div>
+              </div>
+            )}
+
+            {/* Deleted By - Only in deleted mode */}
+            {isDeletedMode && charge.deleter && (
+              <div className={`${styles.metaItem} ${styles.metaItemDeletion}`}>
+                <div className={styles.metaText}>
+                  <span
+                    className={`${styles.metaLabel} ${styles.metaLabelDanger}`}
+                  >
+                    Deleted On -{" "}
+                    <strong>
+                      {new Date(charge.deleted_at).toLocaleDateString("en-GB", {
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                      })}
+                    </strong>
+                  </span>
+                  <span className={styles.metaName}>{charge.deleter.name}</span>
+                 
+                </div>
+              </div>
+            )}
+
+            {/* Restored By - Show if charge was restored */}
+            {charge.restorer && !isDeletedMode && (
+              <div className={`${styles.metaItem} ${styles.metaItemSuccess}`}>
+                <div className={styles.metaText}>
+                  <span
+                    className={`${styles.metaLabel} ${styles.metaLabelSuccess}`}
+                  >
+                    Restored On -{" "}
+                    <strong>
+                      {new Date(charge.updated_at).toLocaleDateString("en-GB", {
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                      })}
+                    </strong>
+                  </span>
+                  <span className={styles.metaName}>
+                    {charge.restorer.name}
+                  </span>
+                
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* Dialogs */}
       <ConfirmationDialog
         isOpen={showDeleteDialog}
         onClose={() => setShowDeleteDialog(false)}
         actionName="Delete this charge?"
-        actionInfo="This action cannot be undone."
+        actionInfo="This charge will be moved to deleted charges. You can restore it later."
         confirmText="Delete"
         cancelText="Cancel"
         variant="danger"
@@ -390,6 +496,37 @@ const ChargeCard = ({
         }}
         onCancel={() => setShowDeleteDialog(false)}
       />
+
+      <ConfirmationDialog
+        isOpen={showRestoreDialog}
+        onClose={() => setShowRestoreDialog(false)}
+        actionName="Restore this charge?"
+        actionInfo="This charge will be moved back to active charges and will be included in calculations."
+        confirmText="Restore Charge"
+        cancelText="Cancel"
+        variant="success"
+        onConfirm={async () => {
+          onRestore();
+          setShowRestoreDialog(false);
+        }}
+        onCancel={() => setShowRestoreDialog(false)}
+      />
+
+      <ConfirmationDialog
+        isOpen={showHardDeleteDialog}
+        onClose={() => setShowHardDeleteDialog(false)}
+        actionName="Permanently delete this charge?"
+        actionInfo="This action cannot be undone. The charge will be permanently removed from the database."
+        confirmText="Permanently Delete"
+        cancelText="Cancel"
+        variant="danger"
+        onConfirm={async () => {
+          onHardDelete();
+          setShowHardDeleteDialog(false);
+        }}
+        onCancel={() => setShowHardDeleteDialog(false)}
+      />
+
       <ConfirmationDialog
         isOpen={showValidationDialog}
         onClose={() => setShowValidationDialog(false)}

@@ -46,7 +46,7 @@ export async function POST(req) {
     } catch (err) {
       return NextResponse.json(
         { success: false, error: "Invalid or expired token" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -55,7 +55,7 @@ export async function POST(req) {
     if (!userId || !purpose) {
       return NextResponse.json(
         { success: false, error: "Invalid token payload" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -65,7 +65,7 @@ export async function POST(req) {
           success: false,
           error: "Invalid token purpose. This token is not for onboarding.",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -80,7 +80,7 @@ export async function POST(req) {
     if (!user) {
       return NextResponse.json(
         { success: false, error: "User not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -88,7 +88,7 @@ export async function POST(req) {
     if (user.onboarding_token_hash !== tokenHash) {
       return NextResponse.json(
         { success: false, error: "Invalid or expired token" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -103,7 +103,7 @@ export async function POST(req) {
           error:
             "Onboarding token has expired. Please request a new invitation.",
         },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -111,7 +111,7 @@ export async function POST(req) {
     if (user.deleted_at) {
       return NextResponse.json(
         { success: false, error: "User account has been deleted" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -123,7 +123,7 @@ export async function POST(req) {
           error:
             "User has already completed onboarding or account is suspended",
         },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -131,7 +131,7 @@ export async function POST(req) {
     if (user.onboarding_completed) {
       return NextResponse.json(
         { success: false, error: "User has already completed onboarding" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -172,13 +172,13 @@ export async function POST(req) {
             message: e.message,
           })),
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     return NextResponse.json(
       { success: false, error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -15,9 +15,9 @@ import { requirePermission } from "@/utils/server/requirePermission";
 
 export async function POST(request) {
   try {
-    const [permissionError, session] = await requirePermission(
+    const [permissionError, session, admin_user] = await requirePermission(
       request,
-      "tasks.manage"
+      "tasks.manage",
     );
     if (permissionError) return permissionError;
 
@@ -25,8 +25,6 @@ export async function POST(request) {
     const action = searchParams.get("action");
 
     const body = await request.json();
-
-    const updated_by = session.user.id;
 
     let result;
 
@@ -37,12 +35,12 @@ export async function POST(request) {
       result = await bulkUpdateTaskStatus(
         validated.task_ids,
         validated.status,
-        session.user
+        admin_user,
       );
 
       return createSuccessResponse(
         "Task statuses updated successfully",
-        result
+        result,
       );
     }
 
@@ -53,12 +51,12 @@ export async function POST(request) {
       result = await bulkUpdateTaskPriority(
         validated.task_ids,
         validated.priority,
-        session.user
+        admin_user,
       );
 
       return createSuccessResponse(
         "Task priorities updated successfully",
-        result
+        result,
       );
     }
 
@@ -66,7 +64,7 @@ export async function POST(request) {
     return createErrorResponse(
       "Invalid action. Use ?action=status or ?action=priority",
       400,
-      "INVALID_ACTION"
+      "INVALID_ACTION",
     );
   } catch (error) {
     if (error?.name === "ZodError") {
@@ -74,7 +72,7 @@ export async function POST(request) {
         "Validation failed",
         400,
         "VALIDATION_ERROR",
-        error.errors
+        error.errors,
       );
     }
 

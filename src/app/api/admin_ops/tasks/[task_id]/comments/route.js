@@ -11,7 +11,7 @@ import {
 
 export async function POST(request, { params }) {
   try {
-    const [permissionError, session] = await requirePermission(
+    const [permissionError, session,admin_user] = await requirePermission(
       request,
       "tasks.access"
     );
@@ -24,7 +24,7 @@ export async function POST(request, { params }) {
 
     const comment = await createTaskComment(
       task_id,
-      session.user.id,
+      admin_user.id,
       validatedData.message,
       validatedData.mentions
     );
@@ -38,7 +38,7 @@ export async function POST(request, { params }) {
 // GET - List comments/timeline for a task
 export async function GET(request, { params }) {
   try {
-    const [permissionError, session] = await requirePermission(
+    const [permissionError, session,admin_user] = await requirePermission(
       request,
       "tasks.access"
     );
@@ -65,7 +65,7 @@ export async function GET(request, { params }) {
         cursor: validatedParams.cursor,
         type: validatedParams.type,
       },
-      session.user
+      admin_user
     );
 
     return createSuccessResponse("Comments retrieved successfully", result);

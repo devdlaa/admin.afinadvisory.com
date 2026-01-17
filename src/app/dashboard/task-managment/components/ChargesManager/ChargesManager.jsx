@@ -1,6 +1,6 @@
 "use client";
-import { useState } from "react";
-import { Plus, List, PieChart } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Plus, List, PieChart, Trash2 } from "lucide-react";
 
 import ChargesSummary from "../ChargesSummary/ChargesSummary";
 import ChargeCard from "../ChargeCard/ChargeCard";
@@ -8,23 +8,46 @@ import ChargeCard from "../ChargeCard/ChargeCard";
 import ActionButton from "@/app/components/shared/TinyLib/ActionButton";
 
 import "./ChargesManager.scss";
+import CircularLoader from "@/app/components/shared/newui/Loader/CircularLoader";
+import { CircularProgress } from "@mui/material";
 
 const ChargesManager = ({
   initialCharges = [],
+  deletedCharges = [],
   onAddCharge,
   onUpdateCharge,
   onDeleteCharge,
+  onRestoreCharge,
+  onHardDeleteCharge,
   onSaveInvoiceDetails,
+  onFetchDeletedCharges, // NEW: Callback to fetch deleted charges on demand
 
   isSavingInvoiceDetails = false,
+  isLoadingDeletedCharges = false,
   invoiceNumber = "",
   practiceFirm = null,
   chargeOperations = {},
 }) => {
-  const [view, setView] = useState("items");
+  const [view, setView] = useState("items"); // 'items' | 'summary' | 'deleted'
   const [draftCharge, setDraftCharge] = useState(null);
+  const [hasLoadedDeletedCharges, setHasLoadedDeletedCharges] = useState(false);
 
   const chargesArray = Array.isArray(initialCharges) ? initialCharges : [];
+  const deletedChargesArray = Array.isArray(deletedCharges)
+    ? deletedCharges
+    : [];
+
+  // Fetch deleted charges when switching to deleted tab
+  useEffect(() => {
+    if (
+      view === "deleted" &&
+      !hasLoadedDeletedCharges &&
+      onFetchDeletedCharges
+    ) {
+      onFetchDeletedCharges();
+      setHasLoadedDeletedCharges(true);
+    }
+  }, [view, hasLoadedDeletedCharges, onFetchDeletedCharges]);
 
   const handleAddCharge = () => {
     setDraftCharge({
@@ -37,7 +60,7 @@ const ChargesManager = ({
       remark: "",
       isNew: true,
     });
-    setView("items");
+    setView("items"); // Switch to items view when adding
   };
 
   const handleSaveNewCharge = async (chargeData) => {
@@ -80,6 +103,20 @@ const ChargesManager = ({
   const handleDeleteExistingCharge = async (id) => {
     if (onDeleteCharge) {
       await onDeleteCharge(id);
+      // Invalidate deleted charges cache so it refetches
+      setHasLoadedDeletedCharges(false);
+    }
+  };
+
+  const handleRestoreCharge = async (id) => {
+    if (onRestoreCharge) {
+      await onRestoreCharge(id);
+    }
+  };
+
+  const handleHardDeleteCharge = async (id) => {
+    if (onHardDeleteCharge) {
+      await onHardDeleteCharge(id);
     }
   };
 
@@ -138,6 +175,7 @@ const ChargesManager = ({
 
     createdBy: {
       name: charge?.creator?.name || "User",
+      email: charge?.creator?.email || null,
       date: charge.created_at
         ? new Date(charge.created_at).toLocaleDateString("en-GB", {
             day: "numeric",
@@ -147,16 +185,62 @@ const ChargesManager = ({
         : "N/A",
       created_by_uid: charge?.creator?.id || null,
     },
+
+    updatedBy: charge.updater
+      ? {
+          name: charge.updater.name,
+          email: charge.updater.email,
+          date: charge.updated_at
+            ? new Date(charge.updated_at).toLocaleDateString("en-GB", {
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+              })
+            : "N/A",
+          updated_by_uid: charge.updater.id,
+        }
+      : null,
+
+    deletedBy: charge.deleted_by
+      ? {
+          name: charge.deleted_by.name,
+          email: charge.deleted_by.email,
+          date: charge.deleted_at
+            ? new Date(charge.deleted_at).toLocaleDateString("en-GB", {
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+              })
+            : "N/A",
+          deleted_by_uid: charge.deleted_by.id,
+        }
+      : null,
+
+    restoredBy: charge.restored_by
+      ? {
+          name: charge.restored_by.name,
+          email: charge.restored_by.email,
+          date: charge.restored_at
+            ? new Date(charge.restored_at).toLocaleDateString("en-GB", {
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+              })
+            : "N/A",
+          restored_by_uid: charge.restored_by.id,
+        }
+      : null,
   });
 
   const savedChargesCount = chargesArray.length;
+  const deletedChargesCount = deletedChargesArray.length;
 
   return (
     <div className="charges-manager">
       <div className="charges-manager__header">
         <div className="charges-manager__header-left">
           <ActionButton
-            text="Add New Charge"
+            text="Add Charge"
             icon={Plus}
             onClick={handleAddCharge}
             variant="primary"
@@ -164,15 +248,6 @@ const ChargesManager = ({
             disabled={!!draftCharge || chargeOperations["new"] === "adding"}
             isLoading={chargeOperations["new"] === "adding"}
           />
-
-          {savedChargesCount > 0 && (
-            <div className="charges-manager__item-count">
-              <span className="charges-manager__count">
-                {savedChargesCount}
-              </span>
-              <span className="charges-manager__count-label">Items</span>
-            </div>
-          )}
         </div>
 
         <div className="charges-manager__view-toggle-container">
@@ -184,6 +259,13 @@ const ChargesManager = ({
           >
             <List size={18} />
             <span>Items View</span>
+            {savedChargesCount > 0 && (
+              <span style={{
+                background : "blue"
+              }} className="charges-manager__tab-badge">
+                {savedChargesCount}
+              </span>
+            )}{" "}
           </button>
 
           <button
@@ -196,11 +278,27 @@ const ChargesManager = ({
             <PieChart size={18} />
             <span>Summary</span>
           </button>
+
+          <button
+            className={`charges-manager__view-toggle ${
+              view === "deleted" ? "charges-manager__active-deleted" : ""
+            }`}
+            onClick={() => setView("deleted")}
+            disabled={!!draftCharge}
+          >
+            <Trash2 size={18} />
+            <span>Deleted Charges</span>
+            {deletedChargesCount > 0 && (
+              <span className="charges-manager__tab-badge">
+                {deletedChargesCount}
+              </span>
+            )}
+          </button>
         </div>
       </div>
 
       <div className="charges-manager__content">
-        {view === "items" ? (
+        {view === "items" && (
           <div className="charges-manager__charges-list">
             {chargesArray.length === 0 && !draftCharge ? (
               <div className="charges-manager__empty-state">
@@ -216,6 +314,7 @@ const ChargesManager = ({
                     isLoading={chargeOperations["new"] === "adding"}
                     onUpdate={(data) => handleSaveNewCharge(data)}
                     onCancel={handleCancelNewCharge}
+                    mode="active"
                   />
                 )}
 
@@ -235,13 +334,16 @@ const ChargesManager = ({
                       onDelete={() => handleDeleteExistingCharge(charge.id)}
                       isLoading={isChargeLoading}
                       operationType={chargeOperation}
+                      mode="active"
                     />
                   );
                 })}
               </>
             )}
           </div>
-        ) : (
+        )}
+
+        {view === "summary" && (
           <ChargesSummary
             summary={calculateSummary()}
             initialInvoiceNumber={invoiceNumber}
@@ -249,6 +351,48 @@ const ChargesManager = ({
             onSaveInvoiceDetails={onSaveInvoiceDetails}
             isSavingInvoiceDetails={isSavingInvoiceDetails}
           />
+        )}
+
+        {view === "deleted" && (
+          <div className="charges-manager__charges-list charges-manager__charges-list--deleted">
+            {isLoadingDeletedCharges ? (
+              <div className="charges-manager__loading-state">
+                <div className="charges-manager__spinner" />
+                <CircularProgress color="grey" size={18} />
+                <p>Loading deleted charges...</p>
+              </div>
+            ) : deletedChargesArray.length === 0 ? (
+              <div className="charges-manager__empty-state">
+                <Trash2 size={48} className="charges-manager__empty-icon" />
+                <p>No deleted charges</p>
+                <span className="charges-manager__empty-hint">
+                  Deleted charges will appear here and can be restored or
+                  permanently deleted.
+                </span>
+              </div>
+            ) : (
+              <>
+                {deletedChargesArray.map((charge) => {
+                  const chargeOperation = chargeOperations[charge.id];
+                  const isChargeLoading =
+                    chargeOperation === "restoring" ||
+                    chargeOperation === "hard-deleting";
+
+                  return (
+                    <ChargeCard
+                      key={charge.id}
+                      charge={transformChargeForCard(charge)}
+                      onRestore={() => handleRestoreCharge(charge.id)}
+                      onHardDelete={() => handleHardDeleteCharge(charge.id)}
+                      isLoading={isChargeLoading}
+                      operationType={chargeOperation}
+                      mode="deleted"
+                    />
+                  );
+                })}
+              </>
+            )}
+          </div>
         )}
       </div>
     </div>
