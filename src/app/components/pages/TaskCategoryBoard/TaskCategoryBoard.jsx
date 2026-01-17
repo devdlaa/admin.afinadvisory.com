@@ -30,7 +30,8 @@ import {
 } from "@/store/slices/taskCategorySlice";
 
 import ConfirmationDialog from "../../shared/ConfirmationDialog/ConfirmationDialog";
-import { truncateText } from "@/utils/server/utils";
+
+import { truncateText } from "@/utils/client/cutils";
 
 const TaskCategoryBoard = ({
   isOpen,

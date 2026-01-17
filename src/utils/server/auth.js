@@ -104,7 +104,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
           // Extract permission codes
           const permissionCodes = user.permissions.map(
-            (up) => up.permission.code
+            (up) => up.permission.code,
           );
 
           // Return user object for JWT/session
@@ -113,6 +113,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             email: user.email,
             name: user.name,
             role: user.admin_role,
+            admin_role: user.admin_role,
             userCode: user.user_code,
             phone: user.phone,
             alternatePhone: user.alternate_phone,
@@ -143,6 +144,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.email = user.email;
         token.name = user.name;
         token.role = user.role;
+        token.admin_role = user.role;
         token.userCode = user.userCode;
         token.phone = user.phone;
         token.alternatePhone = user.alternatePhone;
@@ -171,6 +173,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.email = token.email;
         session.user.name = token.name;
         session.user.role = token.role;
+        session.user.admin_role = token.admin_role;
         session.user.userCode = token.userCode;
         session.user.phone = token.phone;
         session.user.alternatePhone = token.alternatePhone;
@@ -196,14 +199,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
   session: {
     strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60, // 30 days
+    maxAge: 30 * 24 * 60 * 60,
   },
 
   secret: process.env.NEXTAUTH_SECRET,
   debug: process.env.NODE_ENV === "development",
 });
 
-// : unlock dashboard TOTP verifier
 export async function verifyTotpForUnlock(userId, code) {
   try {
     const user = await prisma.adminUser.findUnique({

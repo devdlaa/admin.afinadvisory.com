@@ -21,7 +21,7 @@ const EDIT_WINDOW_HOURS = 48;
 // ------------------------------------------------------------------
 
 async function ensureUserCanAccessTask(task_id, user) {
-  if (user.role === "SUPER_ADMIN") return true;
+  if (user.admin_role === "SUPER_ADMIN") return true;
 
   const task = await prisma.task.findFirst({
     where: {
@@ -96,14 +96,14 @@ export const createTaskComment = async (
   task_id,
   user_id,
   rawMessage,
-  mentions = []
+  mentions = [],
 ) => {
   const user = await getValidAdminUser(user_id);
   const task = await ensureUserCanAccessTask(task_id, user);
 
   const cleanedMessage = stripMentionsFromMessage(
     (rawMessage || "").trim(),
-    mentions
+    mentions,
   );
 
   if (!cleanedMessage) {
@@ -118,7 +118,7 @@ export const createTaskComment = async (
 
   const now = new Date();
   const editedUntil = new Date(
-    now.getTime() + EDIT_WINDOW_HOURS * 60 * 60 * 1000
+    now.getTime() + EDIT_WINDOW_HOURS * 60 * 60 * 1000,
   );
 
   const payload = {
@@ -249,9 +249,9 @@ export const listTaskTimeline = async (
   {
     limit = 20,
     cursor = null,
-    type = "ALL", // COMMENT | ACTIVITY | ALL
+    type = "ALL", 
   } = {},
-  currentUser
+  currentUser,
 ) => {
   await ensureUserCanAccessTask(task_id, currentUser);
 
@@ -330,7 +330,7 @@ export const updateTaskComment = async (
   comment_id,
   user_id,
   rawMessage,
-  mentions = []
+  mentions = [],
 ) => {
   const user = await getValidAdminUser(user_id);
 
@@ -372,7 +372,7 @@ export const updateTaskComment = async (
   // sanitize message
   const cleanedMessage = stripMentionsFromMessage(
     (rawMessage || "").trim(),
-    mentions
+    mentions,
   );
 
   if (!cleanedMessage) {

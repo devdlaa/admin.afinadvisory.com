@@ -31,6 +31,7 @@ const EMAIL_TEMPLATES = {
   },
 };
 
+
 const loadTemplate = async (templateName, variables) => {
   try {
     const filePath = path.join(

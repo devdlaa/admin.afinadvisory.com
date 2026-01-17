@@ -4,7 +4,7 @@ import { addTaskActivityLog } from "./taskComment.service.js";
 import { buildActivityMessage } from "@/utils/server/activityBulder.js";
 
 export function buildTaskVisibilityWhere(user) {
-  if (user.role === "SUPER_ADMIN") {
+  if (user.admin_role === "SUPER_ADMIN") {
     return {}; 
   }
 
@@ -379,7 +379,7 @@ export const updateTask = async (task_id, data, currentUser) => {
 
   if (statusChanged) {
     const globalCounts =
-      currentUser.role === "SUPER_ADMIN"
+      currentUser.admin_role === "SUPER_ADMIN"
         ? await getStatusCounts()
         : await getStatusCounts(buildTaskVisibilityWhere(currentUser));
 
@@ -427,7 +427,7 @@ export const deleteTask = async (task_id, currentUser) => {
 
     // Global counts (respect visibility for non-super-admin)
     const globalCounts =
-      currentUser.role === "SUPER_ADMIN"
+      currentUser.admin_role === "SUPER_ADMIN"
         ? await getStatusCounts({}, tx)
         : await getStatusCounts(visibilityWhere, tx);
 
@@ -721,7 +721,7 @@ export const bulkUpdateTaskStatus = async (task_ids, status, currentUser) => {
 
     // Status counts respecting visibility
     const globalCounts =
-      currentUser.role === "SUPER_ADMIN"
+      currentUser.admin_role === "SUPER_ADMIN"
         ? await getStatusCounts({}, tx)
         : await getStatusCounts(visibilityWhere, tx);
 
