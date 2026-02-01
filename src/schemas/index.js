@@ -34,6 +34,8 @@ import {
 } from "./operations/taskAssignment.schema.js";
 
 import {
+  bulkChargeStatusUpdateSchema,
+  bulkTaskChargeUpdateSchema,
   createTaskChargeSchema,
   deleteTaskChargeSchema,
   hardDeleteTaskChargeSchema,
@@ -53,6 +55,35 @@ import {
   taskCommentUpdateSchema,
 } from "./activity/taskComment.schema.js";
 import { checklistSyncSchema } from "./core/taskChecklist.js";
+import {
+  bulkMarkNonBillableSchema,
+  bulkRestoreBillableSchema,
+  nonBillableReconcileQuerySchema,
+  OutstandingQuerySchema,
+  reconciledReconcileQuerySchema,
+  unreconciledReconcileQuerySchema,
+} from "./operations/reconcile.schema.js";
+import {
+  createEntityAdhocChargeSchema,
+  updateEntityAdhocChargeSchema,
+  deleteEntityAdhocChargeSchema,
+} from "./core/entityCharge.schema.js";
+import {
+  documentDeleteSchema,
+  documentListQuerySchema,
+  DocumentScopeEnum,
+  documentUploadSchema,
+} from "./operations/document.schema.js";
+import {
+  InvoiceCreateOrAppendSchema,
+  InvoiceGetDetailsSchema,
+  InvoiceQuerySchema,
+} from "./operations/invoice.schema.js";
+import {
+  CompanyProfileCreateSchema,
+  CompanyProfileQuerySchema,
+  CompanyProfileUpdateSchema,
+} from "./operations/Companyprofile.schema.js";
 
 // ============================================================================
 // Structured Export Object
@@ -64,7 +95,7 @@ export const schemas = Object.freeze({
     create: EntityCreateSchema,
     update: EntityUpdateSchema,
     query: EntityQuerySchema,
-    bulkImport : EntityBulkImportSchema,
+    bulkImport: EntityBulkImportSchema,
     enums: {
       type: EntityTypeEnum,
       status: EntityStatusEnum,
@@ -99,6 +130,8 @@ export const schemas = Object.freeze({
     list: listTaskChargesSchema,
     restore: restoreTaskChargeSchema,
     hardDelete: hardDeleteTaskChargeSchema,
+    bulkStatus: bulkChargeStatusUpdateSchema,
+    bulkTaskChargeUpdate: bulkTaskChargeUpdateSchema,
   },
 
   taskAssignment: {
@@ -118,6 +151,39 @@ export const schemas = Object.freeze({
   },
   taskChecklist: {
     sync: checklistSyncSchema,
+  },
+  reconcile: {
+    unreconciled: unreconciledReconcileQuerySchema,
+    reconciled: reconciledReconcileQuerySchema,
+    nonBillable: nonBillableReconcileQuerySchema,
+    markNonBillable: bulkMarkNonBillableSchema,
+    restoreBillable: bulkRestoreBillableSchema,
+  },
+  outstanding: {
+    query: OutstandingQuerySchema,
+  },
+  entityAdhocCharge: {
+    create: createEntityAdhocChargeSchema,
+    update: updateEntityAdhocChargeSchema,
+    delete: deleteEntityAdhocChargeSchema,
+  },
+  document: {
+    upload: documentUploadSchema,
+    query: documentListQuerySchema,
+    delete: documentDeleteSchema,
+    enums: {
+      scope: DocumentScopeEnum,
+    },
+  },
+  invoice: {
+    createOrAppend: InvoiceCreateOrAppendSchema,
+    query: InvoiceQuerySchema,
+    getDetails: InvoiceGetDetailsSchema,
+  },
+  companyProfile: {
+    update: CompanyProfileUpdateSchema,
+    query: CompanyProfileQuerySchema,
+    create: CompanyProfileCreateSchema,
   },
 });
 

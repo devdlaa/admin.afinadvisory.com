@@ -363,7 +363,6 @@ function TasksPageContent() {
         entity_id: null,
         task_category_id: null,
         assigned_to: null,
-        // status: null, // FIX: Preserve status filter when clearing
         priority: null,
         search: null,
         is_billable: null,

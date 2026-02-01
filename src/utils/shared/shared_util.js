@@ -60,8 +60,6 @@ export const buildFallbackMessage = (changes = []) => {
   return `${parts.slice(0, -1).join(", ")}, and ${parts.at(-1)}`;
 };
 
-
-
 export const toDateInputValue = (date) => {
   if (!date) return "";
   const d = new Date(date);

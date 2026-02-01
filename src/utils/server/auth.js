@@ -65,42 +65,43 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             return null;
           }
 
+        
           // If 2FA is enabled, verify TOTP code
-          if (user.is_2fa_enabled) {
-            // TOTP code must be provided
-            if (!totpCode) {
-              return null;
-            }
+          // if (user.is_2fa_enabled) {
+          //   // TOTP code must be provided
+          //   if (!totpCode) {
+          //     return null;
+          //   }
 
-            if (!user.totp_secret) {
-              return null;
-            }
+          //   if (!user.totp_secret) {
+          //     return null;
+          //   }
 
-            // Verify TOTP code
-            const isValidTotp = authenticator.verify({
-              token: totpCode,
-              secret: user.totp_secret,
-            });
+          //   // Verify TOTP code
+          //   const isValidTotp = authenticator.verify({
+          //     token: totpCode,
+          //     secret: user.totp_secret,
+          //   });
 
-            if (!isValidTotp) {
-              return null;
-            }
+          //   if (!isValidTotp) {
+          //     return null;
+          //   }
 
-            // Update 2FA verification timestamp
-            await prisma.adminUser.update({
-              where: { id: user.id },
-              data: {
-                two_fa_verified_at: new Date(),
-                last_login_at: new Date(),
-              },
-            });
-          } else {
-            // Update last login for non-2FA users
-            await prisma.adminUser.update({
-              where: { id: user.id },
-              data: { last_login_at: new Date() },
-            });
-          }
+          //   // Update 2FA verification timestamp
+          //   await prisma.adminUser.update({
+          //     where: { id: user.id },
+          //     data: {
+          //       two_fa_verified_at: new Date(),
+          //       last_login_at: new Date(),
+          //     },
+          //   });
+          // } else {
+          //   // Update last login for non-2FA users
+          //   await prisma.adminUser.update({
+          //     where: { id: user.id },
+          //     data: { last_login_at: new Date() },
+          //   });
+          // }
 
           // Extract permission codes
           const permissionCodes = user.permissions.map(

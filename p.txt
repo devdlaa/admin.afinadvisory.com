@@ -1,0 +1,324 @@
+"use client";
+import React, { useState } from "react";
+import BillingTable from "./newComponents/BillingTable/BillingTable";
+
+import {
+  createNonBillableConfig,
+  createUnReconciledConfig,
+  createInvoiceLinkedConfig,
+} from "./newComponents/Billingtableconfig";
+
+
+
+// Dummy data generator
+const generateDummyTasks = (
+  count = 15,
+  includeCharges = true,
+  includeSystemTasks = false,
+) => {
+  const tasks = [];
+
+  for (let i = 0; i < count; i++) {
+    const isSystem = includeSystemTasks && i % 5 === 0;
+
+    const task = {
+      type: isSystem ? "ADHOC" : "TASK",
+      task: {
+        id: `task-${i + 1}`,
+        title: isSystem
+          ? `Ad-hoc Charge ${i + 1}`
+          : [
+              "File GST",
+              "FOSCOS License",
+              "Company Incorporation (PVT LTD)",
+              "GST Registration",
+              "Pan Card Updates",
+              "Income Tax Filing",
+              "TDS Return Filing",
+            ][i % 7],
+        description: isSystem
+          ? "System-generated task for ad-hoc charge"
+          : "Task description here",
+        status: "PENDING",
+        priority: "NORMAL",
+        created_at: new Date(2026, 0, 17 + i).toISOString(),
+        task_type: isSystem ? "SYSTEM_ADHOC" : "REGULAR",
+        is_system: isSystem,
+        category: isSystem
+          ? null
+          : {
+              id: `cat-${i}`,
+              name: [
+                "GST Services",
+                "License Registration",
+                "Company Formation",
+              ][i % 3],
+            },
+        creator: {
+          id: "user-1",
+          name: "Mohit Sharma",
+          email: "development.dlaa@gmail.com",
+          admin_role: "SUPER_ADMIN",
+          status: "ACTIVE",
+        },
+        entity: {
+          id: `entity-${i}`,
+          name: [
+            "Chalchitra Talks Private Limited",
+            "Sahil Khan",
+            "Sona Verma",
+            "Alka Joshi",
+            "Staar Realty",
+          ][i % 5],
+          email: `client${i}@example.com`,
+          phone: "9876543210",
+        },
+      },
+      charges: [],
+    };
+
+    if (includeCharges) {
+      const chargeCount = isSystem ? 1 : Math.floor(Math.random() * 4);
+
+      for (let j = 0; j < chargeCount; j++) {
+        task.charges.push({
+          id: `charge-${i}-${j}`,
+          title: isSystem
+            ? `Ad-hoc Service Fee ${i + 1}`
+            : `Digital signature bought for DSC renewal`,
+          amount: (Math.floor(Math.random() * 50) + 10) * 500,
+          charge_type: ["SERVICE_FEE", "EXTERNAL_CHARGE"][j % 2],
+          status: Math.random() > 0.5 ? "PAID" : "NOT_PAID",
+          who_is_bearer:
+            Math.random() > 0.3 ? "CLIENT_WILL_PAY" : "COMPANY_WILL_PAY",
+          remark: "Charge remark here",
+          created_at: new Date(2026, 0, 20 + j).toISOString(),
+          updated_at: new Date(2026, 0, 20 + j).toISOString(),
+        });
+      }
+    }
+
+    tasks.push(task);
+  }
+
+  return tasks;
+};
+
+const BillingTableDemo = () => {
+  const [currentView, setCurrentView] = useState("UN_RECONCILED");
+  const [invoiceStatus, setInvoiceStatus] = useState("DRAFT");
+
+  const demoData = {
+    NON_BILLABLE: generateDummyTasks(8, true, true),
+    UN_RECONCILED: generateDummyTasks(12, true, true),
+    INVOICE_LINKED: generateDummyTasks(6, true, true),
+  };
+
+  // ============================================================================
+  // HANDLERS
+  // ============================================================================
+
+  const handlers = {
+    // Non-Billable handlers
+    onMarkAsBillable: (selectedIds, context) => {
+      console.log("Mark as billable:", selectedIds);
+      alert(`Marking ${selectedIds.length} tasks as billable`);
+      context.clearSelection();
+    },
+
+    // Un-Reconciled handlers
+    onAddAdHocCharge: () => {
+      console.log("Add ad-hoc charge");
+      alert("Opening ad-hoc charge form");
+    },
+
+    onMarkAsNonBillable: (selectedIds, context) => {
+      console.log("Mark as non-billable:", selectedIds);
+      alert(`Marking ${selectedIds.length} tasks as non-billable`);
+      context.clearSelection();
+    },
+
+    onCreateInvoice: (selectedIds, context) => {
+      console.log("Create invoice:", selectedIds);
+      alert(`Creating invoice for ${selectedIds.length} tasks`);
+      context.clearSelection();
+    },
+
+    // Invoice-Linked handlers
+    onLinkMoreCharges: () => {
+      console.log("Link more charges");
+      alert("Opening charge linking modal");
+    },
+
+    onUnlinkFromInvoice: (selectedIds, context) => {
+      console.log("Unlink from invoice:", selectedIds);
+      alert(`Unlinking ${selectedIds.length} items from invoice`);
+      context.clearSelection();
+    },
+
+    onRemoveSelection: (selectedIds, context) => {
+      console.log("Remove selection");
+      context.clearSelection();
+    },
+
+    // Charges table handlers
+    onAddCharge: (taskId, chargeData) => {
+      console.log("Add charge to task:", taskId, chargeData);
+      alert(`Adding charge: ${chargeData.title} to task ${taskId}`);
+    },
+
+    onUpdateCharges: (taskId, updates) => {
+      console.log("Update charges:", taskId, updates);
+      alert(`Updating ${updates.length} charges for task ${taskId}`);
+    },
+
+    onDeleteCharge: (taskId, chargeId) => {
+      console.log("Delete charge:", taskId, chargeId);
+      alert(`Deleting charge ${chargeId} from task ${taskId}`);
+    },
+
+    onUpdateChargeStatus: (taskId, chargeIds, status) => {
+      console.log("Update charge status:", taskId, chargeIds, status);
+      alert(`Marking ${chargeIds.length} charges as ${status}`);
+    },
+
+    onDeleteSystemTask: (taskId) => {
+      console.log("Delete system task:", taskId);
+      alert(`Deleting system task ${taskId}`);
+    },
+
+    onUnlinkSystemTask: (taskId) => {
+      console.log("Unlink system task:", taskId);
+      alert(`Unlinking system task ${taskId} from invoice`);
+    },
+  };
+
+  // ============================================================================
+  // CONFIG SELECTION
+  // ============================================================================
+
+  const config = React.useMemo(() => {
+    switch (currentView) {
+      case "NON_BILLABLE":
+        return createNonBillableConfig(handlers);
+
+      case "UN_RECONCILED":
+        return createUnReconciledConfig(handlers);
+
+      case "INVOICE_LINKED":
+        return createInvoiceLinkedConfig(
+          "invoice-123",
+          invoiceStatus,
+          handlers,
+        );
+
+      default:
+        return createUnReconciledConfig(handlers);
+    }
+  }, [currentView, invoiceStatus, handlers]);
+
+  // ============================================================================
+  // RENDER
+  // ============================================================================
+
+  return (
+    <div style={{ padding: "40px", maxWidth: "1400px", margin: "0 auto" }}>
+      <div style={{ marginBottom: "24px" }}>
+        <div style={{ display: "flex", gap: "12px", marginBottom: "16px" }}>
+          <button
+            onClick={() => setCurrentView("NON_BILLABLE")}
+            style={{
+              padding: "10px 20px",
+              background:
+                currentView === "NON_BILLABLE" ? "#6366f1" : "#ffffff",
+              color: currentView === "NON_BILLABLE" ? "#ffffff" : "#3c4043",
+              border: "1px solid #dadce0",
+              borderRadius: "6px",
+              cursor: "pointer",
+              fontWeight: "500",
+            }}
+          >
+            Non-Billable View
+          </button>
+
+          <button
+            onClick={() => setCurrentView("UN_RECONCILED")}
+            style={{
+              padding: "10px 20px",
+              background:
+                currentView === "UN_RECONCILED" ? "#6366f1" : "#ffffff",
+              color: currentView === "UN_RECONCILED" ? "#ffffff" : "#3c4043",
+              border: "1px solid #dadce0",
+              borderRadius: "6px",
+              cursor: "pointer",
+              fontWeight: "500",
+            }}
+          >
+            Un-Reconciled View
+          </button>
+
+          <button
+            onClick={() => setCurrentView("INVOICE_LINKED")}
+            style={{
+              padding: "10px 20px",
+              background:
+                currentView === "INVOICE_LINKED" ? "#6366f1" : "#ffffff",
+              color: currentView === "INVOICE_LINKED" ? "#ffffff" : "#3c4043",
+              border: "1px solid #dadce0",
+              borderRadius: "6px",
+              cursor: "pointer",
+              fontWeight: "500",
+            }}
+          >
+            Invoice Linked View
+          </button>
+        </div>
+
+        {currentView === "INVOICE_LINKED" && (
+          <div style={{ display: "flex", gap: "12px", marginBottom: "16px" }}>
+            <label
+              style={{ display: "flex", alignItems: "center", gap: "8px" }}
+            >
+              <input
+                type="radio"
+                name="invoiceStatus"
+                value="DRAFT"
+                checked={invoiceStatus === "DRAFT"}
+                onChange={(e) => setInvoiceStatus(e.target.value)}
+              />
+              Draft (Editable)
+            </label>
+            <label
+              style={{ display: "flex", alignItems: "center", gap: "8px" }}
+            >
+              <input
+                type="radio"
+                name="invoiceStatus"
+                value="ISSUED"
+                checked={invoiceStatus === "ISSUED"}
+                onChange={(e) => setInvoiceStatus(e.target.value)}
+              />
+              Issued (Read-Only)
+            </label>
+            <label
+              style={{ display: "flex", alignItems: "center", gap: "8px" }}
+            >
+              <input
+                type="radio"
+                name="invoiceStatus"
+                value="PAID"
+                checked={invoiceStatus === "PAID"}
+                onChange={(e) => setInvoiceStatus(e.target.value)}
+              />
+              Paid (Read-Only)
+            </label>
+          </div>
+        )}
+      </div>
+
+      <BillingTable config={config} data={demoData[currentView]} />
+    </div>
+  );
+};
+
+export default BillingTableDemo;

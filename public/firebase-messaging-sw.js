@@ -6,7 +6,7 @@ importScripts(
   "https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js"
 );
 
-console.log("[Service Worker] Loading firebase-messaging-sw.js");
+
 
 firebase.initializeApp({
   apiKey: "AIzaSyBkahB5Y6rovzShztU_mtqJ2obamLIL8TE",
@@ -17,14 +17,14 @@ firebase.initializeApp({
   appId: "1:914949246139:web:04646f37bcaea199b72d9e",
 });
 
-console.log("[Service Worker] Firebase initialized");
+
 
 const messaging = firebase.messaging();
-console.log("[Service Worker] Messaging instance created");
+
 
 // Handle background messages
 messaging.onBackgroundMessage(function (payload) {
-  console.log("[Service Worker] Background message received:", payload);
+  
 
   const notificationTitle = payload.notification?.title || "New Notification";
   const notificationOptions = {
@@ -53,24 +53,23 @@ messaging.onBackgroundMessage(function (payload) {
   return self.registration
     .showNotification(notificationTitle, notificationOptions)
     .then(() => {
-      console.log("[Service Worker] Notification displayed successfully");
+   
     })
     .catch((error) => {
-      console.error("[Service Worker] Error showing notification:", error);
+      console.error("[Service Worker] Error showing notification:");
     });
 });
 
 // Handle notification clicks
 self.addEventListener("notificationclick", function (event) {
-  console.log("[Service Worker] Notification clicked:", event.notification);
-  console.log("[Service Worker] Notification data:", event.notification.data);
+
 
   event.notification.close();
 
   const link = event.notification?.data?.link || "/notifications";
   const fullUrl = new URL(link, self.location.origin).href;
 
-  console.log("[Service Worker] Opening URL:", fullUrl);
+
 
   event.waitUntil(
     clients
@@ -79,26 +78,26 @@ self.addEventListener("notificationclick", function (event) {
         includeUncontrolled: true,
       })
       .then((clientList) => {
-        console.log("[Service Worker] Found clients:", clientList.length);
+        
 
         // Focus existing tab if available
         for (const client of clientList) {
-          console.log("[Service Worker] Checking client URL:", client.url);
+      
           if (client.url === fullUrl && "focus" in client) {
-            console.log("[Service Worker] Focusing existing client");
+      
             return client.focus();
           }
         }
         // Open new tab
         if (clients.openWindow) {
-          console.log("[Service Worker] Opening new window");
+     
           return clients.openWindow(fullUrl);
         }
       })
       .catch((error) => {
         console.error(
           "[Service Worker] Error handling notification click:",
-          error
+          
         );
       })
   );

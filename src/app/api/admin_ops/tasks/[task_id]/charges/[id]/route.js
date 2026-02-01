@@ -54,6 +54,8 @@ export async function DELETE(request, { params }) {
       params: resolvedParams,
     });
 
+  
+
     const deleted = await deleteTaskCharge(parsed.params.id, session.user);
 
     return createSuccessResponse("Charge deleted successfully", deleted);

@@ -13,6 +13,13 @@ export const formatDate = (dateString) => {
   });
 };
 
+  export const formatFileSize = (bytes) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+
 export function generateInfluencerUsername(email, phone) {
   // 1️⃣  Take the email name part (before @) and clean it
   const emailName = email
@@ -82,7 +89,10 @@ export const INDIAN_STATES = [
 ];
 
 export const formatCurrency = (amount) => {
-  return `₹${amount.toLocaleString("en-IN")}`;
+  return `₹${Number(amount).toLocaleString("en-IN", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
 };
 
 export function removeEmptyFields(input) {
@@ -93,7 +103,7 @@ export function removeEmptyFields(input) {
         (item) =>
           item !== undefined &&
           item !== null &&
-          (typeof item !== "object" || Object.keys(item).length > 0)
+          (typeof item !== "object" || Object.keys(item).length > 0),
       );
   } else if (input !== null && typeof input === "object") {
     const cleaned = {};

@@ -1,27 +1,107 @@
 import { prisma } from "@/utils/server/db.js";
-import { NotFoundError, ValidationError } from "../../utils/server/errors.js";
+import {
+  NotFoundError,
+  ValidationError,
+  ForbiddenError,
+} from "../../utils/server/errors.js";
 import { addTaskActivityLog } from "./taskComment.service.js";
 import { buildActivityMessage } from "@/utils/server/activityBulder.js";
 
+import {
+  applyTaskCreate,
+  applyTaskUpdate,
+  applyTaskDelete,
+} from "./task_aggregation_deltas.js";
+
+// ==================== INVOICE LOCK HELPER ====================
+
+/**
+ * Check if critical invoice-locked fields are being modified
+ * LOCKS: title, status, entity_id, task_category_id, is_billable,
+ * ALLOWS: priority, description, due_date, start_date, end_date, assignments
+ */
+async function ensureTaskCriticalFieldsEditable(taskId, updates, tx = prisma) {
+  const task = await tx.task.findUnique({
+    where: { id: taskId },
+    select: {
+      id: true,
+      title: true,
+      status: true,
+      entity_id: true,
+      task_category_id: true,
+      is_billable: true,
+
+      invoice_internal_number: true,
+      invoice: {
+        select: {
+          id: true,
+          status: true,
+          internal_number: true,
+        },
+      },
+    },
+  });
+
+  if (!task) {
+    throw new NotFoundError("Task not found");
+  }
+
+  if (
+    task.invoice_internal_number &&
+    updates.entity_id !== undefined &&
+    updates.entity_id !== task.entity_id
+  ) {
+    throw new ForbiddenError(
+      `Cannot modify client - task is Linked (invoice ${task.invoice.internal_number}). Status ${task.invoice.status}.`,
+    );
+  }
+
+  // If task is in ISSUED or PAID invoice, lock critical fields
+  if (
+    task.invoice_internal_number &&
+    task.invoice &&
+    (task.invoice.status !== "CANCELLED")
+  ) {
+    const criticalFields = {
+      title: "title",
+      status: "status",
+      task_category_id: "task category",
+      is_billable: "billable status",
+    };
+
+    const lockedChanges = [];
+
+    for (const [field, label] of Object.entries(criticalFields)) {
+      if (updates[field] !== undefined && updates[field] !== task[field]) {
+        lockedChanges.push(label);
+      }
+    }
+
+    if (lockedChanges.length > 0) {
+      throw new ForbiddenError(
+        `Cannot modify ${lockedChanges.join(", ")} - task is locked because it's part of ${task.invoice.status.toLowerCase()} invoice (${task.invoice.internal_number}). Contact admin for corrections.`,
+      );
+    }
+  }
+
+  return task;
+}
+
+// ==================== VISIBILITY HELPER ====================
+
 export function buildTaskVisibilityWhere(user) {
-  
   if (user.admin_role === "SUPER_ADMIN") {
     return {};
   }
-
-
-
   return {
     OR: [
       { assigned_to_all: true },
-      {
-        assignments: {
-          some: { admin_user_id: user.id },
-        },
-      },
+      { assignments: { some: { admin_user_id: user.id } } },
     ],
   };
 }
+
+// ==================== STATUS COUNTS HELPER ====================
 
 /**
  * Helper to get status counts - OPTIMIZED VERSION
@@ -45,7 +125,6 @@ const getStatusCounts = async (where = {}, db = prisma) => {
 
   const result = {};
   statuses.forEach((s) => (result[s] = 0));
-
   groupedCounts.forEach((item) => {
     if (result[item.status] !== undefined) {
       result[item.status] = item._count.status;
@@ -55,102 +134,89 @@ const getStatusCounts = async (where = {}, db = prisma) => {
   return result;
 };
 
+// ==================== CREATE TASK ====================
+
 /**
- * Create a task (manual only, no compliance/cycles)
- * NOW RETURNS GLOBAL STATUS COUNTS
+ * Create a task - BLAZING FAST VERSION
+ * - Parallel validations
+ * - Single task creation with minimal select
+ * - No redundant fetches
+ * - Status counts fetched outside transaction
  */
 export const createTask = async (data, created_by) => {
-  return prisma.$transaction(async (tx) => {
+  // Pre-validate due date (no DB call needed)
+  if (data.due_date && new Date(data.due_date) < new Date()) {
+    throw new ValidationError("Due date cannot be in the past");
+  }
+
+  const result = await prisma.$transaction(async (tx) => {
+    //  PARALLEL VALIDATIONS - Run simultaneously
+    const validations = [];
+
     if (data.entity_id) {
-      const entity = await tx.entity.findFirst({
-        where: { id: data.entity_id },
-      });
-
-      if (!entity) throw new NotFoundError("Entity not found");
+      validations.push(
+        tx.entity.findUnique({
+          where: { id: data.entity_id },
+          select: { id: true },
+        }),
+      );
+    } else {
+      validations.push(Promise.resolve(null));
     }
 
-    // validate task category if provided
     if (data.task_category_id) {
-      const category = await tx.taskCategory.findFirst({
-        where: { id: data.task_category_id },
-      });
-
-      if (!category) {
-        throw new NotFoundError("Task category not found or inactive");
-      }
+      validations.push(
+        tx.taskCategory.findUnique({
+          where: { id: data.task_category_id },
+          select: { id: true },
+        }),
+      );
+    } else {
+      validations.push(Promise.resolve(null));
     }
 
-    // due date sanity check
-    if (data.due_date && new Date(data.due_date) < new Date()) {
-      throw new ValidationError("Due date cannot be in the past");
+    const [entity, category] = await Promise.all(validations);
+
+    if (data.entity_id && !entity) {
+      throw new NotFoundError("Entity not found");
+    }
+    if (data.task_category_id && !category) {
+      throw new NotFoundError("Task category not found or inactive");
     }
 
-    // create task
+    //  CREATE TASK - Single query with minimal necessary data
     const task = await tx.task.create({
       data: {
         entity_id: data.entity_id ?? null,
         title: data.title,
         description: data.description ?? null,
-
         status: data.status ?? "PENDING",
         priority: data.priority ?? "NORMAL",
-
         start_date: data.start_date ? new Date(data.start_date) : null,
         end_date: data.end_date ? new Date(data.end_date) : null,
         due_date: data.due_date ? new Date(data.due_date) : null,
-
         task_category_id: data.task_category_id ?? null,
-
-        is_billable: data.is_billable ?? false,
-        invoice_number: data.invoice_number ?? null,
-        billed_from_firm: data.billed_from_firm ?? null,
+        is_billable: true,
 
         created_by,
         updated_by: created_by,
       },
-      include: {
-        entity: {
-          include: {
-            custom_fields: {
-              orderBy: { name: "asc" },
-            },
-          },
-        },
-        category: true,
-        last_activity_admin: { select: { id: true, name: true, email: true } },
-        creator: { select: { id: true, name: true, email: true } },
-        updater: { select: { id: true, name: true, email: true } },
-
-        charges: {
-          where: {
-            deleted_at: null,
-          },
-          orderBy: {
-            created_at: "asc",
-          },
-          include: {
-            creator: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-              },
-            },
-            updater: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-              },
-            },
-            deleter: { select: { id: true, name: true, email: true } },
-            restorer: { select: { id: true, name: true, email: true } },
-          },
-        },
-        checklist_items: true,
+      select: {
+        id: true,
+        title: true,
+        status: true,
+        priority: true,
+        due_date: true,
+        created_at: true,
+        assigned_to_all: true,
+        entity_id: true,
       },
     });
 
+    //  APPLY DELTA - Update entity task stats
+    await applyTaskCreate(task, tx);
+
+    //  CREATE AUTO-ASSIGNMENT - Single insert
     await tx.taskAssignment.create({
       data: {
         task_id: task.id,
@@ -160,142 +226,177 @@ export const createTask = async (data, created_by) => {
       },
     });
 
-    const freshTask = await tx.task.findUnique({
-      where: { id: task.id },
-      select: {
-        id: true,
-        title: true,
-        status: true,
-        priority: true,
-        due_date: true,
-        created_at: true,
-
-        assigned_to_all: true,
-
-        assignments: {
-          select: {
-            id: true,
-            task_id: true,
-            admin_user_id: true,
-            assigned_at: true,
-            assigned_by: true,
-            assignment_source: true,
-            assignee: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
-          },
-          orderBy: { assigned_at: "asc" },
-          take: 3,
-        },
-
-        _count: {
-          select: {
-            assignments: true,
-            charges: true,
-          },
-        },
-      },
-    });
-    const formattedTask = {
-      ...freshTask,
-      is_billable: freshTask._count.charges > 0,
-      assignments: freshTask.assignments.map((a) => ({
-        id: a.id,
-        task_id: a.task_id,
-        admin_user_id: a.admin_user_id,
-        assigned_at: a.assigned_at,
-        assigned_by: a.assigned_by,
-        assignment_source: a.assignment_source,
-        assignee: a.assignee,
-      })),
-      remaining_assignee_count:
-        freshTask._count.assignments > freshTask.assignments.length
-          ? freshTask._count.assignments - freshTask.assignments.length
-          : 0,
-    };
-
-    // Get updated global counts after creation
-    const globalCounts = await getStatusCounts({}, tx);
-
-    return {
-      task: formattedTask,
-      status_counts: {
-        global: globalCounts,
-        filtered: null,
-      },
-    };
+    return task;
   });
+
+  //  FETCH ENRICHED TASK DATA - Outside transaction to avoid lock contention
+  const freshTask = await prisma.task.findUnique({
+    where: { id: result.id },
+    select: {
+      id: true,
+      title: true,
+      status: true,
+      priority: true,
+      due_date: true,
+      created_at: true,
+      assigned_to_all: true,
+      assignments: {
+        select: {
+          id: true,
+          task_id: true,
+          admin_user_id: true,
+          assigned_at: true,
+          assigned_by: true,
+          assignment_source: true,
+          assignee: {
+            select: { id: true, name: true },
+          },
+        },
+        orderBy: { assigned_at: "asc" },
+        take: 3,
+      },
+      _count: {
+        select: { assignments: true, charges: true },
+      },
+    },
+  });
+
+  const globalCounts = await getStatusCounts({});
+
+  const formattedTask = {
+    ...freshTask,
+    is_billable: freshTask._count.charges > 0,
+    assignments: freshTask.assignments.map((a) => ({
+      id: a.id,
+      task_id: a.task_id,
+      admin_user_id: a.admin_user_id,
+      assigned_at: a.assigned_at,
+      assigned_by: a.assigned_by,
+      assignment_source: a.assignment_source,
+      assignee: a.assignee,
+    })),
+    remaining_assignee_count:
+      freshTask._count.assignments > freshTask.assignments.length
+        ? freshTask._count.assignments - freshTask.assignments.length
+        : 0,
+  };
+
+  return {
+    task: formattedTask,
+    status_counts: {
+      global: globalCounts,
+      filtered: null,
+    },
+  };
 };
 
-/**
- * Update a task (final semantic activity version)
- * NOW RETURNS GLOBAL STATUS COUNTS WHEN STATUS CHANGES
- */
+// ==================== UPDATE TASK ====================
 
+/**
+ * Update a task - WITH INVOICE LOCK PROTECTION
+ * - Checks critical fields against invoice lock
+ * - Optimized validations (parallel + conditional)
+ * - Minimal queries inside transaction
+ * - Activity log outside transaction
+ * - Status counts only when needed
+ */
 export const updateTask = async (task_id, data, currentUser) => {
+  // Pre-validate due date (no DB call)
+  if (data.due_date && new Date(data.due_date) < new Date()) {
+    throw new ValidationError("Due date cannot be in the past");
+  }
+
   const changes = [];
-  let updatedTask;
   let statusChanged = false;
 
-  updatedTask = await prisma.$transaction(async (tx) => {
+  const updatedTask = await prisma.$transaction(async (tx) => {
     const visibilityWhere = buildTaskVisibilityWhere(currentUser);
 
-    // 🔐 Enforce visibility
+    // ✅ CHECK CRITICAL FIELDS LOCK FIRST
+    await ensureTaskCriticalFieldsEditable(task_id, data, tx);
+
+    //  FETCH EXISTING TASK - Minimal select for change detection
     const existing = await tx.task.findFirst({
       where: {
         AND: [{ id: task_id }, visibilityWhere],
       },
-      include: {
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        status: true,
+        priority: true,
+        due_date: true,
+        end_date: true,
+        entity_id: true,
+        task_category_id: true,
         entity: { select: { id: true, name: true } },
         category: { select: { id: true, name: true } },
       },
     });
 
-    // Do not leak existence
     if (!existing) {
       throw new NotFoundError("Task not found");
     }
 
-    // ---------- VALIDATIONS ----------
+    //  PARALLEL VALIDATIONS - Only run what's needed
+    const validations = [];
+    let categoryPromise = null;
+    let entityPromise = null;
 
-    if (data.due_date && new Date(data.due_date) < new Date()) {
-      throw new ValidationError("Due date cannot be in the past");
+    if (
+      data.task_category_id !== undefined &&
+      data.task_category_id !== existing.task_category_id
+    ) {
+      categoryPromise = data.task_category_id
+        ? tx.taskCategory.findUnique({
+            where: { id: data.task_category_id },
+            select: { id: true, name: true },
+          })
+        : Promise.resolve(null);
+      validations.push(categoryPromise);
     }
 
-    if (data.task_category_id) {
-      const category = await tx.taskCategory.findUnique({
-        where: { id: data.task_category_id },
-      });
-      if (!category) throw new NotFoundError("Task category not found");
+    if (data.entity_id !== undefined && data.entity_id !== existing.entity_id) {
+      entityPromise = data.entity_id
+        ? tx.entity.findUnique({
+            where: { id: data.entity_id },
+            select: { id: true, name: true, status: true },
+          })
+        : Promise.resolve(null);
+      validations.push(entityPromise);
     }
 
-    if (data.entity_id !== undefined && data.entity_id !== null) {
-      const entity = await tx.entity.findUnique({
-        where: { id: data.entity_id },
-        select: { id: true, name: true, status: true },
-      });
+    // Run all validations in parallel
+    await Promise.all(validations);
 
-      if (!entity) throw new NotFoundError("Entity not found");
-      if (entity.status !== "ACTIVE") {
+    // Check validation results
+    if (categoryPromise) {
+      const category = await categoryPromise;
+      if (data.task_category_id && !category) {
+        throw new NotFoundError("Task category not found");
+      }
+    }
+
+    if (entityPromise) {
+      const entity = await entityPromise;
+      if (data.entity_id && !entity) {
+        throw new NotFoundError("Entity not found");
+      }
+      if (entity && entity.status !== "ACTIVE") {
         throw new ValidationError("Only ACTIVE entities can be assigned");
       }
     }
 
-    // ---------- CHANGE COLLECTION ----------
-
+    //  CHANGE COLLECTION - Build change log
     const from = {};
     const to = {};
-
     const simpleFields = ["title", "description", "status", "priority"];
 
     for (const field of simpleFields) {
       if (data[field] !== undefined && data[field] !== existing[field]) {
         from[field] = existing[field];
         to[field] = data[field];
-
         if (field === "status") {
           statusChanged = true;
         }
@@ -316,39 +417,24 @@ export const updateTask = async (task_id, data, currentUser) => {
       data.task_category_id !== undefined &&
       data.task_category_id !== existing.task_category_id
     ) {
-      const newCategory = data.task_category_id
-        ? await tx.taskCategory.findUnique({
-            where: { id: data.task_category_id },
-          })
-        : null;
-
+      const newCategory = await categoryPromise;
       from.category = existing.category
         ? { id: existing.category.id, name: existing.category.name }
         : null;
-
       to.category = newCategory
         ? { id: newCategory.id, name: newCategory.name }
         : null;
     }
 
     if (data.entity_id !== undefined && data.entity_id !== existing.entity_id) {
-      const newEntity =
-        data.entity_id !== null
-          ? await tx.entity.findUnique({
-              where: { id: data.entity_id },
-              select: { id: true, name: true },
-            })
-          : null;
-
+      const newEntity = await entityPromise;
       from.entity = existing.entity
         ? { id: existing.entity.id, name: existing.entity.name }
         : null;
-
       to.entity = newEntity ? { id: newEntity.id, name: newEntity.name } : null;
     }
 
     let computedEndDate = undefined;
-
     if (
       data.status &&
       (data.status === "COMPLETED" || data.status === "CANCELLED") &&
@@ -365,47 +451,41 @@ export const updateTask = async (task_id, data, currentUser) => {
       });
     }
 
-    // ---------- UPDATE ----------
-
-    return tx.task.update({
+    //  UPDATE TASK - Single update query
+    const updated = await tx.task.update({
       where: { id: task_id },
       data: {
-        title: data.title === undefined ? undefined : data.title,
-        description:
-          data.description === undefined ? undefined : data.description,
-        status: data.status === undefined ? undefined : data.status,
-        priority: data.priority === undefined ? undefined : data.priority,
-
+        title: data.title,
+        description: data.description,
+        status: data.status,
+        priority: data.priority,
         entity_id: data.entity_id,
         task_category_id: data.task_category_id,
-
         start_date:
           data.start_date === undefined
             ? undefined
             : data.start_date
               ? new Date(data.start_date)
               : null,
-
         due_date:
           data.due_date === undefined
             ? undefined
             : data.due_date
               ? new Date(data.due_date)
               : null,
-
         end_date: computedEndDate,
-
         updated_by: currentUser.id,
-
-        last_activity_at: changes.length
-          ? new Date()
-          : existing.last_activity_at,
-
-        last_activity_by: changes.length
-          ? currentUser.id
-          : existing.last_activity_by,
+        last_activity_at: changes.length ? new Date() : undefined,
+        last_activity_by: changes.length ? currentUser.id : undefined,
       },
-      include: {
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        status: true,
+        priority: true,
+        due_date: true,
+        entity_id: true,
         entity: {
           include: {
             custom_fields: { orderBy: { name: "asc" } },
@@ -423,50 +503,70 @@ export const updateTask = async (task_id, data, currentUser) => {
         },
       },
     });
+
+    // ✅ APPLY DELTA - Update entity task stats
+    await applyTaskUpdate(existing, updated, tx);
+
+    return updated;
   });
 
-  // ---------- ACTIVITY LOG ----------
-
+  // ✅ ACTIVITY LOG - Outside transaction to avoid holding locks
   if (changes.length > 0) {
     await addTaskActivityLog(task_id, currentUser.id, {
       action: "TASK_UPDATED",
       message: buildActivityMessage(changes),
       meta: { changes },
+    }).catch((err) => {
+      console.error("Failed to log activity:", err);
     });
   }
 
-  // ---------- COUNTS ----------
-
+  // ✅ STATUS COUNTS - Only fetch when status changed, outside transaction
   let response = { task: updatedTask };
-
   if (statusChanged) {
-    const globalCounts =
+    const visibilityWhere =
       currentUser.admin_role === "SUPER_ADMIN"
-        ? await getStatusCounts()
-        : await getStatusCounts(buildTaskVisibilityWhere(currentUser));
-
+        ? {}
+        : buildTaskVisibilityWhere(currentUser);
+    const globalCounts = await getStatusCounts(visibilityWhere);
     response.status_counts = { global: globalCounts };
   }
 
   return response;
 };
 
+// ==================== DELETE TASK ====================
+
 /**
- * Soft delete task
- * FIXED: Properly returns task data and accurate counts
+ * Delete task - BLAZING FAST VERSION
+ * - Minimal queries
+ * - Status counts outside transaction
  */
 export const deleteTask = async (task_id, currentUser) => {
-  return prisma.$transaction(async (tx) => {
-    const visibilityWhere = buildTaskVisibilityWhere(currentUser);
+  const visibilityWhere = buildTaskVisibilityWhere(currentUser);
 
-    // 🔐 Enforce visibility while fetching
+  const result = await prisma.$transaction(async (tx) => {
     const task = await tx.task.findFirst({
       where: {
         AND: [{ id: task_id }, visibilityWhere],
       },
+      select: {
+        id: true,
+        title: true,
+        status: true,
+
+        entity_id: true,
+        invoice_internal_number: true,
+        invoice: {
+          select: {
+            id: true,
+            status: true,
+            internal_number: true,
+          },
+        },
+      },
     });
 
-    // Do not leak whether task exists
     if (!task) {
       throw new NotFoundError("Task not found");
     }
@@ -477,59 +577,59 @@ export const deleteTask = async (task_id, currentUser) => {
       );
     }
 
-    // Delete task
-    await tx.task.delete({
-      where: { id: task_id },
-    });
+    if (
+      task.invoice_internal_number &&
+      task.invoice &&
+      task.invoice.status !== "CANCELLED"
+    ) {
+      throw new ValidationError(
+        `This Task is Linked to an invoice ${task?.invoice?.internal_number} with status ${task.invoice?.status}`,
+      );
+    }
+    await applyTaskDelete(task, tx);
 
-    // Delete assignments
-    await tx.taskAssignment.deleteMany({
-      where: { task_id },
-    });
+    await Promise.all([
+      tx.task.delete({ where: { id: task_id } }),
+      tx.taskAssignment.deleteMany({ where: { task_id } }),
+    ]);
 
-    // Global counts (respect visibility for non-super-admin)
-    const globalCounts =
-      currentUser.admin_role === "SUPER_ADMIN"
-        ? await getStatusCounts({}, tx)
-        : await getStatusCounts(visibilityWhere, tx);
-
-    return {
-      deleted: true,
-      task: {
-        id: task.id,
-        title: task.title,
-        status: task.status,
-      },
-      status_counts: {
-        global: globalCounts,
-      },
-    };
+    return task;
   });
+
+  const globalCounts =
+    currentUser.admin_role === "SUPER_ADMIN"
+      ? await getStatusCounts({})
+      : await getStatusCounts(visibilityWhere);
+
+  return {
+    deleted: true,
+    task: {
+      id: result.id,
+      title: result.title,
+      status: result.status,
+    },
+    status_counts: {
+      global: globalCounts,
+    },
+  };
 };
 
-/**
- * Get task details
- */
+// ==================== GET TASK BY ID ====================
+
 export const getTaskById = async (task_id, currentUser) => {
   const visibilityWhere = buildTaskVisibilityWhere(currentUser);
 
   const task = await prisma.task.findFirst({
     where: {
-      AND: [
-        { id: task_id },
-        visibilityWhere, // 🔐 visibility enforcement
-      ],
+      AND: [{ id: task_id }, visibilityWhere],
     },
     include: {
       entity: {
         include: {
-          custom_fields: {
-            orderBy: { name: "asc" },
-          },
+          custom_fields: { orderBy: { name: "asc" } },
         },
       },
       category: true,
-
       assignments: {
         include: {
           assignee: {
@@ -538,27 +638,11 @@ export const getTaskById = async (task_id, currentUser) => {
         },
       },
       charges: {
-        where: {
-          deleted_at: null,
-        },
-        orderBy: {
-          created_at: "asc",
-        },
+        where: { deleted_at: null },
+        orderBy: { created_at: "asc" },
         include: {
-          creator: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-            },
-          },
-          updater: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-            },
-          },
+          creator: { select: { id: true, name: true, email: true } },
+          updater: { select: { id: true, name: true, email: true } },
           deleter: { select: { id: true, name: true, email: true } },
           restorer: { select: { id: true, name: true, email: true } },
         },
@@ -595,16 +679,14 @@ export const getTaskById = async (task_id, currentUser) => {
   });
 
   if (!task) {
-    // Do NOT reveal whether it exists or not
     throw new NotFoundError("Task not found");
   }
 
   return task;
 };
 
-/**
- * List tasks with filters
- */
+// ==================== LIST TASKS ====================
+
 export const listTasks = async (filters = {}, currentUser) => {
   const page = Number(filters.page) || 1;
   const pageSize = Number(filters.page_size) || 20;
@@ -612,7 +694,7 @@ export const listTasks = async (filters = {}, currentUser) => {
   const visibilityWhere = buildTaskVisibilityWhere(currentUser);
 
   const andConditions = [visibilityWhere];
-
+  andConditions.push({ is_system: { not: true } });
   if (filters.entity_id) andConditions.push({ entity_id: filters.entity_id });
   if (filters.status) andConditions.push({ status: filters.status });
   if (filters.priority) andConditions.push({ priority: filters.priority });
@@ -620,23 +702,10 @@ export const listTasks = async (filters = {}, currentUser) => {
     andConditions.push({ task_category_id: filters.task_category_id });
   if (filters.created_by)
     andConditions.push({ created_by: filters.created_by });
-
   if (filters.assigned_to) {
     andConditions.push({
       assignments: { some: { admin_user_id: filters.assigned_to } },
     });
-  }
-
-  if (filters.is_billable === true) {
-    andConditions.push({ charges: { some: { deleted_at: null } } });
-  }
-
-  if (filters.is_billable === false) {
-    andConditions.push({ charges: { none: { deleted_at: null } } });
-  }
-
-  if (filters.billed_from_firm !== undefined) {
-    andConditions.push({ billed_from_firm: filters.billed_from_firm });
   }
 
   if (filters.due_date_from || filters.due_date_to) {
@@ -645,12 +714,10 @@ export const listTasks = async (filters = {}, currentUser) => {
     if (filters.due_date_to) due.lte = new Date(filters.due_date_to);
     andConditions.push({ due_date: due });
   }
-
   if (filters.search) {
     if (filters.search.length < 3) {
       throw new ValidationError("Search must be at least 3 characters");
     }
-
     andConditions.push({
       OR: [
         { title: { contains: filters.search, mode: "insensitive" } },
@@ -660,10 +727,8 @@ export const listTasks = async (filters = {}, currentUser) => {
   }
 
   const where = { AND: andConditions };
-
   const trueGlobalWhere =
-    currentUser?.role === "SUPER_ADMIN" ? {} : { AND: [visibilityWhere] };
-
+    currentUser?.admin_role === "SUPER_ADMIN" ? {} : { AND: [visibilityWhere] };
   const filteredGlobalWhere = {
     AND: andConditions.filter((c) => !("status" in c) && !("priority" in c)),
   };
@@ -709,11 +774,8 @@ export const listTasks = async (filters = {}, currentUser) => {
       skip: (page - 1) * pageSize,
       take: pageSize,
     }),
-
     prisma.task.count({ where }),
-
     getStatusCounts(filteredGlobalWhere),
-
     getStatusCounts(trueGlobalWhere),
   ]);
 
@@ -748,26 +810,67 @@ export const listTasks = async (filters = {}, currentUser) => {
   };
 };
 
+// ==================== BULK UPDATE STATUS - WITH INVOICE LOCK ====================
+
 /**
- * Bulk status update
- * NOW RETURNS GLOBAL STATUS COUNTS
+ * Bulk status update - WITH INVOICE LOCK PROTECTION
+ * - Filters out tasks in ISSUED/PAID invoices
+ * - Batch update for valid tasks
+ * - Delta sync
+ * - Returns locked tasks info
  */
 export const bulkUpdateTaskStatus = async (task_ids, status, currentUser) => {
-  return prisma.$transaction(async (tx) => {
-    const visibilityWhere = buildTaskVisibilityWhere(currentUser);
+  const visibilityWhere = buildTaskVisibilityWhere(currentUser);
 
-    // 🔐 Only fetch tasks user is allowed to access
+  const result = await prisma.$transaction(async (tx) => {
+    // ✅ FETCH TASKS - Check invoice status
     const existing = await tx.task.findMany({
       where: {
         AND: [{ id: { in: task_ids } }, visibilityWhere],
       },
-      select: { id: true },
+      select: {
+        id: true,
+        status: true,
+        entity_id: true,
+        invoice_internal_number: true,
+        invoice: {
+          select: {
+            id: true,
+            status: true,
+            internal_number: true,
+          },
+        },
+      },
     });
 
-    const validIds = existing.map((t) => t.id);
+    // ✅ FILTER OUT LOCKED TASKS (in ISSUED/PAID invoices)
+    const lockedTasks = existing.filter(
+      (t) =>
+        t.invoice_internal_number &&
+        t.invoice &&
+        (t.invoice.status === "ISSUED" || t.invoice.status === "PAID") &&
+        t.status !== status, // Only if status would change
+    );
 
-    // Update only allowed tasks
-    const result = await tx.task.updateMany({
+    const validTasks = existing.filter(
+      (t) => !lockedTasks.find((lt) => lt.id === t.id),
+    );
+    const validIds = validTasks.map((t) => t.id);
+
+    if (validIds.length === 0) {
+      return {
+        validIds: [],
+        count: 0,
+        skippedIds: task_ids.filter((id) => !validIds.includes(id)),
+        lockedTasks: lockedTasks.map((t) => ({
+          id: t.id,
+          reason: `Task in ${t.invoice.status} invoice (${t.invoice.internal_number})`,
+        })),
+      };
+    }
+
+    // ✅ BATCH UPDATE - Only valid tasks
+    const updateResult = await tx.task.updateMany({
       where: { id: { in: validIds } },
       data: {
         status,
@@ -780,39 +883,59 @@ export const bulkUpdateTaskStatus = async (task_ids, status, currentUser) => {
       },
     });
 
-    // Tasks that exist but user is not allowed to touch OR do not exist
+    // ✅ APPLY DELTA SYNC
+    for (const task of validTasks) {
+      if (task.status !== status) {
+        const oldTask = { ...task };
+        const newTask = { ...task, status };
+        await applyTaskUpdate(oldTask, newTask, tx);
+      }
+    }
+
     const skippedIds = task_ids.filter((id) => !validIds.includes(id));
 
-    // Status counts respecting visibility
-    const globalCounts =
-      currentUser.admin_role === "SUPER_ADMIN"
-        ? await getStatusCounts({}, tx)
-        : await getStatusCounts(visibilityWhere, tx);
-
     return {
-      updated_task_ids: validIds,
-      skipped_task_ids: skippedIds,
-      updated_count: result.count,
-      new_status: status,
-      status_counts: {
-        global: globalCounts,
-      },
+      validIds,
+      count: updateResult.count,
+      skippedIds,
+      lockedTasks: lockedTasks.map((t) => ({
+        id: t.id,
+        reason: `Task in ${t.invoice.status} invoice (${t.invoice.internal_number})`,
+      })),
     };
   });
+
+  // ✅ FETCH COUNTS - Outside transaction
+  const globalCounts =
+    currentUser.admin_role === "SUPER_ADMIN"
+      ? await getStatusCounts({})
+      : await getStatusCounts(visibilityWhere);
+
+  return {
+    updated_task_ids: result.validIds,
+    skipped_task_ids: result.skippedIds,
+    locked_tasks: result.lockedTasks,
+    updated_count: result.count,
+    new_status: status,
+    status_counts: {
+      global: globalCounts,
+    },
+  };
 };
 
+// ==================== BULK UPDATE PRIORITY ====================
+
 /**
- * Bulk priority update
+ * Bulk priority update - NO LOCK (priority is always editable)
  */
 export const bulkUpdateTaskPriority = async (
   task_ids,
   priority,
   currentUser,
 ) => {
-  return prisma.$transaction(async (tx) => {
-    const visibilityWhere = buildTaskVisibilityWhere(currentUser);
+  const visibilityWhere = buildTaskVisibilityWhere(currentUser);
 
-    // 🔐 Fetch only tasks user is allowed to access
+  const result = await prisma.$transaction(async (tx) => {
     const existing = await tx.task.findMany({
       where: {
         AND: [{ id: { in: task_ids } }, visibilityWhere],
@@ -822,8 +945,15 @@ export const bulkUpdateTaskPriority = async (
 
     const validIds = existing.map((t) => t.id);
 
-    // Update only allowed ones
-    const result = await tx.task.updateMany({
+    if (validIds.length === 0) {
+      return {
+        validIds: [],
+        count: 0,
+        skippedIds: task_ids,
+      };
+    }
+
+    const updateResult = await tx.task.updateMany({
       where: { id: { in: validIds } },
       data: {
         priority,
@@ -831,14 +961,19 @@ export const bulkUpdateTaskPriority = async (
       },
     });
 
-    // Includes both non-existent and unauthorized IDs
     const skippedIds = task_ids.filter((id) => !validIds.includes(id));
 
     return {
-      updated_task_ids: validIds,
-      skipped_task_ids: skippedIds,
-      updated_count: result.count,
-      new_priority: priority,
+      validIds,
+      count: updateResult.count,
+      skippedIds,
     };
   });
+
+  return {
+    updated_task_ids: result.validIds,
+    skipped_task_ids: result.skippedIds,
+    updated_count: result.count,
+    new_priority: priority,
+  };
 };

@@ -1,0 +1,404 @@
+.actionBar {
+  background: white;
+  border-bottom: 1px solid #e5e5e5;
+  padding: 12px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.filters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  flex: 1;
+  align-items: center;
+}
+
+.rightActions {
+  display: flex;
+  gap: 8px;
+}
+
+.clearBtn {
+  white-space: nowrap;
+}
+
+// ========== DATE RANGE FILTER ==========
+.dateFilter {
+  position: relative;
+}
+
+.dateFilterButton {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 12px;
+  background: #ffffff;
+  border: 1px solid #d0d5dd;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #344054;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  min-height: 36px;
+
+  &:hover {
+    border-color: #98a2b3;
+    background: #f9fafb;
+  }
+
+  &.active {
+    border-color: #7f56d9;
+    background: #f9f5ff;
+    color: #6941c6;
+
+    svg {
+      color: #6941c6;
+    }
+  }
+
+  svg {
+    flex-shrink: 0;
+    color: #667085;
+  }
+
+  span {
+    font-size: 13px;
+  }
+}
+
+.datePickerDropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  background: #ffffff;
+  border: 1px solid #e4e7ec;
+  border-radius: 8px;
+  box-shadow:
+    0px 12px 16px -4px rgba(16, 24, 40, 0.08),
+    0px 4px 6px -2px rgba(16, 24, 40, 0.03);
+  z-index: 1000;
+  min-width: 320px;
+  animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.datePickerHeader {
+  padding: 12px 16px;
+  border-bottom: 1px solid #eaecf0;
+
+  h4 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #101828;
+  }
+}
+
+.dateInputs {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dateInputGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  label {
+    font-size: 12px;
+    font-weight: 500;
+    color: #344054;
+  }
+}
+
+.dateInput {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #d0d5dd;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 400;
+  color: #101828;
+  transition: all 0.2s ease;
+  background: #ffffff;
+  font-family: inherit;
+  min-height: 36px;
+
+  &:hover {
+    border-color: #98a2b3;
+  }
+
+  &:focus {
+    outline: none;
+    border-color: #7f56d9;
+    box-shadow: 0 0 0 4px rgba(127, 86, 217, 0.1);
+  }
+
+  &::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: 0.6;
+    transition: opacity 0.2s ease;
+
+    &:hover {
+      opacity: 1;
+    }
+  }
+}
+
+.datePickerActions {
+  padding: 12px 16px;
+  border-top: 1px solid #eaecf0;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.clearDateButton {
+  padding: 8px 14px;
+  background: transparent;
+  border: 1px solid #d0d5dd;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #344054;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: #f9fafb;
+    border-color: #98a2b3;
+  }
+}
+
+.applyDateButton {
+  padding: 8px 14px;
+  background: #7f56d9;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #ffffff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover:not(:disabled) {
+    background: #6941c6;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+// ========== ACTIVE FILTERS ==========
+.activeFilters {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.filterChip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background: #f5f5f5;
+  border-radius: 4px;
+  font-size: 12px;
+  transition: all 0.2s ease;
+
+  svg {
+    flex-shrink: 0;
+    color: #667085;
+  }
+
+  &:hover {
+    background: #eaecf0;
+  }
+}
+
+.filterChipLabel {
+  color: #333;
+  font-weight: 500;
+}
+
+.filterChipRemove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #667085;
+  transition: color 0.2s;
+
+  &:hover {
+    color: #101828;
+  }
+}
+
+// ========== PAGINATION ==========
+.paginationStrip {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 12px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.bulkActions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.selectionInfo {
+  display: flex;
+  gap: 4px;
+  padding: 4px 10px;
+  background: #f5f5f5;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.selectionCount {
+  font-weight: 600;
+  color: #333;
+}
+
+.selectionLabel {
+  color: #666;
+}
+
+.metaInfo {
+  display: flex;
+  gap: 12px;
+}
+
+.metaItem {
+  display: flex;
+  gap: 4px;
+  font-size: 13px;
+  color: #666;
+}
+
+.metaLabel {
+  color: #999;
+}
+
+.metaValue {
+  font-weight: 600;
+  color: #333;
+}
+
+.pagination {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.paginationInfo {
+  display: flex;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #666;
+}
+
+.paginationCurrent {
+  font-weight: 600;
+  color: #333;
+}
+
+.paginationSeparator {
+  color: #999;
+}
+
+.paginationTotal {
+  color: #666;
+}
+
+.paginationBtn {
+  min-width: 70px;
+}
+
+// ========== RESPONSIVE ==========
+@media (max-width: 1024px) {
+  .actionBar {
+    padding: 10px 16px;
+  }
+
+  .controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filters {
+    width: 100%;
+  }
+
+  .rightActions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .datePickerDropdown {
+    left: auto;
+    right: 0;
+  }
+}
+
+@media (max-width: 768px) {
+  .paginationStrip {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+  }
+
+  .bulkActions {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+
+  .pagination {
+    justify-content: center;
+  }
+
+  .datePickerDropdown {
+    min-width: 280px;
+  }
+
+  .dateInputs {
+    padding: 12px;
+  }
+}
+
+
+.filter_drpdown{
+  min-width: fit-content;
+}

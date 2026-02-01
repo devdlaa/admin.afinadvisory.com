@@ -122,7 +122,7 @@ export const EntityCreateSchema = EntityBaseSchema.refine(
   {
     message: "PAN is required for this entity type",
     path: ["pan"],
-  }
+  },
 );
 
 // -------------------------------------------
@@ -136,7 +136,7 @@ export const EntityUpdateSchema = EntityBaseSchema.partial().refine(
   {
     message: "PAN is required for this entity type",
     path: ["pan"],
-  }
+  },
 );
 
 export const EntityBulkImportSchema = z
@@ -154,4 +154,5 @@ export const EntityQuerySchema = z.object({
   search: z.string().optional(),
   page: z.coerce.number().min(1).default(1),
   page_size: z.coerce.number().min(1).max(100).default(20),
+  compact: z.union([z.string(), z.number(), z.boolean()]).optional(), 
 });

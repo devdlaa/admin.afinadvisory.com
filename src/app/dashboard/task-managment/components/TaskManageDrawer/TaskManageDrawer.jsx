@@ -9,6 +9,7 @@ import {
   Save,
   Trash2,
   AlertCircle,
+  ArchiveRestore,
 } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
 
@@ -25,6 +26,8 @@ import ClientSelectionDialog from "../ClientSelectionDialog";
 import AssignmentInfoCard from "../AssignmentInfoCard";
 
 import ConfirmationDialog from "@/app/components/shared/ConfirmationDialog/ConfirmationDialog";
+
+import DocumentManager from "@/app/components/shared/DocumentManager/DocumentManager";
 
 // Redux
 import {
@@ -476,7 +479,8 @@ const TaskManageDrawer = () => {
   const overdueDays = getOverdueDays();
   const isActivityTab = activeTab === "task-activity";
   const isPaymentTab = activeTab === "payment";
- 
+  const isDocumentsTab = activeTab === "task-documents";
+
   if (!isOpen) return null;
 
   return (
@@ -520,7 +524,9 @@ const TaskManageDrawer = () => {
             {/* Left Panel */}
             <div
               className={`task-drawer__left ${
-                !isActivityTab && !isPaymentTab ? "scrollable" : ""
+                !isActivityTab && !isPaymentTab && !isDocumentsTab
+                  ? "scrollable"
+                  : ""
               }`}
             >
               <TaskPrimaryInfo
@@ -529,6 +535,7 @@ const TaskManageDrawer = () => {
                 overdueDays={overdueDays}
                 isActivityTab={isActivityTab}
                 isPaymentTab={isPaymentTab}
+                isDocumentsTab={isDocumentsTab}
                 onPrimaryInfoChange={handlePrimaryInfoChange}
               />
 
@@ -563,12 +570,23 @@ const TaskManageDrawer = () => {
                   <Rocket size={16} />
                   <span>Task Activity</span>
                 </button>
+                <button
+                  className={`task-drawer__tab ${
+                    activeTab === "task-documents" ? "active" : ""
+                  }`}
+                  onClick={() => setTab("task-documents")}
+                >
+                  <ArchiveRestore size={16} />
+                  <span>Documents</span>
+                </button>
               </div>
 
               {/* Tab Content */}
               <div
                 className={`task-drawer__tab-content ${
-                  !isActivityTab && !isPaymentTab ? "scrollable" : ""
+                  !isActivityTab && !isPaymentTab && !isDocumentsTab
+                    ? "scrollable"
+                    : ""
                 }`}
               >
                 {activeTab === "checklist" && (
@@ -607,6 +625,10 @@ const TaskManageDrawer = () => {
 
                 {activeTab === "task-activity" && (
                   <TaskTimeline taskId={task?.id} task={task} />
+                )}
+
+                {activeTab === "task-documents" && (
+                  <DocumentManager scope="TASK" scopeId={task.id} />
                 )}
               </div>
             </div>

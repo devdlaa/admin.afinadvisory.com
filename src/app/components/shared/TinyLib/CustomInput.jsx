@@ -53,7 +53,7 @@ const CustomInput = ({
     const shouldValidate = touched || forceTouched;
     if (!shouldValidate) return { isValid: true, error: "" };
 
-    if (required && !val.trim()) {
+    if (required && !val?.trim()) {
       return { isValid: false, error: "This field is required" };
     }
 
@@ -98,7 +98,7 @@ const CustomInput = ({
   const validation = validateInput(value);
   const showError = !validation.isValid;
   const showSuccess =
-    (touched || forceTouched) && validation.isValid && value.trim();
+    (touched || forceTouched) && validation.isValid && value?.trim();
   const hasValue = value && value.length > 0;
 
   const handleBlur = () => {

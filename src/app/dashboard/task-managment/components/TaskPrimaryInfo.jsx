@@ -11,9 +11,10 @@ const TaskPrimaryInfo = ({
   overdueDays,
   isActivityTab,
   isPaymentTab,
+  isDocumentsTab,
   onPrimaryInfoChange,
 }) => {
-  const shouldHidePrimaryInfo = isActivityTab || isPaymentTab;
+  const shouldHidePrimaryInfo = isActivityTab || isPaymentTab || isDocumentsTab;
   return (
     <section
       className={`task_primary_info_section ${

@@ -5,11 +5,17 @@ export const ChargeTypeEnum = z.enum([
   "EXTERNAL_CHARGE",
   "GOVERNMENT_FEE",
   "SERVICE_FEE",
+  "OTHER_CHARGES",
 ]);
 
-export const ChargeBearerEnum = z.enum(["CLIENT", "FIRM"]);
+export const ChargeBearerEnum = z.enum(["CLIENT"]).default("CLIENT");
 
-export const ChargeStatusEnum = z.enum(["NOT_PAID", "PAID", "WRITTEN_OFF"]);
+export const ChargeStatusEnum = z.enum([
+  "NOT_PAID",
+  "PAID",
+  "WRITTEN_OFF",
+  "CANCELLED",
+]);
 
 // ---------- CREATE (POST) ----------
 
@@ -52,7 +58,7 @@ export const updateTaskChargeSchema = z.object({
     })
     .refine(
       (data) => Object.keys(data).length > 0,
-      "At least one field must be provided"
+      "At least one field must be provided",
     ),
 
   params: z.object({
@@ -76,7 +82,6 @@ export const listTaskChargesSchema = z.object({
   }),
 });
 
-
 export const restoreTaskChargeSchema = z.object({
   params: z.object({
     task_id: z.string().uuid("Invalid task id"),
@@ -88,5 +93,43 @@ export const hardDeleteTaskChargeSchema = z.object({
   params: z.object({
     task_id: z.string().uuid("Invalid task id"),
     id: z.string().uuid("Invalid charge id"),
+  }),
+});
+
+export const bulkChargeStatusUpdateSchema = z.object({
+  charge_ids: z
+    .array(z.string().uuid("Invalid charge id"))
+    .min(1, "At least one charge is required")
+    .max(500, "Too many charges in one request"),
+  status: z.enum(["NOT_PAID", "PAID", "WRITTEN_OFF"]),
+});
+
+export const bulkTaskChargeUpdateSchema = z.object({
+  params: z.object({
+    task_id: z.string().uuid("Invalid task id"),
+  }),
+
+  body: z.object({
+    updates: z
+      .array(
+        z.object({
+          id: z.string().uuid("Invalid charge id"),
+          fields: z
+            .object({
+              title: z.string().min(1).max(200).optional(),
+              amount: z.number().positive().optional(),
+              charge_type: ChargeTypeEnum.optional(),
+              bearer: ChargeBearerEnum.optional(),
+              status: ChargeStatusEnum.optional(),
+              remark: z.string().max(2000).nullable().optional(),
+            })
+            .refine(
+              (data) => Object.keys(data).length > 0,
+              "At least one field must be updated",
+            ),
+        }),
+      )
+      .min(1, "At least one charge update required")
+      .max(500, "Too many updates in one request"),
   }),
 });

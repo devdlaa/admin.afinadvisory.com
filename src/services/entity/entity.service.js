@@ -12,7 +12,7 @@ const PAN_REGEX = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
 const validatePAN = (pan) => {
   if (!PAN_REGEX.test(pan)) {
     throw new ValidationError(
-      "Invalid PAN format. Expected format: ABCDE1234F (5 letters + 4 digits + 1 letter)"
+      "Invalid PAN format. Expected format: ABCDE1234F (5 letters + 4 digits + 1 letter)",
     );
   }
 };
@@ -91,7 +91,10 @@ const createEntity = async (data, created_by) => {
     // uniqueness enforcement only if PAN exists
     if (pan) {
       const panExists = await tx.entity.findUnique({
-        where: { pan },
+        where: {
+          pan,
+          deleted_at: null,
+        },
       });
 
       if (panExists) {
@@ -155,6 +158,8 @@ const bulkCreateEntities = async (entities, created_by) => {
   if (!entities.length) return result;
 
   return prisma.$transaction(async (tx) => {
+    const batchTime = new Date();
+
     // ==================================================
     // 1. Business validation per row
     // ==================================================
@@ -172,7 +177,7 @@ const bulkCreateEntities = async (entities, created_by) => {
         }
 
         const validatedCustomFields = validateCustomFields(
-          entity.custom_fields
+          entity.custom_fields,
         );
 
         const normalized = {
@@ -194,49 +199,33 @@ const bulkCreateEntities = async (entities, created_by) => {
     if (!validEntities.length) return result;
 
     // ==================================================
-    // 2. Detect duplicates (PAN / Email / Phone)
+    // 2. Detect duplicates (PAN only, active entities)
     // ==================================================
     const pans = validEntities.map((e) => e.pan).filter(Boolean);
-    const emails = validEntities.map((e) => e.email).filter(Boolean);
-    const phones = validEntities.map((e) => e.primary_phone).filter(Boolean);
 
-    const existing = await tx.entity.findMany({
-      where: {
-        OR: [
-          pans.length ? { pan: { in: pans } } : undefined,
-          emails.length ? { email: { in: emails } } : undefined,
-          phones.length ? { primary_phone: { in: phones } } : undefined,
-        ].filter(Boolean),
-      },
-      select: {
-        pan: true,
-        email: true,
-        primary_phone: true,
-      },
-    });
+    let existingPANs = new Set();
 
-    const existingPANs = new Set(existing.map((e) => e.pan).filter(Boolean));
-    const existingEmails = new Set(existing.map((e) => e.email));
-    const existingPhones = new Set(existing.map((e) => e.primary_phone));
+    if (pans.length) {
+      const existing = await tx.entity.findMany({
+        where: {
+          deleted_at: null,
+          pan: { in: pans },
+        },
+        select: { pan: true },
+      });
+
+      existingPANs = new Set(existing.map((e) => e.pan));
+    }
 
     const toInsert = [];
 
     for (const entity of validEntities) {
       const originalIndex = indexMap.get(entity);
 
-      let duplicateReason = null;
-
-      if (entity.pan && existingPANs.has(entity.pan))
-        duplicateReason = "Duplicate PAN";
-      else if (entity.email && existingEmails.has(entity.email))
-        duplicateReason = "Duplicate email";
-      else if (entity.primary_phone && existingPhones.has(entity.primary_phone))
-        duplicateReason = "Duplicate phone";
-
-      if (duplicateReason) {
+      if (entity.pan && existingPANs.has(entity.pan)) {
         result.skipped.push({
           row: originalIndex + 2,
-          reason: duplicateReason,
+          reason: "Duplicate PAN",
         });
       } else {
         toInsert.push(entity);
@@ -265,23 +254,16 @@ const bulkCreateEntities = async (entities, created_by) => {
         status: e.status ?? "ACTIVE",
         created_by,
       })),
-      skipDuplicates: true, // final DB safety net
+      skipDuplicates: true, // DB safety net (unique PAN index)
     });
 
     // ==================================================
-    // 4. Fetch inserted entities
+    // 4. Fetch inserted entities (batch-safe)
     // ==================================================
     const insertedEntities = await tx.entity.findMany({
       where: {
-        OR: [
-          { pan: { in: toInsert.map((e) => e.pan).filter(Boolean) } },
-          { email: { in: toInsert.map((e) => e.email).filter(Boolean) } },
-          {
-            primary_phone: {
-              in: toInsert.map((e) => e.primary_phone).filter(Boolean),
-            },
-          },
-        ],
+        created_by,
+        created_at: { gte: batchTime },
       },
       include: {
         creator: true,
@@ -290,12 +272,17 @@ const bulkCreateEntities = async (entities, created_by) => {
       },
     });
 
-    const lookup = new Map();
+    // Build lookup
+    const lookupByPan = new Map();
+    const lookupByTempKey = new Map();
 
     insertedEntities.forEach((e) => {
-      if (e.pan) lookup.set(`pan:${e.pan}`, e);
-      if (e.email) lookup.set(`email:${e.email}`, e);
-      if (e.primary_phone) lookup.set(`phone:${e.primary_phone}`, e);
+      if (e.pan) {
+        lookupByPan.set(e.pan, e);
+      } else {
+        const key = `${e.name}|${e.primary_phone || ""}`;
+        lookupByTempKey.set(key, e);
+      }
     });
 
     // ==================================================
@@ -306,10 +293,14 @@ const bulkCreateEntities = async (entities, created_by) => {
     for (const entity of toInsert) {
       const originalIndex = indexMap.get(entity);
 
-      const dbEntity =
-        (entity.pan && lookup.get(`pan:${entity.pan}`)) ||
-        (entity.email && lookup.get(`email:${entity.email}`)) ||
-        (entity.primary_phone && lookup.get(`phone:${entity.primary_phone}`));
+      let dbEntity = null;
+
+      if (entity.pan) {
+        dbEntity = lookupByPan.get(entity.pan);
+      } else {
+        const key = `${entity.name}|${entity.primary_phone || ""}`;
+        dbEntity = lookupByTempKey.get(key);
+      }
 
       if (!dbEntity) {
         result.skipped.push({
@@ -329,7 +320,7 @@ const bulkCreateEntities = async (entities, created_by) => {
 
       result.added.push({
         row: originalIndex + 2,
-        entity: dbEntity, // full object for redux
+        entity: dbEntity,
       });
     }
 
@@ -401,11 +392,11 @@ const updateEntity = async (entity_id, data, updated_by) => {
       });
 
       const existingMap = new Map(
-        existingFields.map((f) => [f.name.toLowerCase(), f])
+        existingFields.map((f) => [f.name.toLowerCase(), f]),
       );
 
       const incomingMap = new Map(
-        validatedFields.map((f) => [f.name.toLowerCase(), f])
+        validatedFields.map((f) => [f.name.toLowerCase(), f]),
       );
 
       // create or update
@@ -460,35 +451,35 @@ const updateEntity = async (entity_id, data, updated_by) => {
 
         primary_phone: Object.prototype.hasOwnProperty.call(
           data,
-          "primary_phone"
+          "primary_phone",
         )
           ? data.primary_phone
           : undefined,
 
         contact_person: Object.prototype.hasOwnProperty.call(
           data,
-          "contact_person"
+          "contact_person",
         )
           ? data.contact_person
           : undefined,
 
         secondary_phone: Object.prototype.hasOwnProperty.call(
           data,
-          "secondary_phone"
+          "secondary_phone",
         )
           ? data.secondary_phone
           : undefined,
 
         address_line1: Object.prototype.hasOwnProperty.call(
           data,
-          "address_line1"
+          "address_line1",
         )
           ? data.address_line1
           : undefined,
 
         address_line2: Object.prototype.hasOwnProperty.call(
           data,
-          "address_line2"
+          "address_line2",
         )
           ? data.address_line2
           : undefined,
@@ -523,31 +514,41 @@ const updateEntity = async (entity_id, data, updated_by) => {
 };
 
 /**
- * Soft delete an entity
+ * Hard delete an entity
  */
 const deleteEntity = async (entity_id, deleted_by) => {
   return prisma.$transaction(async (tx) => {
     const entity = await tx.entity.findUnique({
       where: { id: entity_id },
+      select: { id: true },
     });
 
     if (!entity) {
       throw new NotFoundError("Entity not found");
     }
 
-    // 1. Delete dependent custom fields first (FK safety)
-    await tx.entityCustomField.deleteMany({
+    // Block if tasks exist
+    const taskCount = await tx.task.count({
       where: { entity_id },
     });
 
-    // 3. Delete the entity itself
-    await tx.entity.delete({
+    if (taskCount > 0) {
+      throw new Error("Entity cannot be deleted because it has linked tasks");
+    }
+
+    // Soft delete only
+    await tx.entity.update({
       where: { id: entity_id },
+      data: {
+        deleted_at: new Date(),
+        deleted_by,
+      },
     });
 
     return {
       id: entity_id,
       deleted: true,
+      soft: true,
     };
   });
 };
@@ -556,54 +557,102 @@ const deleteEntity = async (entity_id, deleted_by) => {
  * List entities with filters
  */
 const listEntities = async (filters = {}) => {
-  // pagination normalization
+  // pagination normalization + cap
   const page = Number(filters.page) > 0 ? Number(filters.page) : 1;
-  const pageSize =
-    Number(filters.page_size) > 0 ? Number(filters.page_size) : 20;
+  const pageSize = Math.min(
+    Number(filters.page_size) > 0 ? Number(filters.page_size) : 20,
+    50,
+  );
+
+  const isCompact =
+    filters.compact === "1" ||
+    filters.compact === 1 ||
+    filters.compact === true;
 
   const where = {
     deleted_at: null,
   };
 
-  // Filter by status
-  if (filters.status) {
-    where.status = filters.status;
-  }
+  // filters
+  if (filters.status) where.status = filters.status;
+  if (filters.entity_type) where.entity_type = filters.entity_type;
+  if (filters.state) where.state = filters.state;
 
-  // Filter by entity_type
-  if (filters.entity_type) {
-    where.entity_type = filters.entity_type;
-  }
+  const hasSearch = filters.search && filters.search.trim();
+  const searchTerm = hasSearch ? filters.search.trim() : null;
 
-  // Filter by state
-  if (filters.state) {
-    where.state = filters.state;
-  }
+  /* --------------------------------------------------
+      COMPACT FAST PATH (ranked full-text search)
+     -------------------------------------------------- */
+  if (isCompact && hasSearch) {
+    const compactLimit = 100;
 
-  // OPTIMIZED SEARCH - Replace the old OR search with full-text search
-  if (filters.search && filters.search.trim()) {
-    const searchTerm = filters.search.trim();
-
-    // Use full-text search for better performance
-    const searchResults = await prisma.$queryRaw`
-      SELECT id 
+    const rows = await prisma.$queryRaw`
+      SELECT id, name, email, pan
       FROM "Entity"
       WHERE deleted_at IS NULL
         AND (
-          to_tsvector('english', 
-            name || ' ' || 
-            COALESCE(email, '') || ' ' || 
-            COALESCE(pan, '') || ' ' || 
-            COALESCE(primary_phone, '') || ' ' || 
+          to_tsvector(
+            'english',
+            name || ' ' ||
+            COALESCE(email, '') || ' ' ||
+            COALESCE(pan, '') || ' ' ||
+            COALESCE(primary_phone, '') || ' ' ||
             COALESCE(contact_person, '')
           ) @@ plainto_tsquery('english', ${searchTerm})
         )
-      LIMIT 1000
+      ORDER BY ts_rank(
+        to_tsvector(
+          'english',
+          name || ' ' ||
+          COALESCE(email, '') || ' ' ||
+          COALESCE(pan, '') || ' ' ||
+          COALESCE(primary_phone, '') || ' ' ||
+          COALESCE(contact_person, '')
+        ),
+        plainto_tsquery('english', ${searchTerm})
+      ) DESC
+      LIMIT ${compactLimit}
+      OFFSET ${(page - 1) * pageSize}
+    `;
+
+    return {
+      data: rows,
+      pagination: {
+        page,
+        page_size: compactLimit,
+        total_items: rows.length,
+        total_pages: 1,
+        has_more: rows.length === compactLimit,
+      },
+    };
+  }
+
+  /* --------------------------------------------------
+      NORMAL SEARCH (2-step ID filtering)
+     -------------------------------------------------- */
+  if (hasSearch) {
+    const searchLimit = isCompact ? pageSize : 1000;
+
+    const searchResults = await prisma.$queryRaw`
+      SELECT id
+      FROM "Entity"
+      WHERE deleted_at IS NULL
+        AND (
+          to_tsvector(
+            'english',
+            name || ' ' ||
+            COALESCE(email, '') || ' ' ||
+            COALESCE(pan, '') || ' ' ||
+            COALESCE(primary_phone, '') || ' ' ||
+            COALESCE(contact_person, '')
+          ) @@ plainto_tsquery('english', ${searchTerm})
+        )
+      LIMIT ${searchLimit}
     `;
 
     const entityIds = searchResults.map((r) => r.id);
 
-    // If no results found, return empty
     if (entityIds.length === 0) {
       return {
         data: [],
@@ -622,26 +671,35 @@ const listEntities = async (filters = {}) => {
 
   const orderBy = filters.orderBy || { created_at: "desc" };
 
+  /* --------------------------------------------------
+     📦 NORMAL / FULL FETCH
+     -------------------------------------------------- */
+
   const [items, total] = await Promise.all([
     prisma.entity.findMany({
       where,
-      include: {
-        creator: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-        custom_fields: {
-          orderBy: { name: "asc" },
-        },
-        _count: {
-          select: {
-            tasks: true,
-          },
-        },
-      },
+      ...(isCompact
+        ? {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              pan: true,
+            },
+          }
+        : {
+            include: {
+              creator: {
+                select: { id: true, name: true, email: true },
+              },
+              custom_fields: {
+                orderBy: { name: "asc" },
+              },
+              _count: {
+                select: { tasks: true },
+              },
+            },
+          }),
       orderBy,
       skip: (page - 1) * pageSize,
       take: pageSize,

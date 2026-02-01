@@ -1,0 +1,632 @@
+.container {
+  min-height: 100vh;
+
+  padding: 1.5rem;
+  max-width: 1300px;
+  margin: 0 auto;
+  padding-top: 40px;
+}
+
+/* Header Section */
+.header {
+  background-color: white;
+  border-radius: 0.75rem;
+  outline: 1px solid rgba(0, 0, 0, 0.11);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.headerTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.headerTitle {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+}
+
+.headerSubtitle {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0.25rem 0 0 0;
+}
+
+.newButton {
+  background-color: #14b8a6;
+  color: white;
+  padding: 0.625rem 1rem;
+  border-radius: 0.5rem;
+  border: none;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.newButton:hover {
+  background-color: #0d9488;
+}
+
+/* Filters Bar */
+.filtersBar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.searchWrapper {
+  flex: 1;
+  min-width: 300px;
+  position: relative;
+}
+
+.notAvailable {
+  color: #9ca3af; // muted gray
+  font-style: italic;
+}
+
+.searchIcon {
+  width: 1.25rem;
+  height: 1.25rem;
+  color: #9ca3af;
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 0.625rem 0.625rem 0.625rem 2.5rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  outline: none;
+  transition: all 0.2s;
+}
+
+.searchInput:focus {
+  border-color: #14b8a6;
+  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.1);
+}
+
+.filterSelect {
+  padding: 0.625rem 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  outline: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  background-color: white;
+}
+
+.filterSelect:focus {
+  border-color: #14b8a6;
+  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.1);
+}
+
+.refreshButton {
+  padding: 0.625rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  background-color: white;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.refreshButton:hover {
+  background-color: #f9fafb;
+}
+
+.refreshButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.refreshButton svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  color: #4b5563;
+}
+
+.refreshButton svg.spinning {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.clearButton {
+  padding: 0.625rem 1rem;
+  font-size: 0.875rem;
+  color: #14b8a6;
+  background-color: transparent;
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.clearButton:hover {
+  background-color: #f0fdfa;
+}
+
+/* Stats Cards */
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(1, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .statsGrid {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+
+.statCard {
+  border-radius: 0.75rem;
+  padding: 1rem;
+}
+
+.statCard.blue {
+  background-color: #eff6ff;
+}
+
+.statCard.green {
+  background-color: #f0fdf4;
+}
+
+.statCard.gray {
+  background-color: #f9fafb;
+}
+
+.statCard.purple {
+  background-color: #faf5ff;
+}
+
+.statCard.teal {
+  background-color: #f0fdfa;
+}
+
+.statLabel {
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+}
+
+.statCard.blue .statLabel {
+  color: #2563eb;
+}
+
+.statCard.green .statLabel {
+  color: #16a34a;
+}
+
+.statCard.gray .statLabel {
+  color: #4b5563;
+}
+
+.statCard.purple .statLabel {
+  color: #9333ea;
+}
+
+.statCard.teal .statLabel {
+  color: #14b8a6;
+}
+
+.statValue {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.statCard.blue .statValue {
+  color: #2563eb;
+}
+
+.statCard.green .statValue {
+  color: #16a34a;
+}
+
+.statCard.gray .statValue {
+  color: #4b5563;
+}
+
+.statCard.purple .statValue {
+  color: #9333ea;
+}
+
+.statCard.teal .statValue {
+  color: #14b8a6;
+}
+
+/* Profiles Section */
+.profilesSection {
+  margin-bottom: 1.5rem;
+}
+
+.profilesHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.totalCount {
+  font-size: 0.875rem;
+  color: #192030;
+  background-color: rgb(227, 229, 255);
+  padding: 6px 10px;
+  border-radius: 50px;
+  outline: 1px solid rgba(0, 0, 0, 0.068);
+}
+
+.totalCount span {
+  font-weight: 600;
+}
+
+/* Profiles Grid */
+.profilesGrid {
+  display: grid;
+  grid-template-columns: repeat(1, 1fr);
+  gap: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .profilesGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .profilesGrid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* Profile Card */
+.profileCard {
+  background-color: white;
+  border-radius: 0.75rem;
+  outline: 1px solid rgba(0, 0, 0, 0.11);
+  padding: 1.5rem;
+  position: relative;
+  transition: box-shadow 0.2s;
+}
+
+.badge {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.badge.default {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.badge.inactive {
+  background-color: #f3f4f6;
+  color: #4b5563;
+}
+
+.badge svg {
+  width: 0.75rem;
+  height: 0.75rem;
+}
+
+.profileContent {
+  margin-top: 0;
+}
+
+.profileContent.withBadge {
+  margin-top: 1.5rem;
+}
+
+.profileName {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 0.25rem 0;
+}
+
+.profileLegalName {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0 0 1rem 0;
+}
+
+.profileDetails {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.detailRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: #4b5563;
+}
+
+.detailRow svg {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+}
+
+.detailLabel {
+  font-weight: 500;
+}
+
+.detailValue {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profileActions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #f3f4f6;
+}
+
+.actionButton {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: background-color 0.2s;
+}
+
+.actionButton svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.actionButton.edit {
+  color: #14b8a6;
+  background-color: #f0fdfa;
+}
+
+.actionButton.edit:hover {
+  background-color: #e2fcf6;
+}
+
+.actionButton.delete {
+  color: #ef4444;
+  background-color: #fef2f2;
+}
+
+.actionButton.delete:hover {
+  background-color: #ffe6e6;
+}
+
+.actionButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Empty State */
+.emptyState {
+  background-color: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: 3rem;
+  text-align: center;
+}
+
+.emptyIcon {
+  width: 4rem;
+  height: 4rem;
+  color: #d1d5db;
+  margin: 0 auto 1rem auto;
+}
+
+.emptyTitle {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 0.5rem 0;
+}
+
+.emptyText {
+  color: #6b7280;
+  margin: 0 0 1.5rem 0;
+}
+
+.emptyButton {
+  background-color: #14b8a6;
+  color: white;
+  padding: 0.625rem 1.5rem;
+  border-radius: 0.5rem;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.emptyButton:hover {
+  background-color: #0d9488;
+}
+
+/* Skeleton Loader */
+.skeletonCard {
+  background-color: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: 1.5rem;
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.skeletonLine {
+  height: 1.5rem;
+  background-color: #e5e7eb;
+  border-radius: 0.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.skeletonLine.short {
+  width: 50%;
+}
+
+.skeletonLine.medium {
+  width: 75%;
+}
+
+.skeletonDetails {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.skeletonDetailLine {
+  height: 1rem;
+  background-color: #e5e7eb;
+  border-radius: 0.25rem;
+}
+
+.skeletonActions {
+  display: flex;
+  gap: 0.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #f3f4f6;
+}
+
+.skeletonButton {
+  flex: 1;
+  height: 2.25rem;
+  background-color: #e5e7eb;
+  border-radius: 0.5rem;
+}
+
+/* Pagination */
+.pagination {
+  background-color: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: 1rem;
+}
+
+.paginationInner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.paginationInfo {
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.paginationControls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.paginationButton {
+  padding: 0.5rem 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  background-color: white;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  font-size: 0.875rem;
+}
+
+.paginationButton:hover:not(:disabled) {
+  background-color: #f9fafb;
+}
+
+.paginationButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.paginationNumbers {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.pageNumber {
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  background-color: white;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.875rem;
+}
+
+.pageNumber:hover {
+  background-color: #f9fafb;
+}
+
+.pageNumber.active {
+  background-color: #14b8a6;
+  color: white;
+  border-color: #14b8a6;
+}
+
+.ellipsis {
+  padding: 0 0.5rem;
+  color: #6b7280;
+}

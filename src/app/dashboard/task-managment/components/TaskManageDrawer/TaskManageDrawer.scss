@@ -274,7 +274,7 @@
 
     // For scrollable content (checklist, payment)
     &.scrollable {
- overflow-y: auto;
+     overflow-y: auto;
 
       &::-webkit-scrollbar {
         width: 6px;

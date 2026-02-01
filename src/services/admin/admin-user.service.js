@@ -187,7 +187,7 @@ export const createAdminUser = async (data, created_by) => {
 };
 
 /* -------------------------------------------------------------------
-   UPDATE ADMIN USER  (❌ permissions NOT updated here)
+   UPDATE ADMIN USER  ( permissions NOT updated here)
 ------------------------------------------------------------------- */
 export const updateAdminUser = async (id, data, updated_by) => {
   return prisma.$transaction(async (tx) => {
@@ -244,7 +244,7 @@ export const updateAdminUser = async (id, data, updated_by) => {
 
 export const deleteAdminUser = async (id, deleted_by) => {
   return prisma.$transaction(async (tx) => {
-    // 1️⃣ Fetch the user to be deleted
+    //  Fetch the user to be deleted
     const userToDelete = await tx.adminUser.findUnique({
       where: { id },
       select: {
@@ -266,7 +266,7 @@ export const deleteAdminUser = async (id, deleted_by) => {
       throw new ValidationError("User already deleted");
     }
 
-    // 2️⃣ Fetch the user performing the deletion
+    //  Fetch the user performing the deletion
     const deletingUser = await tx.adminUser.findUnique({
       where: { id: deleted_by },
       select: {
@@ -285,14 +285,14 @@ export const deleteAdminUser = async (id, deleted_by) => {
       throw new ConflictError("Your account is not active");
     }
 
-    // 3️⃣ CRITICAL: Prevent self-deletion
+    //  CRITICAL: Prevent self-deletion
     if (userToDelete.id === deleted_by) {
       throw new ConflictError(
         "You cannot delete your own account. Please contact another administrator.",
       );
     }
 
-    // 5️⃣ CRITICAL: Prevent deletion of last SUPER_ADMIN
+    //  CRITICAL: Prevent deletion of last SUPER_ADMIN
     if (userToDelete.admin_role === "SUPER_ADMIN") {
       const superAdminCount = await tx.adminUser.count({
         where: {
@@ -309,7 +309,7 @@ export const deleteAdminUser = async (id, deleted_by) => {
       }
     }
 
-    // 6️⃣ Optional: Check if deleting user created this user (ownership validation)
+    // 6 Optional: Check if deleting user created this user (ownership validation)
 
     if (
       userToDelete.created_by !== deleted_by &&
@@ -320,7 +320,7 @@ export const deleteAdminUser = async (id, deleted_by) => {
       );
     }
 
-    // 7️⃣ Revoke all direct permissions
+    // 7 Revoke all direct permissions
     await tx.adminUserPermission.deleteMany({
       where: { admin_user_id: id },
     });

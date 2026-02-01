@@ -28,7 +28,7 @@ const apiFetch = async (url, options = {}) => {
 
   if (!response.ok || !result.success) {
     const err = new Error(
-      result.error?.message || result.message || "Request failed"
+      result.error?.message || result.message || "Request failed",
     );
     err.status = response.status;
     err.code = result.error?.code || "UNKNOWN_ERROR";
@@ -58,7 +58,7 @@ export const fetchEntities = createAsyncThunk(
       if (filters.page_size) params.append("page_size", filters.page_size);
 
       const result = await apiFetch(
-        `/api/admin_ops/entity?${params.toString()}`
+        `/api/admin_ops/entity?${params.toString()}`,
       );
 
       return result.data;
@@ -69,14 +69,14 @@ export const fetchEntities = createAsyncThunk(
         details: error.details,
       });
     }
-  }
+  },
 );
 
 export const quickSearchEntities = createAsyncThunk(
   "entity/quickSearchEntities",
   async (
     { search, forceRefresh = false, limit = 20 },
-    { getState, rejectWithValue }
+    { getState, rejectWithValue },
   ) => {
     try {
       if (!forceRefresh && search) {
@@ -96,17 +96,18 @@ export const quickSearchEntities = createAsyncThunk(
         search: search || "",
         page_size: limit,
         page: 1,
+        // compact: "1",
       });
 
       const result = await apiFetch(
-        `/api/admin_ops/entity?${params.toString()}`
+        `/api/admin_ops/entity?${params.toString()}`,
       );
 
       const entities = Array.isArray(result.data?.data)
         ? result.data.data
         : Array.isArray(result.data)
-        ? result.data
-        : [];
+          ? result.data
+          : [];
 
       return {
         data: entities,
@@ -120,7 +121,7 @@ export const quickSearchEntities = createAsyncThunk(
         details: error.details,
       });
     }
-  }
+  },
 );
 
 export const fetchEntityById = createAsyncThunk(
@@ -136,7 +137,7 @@ export const fetchEntityById = createAsyncThunk(
         details: error.details,
       });
     }
-  }
+  },
 );
 
 export const createEntity = createAsyncThunk(
@@ -155,7 +156,7 @@ export const createEntity = createAsyncThunk(
         details: error.details,
       });
     }
-  }
+  },
 );
 
 export const updateEntity = createAsyncThunk(
@@ -174,7 +175,7 @@ export const updateEntity = createAsyncThunk(
         details: error.details,
       });
     }
-  }
+  },
 );
 
 export const deleteEntity = createAsyncThunk(
@@ -192,7 +193,7 @@ export const deleteEntity = createAsyncThunk(
         details: error.details,
       });
     }
-  }
+  },
 );
 
 export const bulkImportEntities = createAsyncThunk(
@@ -211,7 +212,7 @@ export const bulkImportEntities = createAsyncThunk(
 
       if (!response.ok || !result.success) {
         const err = new Error(
-          result.error?.message || result.message || "Bulk import failed"
+          result.error?.message || result.message || "Bulk import failed",
         );
         err.code = result.error?.code || "BULK_IMPORT_FAILED";
         err.details = result.error?.details || null;
@@ -226,7 +227,7 @@ export const bulkImportEntities = createAsyncThunk(
         details: error.details,
       });
     }
-  }
+  },
 );
 
 export const downloadEntityImportTemplate = createAsyncThunk(
@@ -257,7 +258,7 @@ export const downloadEntityImportTemplate = createAsyncThunk(
         message: error.message || "Template download failed",
       });
     }
-  }
+  },
 );
 
 // ============================================
@@ -276,7 +277,7 @@ const searchInCache = (entities, searchTerm, limit = 20) => {
         entity.email?.toLowerCase().includes(term) ||
         entity.pan?.toLowerCase().includes(term) ||
         entity.primary_phone?.includes(term) ||
-        entity.contact_person?.toLowerCase().includes(term)
+        entity.contact_person?.toLowerCase().includes(term),
     )
     .slice(0, limit);
 };
@@ -580,7 +581,7 @@ export const {
 
 export const selectAllEntities = createSelector(
   [(state) => state.entity.entities],
-  (entities) => Object.values(entities)
+  (entities) => Object.values(entities),
 );
 
 export const selectEntityById = (state, entityId) =>
@@ -588,7 +589,7 @@ export const selectEntityById = (state, entityId) =>
 
 export const selectListEntities = createSelector(
   [(state) => state.entity.list.ids, (state) => state.entity.entities],
-  (ids, entities) => ids.map((id) => entities[id]).filter(Boolean)
+  (ids, entities) => ids.map((id) => entities[id]).filter(Boolean),
 );
 
 export const selectPagination = (state) => state.entity.list.pagination;
@@ -597,7 +598,7 @@ export const selectSelectedEntity = (state) => state.entity.selectedEntity;
 
 export const selectQuickSearchResults = createSelector(
   [(state) => state.entity.quickSearch.results],
-  (results) => results
+  (results) => results,
 );
 
 export const selectIsLoading = (state, type = "list") =>
@@ -607,7 +608,7 @@ export const selectError = (state, type = "list") => state.entity.error[type];
 
 export const selectCachedEntitiesCount = createSelector(
   [(state) => state.entity.entities],
-  (entities) => Object.keys(entities).length
+  (entities) => Object.keys(entities).length,
 );
 
 // ============================================
@@ -625,7 +626,7 @@ export const selectEntityStats = createSelector(
     cursor: null,
     totalCached: pagination.total_items,
     currentPageSize: entities.length,
-  })
+  }),
 );
 
 export const selectEntityLoadingStates = createSelector(
@@ -637,7 +638,7 @@ export const selectEntityLoadingStates = createSelector(
     loading,
     searchLoading,
     exportLoading: false,
-  })
+  }),
 );
 
 export const selectEntityActiveStates = createSelector(
@@ -645,34 +646,34 @@ export const selectEntityActiveStates = createSelector(
   (filters) => ({
     isSearchActive: !!filters.search,
     isFilterActive: !!(filters.entity_type || filters.status || filters.state),
-  })
+  }),
 );
 
 export const selectBulkImportLoading = createSelector(
   [(state) => state.entity.loading.bulkImport],
-  (loading) => loading
+  (loading) => loading,
 );
 
 export const selectBulkImportError = createSelector(
   [(state) => state.entity.error.bulkImport],
-  (error) => error
+  (error) => error,
 );
 
 export const selectTemplateDownloadLoading = createSelector(
   [(state) => state.entity.loading.templateDownload],
-  (loading) => loading
+  (loading) => loading,
 );
 
 export const selectTemplateDownloadError = createSelector(
   [(state) => state.entity.error.templateDownload],
-  (error) => error
+  (error) => error,
 );
 export const selectEntitySearchState = createSelector(
   [(state) => state.entity.list.filters.search],
   (search) => ({
     query: search || "",
     field: "search",
-  })
+  }),
 );
 
 export const selectEntityFilterLoadingStates = createSelector(
@@ -680,7 +681,7 @@ export const selectEntityFilterLoadingStates = createSelector(
   (loading) => ({
     loading,
     exportLoading: false,
-  })
+  }),
 );
 
 // ============================================

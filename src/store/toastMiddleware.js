@@ -30,7 +30,7 @@ const toastMiddleware = () => (next) => (action) => {
         showSuccess(
           `${statusCount} task${
             statusCount !== 1 ? "s" : ""
-          } status updated successfully`
+          } status updated successfully`,
         );
         break;
 
@@ -40,7 +40,7 @@ const toastMiddleware = () => (next) => (action) => {
         showSuccess(
           `${priorityCount} task${
             priorityCount !== 1 ? "s" : ""
-          } priority updated successfully`
+          } priority updated successfully`,
         );
         break;
 
@@ -100,6 +100,104 @@ const toastMiddleware = () => (next) => (action) => {
         showSuccess("Comment deleted successfully");
         break;
 
+      case "charges/addToTask/fulfilled":
+        showSuccess("Charge added successfully");
+        break;
+
+      case "charges/updateCharge/fulfilled":
+        showSuccess("Charge updated successfully");
+        break;
+
+      case "charges/deleteCharge/fulfilled":
+        showSuccess("Charge deleted successfully");
+        break;
+
+      case "charges/bulkUpdate/fulfilled":
+        showSuccess("Charges updated successfully");
+        break;
+
+      case "charges/bulkUpdateStatus/fulfilled":
+        const chargesStatusPayload = action.payload;
+        showSuccess("Charge status updated successfully");
+        break;
+
+      case "reconcile/fetchUnreconciled/fulfilled":
+      case "reconcile/fetchNonBillable/fulfilled":
+        // Silent operations - no toast
+        break;
+
+      // Fetch Invoices - No toast (silent background operation)
+      case "invoice/fetchList/fulfilled":
+        // No toast - fetching is expected to be silent
+        break;
+
+      // Fetch Reconciled Invoices - No toast (silent background operation)
+      case "invoice/fetchReconciled/fulfilled":
+        // No toast - fetching is expected to be silent
+        break;
+
+      // Fetch Invoice Details - No toast (silent background operation)
+      case "invoice/fetchDetails/fulfilled":
+        // No toast - fetching is expected to be silent
+        break;
+
+      // Create or Append Invoice
+      case "invoice/createOrAppend/fulfilled":
+        const invoicePayload = action.payload;
+        const invoiceNumber =
+          invoicePayload?.invoice?.internal_number || "Invoice";
+        const wasAppended = action.meta?.arg?.invoice_internal_number;
+
+        if (wasAppended) {
+          showSuccess(`Tasks added to invoice ${invoiceNumber} successfully`);
+        } else {
+          showSuccess(`Invoice ${invoiceNumber} created successfully`);
+        }
+        break;
+
+      // Update Invoice Info
+      case "invoice/updateInfo/fulfilled":
+        showSuccess("Invoice updated successfully");
+        break;
+
+      // Update Invoice Status (Single)
+      case "invoice/updateStatus/fulfilled":
+        const statusUpdatePayload = action.payload;
+        const newInvStatus = statusUpdatePayload?.status || "updated";
+        showSuccess(`Invoice status updated to ${newInvStatus}`);
+        break;
+
+      // Bulk Update Invoice Status
+      case "invoice/bulkUpdateStatus/fulfilled":
+        const bulkInvoiceResult = action.payload?.result;
+        const successCount = bulkInvoiceResult?.success?.length || 0;
+        const rejectedCount = bulkInvoiceResult?.rejected?.length || 0;
+
+        if (successCount > 0 && rejectedCount > 0) {
+          showSuccess(
+            `${successCount} invoice${successCount !== 1 ? "s" : ""} updated successfully. ${rejectedCount} invoice${rejectedCount !== 1 ? "s" : ""} could not be updated.`,
+          );
+        } else if (successCount > 0) {
+          showSuccess(
+            `${successCount} invoice${successCount !== 1 ? "s" : ""} updated successfully`,
+          );
+        } else if (rejectedCount > 0) {
+          const rejectedReasons = bulkInvoiceResult.rejected
+            .map((r) => r.reason || "unknown reason")
+            .join(", ");
+          showInfo(`No invoices were updated. Reasons: ${rejectedReasons}`);
+        }
+        break;
+
+      // Unlink Tasks from Invoice
+      case "invoice/unlinkTasks/fulfilled":
+        const unlinkPayload = action.payload;
+        const unlinkedTaskCount = unlinkPayload?.taskIds?.length || 0;
+        showSuccess(
+          `${unlinkedTaskCount} task${unlinkedTaskCount !== 1 ? "s" : ""} removed from invoice successfully`,
+        );
+        break;
+
       // Silent operations (no toast needed)
       case "task/fetchTasks/fulfilled":
       case "task/fetchAssignmentReport/fulfilled":
@@ -110,6 +208,77 @@ const toastMiddleware = () => (next) => (action) => {
       case "taskTimeline/fetchTimeline/fulfilled":
       case "taskTimeline/loadMoreTimeline/fulfilled":
         // No toast - these are silent background operations
+        break;
+
+      case "reconcile/markNonBillable/fulfilled":
+        const markNonBillableResult = action.payload?.result;
+        const updatedCountReconcile =
+          markNonBillableResult?.updated?.length || 0;
+        const rejectedCountReconcile =
+          markNonBillableResult?.rejected?.length || 0;
+
+        if (updatedCountReconcile > 0 && rejectedCountReconcile > 0) {
+          showSuccess(
+            `${updatedCountReconcile} task${updatedCountReconcile !== 1 ? "s" : ""} marked as non-billable. ${rejectedCountReconcile} task${rejectedCountReconcile !== 1 ? "s" : ""} could not be updated.`,
+          );
+        } else if (updatedCountReconcile > 0) {
+          showSuccess(
+            `${updatedCountReconcile} task${updatedCountReconcile !== 1 ? "s" : ""} marked as non-billable successfully`,
+          );
+        } else if (rejectedCountReconcile > 0) {
+          const rejectedReasons = markNonBillableResult.rejected
+            .map((r) => {
+              const reason =
+                r.reason === "SYSTEM_TASK"
+                  ? "system task"
+                  : r.reason === "HAS_UNPAID_CHARGES"
+                    ? "has unpaid charges"
+                    : "unknown reason";
+              return reason;
+            })
+            .join(", ");
+          showInfo(
+            `No tasks were marked as non-billable. Reasons: ${rejectedReasons}`,
+          );
+        }
+        break;
+
+      case "reconcile/restoreBillable/fulfilled":
+        const restoreBillableResult = action.payload?.result;
+        const restoredCount = restoreBillableResult?.restored?.length || 0;
+        const restoredRejectedCount =
+          restoreBillableResult?.rejected?.length || 0;
+
+        if (restoredCount > 0 && restoredRejectedCount > 0) {
+          showSuccess(
+            `${restoredCount} task${restoredCount !== 1 ? "s" : ""} restored to billable. ${restoredRejectedCount} task${restoredRejectedCount !== 1 ? "s" : ""} could not be updated.`,
+          );
+        } else if (restoredCount > 0) {
+          showSuccess(
+            `${restoredCount} task${restoredCount !== 1 ? "s" : ""} restored to billable successfully`,
+          );
+        } else if (restoredRejectedCount > 0) {
+          const rejectedReasons = restoreBillableResult.rejected
+            .map((r) => {
+              const reason =
+                r.reason === "ALREADY_BILLABLE"
+                  ? "already billable"
+                  : r.reason === "NOT_FOUND"
+                    ? "not found"
+                    : "unknown reason";
+              return reason;
+            })
+            .join(", ");
+          showInfo(`No tasks were restored. Reasons: ${rejectedReasons}`);
+        }
+        break;
+
+      case "reconcile/createAdHocCharge/fulfilled":
+        showSuccess("Ad-hoc charge created successfully");
+        break;
+
+      case "reconcile/deleteAdHocCharge/fulfilled":
+        showSuccess("Ad-hoc charge deleted successfully");
         break;
 
       // ===== USERS SLICE =====
@@ -143,7 +312,7 @@ const toastMiddleware = () => (next) => (action) => {
           showSuccess(
             `User permissions updated (${permCount} permission${
               permCount !== 1 ? "s" : ""
-            } assigned)`
+            } assigned)`,
           );
         } else {
           showSuccess("User permissions updated successfully");
@@ -157,7 +326,7 @@ const toastMiddleware = () => (next) => (action) => {
           showSuccess("User invited successfully! Invitation email sent.");
         } else if (invitePayload?.data?.warning) {
           showInfo(
-            "User created but invitation email could not be sent. Please resend manually."
+            "User created but invitation email could not be sent. Please resend manually.",
           );
         } else {
           showSuccess("User invitation processed successfully");
@@ -219,7 +388,7 @@ const toastMiddleware = () => (next) => (action) => {
           showSuccess(
             `Export data prepared: ${exportCount} customer${
               exportCount !== 1 ? "s" : ""
-            } ready for download`
+            } ready for download`,
           );
         }
         // No toast for regular filtering - it's expected to be silent
@@ -247,7 +416,7 @@ const toastMiddleware = () => (next) => (action) => {
 
         if (newUserPayload?.passwordResetLink) {
           showSuccess(
-            `${newUserName} added successfully! Password reset link generated.`
+            `${newUserName} added successfully! Password reset link generated.`,
           );
         } else {
           showSuccess(`${newUserName} added successfully`);
@@ -282,14 +451,14 @@ const toastMiddleware = () => (next) => (action) => {
           showSuccess(
             `${updatedCount} commission${
               updatedCount !== 1 ? "s" : ""
-            } marked as ${newStatus}. ${skippedCount} already had this status.`
+            } marked as ${newStatus}. ${skippedCount} already had this status.`,
           );
         } else if (updatedCount > 0) {
           // All updated successfully
           showSuccess(
             `${updatedCount} commission${
               updatedCount !== 1 ? "s" : ""
-            } marked as ${newStatus} successfully`
+            } marked as ${newStatus} successfully`,
           );
         } else if (skippedCount > 0) {
           // None updated (all already had the status)
@@ -320,7 +489,7 @@ const toastMiddleware = () => (next) => (action) => {
           showSuccess(
             `Export data prepared: ${exportCount} influencer${
               exportCount !== 1 ? "s" : ""
-            } ready for download`
+            } ready for download`,
           );
         }
         // No toast for regular filtering - it's expected to be silent
@@ -371,7 +540,7 @@ const toastMiddleware = () => (next) => (action) => {
           showSuccess(
             `Export data prepared: ${exportCount} booking${
               exportCount !== 1 ? "s" : ""
-            } ready for download`
+            } ready for download`,
           );
         }
         // No toast for regular filtering - it's expected to be silent
@@ -645,14 +814,14 @@ const toastMiddleware = () => (next) => (action) => {
             showError(
               primaryError?.message ||
                 inviteError.message ||
-                "Failed to invite user"
+                "Failed to invite user",
             );
           }
         } else {
           showError(
             inviteError?.message ||
               action.error?.message ||
-              "Failed to invite user"
+              "Failed to invite user",
           );
         }
         break;
@@ -665,7 +834,7 @@ const toastMiddleware = () => (next) => (action) => {
           showError(
             resendError?.message ||
               action.error?.message ||
-              "Failed to resend invitation"
+              "Failed to resend invitation",
           );
         }
         break;
@@ -678,7 +847,7 @@ const toastMiddleware = () => (next) => (action) => {
           showError(
             resetError?.message ||
               action.error?.message ||
-              "Failed to send Onboarding reset link"
+              "Failed to send Onboarding reset link",
           );
         }
         break;
@@ -694,7 +863,7 @@ const toastMiddleware = () => (next) => (action) => {
           showError(
             sendPasswordResetLinkErr?.message ||
               action.error?.message ||
-              "Failed to send Password reset link"
+              "Failed to send Password reset link",
           );
         }
         break;
@@ -707,7 +876,7 @@ const toastMiddleware = () => (next) => (action) => {
           showError(
             toggleStatusError?.message ||
               action.error?.message ||
-              "Failed to Update Account Status"
+              "Failed to Update Account Status",
           );
         }
         break;
@@ -727,7 +896,7 @@ const toastMiddleware = () => (next) => (action) => {
           action.error?.message || action.payload?.message;
         if (customerSearchError?.includes("Invalid search")) {
           showError(
-            "Invalid search format. Please check your input and try again."
+            "Invalid search format. Please check your input and try again.",
           );
         } else {
           showError("Customer search failed. Please try again.");
@@ -780,13 +949,13 @@ const toastMiddleware = () => (next) => (action) => {
           showError("Server error occurred. Please try again later.");
         } else if (addNewUserError?.type === "network_error") {
           showError(
-            "Network error. Please check your connection and try again."
+            "Network error. Please check your connection and try again.",
           );
         } else {
           showError(
             addUserErrorStr ||
               action.error?.message ||
-              "Failed to add new customer"
+              "Failed to add new customer",
           );
         }
         break;
@@ -801,7 +970,7 @@ const toastMiddleware = () => (next) => (action) => {
         const searchError = action.error?.message || action.payload?.message;
         if (searchError?.includes("Unsupported search format")) {
           showError(
-            "Invalid search format. Please check your input and try again."
+            "Invalid search format. Please check your input and try again.",
           );
         } else {
           showError("Commission search failed. Please try again.");
@@ -829,11 +998,11 @@ const toastMiddleware = () => (next) => (action) => {
         const statusError = action.error?.message || action.payload?.message;
         if (statusError?.includes("not found")) {
           showError(
-            "Some commissions were not found. Please refresh and try again."
+            "Some commissions were not found. Please refresh and try again.",
           );
         } else if (statusError?.includes("validation")) {
           showError(
-            "Invalid request. Please check your selection and try again."
+            "Invalid request. Please check your selection and try again.",
           );
         } else {
           showError(statusError || "Failed to update commission status");
@@ -851,7 +1020,7 @@ const toastMiddleware = () => (next) => (action) => {
           action.error?.message || action.payload?.message;
         if (influencerSearchError?.includes("Invalid search")) {
           showError(
-            "Invalid search format. Please check your input and try again."
+            "Invalid search format. Please check your input and try again.",
           );
         } else {
           showError("Influencer search failed. Please try again.");
@@ -879,13 +1048,13 @@ const toastMiddleware = () => (next) => (action) => {
           showError("Server error occurred. Please try again later.");
         } else if (addInfluencerError?.type === "network_error") {
           showError(
-            "Network error. Please check your connection and try again."
+            "Network error. Please check your connection and try again.",
           );
         } else {
           showError(
             addInfluencerError?.message ||
               action.error?.message ||
-              "Failed to add new influencer"
+              "Failed to add new influencer",
           );
         }
         break;
@@ -897,7 +1066,7 @@ const toastMiddleware = () => (next) => (action) => {
           showError("Influencer not found. Please refresh the page.");
         } else if (updateInfluencerError?.includes("duplicate")) {
           showError(
-            "Update failed: Data already exists for another influencer"
+            "Update failed: Data already exists for another influencer",
           );
         } else {
           showError(updateInfluencerError || "Failed to update influencer");
@@ -927,7 +1096,7 @@ const toastMiddleware = () => (next) => (action) => {
           action.error?.message || action.payload?.message;
         if (servicesSearchError?.includes("Invalid search")) {
           showError(
-            "Invalid search format. Please check your input and try again."
+            "Invalid search format. Please check your input and try again.",
           );
         } else {
           showError("Booking search failed. Please try again.");
@@ -959,7 +1128,7 @@ const toastMiddleware = () => (next) => (action) => {
           action.error?.message || action.payload?.message;
         if (quickSearchError?.includes("Invalid search")) {
           showError(
-            "Invalid search format. Please check your input and try again."
+            "Invalid search format. Please check your input and try again.",
           );
         } else {
           showError("Entity search failed. Please try again.");
@@ -988,7 +1157,7 @@ const toastMiddleware = () => (next) => (action) => {
           showError(
             createError?.message ||
               action.error?.message ||
-              "Failed to create entity"
+              "Failed to create entity",
           );
         }
         break;
@@ -1008,7 +1177,7 @@ const toastMiddleware = () => (next) => (action) => {
           showError(
             updateEntityError?.message ||
               action.error?.message ||
-              "Failed to update entity"
+              "Failed to update entity",
           );
         }
         break;
@@ -1022,14 +1191,224 @@ const toastMiddleware = () => (next) => (action) => {
           deleteEntityError?.message?.includes("dependent")
         ) {
           showError(
-            "Cannot delete entity: Has associated data or dependencies"
+            "Cannot delete entity: Has associated data or dependencies",
           );
         } else {
           showError(
             deleteEntityError?.message ||
               action.error?.message ||
-              "Failed to delete entity"
+              "Failed to delete entity",
           );
+        }
+        break;
+
+      case "charges/addToTask/rejected":
+        const addChargeErr = action.payload?.message || action.error?.message;
+        if (
+          addChargeErr?.includes("validation") ||
+          addChargeErr?.includes("Validation")
+        ) {
+          showError(`Invalid charge data: ${addChargeErr}`);
+        } else {
+          showError(addChargeErr || "Failed to add charge");
+        }
+        break;
+
+      case "charges/updateCharge/rejected":
+        const updateChargeErr =
+          action.payload?.message || action.error?.message;
+        if (updateChargeErr?.includes("not found")) {
+          showError("Charge not found. Please refresh the page.");
+        } else if (
+          updateChargeErr?.includes("validation") ||
+          updateChargeErr?.includes("Validation")
+        ) {
+          showError(`Invalid data: ${updateChargeErr}`);
+        } else {
+          showError(updateChargeErr || "Failed to update charge");
+        }
+        break;
+
+      case "charges/deleteCharge/rejected":
+        const deleteChargeErr =
+          action.payload?.message || action.error?.message;
+        showError(deleteChargeErr || "Failed to delete charge");
+        break;
+
+      case "charges/bulkUpdate/rejected":
+        const bulkUpdateErr = action.payload?.message || action.error?.message;
+        if (
+          bulkUpdateErr?.includes("validation") ||
+          bulkUpdateErr?.includes("Validation")
+        ) {
+          showError(`Invalid data: ${bulkUpdateErr}`);
+        } else {
+          showError(bulkUpdateErr || "Failed to update charges");
+        }
+        break;
+
+      case "charges/bulkUpdateStatus/rejected":
+        const bulkStatusErr = action.payload?.message || action.error?.message;
+        showError(bulkStatusErr || "Failed to update charge status");
+        break;
+
+      // ===== RECONCILE SLICE ERRORS =====
+
+      case "reconcile/fetchUnreconciled/rejected":
+        showError(
+          "Failed to load unreconciled tasks. Please refresh and try again.",
+        );
+        break;
+
+      case "reconcile/fetchNonBillable/rejected":
+        showError(
+          "Failed to load non-billable tasks. Please refresh and try again.",
+        );
+        break;
+
+      case "reconcile/markNonBillable/rejected":
+        const markNonBillableErr = action.payload || action.error?.message;
+        if (
+          markNonBillableErr?.includes("validation") ||
+          markNonBillableErr?.includes("Validation")
+        ) {
+          showError(
+            "Invalid request. Please check your selection and try again.",
+          );
+        } else {
+          showError(
+            markNonBillableErr || "Failed to mark tasks as non-billable",
+          );
+        }
+        break;
+
+      case "reconcile/restoreBillable/rejected":
+        const restoreBillableErr = action.payload || action.error?.message;
+        if (
+          restoreBillableErr?.includes("validation") ||
+          restoreBillableErr?.includes("Validation")
+        ) {
+          showError(
+            "Invalid request. Please check your selection and try again.",
+          );
+        } else {
+          showError(
+            restoreBillableErr || "Failed to restore tasks to billable",
+          );
+        }
+        break;
+
+      case "reconcile/createAdHocCharge/rejected":
+        const createAdHocErr = action.payload || action.error?.message;
+        console.log(createAdHocErr);
+        if (
+          createAdHocErr?.includes("validation") ||
+          createAdHocErr?.includes("Validation")
+        ) {
+          showError(`Invalid charge data: ${createAdHocErr}`);
+        } else if (createAdHocErr?.includes("not found")) {
+          showError("Entity not found. Please select a valid entity.");
+        } else {
+          showError(createAdHocErr || "Failed to create ad-hoc charge");
+        }
+        break;
+
+      case "reconcile/deleteAdHocCharge/rejected":
+        const deleteAdHocErr = action.payload || action.error?.message;
+        if (deleteAdHocErr?.includes("not found")) {
+          showError("Ad-hoc charge not found. Please refresh the page.");
+        } else {
+          showError(deleteAdHocErr || "Failed to delete ad-hoc charge");
+        }
+        break;
+
+      case "invoice/fetchList/rejected":
+        showError("Failed to load invoices. Please refresh and try again.");
+        break;
+
+      case "invoice/fetchReconciled/rejected":
+        showError(
+          "Failed to load reconciled invoices. Please refresh and try again.",
+        );
+        break;
+
+      case "invoice/fetchDetails/rejected":
+        const fetchInvoiceError =
+          action.payload?.message || action.error?.message;
+        if (fetchInvoiceError?.includes("not found")) {
+          showError("Invoice not found. Please check the invoice number.");
+        } else {
+          showError(fetchInvoiceError || "Failed to load invoice details");
+        }
+        break;
+
+      case "invoice/createOrAppend/rejected":
+        const createInvoiceError =
+          action.payload?.message || action.error?.message;
+        if (
+          createInvoiceError?.includes("validation") ||
+          createInvoiceError?.includes("VALIDATION_ERROR")
+        ) {
+          showError("Invalid invoice data. Please check your input.");
+        } else if (createInvoiceError?.includes("not found")) {
+          showError(
+            "Invoice not found. Please check the invoice number and try again.",
+          );
+        } else {
+          showError(createInvoiceError || "Failed to create/update invoice");
+        }
+        break;
+
+      case "invoice/updateInfo/rejected":
+        const updateInvoiceError =
+          action.payload?.message || action.error?.message;
+        if (updateInvoiceError?.includes("not found")) {
+          showError("Invoice not found. Please refresh the page.");
+        } else if (
+          updateInvoiceError?.includes("validation") ||
+          updateInvoiceError?.includes("VALIDATION_ERROR")
+        ) {
+          showError("Invalid data provided. Please check your input.");
+        } else {
+          showError(updateInvoiceError || "Failed to update invoice");
+        }
+        break;
+
+      case "invoice/updateStatus/rejected":
+        const statusUpdateError =
+          action.payload?.message || action.error?.message;
+        if (statusUpdateError?.includes("not found")) {
+          showError("Invoice not found. Please refresh the page.");
+        } else if (statusUpdateError?.includes("Invalid status")) {
+          showError("Invalid status. Please select a valid status.");
+        } else {
+          showError(statusUpdateError || "Failed to update invoice status");
+        }
+        break;
+
+      case "invoice/bulkUpdateStatus/rejected":
+        const bulkStatusError =
+          action.payload?.message || action.error?.message;
+        if (
+          bulkStatusError?.includes("validation") ||
+          bulkStatusError?.includes("VALIDATION_ERROR")
+        ) {
+          showError(
+            "Invalid request. Please check your selection and try again.",
+          );
+        } else {
+          showError(bulkStatusError || "Failed to bulk update invoice status");
+        }
+        break;
+
+      case "invoice/unlinkTasks/rejected":
+        const unlinkError = action.payload?.message || action.error?.message;
+        if (unlinkError?.includes("not found")) {
+          showError(
+            "Invoice or tasks not found. Please refresh and try again.",
+          );
+        } else {
+          showError(unlinkError || "Failed to remove tasks from invoice");
         }
         break;
 
@@ -1089,6 +1468,17 @@ const toastMiddleware = () => (next) => (action) => {
               ? action.payload[0]?.message
               : null) ||
             "Entity operation failed";
+          showError(errMsg);
+        }
+        // ADD THIS NEW BLOCK HERE ⬇️
+        else if (action.type.startsWith("invoice/")) {
+          const errMsg =
+            action.error?.message ||
+            action.payload?.message ||
+            (Array.isArray(action.payload)
+              ? action.payload[0]?.message
+              : null) ||
+            "Invoice operation failed";
           showError(errMsg);
         }
 
@@ -1252,6 +1642,80 @@ const toastMiddleware = () => (next) => (action) => {
 
       case "coupons/deleteCoupon/pending":
         showInfo("Deleting coupon...");
+        break;
+
+      case "charges/addToTask/pending":
+        // Silent - loading handled by UI component
+        break;
+
+      case "charges/updateCharge/pending":
+        // Silent - loading handled by UI component
+        break;
+
+      case "charges/deleteCharge/pending":
+        // Silent - loading handled by UI component
+        break;
+
+      case "charges/bulkUpdate/pending":
+        showInfo("Saving changes...");
+        break;
+
+      case "charges/bulkUpdateStatus/pending":
+        showInfo("Updating charge status...");
+        break;
+
+      // ===== RECONCILE SLICE PENDING =====
+
+      case "reconcile/fetchUnreconciled/pending":
+      case "reconcile/fetchNonBillable/pending":
+        // Silent - loading handled by pagination UI
+        break;
+
+      case "reconcile/markNonBillable/pending":
+        showInfo("Marking tasks as non-billable...");
+        break;
+
+      case "reconcile/restoreBillable/pending":
+        showInfo("Restoring tasks to billable...");
+        break;
+
+      case "reconcile/createAdHocCharge/pending":
+        showInfo("Creating ad-hoc charge...");
+        break;
+
+      case "reconcile/deleteAdHocCharge/pending":
+        showInfo("Deleting ad-hoc charge...");
+        break;
+
+      case "invoice/fetchList/pending":
+      case "invoice/fetchReconciled/pending":
+      case "invoice/fetchDetails/pending":
+        // Silent - loading handled by UI components
+        break;
+
+      case "invoice/createOrAppend/pending":
+        const createPendingArg = action.meta?.arg;
+        if (createPendingArg?.invoice_internal_number) {
+          showInfo("Adding tasks to invoice...");
+        } else {
+          showInfo("Creating invoice...");
+        }
+        break;
+
+      case "invoice/updateInfo/pending":
+        showInfo("Updating invoice...");
+        break;
+
+      case "invoice/updateStatus/pending":
+        showInfo("Updating invoice status...");
+        break;
+
+      case "invoice/bulkUpdateStatus/pending":
+        showInfo("Updating invoice statuses...");
+        break;
+
+      case "invoice/unlinkTasks/pending":
+        showInfo("Removing tasks from invoice...");
         break;
 
       // No pending messages for these operations (they should be fast/silent)

@@ -1,4 +1,5 @@
-import { fetchDeletedTaskCharges } from "@/services/task/taskCharge.service";
+
+import { fetchDeletedTaskChargesLib } from "@/services/shared/taskChargeslib";
 import {
   createSuccessResponse,
   handleApiError,
@@ -16,7 +17,7 @@ export async function GET(request, { params }) {
       params: resolvedParams,
     });
 
-    const charges = await fetchDeletedTaskCharges(parsed.params.task_id,admin_user);
+    const charges = await fetchDeletedTaskChargesLib(parsed.params.task_id,admin_user);
 
     return createSuccessResponse(
       "Deleted task charges retrieved successfully",

@@ -22,7 +22,6 @@ import ActionButton from "@/app/components/shared/TinyLib/ActionButton";
 import ConfirmationDialog from "@/app/components/shared/ConfirmationDialog/ConfirmationDialog";
 import styles from "./ChargeCard.module.scss";
 
-
 const ChargeCard = ({
   charge = {},
   onUpdate = () => {},
@@ -71,7 +70,6 @@ const ChargeCard = ({
       label: "Client Will Pay",
       icon: <UserCheck size={16} />,
     },
-    { value: "FIRM", label: "Firm Will Pay", icon: <Landmark size={16} /> },
   ];
 
   const paymentStatusOptions = [
@@ -88,13 +86,6 @@ const ChargeCard = ({
       bgColor: "#fee2e2",
       txtClr: "#991b1b",
       icon: <RefreshCcw color="#991b1b" size={16} />,
-    },
-    {
-      value: "WRITTEN_OFF",
-      label: "Written Off",
-      bgColor: "#fef3c7",
-      txtClr: "#92400e",
-      icon: <DiamondMinus color="#92400e" size={16} />,
     },
   ];
 
@@ -407,7 +398,6 @@ const ChargeCard = ({
                     </strong>
                   </span>
                   <span className={styles.metaName}>{charge.creator.name}</span>
-                
                 </div>
               </div>
             )}
@@ -427,7 +417,6 @@ const ChargeCard = ({
                     </strong>
                   </span>
                   <span className={styles.metaName}>{charge.updater.name}</span>
-                 
                 </div>
               </div>
             )}
@@ -449,7 +438,6 @@ const ChargeCard = ({
                     </strong>
                   </span>
                   <span className={styles.metaName}>{charge.deleter.name}</span>
-                 
                 </div>
               </div>
             )}
@@ -473,7 +461,6 @@ const ChargeCard = ({
                   <span className={styles.metaName}>
                     {charge.restorer.name}
                   </span>
-                
                 </div>
               </div>
             )}

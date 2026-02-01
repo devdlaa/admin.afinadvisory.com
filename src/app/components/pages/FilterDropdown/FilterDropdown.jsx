@@ -184,7 +184,7 @@ const FilterDropdown = ({
                 <Icon size={16} />
               </span>
             )}
-            <span className="filter-dropdown__text">{truncateText(displayText,22)}</span>
+            <span className="filter-dropdown__text">{truncateText(displayText,45)}</span>
           </div>
         </div>
 

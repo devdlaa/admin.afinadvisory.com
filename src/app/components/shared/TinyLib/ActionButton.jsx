@@ -11,6 +11,7 @@ const ActionButton = ({
   bgColor = '',
   textColor = '',
   size = 'medium', // 'small', 'medium', 'large'
+  rootClassName = '', // 🔹 NEW: single parent override hook
 }) => {
   const buttonClasses = [
     styles.actionButton,
@@ -22,7 +23,7 @@ const ActionButton = ({
   return (
     <button
       type="button"
-      className={buttonClasses}
+      className={`${buttonClasses} ${rootClassName}`}
       onClick={onClick}
       disabled={disabled || isLoading}
       style={{

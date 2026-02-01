@@ -1,372 +1,155 @@
 import { prisma } from "@/utils/server/db";
 import { NotFoundError, ForbiddenError } from "@/utils/server/errors";
-import { addTaskActivityLog } from "./taskComment.service";
-import { buildActivityMessage } from "@/utils/server/activityBulder";
 
-// helpers
+import {
+  createTaskChargeLib,
+  deleteTaskChargeLib,
+  hardDeleteTaskChargeLib,
+  restoreTaskChargeLib,
+  updateTaskChargeLib,
+} from "../shared/taskChargeslib";
 
-export async function ensureUserCanViewCharges(taskId, user) {
-  if (user.admin_role === "SUPER_ADMIN") return true;
+// ==================== ULTIMATE CONSOLIDATED VALIDATOR ====================
 
-  const hasManagePermission = user.permissions?.includes("tasks.charge.manage");
+/**
+ * ONE FUNCTION TO RULE THEM ALL
+ * Handles: permissions, assignment, invoice locking, and not-found checks
+ * Returns: task/charge data so you never need separate lookups
+ */
+async function ensureChargeEditable(input, user) {
+  // Case 1: TaskId string - full validation (permission + assignment + invoice)
+  if (typeof input === "string") {
+    const taskId = input;
 
-  const task = await prisma.task.findFirst({
-    where: {
-      id: taskId,
-      OR: [
-        { assigned_to_all: true },
-        { assignments: { some: { admin_user_id: user.id } } },
-      ],
-    },
-    select: { id: true },
-  });
+    // Super admin bypass (but still check invoice lock)
+    if (user.admin_role === "SUPER_ADMIN") {
+      const task = await prisma.task.findUnique({
+        where: { id: taskId },
+        select: {
+          id: true,
+          entity_id: true,
+          invoice_internal_number: true,
+        },
+      });
 
-  if (!task && !hasManagePermission) {
-    throw new ForbiddenError(
-      "You are not allowed to view charges for this task",
-    );
+      if (!task) throw new NotFoundError("Task not found");
+
+      if (task.invoice_internal_number) {
+        throw new ForbiddenError(
+          "Charges are locked because task is part of  invoice",
+        );
+      }
+
+      return task;
+    }
+
+    // Regular user - check permissions + assignment + invoice
+    if (!user.permissions?.includes("tasks.charge.manage")) {
+      throw new ForbiddenError("Missing permission: tasks.charge.manage");
+    }
+
+    const task = await prisma.task.findFirst({
+      where: {
+        id: taskId,
+        OR: [
+          { is_system: true },
+          { assigned_to_all: true },
+          { assignments: { some: { admin_user_id: user.id } } },
+        ],
+      },
+      select: {
+        id: true,
+        entity_id: true,
+        invoice_internal_number: true,
+      },
+    });
+
+    if (!task) {
+      throw new ForbiddenError("You are not assigned to this task");
+    }
+
+    if (task.invoice_internal_number) {
+      throw new ForbiddenError(
+        "Charges are locked because task is part of an invoice",
+      );
+    }
+
+    return task;
   }
 
-  return true;
+  return input;
 }
 
-export async function ensureUserCanManageCharges(taskId, user) {
-  if (user.admin_role === "SUPER_ADMIN") return true;
+// ==================== KEEP FOR READ-ONLY OPERATIONS ====================
 
-  if (!user.permissions?.includes("tasks.charge.manage")) {
-    throw new ForbiddenError("Missing permission: tasks.charge.manage");
+export async function ensureUserCanViewCharges(taskId, user) {
+  // 1️⃣ Super admin bypass
+  if (user.admin_role === "SUPER_ADMIN") {
+    return true;
   }
 
+  // 2️⃣ Fetch task with assignment info
   const task = await prisma.task.findFirst({
     where: {
       id: taskId,
-      OR: [
-        { assigned_to_all: true },
-        { assignments: { some: { admin_user_id: user.id } } },
-      ],
     },
-    select: { id: true },
+    select: {
+      id: true,
+      assigned_to_all: true,
+      assignments: {
+        where: { admin_user_id: user.id },
+        select: { id: true },
+      },
+    },
   });
 
   if (!task) {
-    throw new ForbiddenError("You are not assigned to this task");
+    throw new NotFoundError("Task not found");
   }
 
-  return true;
+  // 3️⃣ Assigned to all → view allowed
+  if (task.assigned_to_all) {
+    return true;
+  }
+
+  // 4️⃣ Not assigned to all → must be assigned AND have permission
+  const isAssigned = task.assignments.length > 0;
+  const hasPermission = user.permissions?.includes("tasks.charge.manage");
+
+  if (isAssigned && hasPermission) {
+    return true;
+  }
+
+  // 5️⃣ Everything else is forbidden
+  throw new ForbiddenError("You are not allowed to view charges for this task");
 }
 
-const chargeExists = async (chargeId) => {
-  return prisma.taskCharge.findUnique({
-    where: { id: chargeId },
-  });
-};
-
-// list charges for reuse
-const fetchChargesForTask = async (taskId) => {
-  const res = await prisma.taskCharge.findMany({
-    where: {
-      task_id: taskId,
-      deleted_at: null,
-    },
-    orderBy: { created_at: "asc" },
-    include: {
-      creator: {
-        select: { id: true, name: true, email: true },
-      },
-      updater: {
-        select: { id: true, name: true, email: true },
-      },
-      deleter: {
-        select: { id: true, name: true, email: true },
-      },
-      restorer: {
-        select: { id: true, name: true, email: true },
-      },
-    },
-  });
-  return res;
-};
-
-// CREATE charge
+// ==================== CREATE CHARGE ====================
 export const createTaskCharge = async (taskId, data, currentUser) => {
-  await ensureUserCanManageCharges(taskId, currentUser);
-  const charge = await prisma.taskCharge.create({
-    data: {
-      task_id: taskId,
-      title: data.title,
-      amount: data.amount.toString(),
-      charge_type: data.charge_type,
-      bearer: data.bearer,
-      status: data.status,
-      remark: data.remark ?? null,
-      created_by: currentUser.id,
-      updated_by: currentUser.id,
-    },
-  });
-
-  const charges = await fetchChargesForTask(taskId);
-
-  const changes = [
-    {
-      action: "CHARGE_CREATED",
-      from: null,
-      to: {
-        title: charge.title,
-        amount: charge.amount.toString(),
-        charge_type: charge.charge_type,
-        bearer: charge.bearer,
-        status: charge.status,
-        remark: charge.remark,
-      },
-    },
-  ];
-
-  await addTaskActivityLog(taskId, currentUser.id, {
-    action: "TASK_UPDATED",
-    message: buildActivityMessage(changes),
-    meta: { changes },
-  });
-
-  return { task_id: taskId, charges };
+  return await createTaskChargeLib(
+    taskId,
+    data,
+    currentUser,
+    ensureChargeEditable,
+  );
 };
 
-// UPDATE charge
+// ==================== UPDATE CHARGE ====================
 export const updateTaskCharge = async (id, data, currentUser) => {
-  const previous = await chargeExists(id);
-  if (!previous) throw new NotFoundError("Charge not found");
-
-  await ensureUserCanManageCharges(previous.task_id, currentUser);
-
-  const updated = await prisma.taskCharge.update({
-    where: { id },
-    data: {
-      ...data,
-      updated_by: currentUser.id,
-    },
-  });
-
-  const from = {};
-  const to = {};
-
-  const fields = [
-    "title",
-    "amount",
-    "charge_type",
-    "bearer",
-    "status",
-    "remark",
-  ];
-
-  for (const field of fields) {
-    if (data[field] !== undefined && data[field] !== previous[field]) {
-      from[field] = previous[field];
-      to[field] = updated[field];
-    }
-  }
-
-  if (Object.keys(from).length > 0) {
-    const titleChanged = "title" in from;
-
-    if (!titleChanged) {
-      from.title = previous.title;
-      to.title = data.title ?? previous.title;
-    }
-
-    const changes = [
-      {
-        action: "CHARGE_UPDATED",
-        from,
-        to,
-      },
-    ];
-
-    await addTaskActivityLog(previous.task_id, currentUser.id, {
-      action: "TASK_UPDATED",
-      message: buildActivityMessage(changes),
-      meta: { changes },
-    });
-  }
-
-  const charges = await fetchChargesForTask(previous.task_id);
-  return {
-    task_id: previous.task_id,
-    charges,
-  };
+  return await updateTaskChargeLib(id, data, currentUser, ensureChargeEditable);
 };
 
-// DELETE charge (soft delete)
+// ==================== DELETE CHARGE ====================
 export const deleteTaskCharge = async (id, currentUser) => {
-  const charge = await chargeExists(id);
-  if (!charge) throw new NotFoundError("Charge not found");
-
-  await ensureUserCanManageCharges(charge.task_id, currentUser);
-
-  await prisma.taskCharge.update({
-    where: { id },
-    data: {
-      deleted_at: new Date(),
-      deleted_by: currentUser.id,
-    },
-  });
-
-  const changes = [
-    {
-      action: "CHARGE_DELETED",
-      from: {
-        title: charge.title,
-        amount: charge.amount.toString(),
-        charge_type: charge.charge_type,
-        bearer: charge.bearer,
-        status: charge.status,
-        remark: charge.remark,
-      },
-      to: null,
-    },
-  ];
-
-  await addTaskActivityLog(charge.task_id, currentUser.id, {
-    action: "TASK_UPDATED",
-    message: buildActivityMessage(changes),
-    meta: { changes },
-  });
-
-  const charges = await fetchChargesForTask(charge.task_id);
-
-  return { task_id: charge.task_id, charges };
+  return await deleteTaskChargeLib(id, currentUser, ensureChargeEditable);
 };
 
-export const fetchDeletedTaskCharges = async (taskId) => {
-  const deleted_charges = await prisma.taskCharge.findMany({
-    where: {
-      task_id: taskId,
-      deleted_at: { not: null },
-    },
-    orderBy: { deleted_at: "desc" },
-    include: {
-      creator: { select: { id: true, name: true, email: true } },
-      updater: { select: { id: true, name: true, email: true } },
-      deleter: { select: { id: true, name: true, email: true } },
-      restorer: { select: { id: true, name: true, email: true } },
-    },
-  });
-
-  return {
-    task_id: taskId,
-    deleted_charges,
-  };
-};
-
+// ==================== RESTORE CHARGE ====================
 export const restoreTaskCharge = async (id, user) => {
-  const charge = await prisma.taskCharge.findUnique({ where: { id } });
-  if (!charge) throw new NotFoundError("Charge not found");
-
-  if (user.admin_role !== "SUPER_ADMIN") {
-    await ensureUserCanManageCharges(charge.task_id, user);
-  }
-
-  await prisma.taskCharge.update({
-    where: { id },
-    data: {
-      restored_by: user.id,
-      deleted_at: null,
-      deleted_by: null,
-      updated_by: user.id,
-    },
-  });
-
-  const charges = await fetchChargesForTask(charge.task_id);
-  const deleted_charges = await prisma.taskCharge.findMany({
-    where: {
-      task_id: charge.task_id,
-      deleted_at: { not: null },
-    },
-    orderBy: { deleted_at: "desc" },
-    include: {
-      creator: { select: { id: true, name: true, email: true } },
-      updater: { select: { id: true, name: true, email: true } },
-      deleter: { select: { id: true, name: true, email: true } },
-      restorer: { select: { id: true, name: true, email: true } },
-    },
-  });
-
-  const changes = [
-    {
-      action: "CHARGE_RESTORED",
-      from: null,
-      to: {
-        title: charge.title,
-        amount: charge.amount.toString(),
-        charge_type: charge.charge_type,
-        bearer: charge.bearer,
-        status: charge.status,
-        remark: charge.remark,
-      },
-    },
-  ];
-
-  await addTaskActivityLog(charge.task_id, user.id, {
-    action: "TASK_UPDATED",
-    message: buildActivityMessage(changes),
-    meta: { changes },
-  });
-
-  return {
-    task_id: charge.task_id,
-    charges,
-    deleted_charges,
-  };
+  return await restoreTaskChargeLib(id, user, ensureChargeEditable);
 };
 
+// ==================== HARD DELETE CHARGE ====================
 export const hardDeleteTaskCharge = async (id, user) => {
-  if (user.admin_role !== "SUPER_ADMIN") {
-    throw new ForbiddenError(
-      "Only super admins can permanently delete charges",
-    );
-  }
-
-  const charge = await prisma.taskCharge.findUnique({ where: { id } });
-  if (!charge) throw new NotFoundError("Charge not found");
-
-  await prisma.taskCharge.delete({ where: { id } });
-
-  const charges = await fetchChargesForTask(charge.task_id);
-  const deleted_charges = await prisma.taskCharge.findMany({
-    where: {
-      task_id: charge.task_id,
-      deleted_at: { not: null },
-    },
-  });
-
-  const changes = [
-    {
-      action: "CHARGE_HARD_DELETED",
-      from: {
-        title: charge.title,
-        amount: charge.amount.toString(),
-        charge_type: charge.charge_type,
-        bearer: charge.bearer,
-        status: charge.status,
-        remark: charge.remark,
-      },
-      to: null,
-    },
-  ];
-
-  await addTaskActivityLog(charge.task_id, user.id, {
-    action: "TASK_UPDATED",
-    message: buildActivityMessage(changes),
-    meta: { changes },
-  });
-
-  return {
-    task_id: charge.task_id,
-    charges,
-    deleted_charges,
-  };
-};
-
-// LIST charges
-export const listTaskCharges = async (taskId, currentUser) => {
-  await ensureUserCanViewCharges(taskId, currentUser);
-  return fetchChargesForTask(taskId);
+  return await hardDeleteTaskChargeLib(id, user, ensureChargeEditable);
 };

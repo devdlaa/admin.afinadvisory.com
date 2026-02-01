@@ -12,7 +12,7 @@ export async function requirePermission(req, required) {
     ];
   }
 
-  // Always fetch user
+
   const user = await prisma.adminUser.findUnique({
     where: { id: session.user.id },
     include: {
@@ -35,10 +35,10 @@ export async function requirePermission(req, required) {
 
   const normalizedUser = {
     ...user,
-    permissions: permissionCodes, // now: string[]
+    permissions: permissionCodes, 
   };
 
-  // 🚪 Account invalid → force logout
+
   if (normalizedUser.deleted_at || normalizedUser.status !== "ACTIVE") {
     return [
       createErrorResponse(
@@ -52,7 +52,6 @@ export async function requirePermission(req, required) {
     ];
   }
 
-  // If no permissions required, stop here
   if (
     required === undefined ||
     required === null ||
@@ -63,7 +62,7 @@ export async function requirePermission(req, required) {
 
   const requiredArray = Array.isArray(required) ? required : [required];
 
-  // ✅ permissions already flat strings
+ 
   const hasAll = requiredArray.every((perm) =>
     normalizedUser.permissions.includes(perm),
   );

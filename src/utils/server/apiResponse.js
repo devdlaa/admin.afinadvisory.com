@@ -45,7 +45,7 @@ export const handleApiError = (error) => {
       "Validation failed",
       400,
       "VALIDATION_ERROR",
-      error.errors
+      error.issues
     );
   }
 

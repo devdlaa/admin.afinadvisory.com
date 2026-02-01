@@ -69,13 +69,9 @@ export const createTaskSchema = z
      */
     is_billable: z.boolean().default(false),
 
-    invoice_number: z
-      .string()
-      .max(100, "Invoice number too long")
-      .optional()
-      .nullable(),
+  
 
-    billed_from_firm: PracticeFirmEnum.optional().nullable(),
+  
   })
   // end >= start
   .refine(
@@ -125,7 +121,7 @@ export const listTasksSchema = z
 
     // new billing filters
     is_billable: z.boolean().optional(),
-    billed_from_firm: PracticeFirmEnum.optional(),
+  
 
     sort_by: z
       .enum(["due_date", "priority", "created_at"])
@@ -170,9 +166,6 @@ export const TaskUpdateSchema = z
 
     is_billable: z.boolean().optional(),
 
-    invoice_number: z.string().max(100).optional().nullable(),
-
-    billed_from_firm: PracticeFirmEnum.optional().nullable(),
   })
 
   .refine((data) => !data.due_date || data.due_date >= new Date(), {

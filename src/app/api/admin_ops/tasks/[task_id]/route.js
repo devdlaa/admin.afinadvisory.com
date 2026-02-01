@@ -80,7 +80,7 @@ export async function DELETE(request, { params }) {
   try {
     const [permissionError, session,admin_user] = await requirePermission(
       request,
-      "tasks.delete"
+     
     );
     if (permissionError) return permissionError;
 

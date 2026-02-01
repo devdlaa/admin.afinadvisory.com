@@ -8,7 +8,7 @@ import ChargeCard from "../ChargeCard/ChargeCard";
 import ActionButton from "@/app/components/shared/TinyLib/ActionButton";
 
 import "./ChargesManager.scss";
-import CircularLoader from "@/app/components/shared/newui/Loader/CircularLoader";
+
 import { CircularProgress } from "@mui/material";
 
 const ChargesManager = ({
