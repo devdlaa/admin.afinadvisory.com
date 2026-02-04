@@ -3,7 +3,8 @@ import { NextResponse } from "next/server";
 import { AppError } from "./errors";
 import { ZodError } from "zod";
 
-export const createSuccessResponse = (message, data = null, meta = null) => {
+export const createSuccessResponse = (
+  message, data = null, meta = null) => {
   return NextResponse.json({
     success: true,
     message,

@@ -121,11 +121,17 @@
     box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1),
       0 10px 10px -5px rgba(0, 0, 0, 0.04);
     z-index: 9999;
-    width: 400px;
+    width: 100%; // Changed from 400px to match parent width
+    min-width: 320px; // Minimum width for usability
     max-height: 400px;
     display: flex;
     flex-direction: column;
     animation: dropdown-slide-in 0.2s ease-out;
+  }
+
+  &__menu--upward {
+    top: auto;
+    bottom: calc(100% + 12px);
   }
 
   &__search {
@@ -306,8 +312,8 @@
     min-width: unset;
 
     &__menu {
-      width: 300px;
       max-height: 300px;
+      min-width: 200px; // Reduce minimum width on mobile
     }
   }
 }

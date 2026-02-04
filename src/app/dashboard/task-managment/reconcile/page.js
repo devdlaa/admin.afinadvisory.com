@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState, useCallback, useMemo } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 
 import ReconcileActionBar from "./components/ReconcileActionBar/ReconcileActionBar.jsx";
@@ -46,7 +46,10 @@ import {
   bulkUpdateChargeStatus,
 } from "@/store/slices/chargesSlice";
 
-import { quickSearchEntities } from "@/store/slices/entitySlice";
+import {
+  quickSearchEntities,
+  fetchEntityById,
+} from "@/store/slices/entitySlice";
 
 import {
   fetchCategories,
@@ -71,8 +74,72 @@ const TASK_STATUSES = [
   { value: "PENDING_CLIENT_INPUT", label: "Pending Client Input" },
 ];
 
+const URL_FILTER_KEYS = [
+  "entity_id",
+  "task_category_id",
+  "task_status",
+  "from_date",
+  "to_date",
+  "page",
+  "page_size",
+  "order",
+];
+
+const DEFAULT_FILTERS = {
+  entity_id: null,
+  task_category_id: null,
+  task_status: null,
+  from_date: null,
+  to_date: null,
+  order: "desc",
+  page_size: "50",
+};
+
+/**
+ * Updates URL without triggering navigation/re-render
+ */
+const updateURLSilently = (params) => {
+  const url = new URL(window.location);
+  url.search = params.toString();
+  window.history.replaceState({}, "", url);
+};
+
+/**
+ * Parses URL params into filters and page number
+ */
+const parseURLParams = (searchParams) => {
+  const filters = { ...DEFAULT_FILTERS };
+  let page = 1;
+  let tab = TABS.UNRECONCILED;
+
+  // Parse tab
+  const tabParam = searchParams.get("tab");
+  if (tabParam && Object.values(TABS).includes(tabParam)) {
+    tab = tabParam;
+  }
+
+  // Parse page
+  const pageParam = searchParams.get("page");
+  if (pageParam) {
+    const parsed = Number(pageParam);
+    if (!Number.isNaN(parsed) && parsed > 0) {
+      page = parsed;
+    }
+  }
+
+  // Parse filters
+  URL_FILTER_KEYS.forEach((key) => {
+    if (key === "page") return; // Already handled
+    const value = searchParams.get(key);
+    if (value) {
+      filters[key] = value;
+    }
+  });
+
+  return { filters, page, tab };
+};
+
 export default function ReconcilePage() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const dispatch = useDispatch();
 
@@ -84,7 +151,6 @@ export default function ReconcilePage() {
   const nonBillableData = useSelector(selectNonBillableData);
   const selectedTasks = useSelector(selectSelectedTasks);
   const selectedTaskIds = selectedTasks.map((t) => t.id);
-  const [expandedTaskIds, setExpandedTaskIds] = useState(new Set());
   const loading = useSelector(selectLoading);
   const error = useSelector(selectError);
   const currentPageItems = useSelector(selectCurrentPageItems);
@@ -103,44 +169,24 @@ export default function ReconcilePage() {
   // ============================================================================
   // LOCAL STATE
   // ============================================================================
-  const [filters, setFilters] = useState({
-    entity_id: null,
-    task_category_id: null,
-    task_status: null,
-    from_date: null,
-    to_date: null,
-    order: "desc",
-    page_size: "50",
-  });
-
+  const [filters, setFilters] = useState(DEFAULT_FILTERS);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [expandedTaskIds, setExpandedTaskIds] = useState(new Set());
   const [entitySearchResults, setEntitySearchResults] = useState([]);
   const [isSearchingEntities, setIsSearchingEntities] = useState(false);
-
-  const handleToggleExpand = (taskId) => {
-    setExpandedTaskIds((prev) => {
-      const next = new Set(prev);
-      next.has(taskId) ? next.delete(taskId) : next.add(taskId);
-      return next;
-    });
-  };
-  const handleExpandAll = () => {
-    setExpandedTaskIds(
-      expandedTaskIds.size
-        ? new Set()
-        : new Set(currentPageItems.map((i) => i.task.id)),
-    );
-  };
 
   // Dialog states
   const [showCreateInvoiceDialog, setShowCreateInvoiceDialog] = useState(false);
   const [showAdHocChargeDialog, setShowAdHocChargeDialog] = useState(false);
-
-  // Confirmation dialogs
   const [confirmationState, setConfirmationState] = useState({
     isOpen: false,
-    type: null, // 'markNonBillable' | 'restoreBillable' | 'deleteAdHoc' | 'deleteCharge'
+    type: null,
     data: null,
   });
+
+  // Refs to prevent initial duplicate fetch
+  const isInitialized = useRef(false);
+  const lastFetchParams = useRef(null);
 
   // ============================================================================
   // COMPUTED VALUES
@@ -173,37 +219,102 @@ export default function ReconcilePage() {
       : loading?.nonBillable?.fetchNext || loading?.nonBillable?.fetchPrev;
 
   // ============================================================================
-  // INITIALIZATION
+  // URL SYNC HELPER
   // ============================================================================
+  const syncURL = useCallback((tab, filters, page) => {
+    const params = new URLSearchParams(window.location.search);
 
-  // Load categories on mount (only once)
+    params.set("tab", tab);
+
+    params.set("page", String(page));
+
+    URL_FILTER_KEYS.forEach((key) => {
+      if (key === "page") return;
+
+      const value = filters[key];
+      if (value !== null && value !== "" && value !== undefined) {
+        params.set(key, String(value));
+      } else {
+        params.delete(key);
+      }
+    });
+
+    updateURLSilently(params);
+  }, []);
+
+  // ============================================================================
+  // INITIALIZATION - Parse URL once on mount
+  // ============================================================================
+  useEffect(() => {
+    const {
+      filters: urlFilters,
+      page: urlPage,
+      tab: urlTab,
+    } = parseURLParams(searchParams);
+
+    setFilters(urlFilters);
+    setCurrentPage(urlPage);
+    dispatch(setActiveTab(urlTab));
+
+    // If entity_id exists in URL, fetch that entity to populate the dropdown
+    if (urlFilters.entity_id) {
+      fetchEntityForDeepLink(urlFilters.entity_id);
+    }
+
+    isInitialized.current = true;
+  }, []); // Run only once on mount
+
+  // ============================================================================
+  // FETCH ENTITY BY ID (for deep links)
+  // ============================================================================
+  const fetchEntityForDeepLink = useCallback(
+    async (entityId) => {
+      if (!entityId) return;
+
+      try {
+        // Fetch the specific entity by ID
+        const result = await dispatch(fetchEntityById(entityId)).unwrap();
+
+        // Add it to the search results so it appears in the dropdown
+        if (result) {
+          setEntitySearchResults([result]);
+        }
+      } catch (err) {
+        console.error("Failed to fetch entity for deep link:", err);
+        // Silently fail - the filter will still work, just won't show the name
+      }
+    },
+    [dispatch],
+  );
+
+  // ============================================================================
+  // LOAD CATEGORIES
+  // ============================================================================
   useEffect(() => {
     if (cachedCategoriesCount === 0) {
       dispatch(fetchCategories({ page: 1, page_size: 100 }));
     }
   }, [dispatch, cachedCategoriesCount]);
 
-  // Initialize tab from URL
-  useEffect(() => {
-    const tabParam = searchParams.get("tab");
-    if (tabParam && Object.values(TABS).includes(tabParam)) {
-      dispatch(setActiveTab(tabParam));
-    } else {
-      dispatch(setActiveTab(TABS.UNRECONCILED));
-    }
-  }, [searchParams, dispatch]);
-
-  // Fetch data when filters or tab changes
-  useEffect(() => {
-    loadData(1, false, false, true);
-  }, [activeTab, filters]);
-
   // ============================================================================
-  // DATA LOADING
+  // DATA LOADING - Single source of truth
   // ============================================================================
-
   const loadData = useCallback(
-    (page, isNext = false, isPrev = false, isFilterChange = false) => {
+    (page, isNext = false, isPrev = false) => {
+      // Create fetch signature to prevent duplicate calls
+      const fetchSignature = JSON.stringify({
+        tab: activeTab,
+        filters,
+        page,
+      });
+
+      // Skip if same as last fetch
+      if (lastFetchParams.current === fetchSignature) {
+        return;
+      }
+
+      lastFetchParams.current = fetchSignature;
+
       const fetchParams = {
         filters: { ...filters, page_size: filters.page_size || "50" },
         page,
@@ -221,41 +332,51 @@ export default function ReconcilePage() {
   );
 
   // ============================================================================
+  // EFFECT: Fetch data when tab, filters, or page changes
+  // ============================================================================
+  useEffect(() => {
+    if (!isInitialized.current) return;
+
+    loadData(currentPage, false, false);
+    syncURL(activeTab, filters, currentPage);
+  }, [activeTab, filters, currentPage, loadData, syncURL]);
+
+  // ============================================================================
   // TAB HANDLERS
   // ============================================================================
-
   const handleTabChange = (tab) => {
-    const params = new URLSearchParams(searchParams);
-    params.set("tab", tab);
-    router.push(`/dashboard/task-managment/reconcile?${params.toString()}`);
     dispatch(setActiveTab(tab));
     dispatch(clearSelections());
+    setCurrentPage(1); // Reset to page 1 when changing tabs
   };
 
   // ============================================================================
   // FILTER HANDLERS
   // ============================================================================
-
   const handleFilterChange = (key, value) => {
     setFilters((prev) => ({
       ...prev,
       [key]: value,
     }));
+    setCurrentPage(1); // Reset to page 1 when filters change
     dispatch(resetTabData(activeTab));
   };
 
   const handleClearAllFilters = () => {
-    setFilters({
-      entity_id: null,
-      task_category_id: null,
-      task_status: null,
-      from_date: null,
-      to_date: null,
-      order: "desc",
-      page_size: "50",
-    });
+    // Reset state
+    setFilters(DEFAULT_FILTERS);
+    setCurrentPage(1);
     dispatch(resetTabData(activeTab));
     setEntitySearchResults([]);
+
+    const params = new URLSearchParams();
+
+    params.set("tab", activeTab);
+    params.set("page", "1");
+    params.set("page_size", DEFAULT_FILTERS.page_size);
+    params.set("order", DEFAULT_FILTERS.order);
+
+    updateURLSilently(params);
   };
 
   const handleEntitySearch = useCallback(
@@ -277,7 +398,7 @@ export default function ReconcilePage() {
 
         setEntitySearchResults(safeData);
       } catch (err) {
-        console.error("Entity search failed:");
+        console.error("Entity search failed:", err);
         setEntitySearchResults([]);
       } finally {
         setIsSearchingEntities(false);
@@ -289,7 +410,6 @@ export default function ReconcilePage() {
   // ============================================================================
   // PAGINATION HANDLERS
   // ============================================================================
-
   const handleRefresh = () => {
     if (
       isMarkNonBillableLoading ||
@@ -299,20 +419,43 @@ export default function ReconcilePage() {
     ) {
       return;
     }
-    loadData(currentData?.currentPage || 1);
+
+    // Clear last fetch signature to force refresh
+    lastFetchParams.current = null;
+    loadData(currentPage);
     dispatch(clearSelections());
   };
 
   const handlePageChange = (page) => {
-    const isNext = page > (currentData?.currentPage || 1);
-    const isPrev = page < (currentData?.currentPage || 1);
-    loadData(page, isNext, isPrev, false);
+    const isNext = page > currentPage;
+    const isPrev = page < currentPage;
+
+    setCurrentPage(page);
+    loadData(page, isNext, isPrev);
+  };
+
+  // ============================================================================
+  // EXPAND/COLLAPSE HANDLERS
+  // ============================================================================
+  const handleToggleExpand = (taskId) => {
+    setExpandedTaskIds((prev) => {
+      const next = new Set(prev);
+      next.has(taskId) ? next.delete(taskId) : next.add(taskId);
+      return next;
+    });
+  };
+
+  const handleExpandAll = () => {
+    setExpandedTaskIds(
+      expandedTaskIds.size
+        ? new Set()
+        : new Set(currentPageItems.map((i) => i.task.id)),
+    );
   };
 
   // ============================================================================
   // CONFIRMATION DIALOG HANDLERS
   // ============================================================================
-
   const closeConfirmation = () => {
     setConfirmationState({
       isOpen: false,
@@ -413,14 +556,12 @@ export default function ReconcilePage() {
     } catch (err) {
       console.error(`Failed to ${type}:`, err);
       closeConfirmation();
-      // Error toast handled by middleware
     }
   };
 
   // ============================================================================
   // CHARGE HANDLERS
   // ============================================================================
-
   const chargeHandlers = {
     onAddCharge: async (taskId, chargeData) => {
       if (!taskId || !chargeData) {
@@ -432,7 +573,6 @@ export default function ReconcilePage() {
         await dispatch(addChargeToTask({ taskId, chargeData })).unwrap();
       } catch (err) {
         console.error("Failed to add charge:", err);
-        // Error toast handled by middleware
       }
     },
 
@@ -450,7 +590,6 @@ export default function ReconcilePage() {
     },
 
     onDeleteCharge: async (taskId, chargeId) => {
-      // Use confirmation dialog instead of direct delete
       handleDeleteCharge(taskId, chargeId);
     },
 
@@ -472,7 +611,6 @@ export default function ReconcilePage() {
     onDeleteSystemTask: handleDeleteSystemTask,
 
     onUnlinkSystemTask: async (taskId) => {
-      // This would be used in invoice view - not applicable for reconcile page
       console.log("Unlink system task:", taskId);
     },
   };
@@ -480,26 +618,16 @@ export default function ReconcilePage() {
   // ============================================================================
   // CONFIG SETUP
   // ============================================================================
-
   const tableConfig = useMemo(() => {
     const baseHandlers = {
       ...chargeHandlers,
-
       onToggleExpandAll: handleExpandAll,
-
-      // =============================
-      // Bulk task actions
-      // =============================
       onMarkAsBillable: handleRestoreBillable,
       onMarkAsNonBillable: handleMarkAsNonBillable,
 
-      // =============================
-      // Invoice creation
-      // =============================
       onCreateInvoice: () => {
         if (!selectedTasks.length) return;
 
-        // 1️⃣ Entity filter must be selected
         if (!filters.entity_id) {
           setConfirmationState({
             isOpen: true,
@@ -509,7 +637,6 @@ export default function ReconcilePage() {
           return;
         }
 
-        // 2️⃣ All tasks must belong to same entity
         const entityId = selectedTasks[0].entity.id;
         const mismatch = selectedTasks.some((t) => t.entity.id !== entityId);
 
@@ -522,7 +649,6 @@ export default function ReconcilePage() {
           return;
         }
 
-        // 3️⃣ Status guard
         const invalidStatus = selectedTasks.some((task) => {
           const isAdhoc = task.task_type === "SYSTEM_ADHOC" && task.is_system;
           return !isAdhoc && task.status !== "COMPLETED";
@@ -540,17 +666,11 @@ export default function ReconcilePage() {
         setShowCreateInvoiceDialog(true);
       },
 
-      // =============================
-      // Ad-hoc charge
-      // =============================
       onAddAdHocCharge: () => {
         if (isAddAdHocChargeLoading) return;
         setShowAdHocChargeDialog(true);
       },
 
-      // =============================
-      // 🔽 Loading flags (NEW)
-      // =============================
       isMarkNonBillableLoading,
       isRestoreBillableLoading,
       isAddAdHocChargeLoading,
@@ -561,12 +681,11 @@ export default function ReconcilePage() {
     } else {
       return createUnReconciledConfig(baseHandlers);
     }
-  }, [activeTab, chargeHandlers]);
+  }, [activeTab, chargeHandlers, selectedTasks, filters.entity_id]);
 
   // ============================================================================
   // FILTER DROPDOWNS CONFIG
   // ============================================================================
-
   const filterDropdowns = useMemo(
     () => [
       {
@@ -616,10 +735,9 @@ export default function ReconcilePage() {
   // ============================================================================
   // CONFIRMATION DIALOG CONFIG
   // ============================================================================
-
   const getConfirmationConfig = () => {
     const { type, data } = confirmationState;
-    console.log("data", data);
+
     switch (type) {
       case "markNonBillable":
         return {
@@ -658,8 +776,8 @@ export default function ReconcilePage() {
             "Invoices can be created for one client at a time. Please select a client using the Entity filter before creating an invoice.",
           confirmText: "OK",
           variant: "default",
+          hideCancel: true,
         };
-
       case "createInvoiceEntityMismatch":
         return {
           actionName: "Multiple Clients Selected",
@@ -667,8 +785,8 @@ export default function ReconcilePage() {
             "Some selected tasks belong to a different client. Please filter by a single client and then select tasks again.",
           confirmText: "OK",
           variant: "warning",
+          hideCancel: true,
         };
-
       case "createInvoiceInvalidStatus":
         return {
           actionName: "Incomplete Tasks Selected",
@@ -676,6 +794,7 @@ export default function ReconcilePage() {
             "Only completed tasks can be invoiced. Please complete or deselect pending tasks before creating an invoice.",
           confirmText: "OK",
           variant: "warning",
+          hideCancel: true,
         };
       default:
         return {
@@ -692,7 +811,6 @@ export default function ReconcilePage() {
   // ============================================================================
   // RENDER
   // ============================================================================
-
   return (
     <div className={styles.container}>
       <div className={styles.content}>
@@ -705,7 +823,7 @@ export default function ReconcilePage() {
             onClearAllFilters={handleClearAllFilters}
             onRefresh={handleRefresh}
             totalCount={currentData?.totalItems || 0}
-            currentPage={currentData?.currentPage || 1}
+            currentPage={currentPage}
             totalPages={currentData?.totalPages || 1}
             onPageChange={handlePageChange}
             isPaginationLoading={isPaginationLoading}
@@ -787,9 +905,13 @@ export default function ReconcilePage() {
         actionName={confirmationConfig.actionName}
         actionInfo={confirmationConfig.actionInfo}
         confirmText={confirmationConfig.confirmText}
-        cancelText="Cancel"
+        cancelText={confirmationConfig.hideCancel ? undefined : "Cancel"}
         variant={confirmationConfig.variant}
-        onConfirm={executeConfirmation}
+        onConfirm={
+          confirmationConfig.hideCancel
+            ? closeConfirmation
+            : executeConfirmation
+        }
         onCancel={closeConfirmation}
       />
     </div>

@@ -60,13 +60,16 @@ async function ensureTaskCriticalFieldsEditable(taskId, updates, tx = prisma) {
   if (
     task.invoice_internal_number &&
     task.invoice &&
-    (task.invoice.status !== "CANCELLED")
+    task.invoice.status !== "CANCELLED"
   ) {
     const criticalFields = {
       title: "title",
       status: "status",
       task_category_id: "task category",
       is_billable: "billable status",
+      due_date: "due date",
+      start_date: "start date",
+      end_date: "end date",
     };
 
     const lockedChanges = [];
@@ -108,6 +111,10 @@ export function buildTaskVisibilityWhere(user) {
  * Uses groupBy instead of 6 separate count queries
  */
 const getStatusCounts = async (where = {}, db = prisma) => {
+  const finalWhere = {
+    AND: [where, { is_system: { not: true } }],
+  };
+
   const statuses = [
     "PENDING",
     "IN_PROGRESS",
@@ -119,7 +126,7 @@ const getStatusCounts = async (where = {}, db = prisma) => {
 
   const groupedCounts = await db.task.groupBy({
     by: ["status"],
-    where,
+    where: finalWhere,
     _count: { status: true },
   });
 
@@ -315,7 +322,6 @@ export const updateTask = async (task_id, data, currentUser) => {
     // ✅ CHECK CRITICAL FIELDS LOCK FIRST
     await ensureTaskCriticalFieldsEditable(task_id, data, tx);
 
-    //  FETCH EXISTING TASK - Minimal select for change detection
     const existing = await tx.task.findFirst({
       where: {
         AND: [{ id: task_id }, visibilityWhere],
@@ -675,6 +681,19 @@ export const getTaskById = async (task_id, currentUser) => {
           status: true,
         },
       },
+
+      invoice: {
+        select: {
+          id: true,
+          internal_number: true,
+          external_number: true,
+          status: true,
+          invoice_date: true,
+          issued_at: true,
+          paid_at: true,
+          created_at: true,
+        },
+      },
     },
   });
 
@@ -714,6 +733,22 @@ export const listTasks = async (filters = {}, currentUser) => {
     if (filters.due_date_to) due.lte = new Date(filters.due_date_to);
     andConditions.push({ due_date: due });
   }
+
+  if (filters.entity_missing === true) {
+    andConditions.push({ entity_id: null });
+  } else if (filters.entity_id) {
+    andConditions.push({ entity_id: filters.entity_id });
+  }
+  if (filters.created_date_from || filters.created_date_to) {
+    const created = {};
+    if (filters.created_date_from)
+      created.gte = new Date(filters.created_date_from);
+    if (filters.created_date_to)
+      created.lte = new Date(filters.created_date_to);
+
+    andConditions.push({ created_at: created });
+  }
+
   if (filters.search) {
     if (filters.search.length < 3) {
       throw new ValidationError("Search must be at least 3 characters");

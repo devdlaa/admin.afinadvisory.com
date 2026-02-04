@@ -75,9 +75,14 @@ import {
   documentUploadSchema,
 } from "./operations/document.schema.js";
 import {
+  bulkInvoiceActionSchema,
+  InvoiceCancelSchema,
   InvoiceCreateOrAppendSchema,
   InvoiceGetDetailsSchema,
   InvoiceQuerySchema,
+  InvoiceUnlinkTasksSchema,
+  InvoiceUpdateInfoSchema,
+  InvoiceUpdateStatusSchema,
 } from "./operations/invoice.schema.js";
 import {
   CompanyProfileCreateSchema,
@@ -179,6 +184,11 @@ export const schemas = Object.freeze({
     createOrAppend: InvoiceCreateOrAppendSchema,
     query: InvoiceQuerySchema,
     getDetails: InvoiceGetDetailsSchema,
+    updateInfo: InvoiceUpdateInfoSchema,
+    updateStatus: InvoiceUpdateStatusSchema,
+    unlinkTasks: InvoiceUnlinkTasksSchema,
+    cancel: InvoiceCancelSchema,
+    bulkAction : bulkInvoiceActionSchema
   },
   companyProfile: {
     update: CompanyProfileUpdateSchema,

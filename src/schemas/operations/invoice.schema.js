@@ -2,17 +2,13 @@ import { z } from "zod";
 
 // ==================== ENUMS ====================
 
-export const InvoiceStatusEnum = z.enum([
-  "DRAFT",
-  "ISSUED",
-  "PAID",
-  "CANCELLED",
-]);
+export const InvoiceStatusEnum = z.enum(["DRAFT", "ISSUED", "PAID"]);
 
 // ==================== BASE SCHEMAS ====================
 
 const InvoiceDataSchema = z.object({
   company_profile_id: z.string().uuid("Invalid company profile ID"),
+
   invoice_date: z
     .string()
     .datetime()
@@ -20,7 +16,20 @@ const InvoiceDataSchema = z.object({
     .transform((val) => (typeof val === "string" ? new Date(val) : val))
     .optional()
     .nullable(),
-  notes: z.string().trim().max(1000, "Notes too long").optional().nullable(),
+
+  external_number: z
+    .string()
+    .trim()
+    .transform((val) => (val === "" ? null : val))
+    .nullable()
+    .optional(),
+
+  notes: z
+    .string()
+    .trim()
+    .transform((val) => (val === "" ? null : val))
+    .nullable()
+    .optional(),
 });
 
 // ==================== CREATE OR APPEND INVOICE ====================
@@ -52,23 +61,9 @@ export const InvoiceUpdateStatusSchema = z.object({
   params: z.object({
     id: z.string().uuid("Invalid invoice ID"),
   }),
-  body: z
-    .object({
-      status: InvoiceStatusEnum,
-      external_number: z.string().trim().min(1).max(50).optional(),
-    })
-    .refine(
-      (data) => {
-        if (data.status === "ISSUED") {
-          return !!data.external_number;
-        }
-        return true;
-      },
-      {
-        message: "external_number is required when status is ISSUED",
-        path: ["external_number"],
-      },
-    ),
+  body: z.object({
+    status: InvoiceStatusEnum,
+  }),
 });
 
 // ==================== UNLINK TASKS ====================
@@ -95,33 +90,20 @@ export const InvoiceCancelSchema = z.object({
 
 // ==================== BULK UPDATE STATUS ====================
 
-export const InvoiceBulkUpdateStatusSchema = z.object({
-  body: z
-    .object({
-      invoice_ids: z
-        .array(z.string().uuid("Invalid invoice ID"))
-        .min(1, "At least one invoice required")
-        .max(100, "Maximum 100 invoices"),
-      status: InvoiceStatusEnum,
-      external_number_map: z
-        .record(z.string().uuid(), z.string().trim().min(1).max(50))
-        .optional(),
-    })
-    .refine(
-      (data) => {
-        if (data.status === "ISSUED") {
-          return (
-            !!data.external_number_map &&
-            Object.keys(data.external_number_map).length > 0
-          );
-        }
-        return true;
-      },
-      {
-        message: "external_number_map is required when status is ISSUED",
-        path: ["external_number_map"],
-      },
-    ),
+export const BulkInvoiceActionEnum = z.enum([
+  "MARK_ISSUED",
+  "MARK_PAID",
+  "MARK_DRAFT",
+]);
+
+export const bulkInvoiceActionSchema = z.object({
+  body: z.object({
+    invoice_ids: z
+      .array(z.string().min(1))
+      .min(1, "At least one invoice id is required"),
+
+    action: BulkInvoiceActionEnum,
+  }),
 });
 
 // ==================== GET INVOICE DETAILS ====================
@@ -136,19 +118,34 @@ export const InvoiceGetDetailsSchema = z.object({
 
 export const InvoiceQuerySchema = z.object({
   entity_id: z.string().uuid("Invalid entity ID").optional(),
-  status: InvoiceStatusEnum.optional(),
+
+  // ✅ NEW
+  company_profile_id: z.string().uuid("Invalid company profile ID").optional(),
+
+  status: z.enum(["DRAFT", "ISSUED", "PAID", "CANCELLED"]).optional(),
+
+  date_field: z
+    .enum(["created_at", "issued_at", "paid_at", "invoice_date"])
+    .default("created_at"),
+
   from_date: z
     .string()
-    .datetime()
-    .or(z.date())
-    .transform((val) => (typeof val === "string" ? new Date(val) : val))
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format (YYYY-MM-DD)")
+    .transform((val) => new Date(`${val}T00:00:00.000Z`))
     .optional(),
+
   to_date: z
     .string()
-    .datetime()
-    .or(z.date())
-    .transform((val) => (typeof val === "string" ? new Date(val) : val))
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format (YYYY-MM-DD)")
+    .transform((val) => new Date(`${val}T23:59:59.999Z`))
     .optional(),
+
+  // 🔍 search across invoice numbers
+  search: z.string().trim().min(1).optional(),
+
   page: z.coerce.number().min(1).default(1),
   page_size: z.coerce.number().min(1).max(100).default(50),
+
+  sort_by: z.enum(["created_at", "issued_at", "paid_at"]).default("created_at"),
+  sort_order: z.enum(["asc", "desc"]).default("desc"),
 });

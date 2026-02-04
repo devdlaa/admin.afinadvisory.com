@@ -9,16 +9,15 @@ import {
   Megaphone,
   TicketPercent,
   ChevronDown,
-  WalletCardsIcon,
-  Link,
   ShieldAlert,
   ClipboardList,
   UsersRound,
-  Home,
   Briefcase,
   CheckSquare,
   Globe,
   LayoutDashboard,
+  ListChecks,
+  FileText,
 } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
 import Avatar from "../newui/Avatar/Avatar";
@@ -45,6 +44,18 @@ const SIDEBAR_CONFIG = {
           label: "Tasks",
           icon: CheckSquare,
           path: "/dashboard/task-managment",
+        },
+        {
+          id: "task-reconcile",
+          label: "Reconcile",
+          icon: ListChecks,
+          path: "/dashboard/task-managment/reconcile",
+        },
+        {
+          id: "task-invoices",
+          label: "Invoices",
+          icon: FileText,
+          path: "/dashboard/task-managment/invoices",
         },
       ],
     },
@@ -154,7 +165,7 @@ const Sidebar = () => {
   // Set active item based on pathname and auto-expand parent
   useEffect(() => {
     const allItems = SIDEBAR_CONFIG.sections.flatMap(
-      (section) => section.items
+      (section) => section.items,
     );
 
     // Flatten all items including children
@@ -172,11 +183,11 @@ const Sidebar = () => {
 
     // Sort by path length to match most specific path first
     const sortedItems = [...allFlatItems].sort(
-      (a, b) => b.path.length - a.path.length
+      (a, b) => b.path.length - a.path.length,
     );
 
     const matchedItem = sortedItems.find(
-      (item) => pathname === item.path || pathname.startsWith(item.path + "/")
+      (item) => pathname === item.path || pathname.startsWith(item.path + "/"),
     );
 
     if (matchedItem) {

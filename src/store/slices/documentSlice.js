@@ -12,10 +12,24 @@ import {
 export const fetchDocuments = createAsyncThunk(
   "documents/fetchDocuments",
   async (
-    { scope, scopeId, page = 1, sort = "created_at", order = "desc" },
-    { rejectWithValue },
+    { scope, scopeId, page = 1, sort = "created_at", order = "desc", forceRefresh = false },
+    { rejectWithValue, getState },
   ) => {
     try {
+      const scopeKey = `${scope}_${scopeId}`;
+      const state = getState();
+      const existingData = state.documents.data[scopeKey];
+      
+      // Skip fetch if data exists and not forcing refresh and on page 1
+      if (existingData && existingData.items.length > 0 && !forceRefresh && page === 1) {
+        return {
+          items: existingData.items,
+          pagination: existingData.pagination,
+          page,
+          cached: true,
+        };
+      }
+
       const params = new URLSearchParams({
         scope,
         scope_id: scopeId,
@@ -36,6 +50,7 @@ export const fetchDocuments = createAsyncThunk(
         items: result.data.items,
         pagination: result.data.pagination,
         page,
+        cached: false,
       };
     } catch (error) {
       return rejectWithValue(error.message);
@@ -191,7 +206,13 @@ const documentSlice = createSlice({
       .addCase(fetchDocuments.fulfilled, (state, action) => {
         const { scope, scopeId, page } = action.meta.arg;
         const scopeKey = `${scope}_${scopeId}`;
-        const { items, pagination } = action.payload;
+        const { items, pagination, cached } = action.payload;
+
+        // Don't modify if using cached data
+        if (cached) {
+          state.data[scopeKey].loading = false;
+          return;
+        }
 
         if (page === 1) {
           state.data[scopeKey].items = items;

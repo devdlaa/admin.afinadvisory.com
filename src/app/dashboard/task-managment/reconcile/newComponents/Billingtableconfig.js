@@ -107,8 +107,8 @@ const SELECTION_INFO_CONFIGS = {
 const EMPTY_STATE_CONFIGS = {
   default: {
     icon: "package",
-    title: "No tasks found",
-    subtitle: null,
+    title: "No tasks found to reconcile",
+    subtitle: "All the tasks have been invoiced",
   },
 
   invoiceLinked: {
@@ -126,7 +126,7 @@ const EMPTY_STATE_CONFIGS = {
 };
 
 // ============================================================================
-// CHARGES TABLE CONFIG FACTORY (NEW - CONTEXT-AWARE)
+// CHARGES TABLE CONFIG FACTORY (CONTEXT-AWARE)
 // ============================================================================
 
 /**
@@ -139,38 +139,59 @@ const createChargesTableConfig = ({
   isSystemTask = false,
   handlers = {},
 }) => {
-  // Determine permissions based on view and status
+  // --------------------------------------------
+  // READ-ONLY LOGIC
+  // --------------------------------------------
   const READ_ONLY_VIEWS = ["NON_BILLABLE"];
   const isReadOnly =
     READ_ONLY_VIEWS.includes(viewId) ||
     (viewId === "INVOICE_LINKED" && invoiceStatus !== "DRAFT");
 
-  // Resolve the delete handler based on context
+  // --------------------------------------------
+  // DELETE SEMANTICS (CONTEXT-AWARE)
+  // --------------------------------------------
+  // Ad-hoc tasks: Delete permanently in unreconciled/non-billable, Unlink in invoice
+  // Regular charges: Always delete (remove charge from task)
+  // --------------------------------------------
+
   let resolvedDeleteHandler = null;
 
   if (isSystemTask) {
+    // Ad-hoc task delete behavior depends on context
     if (viewId === "INVOICE_LINKED") {
+      // In invoice view: unlink the ad-hoc task from invoice
       resolvedDeleteHandler = handlers.onUnlinkSystemTask;
     } else {
+      // In unreconciled/non-billable view: delete permanently
       resolvedDeleteHandler = handlers.onDeleteSystemTask;
     }
   } else {
+    // Regular charges: always delete the charge
     resolvedDeleteHandler = handlers.onDeleteCharge;
   }
+
+  // --------------------------------------------
+  // RETURN CONFIG
+  // --------------------------------------------
   return {
+    // Permissions
     allowAdd: !isReadOnly && !isSystemTask,
     allowEdit: !isReadOnly,
     allowDelete: !isReadOnly,
     allowSelect: !isReadOnly,
     allowStatusChange: !isReadOnly,
 
+    // Handlers (UNCHANGED CONTRACT)
     handlers: {
       onAdd: handlers.onAddCharge,
       onUpdate: handlers.onUpdateCharges,
       onDelete: resolvedDeleteHandler,
       onUpdateStatus: handlers.onUpdateChargeStatus,
+      onDeleteSystemTask: handlers.onDeleteSystemTask,
+      onUnlinkSystemTask: handlers.onUnlinkSystemTask,
     },
 
+    // Empty state (unchanged)
     emptyState: {
       icon: "library",
       title: "No charges are linked to this task",
@@ -375,11 +396,30 @@ export const createInvoiceLinkedConfig = (
     invoiceId,
     invoiceStatus,
 
+    // --------------------------------------------
+    // INVOICE CAPABILITIES
+    // --------------------------------------------
+    capabilities: {
+      isDraft: invoiceStatus === "DRAFT",
+
+      onEmptyCharges: {
+        normalTask: ["UNLINK_TASK", "MARK_NON_BILLABLE"],
+        systemTask: ["UNLINK_TASK"],
+      },
+
+      onAllChargesPaid: {
+        normalTask: ["UNLINK_TASK", "MARK_NON_BILLABLE"],
+        systemTask: ["UNLINK_TASK", "DELETE_ADHOC_TASK"],
+      },
+    },
+
+    // --------------------------------------------
+    // EXISTING CONFIG (UNCHANGED)
+    // --------------------------------------------
     showTaskSelection: !isReadOnly,
     emptyState: EMPTY_STATE_CONFIGS.invoiceLinked,
 
-    recoverableCalculation: (charge) =>
-      charge.who_is_bearer === "CLIENT_WILL_PAY",
+    recoverableCalculation: (charge) => charge.status === "NOT_PAID",
 
     display: DISPLAY_CONFIGS,
 
@@ -446,7 +486,7 @@ export const createInvoiceLinkedConfig = (
       }),
     },
 
-    handlers: handlers,
+    handlers,
   };
 };
 

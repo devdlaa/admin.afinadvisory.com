@@ -10,6 +10,7 @@ import {
   Trash2,
   AlertCircle,
   ArchiveRestore,
+  Link,
 } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
 
@@ -24,7 +25,7 @@ import CreatorInfoCard from "../CreatorInfoCard";
 import ClientInfoCard from "../ClientInfoCard";
 import ClientSelectionDialog from "../ClientSelectionDialog";
 import AssignmentInfoCard from "../AssignmentInfoCard";
-
+import CopyButton from "@/app/components/shared/newui/CopyButton/CopyButton";
 import ConfirmationDialog from "@/app/components/shared/ConfirmationDialog/ConfirmationDialog";
 
 import DocumentManager from "@/app/components/shared/DocumentManager/DocumentManager";
@@ -635,6 +636,53 @@ const TaskManageDrawer = () => {
 
             {/* Right Panel */}
             <div className="task-drawer__right">
+     
+              {task?.invoice && (
+                <div
+                  className={`invoice-linked-badge invoice-linked-badge--${task?.invoice?.status?.toLowerCase()}`}
+                >
+                  <div className="invoice-linked-badge__left">
+                    <div className="invoice-linked-badge__header">
+                      <span className="invoice-linked-badge__label">
+                        Linked to Invoice
+                      </span>
+
+              
+                      <span
+                        className={`invoice-status-badge invoice-status-badge--${task?.invoice?.status?.toLowerCase()}`}
+                      >
+                        {task.invoice.status}
+                      </span>
+                    </div>
+
+                    <span className="invoice-linked-badge__number">
+                      {task.invoice.internal_number}
+                    </span>
+                  </div>
+
+                  <div className="invoice-linked-badge__actions">
+                    <CopyButton
+                      value={task.invoice.internal_number}
+                      size="sm"
+                      rootClass="invoice-linked-badge__copy"
+                    />
+
+                    <button
+                      className="invoice-linked-badge__view"
+                      onClick={() =>
+                        window.open(
+                          `/dashboard/task-managment/invoices?invoice=${task.invoice.internal_number}`,
+                          "_blank",
+                        )
+                      }
+                    >
+                      View Invoice
+                      <Link size={12}/>
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <CreatorInfoCard task={task} />
 
               <AssignmentInfoCard

@@ -583,7 +583,9 @@ const listEntities = async (filters = {}) => {
 
   /* --------------------------------------------------
       COMPACT FAST PATH (ranked full-text search)
+   
      -------------------------------------------------- */
+  /*
   if (isCompact && hasSearch) {
     const compactLimit = 100;
 
@@ -627,10 +629,80 @@ const listEntities = async (filters = {}) => {
       },
     };
   }
+  */
+
+  /* --------------------------------------------------
+      COMPACT FAST PATH (ranked full-text search w/ prefix)
+     -------------------------------------------------- */
+  if (isCompact && hasSearch) {
+    const compactLimit = 100;
+
+    const rows = await prisma.$queryRaw`
+      SELECT id, name, email, pan
+      FROM "Entity"
+      WHERE deleted_at IS NULL
+        AND (
+          to_tsvector(
+            'english',
+            name || ' ' ||
+            COALESCE(email, '') || ' ' ||
+            COALESCE(pan, '') || ' ' ||
+            COALESCE(primary_phone, '') || ' ' ||
+            COALESCE(contact_person, '')
+          ) @@ to_tsquery(
+            'english',
+            array_to_string(
+              ARRAY(
+                SELECT regexp_replace(w, '[^a-zA-Z0-9]+', '', 'g') || ':*'
+                FROM unnest(regexp_split_to_array(${searchTerm}, '\\s+')) AS w
+                WHERE w <> ''
+              ),
+              ' & '
+            )
+          )
+        )
+      ORDER BY ts_rank(
+        to_tsvector(
+          'english',
+          name || ' ' ||
+          COALESCE(email, '') || ' ' ||
+          COALESCE(pan, '') || ' ' ||
+          COALESCE(primary_phone, '') || ' ' ||
+          COALESCE(contact_person, '')
+        ),
+        to_tsquery(
+          'english',
+          array_to_string(
+            ARRAY(
+              SELECT regexp_replace(w, '[^a-zA-Z0-9]+', '', 'g') || ':*'
+              FROM unnest(regexp_split_to_array(${searchTerm}, '\\s+')) AS w
+              WHERE w <> ''
+            ),
+            ' & '
+          )
+        )
+      ) DESC
+      LIMIT ${compactLimit}
+      OFFSET ${(page - 1) * pageSize}
+    `;
+
+    return {
+      data: rows,
+      pagination: {
+        page,
+        page_size: compactLimit,
+        total_items: rows.length,
+        total_pages: 1,
+        has_more: rows.length === compactLimit,
+      },
+    };
+  }
 
   /* --------------------------------------------------
       NORMAL SEARCH (2-step ID filtering)
+     
      -------------------------------------------------- */
+  /*
   if (hasSearch) {
     const searchLimit = isCompact ? pageSize : 1000;
 
@@ -668,11 +740,63 @@ const listEntities = async (filters = {}) => {
 
     where.id = { in: entityIds };
   }
+  */
+
+  /* --------------------------------------------------
+      NORMAL SEARCH (2-step ID filtering w/ prefix)
+     -------------------------------------------------- */
+  if (hasSearch) {
+    const searchLimit = isCompact ? pageSize : 1000;
+
+    const searchResults = await prisma.$queryRaw`
+      SELECT id
+      FROM "Entity"
+      WHERE deleted_at IS NULL
+        AND (
+          to_tsvector(
+            'english',
+            name || ' ' ||
+            COALESCE(email, '') || ' ' ||
+            COALESCE(pan, '') || ' ' ||
+            COALESCE(primary_phone, '') || ' ' ||
+            COALESCE(contact_person, '')
+          ) @@ to_tsquery(
+            'english',
+            array_to_string(
+              ARRAY(
+                SELECT regexp_replace(w, '[^a-zA-Z0-9]+', '', 'g') || ':*'
+                FROM unnest(regexp_split_to_array(${searchTerm}, '\\s+')) AS w
+                WHERE w <> ''
+              ),
+              ' & '
+            )
+          )
+        )
+      LIMIT ${searchLimit}
+    `;
+
+    const entityIds = searchResults.map((r) => r.id);
+
+    if (entityIds.length === 0) {
+      return {
+        data: [],
+        pagination: {
+          page,
+          page_size: pageSize,
+          total_items: 0,
+          total_pages: 0,
+          has_more: false,
+        },
+      };
+    }
+
+    where.id = { in: entityIds };
+  }
 
   const orderBy = filters.orderBy || { created_at: "desc" };
 
   /* --------------------------------------------------
-     📦 NORMAL / FULL FETCH
+      NORMAL / FULL FETCH
      -------------------------------------------------- */
 
   const [items, total] = await Promise.all([

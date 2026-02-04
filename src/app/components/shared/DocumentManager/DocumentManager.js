@@ -1,5 +1,11 @@
 "use client";
-import React, { useEffect, useRef, useState, useMemo } from "react";
+import React, {
+  useEffect,
+  useRef,
+  useState,
+  useMemo,
+  useCallback,
+} from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   Search,
@@ -15,7 +21,9 @@ import {
   Upload,
   Calendar,
   User,
-  FileIcon,
+  RefreshCw,
+  Grid3x3,
+  List,
 } from "lucide-react";
 
 import {
@@ -45,6 +53,8 @@ import {
 const DocumentManager = ({ scope, scopeId }) => {
   const dispatch = useDispatch();
   const fileInputRef = useRef(null);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const [viewMode, setViewMode] = useState("grid"); // 'grid' or 'list'
 
   // Selectors
   const { items, pagination, loading } = useSelector((state) =>
@@ -77,10 +87,11 @@ const DocumentManager = ({ scope, scopeId }) => {
         page: 1,
         sort: sortConfig.sort,
         order: sortConfig.order,
+        forceRefresh: false, // Don't force refresh on mount
       }),
     );
     setCurrentPage(1);
-  }, [dispatch, scope, scopeId, sortConfig.sort, sortConfig.order]);
+  }, [dispatch, scope, scopeId]);
 
   // Filtered items based on search
   const filteredItems = useMemo(() => {
@@ -94,7 +105,41 @@ const DocumentManager = ({ scope, scopeId }) => {
     );
   }, [items, searchQuery]);
 
-  // Handlers
+  // Drag and Drop Handlers
+  const handleDragEnter = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.currentTarget === e.target) {
+      setIsDragOver(false);
+    }
+  }, []);
+
+  const handleDragOver = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
+
+  const handleDrop = useCallback(
+    (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDragOver(false);
+
+      const files = e.dataTransfer.files;
+      if (files && files[0]) {
+        dispatch(uploadDocument({ file: files[0], scope, scopeId }));
+      }
+    },
+    [dispatch, scope, scopeId],
+  );
+
+  // File Handlers
   const handleFileSelect = (e) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -128,6 +173,32 @@ const DocumentManager = ({ scope, scopeId }) => {
         order: newOrder,
       }),
     );
+    // Force refresh when sorting changes
+    dispatch(
+      fetchDocuments({
+        scope,
+        scopeId,
+        page: 1,
+        sort: field,
+        order: newOrder,
+        forceRefresh: true,
+      }),
+    );
+    setCurrentPage(1);
+  };
+
+  const handleRefresh = () => {
+    dispatch(
+      fetchDocuments({
+        scope,
+        scopeId,
+        page: 1,
+        sort: sortConfig.sort,
+        order: sortConfig.order,
+        forceRefresh: true,
+      }),
+    );
+    setCurrentPage(1);
   };
 
   const handleDownload = (doc) => {
@@ -162,6 +233,7 @@ const DocumentManager = ({ scope, scopeId }) => {
         page: nextPage,
         sort: sortConfig.sort,
         order: sortConfig.order,
+        forceRefresh: false,
       }),
     );
   };
@@ -176,126 +248,174 @@ const DocumentManager = ({ scope, scopeId }) => {
   };
 
   return (
-    <div className={styles.container}>
+    <div
+      className={styles.container}
+      onDragEnter={handleDragEnter}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
+      {/* Drag Overlay */}
+      {isDragOver && (
+        <div className={styles.dragOverlay}>
+          <div className={styles.dragContent}>
+            <Upload size={48} />
+            <h3>Drop file to upload</h3>
+            <p>Release to start uploading</p>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className={styles.header}>
-        <div className={styles.headerLeft}>
-          <h3 className={styles.title}>
-            {pagination?.total_items || 0} Documents
-          </h3>
-        </div>
-
-        <div className={styles.headerRight}>
-          {/* Sort Controls */}
-          <div className={styles.sortControls}>
-            <button
-              className={`${styles.sortButton} ${
-                sortConfig.sort === "original_name" ? styles.active : ""
-              }`}
-              onClick={() => handleSort("original_name")}
-            >
-              Name
-              <SortIcon field="original_name" />
-            </button>
-            <button
-              className={`${styles.sortButton} ${
-                sortConfig.sort === "created_at" ? styles.active : ""
-              }`}
-              onClick={() => handleSort("created_at")}
-            >
-              Date
-              <SortIcon field="created_at" />
-            </button>
-            <button
-              className={`${styles.sortButton} ${
-                sortConfig.sort === "mime_type" ? styles.active : ""
-              }`}
-              onClick={() => handleSort("mime_type")}
-            >
-              Type
-              <SortIcon field="mime_type" />
-            </button>
+        <div className={styles.headerTop}>
+          <div className={styles.headerLeft}>
+            <h2 className={styles.title}>Documents</h2>
+            <span className={styles.count}>
+              {pagination?.total_items || 0}{" "}
+              {pagination?.total_items === 1 ? "file" : "files"}
+            </span>
           </div>
 
-          {/* Add New Button */}
+          <div className={styles.headerRight}>
+            {/* View Toggle */}
+            <div className={styles.viewToggle}>
+              <button
+                className={`${styles.viewButton} ${viewMode === "grid" ? styles.active : ""}`}
+                onClick={() => setViewMode("grid")}
+                title="Grid view"
+              >
+                <Grid3x3 size={18} />
+              </button>
+              <button
+                className={`${styles.viewButton} ${viewMode === "list" ? styles.active : ""}`}
+                onClick={() => setViewMode("list")}
+                title="List view"
+              >
+                <List size={18} />
+              </button>
+            </div>
+
+            {/* Refresh Button */}
+            <button
+              className={styles.refreshButton}
+              onClick={handleRefresh}
+              disabled={loading}
+              title="Refresh"
+            >
+              <RefreshCw size={18} className={loading ? styles.spinning : ""} />
+            </button>
+
+            {/* Upload Button */}
+            <button
+              className={styles.uploadButton}
+              onClick={handleAddNewClick}
+              disabled={!!uploadingFile}
+            >
+              <Plus size={18} />
+              Upload
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              onChange={handleFileSelect}
+              style={{ display: "none" }}
+            />
+          </div>
+        </div>
+
+        {/* Sort Controls */}
+        <div className={styles.sortControls}>
           <button
-            className={styles.addButton}
-            onClick={handleAddNewClick}
-            disabled={!!uploadingFile}
+            className={`${styles.sortButton} ${
+              sortConfig.sort === "original_name" ? styles.active : ""
+            }`}
+            onClick={() => handleSort("original_name")}
           >
-            <Plus size={18} />
-            Add New
+            Name
+            <SortIcon field="original_name" />
           </button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            onChange={handleFileSelect}
-            style={{ display: "none" }}
-          />
+          <button
+            className={`${styles.sortButton} ${
+              sortConfig.sort === "created_at" ? styles.active : ""
+            }`}
+            onClick={() => handleSort("created_at")}
+          >
+            Date
+            <SortIcon field="created_at" />
+          </button>
+          <button
+            className={`${styles.sortButton} ${
+              sortConfig.sort === "mime_type" ? styles.active : ""
+            }`}
+            onClick={() => handleSort("mime_type")}
+          >
+            Type
+            <SortIcon field="mime_type" />
+          </button>
         </div>
       </div>
 
-      {error ||
-        (uploadingFile && (
-          <div
-            style={{
-              padding: "20px",
-            }}
-          >
-            {/* Error Message */}
-            {error && (
-              <div className={styles.errorBanner}>
-                <span>{error}</span>
-                <button onClick={() => dispatch(clearError())}>
-                  <X size={16} />
-                </button>
-              </div>
-            )}
-
-            {/* Uploading State */}
-            {uploadingFile && (
-              <div className={styles.uploadingCard}>
-                <div className={styles.uploadingIcon}>
-                  <Upload size={20} />
-                </div>
-                <div className={styles.uploadingInfo}>
-                  <div className={styles.uploadingName}>
-                    {truncateText(uploadingFile?.fileName, 30)}
-                  </div>
-                  <div className={styles.uploadingStatus}>
-                    <Loader2 className={styles.spinner} size={16} />
-                    <span>Uploading...</span>
-                  </div>
-                </div>
-              </div>
-            )}
+      {/* Error/Upload Status */}
+      <div className={styles.statusContainer}>
+        {/* Error Message */}
+        {error && (
+          <div className={styles.errorBanner}>
+            <span>{error}</span>
+            <button onClick={() => dispatch(clearError())}>
+              <X size={16} />
+            </button>
           </div>
-        ))}
+        )}
+
+        {/* Uploading State */}
+        {uploadingFile && (
+          <div className={styles.uploadingCard}>
+            <div className={styles.uploadingIcon}>
+              <Upload size={20} />
+            </div>
+            <div className={styles.uploadingInfo}>
+              <div className={styles.uploadingName}>
+                {truncateText(uploadingFile?.fileName, 30)}
+              </div>
+              <div className={styles.uploadingStatus}>
+                <Loader2 className={styles.spinner} size={16} />
+                <span>Uploading...</span>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Documents List */}
       {loading && currentPage === 1 ? (
         <div className={styles.loadingState}>
-          <Loader2 className={styles.spinner} size={32} />
+          <Loader2 className={styles.spinner} size={40} />
           <p>Loading documents...</p>
         </div>
       ) : filteredItems.length === 0 ? (
         <div className={styles.emptyState}>
-          <File size={48} className={styles.emptyIcon} />
-          <h4>No documents found</h4>
-          <p>Upload your first document to get started</p>
-          <button className={styles.emptyButton} onClick={handleAddNewClick}>
-            <Upload size={18} />
-            Upload Document
-          </button>
+          <section>
+            <div className={styles.emptyIcon}>
+              <FileText size={64} />
+            </div>
+            <h3>No documents yet</h3>
+            <p>Upload your first document or drag and drop files here</p>
+          </section>
         </div>
       ) : (
         <>
-          {/* Documents Grid */}
-          <div className={styles.documentsGrid}>
+          {/* Documents Grid/List */}
+          <div
+            className={
+              viewMode === "grid" ? styles.documentsGrid : styles.documentsList
+            }
+          >
             {filteredItems.map((doc) => (
               <DocumentCard
                 key={doc.id}
                 doc={doc}
+                viewMode={viewMode}
                 onDownload={handleDownload}
                 onDelete={handleDeleteClick}
                 formatFileSize={formatFileSize}
@@ -351,80 +471,128 @@ const DocumentManager = ({ scope, scopeId }) => {
 
 // Document Card Component
 const DocumentCard = React.memo(
-  ({ doc, onDownload, onDelete, formatFileSize, formatDate, getFileIcon }) => {
+  ({ doc, viewMode, onDownload, onDelete, formatFileSize, formatDate }) => {
     const downloading = useSelector((state) =>
       selectIsDownloading(state, doc.object_key),
     );
     const deleting = useSelector((state) => selectIsDeleting(state, doc.id));
 
-    return (
-      <div className={styles.documentCard}>
-        {/* File Icon and Name */}
-        <div className={styles.cardHeader}>
-          <div className={styles.fileInfo}>
-            <div className={styles.fileName}>
-              {truncateText(doc.original_name, 40)}
-            </div>
-            <div className={styles.fileMeta}>
-              <span className={styles.fileType}>
-                {doc.mime_type.split("/")[1]?.toUpperCase() || "FILE"}
-              </span>
-              <span className={styles.fileSeparator}>•</span>
-              <span className={styles.fileSize}>
-                {formatFileSize(doc.size_bytes)}
-              </span>
-            </div>
-          </div>
-        </div>
+    const getFileExtension = (filename) => {
+      const ext = filename.split(".").pop().toUpperCase();
+      return ext.length > 4 ? "FILE" : ext;
+    };
 
-        {/* Creator and Date Info */}
-        <div className={styles.cardMeta}>
-          <div className={styles.metaItem}>
-            <User size={14} className={styles.metaIcon} />
-            <div className={styles.metaContent}>
-              <div className={styles.metaLabel}>Created by</div>
-              <div className={styles.metaValue}>{doc.creator.name}</div>
+    if (viewMode === "list") {
+      return (
+        <div className={styles.documentRow}>
+          <div className={styles.rowMain}>
+            <div className={styles.rowIcon}>
+              <FileText size={20} />
             </div>
-          </div>
-          <div className={styles.metaItem}>
-            <Calendar size={14} className={styles.metaIcon} />
-            <div className={styles.metaContent}>
-              <div className={styles.metaLabel}>Date uploaded</div>
-              <div className={styles.metaValue}>
-                {formatDate(doc.created_at)}
+            <div className={styles.rowInfo}>
+              <div className={styles.rowName}>
+                {truncateText(doc.original_name, 25)}
+              </div>
+              <div className={styles.rowMeta}>
+                <span className={styles.metaChip}>
+                  {getFileExtension(doc.original_name)}
+                </span>
+                <span className={styles.metaDot}>•</span>
+                <span>{formatFileSize(doc.size_bytes)}</span>
+                <span className={styles.metaDot}>•</span>
+                <span>{doc.creator.name}</span>
+                <span className={styles.metaDot}>•</span>
+                <span>{formatDate(doc.created_at)}</span>
               </div>
             </div>
           </div>
+          <div className={styles.rowActions}>
+            <button
+              className={styles.iconButton}
+              onClick={() => onDownload(doc)}
+              disabled={downloading || deleting}
+              title="Download"
+            >
+              {downloading ? (
+                <Loader2 className={styles.spinner} size={16} />
+              ) : (
+                <Download size={16} />
+              )}
+            </button>
+            <button
+              className={`${styles.iconButton} ${styles.deleteIcon}`}
+              onClick={() => onDelete(doc)}
+              disabled={downloading || deleting}
+              title="Delete"
+            >
+              {deleting ? (
+                <Loader2 className={styles.spinner} size={16} />
+              ) : (
+                <Trash2 size={16} />
+              )}
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className={styles.documentCard}>
+        <div className={styles.cardHeader}>
+          <div className={styles.cardIcon}>
+            <FileText size={24} />
+          </div>
+          <div className={styles.fileType}>
+            {getFileExtension(doc.original_name)}
+          </div>
         </div>
 
-        {/* Actions */}
-        <div className={styles.cardActions}>
-          <button
-            className={`${styles.actionButton} ${styles.downloadButton}`}
-            onClick={() => onDownload(doc)}
-            disabled={downloading || deleting}
-            title="Download"
-          >
-            {downloading ? (
-              <Loader2 className={styles.spinner} size={16} />
-            ) : (
-              <Download size={16} />
-            )}
-            <span>Download</span>
-          </button>
-          <button
-            className={`${styles.actionButton} ${styles.deleteButton}`}
-            onClick={() => onDelete(doc)}
-            disabled={downloading || deleting}
-            title="Delete"
-          >
-            {deleting ? (
-              <Loader2 className={styles.spinner} size={16} />
-            ) : (
-              <Trash2 size={16} />
-            )}
-            <span>Delete</span>
-          </button>
+        <div className={styles.cardBody}>
+          <h4 className={styles.fileName} title={doc.original_name}>
+            {truncateText(doc.original_name,25)}
+          </h4>
+          <div className={styles.fileSize}>
+            {formatFileSize(doc.size_bytes)}
+          </div>
+        </div>
+
+        <div className={styles.cardFooter}>
+          <div className={styles.footerInfo}>
+            <div className={styles.infoRow}>
+              <User size={12} />
+              <span>{doc.creator.name}</span>
+            </div>
+            <div className={styles.infoRow}>
+              <Calendar size={12} />
+              <span>{formatDate(doc.created_at)}</span>
+            </div>
+          </div>
+          <div className={styles.cardActions}>
+            <button
+              className={styles.iconButton}
+              onClick={() => onDownload(doc)}
+              disabled={downloading || deleting}
+              title="Download"
+            >
+              {downloading ? (
+                <Loader2 className={styles.spinner} size={16} />
+              ) : (
+                <Download size={16} />
+              )}
+            </button>
+            <button
+              className={`${styles.iconButton} ${styles.deleteIcon}`}
+              onClick={() => onDelete(doc)}
+              disabled={downloading || deleting}
+              title="Delete"
+            >
+              {deleting ? (
+                <Loader2 className={styles.spinner} size={16} />
+              ) : (
+                <Trash2 size={16} />
+              )}
+            </button>
+          </div>
         </div>
       </div>
     );

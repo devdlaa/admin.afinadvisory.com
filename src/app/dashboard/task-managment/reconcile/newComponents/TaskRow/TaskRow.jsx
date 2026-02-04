@@ -13,6 +13,7 @@ const TaskRow = ({
   onToggleExpand,
   onToggleSelect,
   isDisableTaskRows,
+  inInvoiceView,
 }) => {
   const { task, charges = [] } = data;
 
@@ -45,12 +46,16 @@ const TaskRow = ({
   const { total: recoverableAmount, count: recoverableCount } =
     calculateRecoverable();
 
- 
-
   return (
     <div className={`${styles.taskRow} ${isExpanded ? styles.expanded : ""}`}>
-      <div className={styles.taskRowMain}>
-     
+      <div
+        style={{
+          gridTemplateColumns: inInvoiceView
+            ? "3fr 0.5fr 1fr"
+            : "2.5fr 3fr 1.5fr",
+        }}
+        className={styles.taskRowMain}
+      >
         <div className={styles.leftSection}>
           <input
             disabled={isDisableTaskRows}
@@ -83,7 +88,7 @@ const TaskRow = ({
                 <span
                   className={`${styles.metaValue} ${
                     styles[
-                      `status_${task.status.toLowerCase().replace(/\s+/g, "_")}`
+                      `status_${task?.status?.toLowerCase().replace(/\s+/g, "_")}`
                     ]
                   }`}
                 >
@@ -91,7 +96,7 @@ const TaskRow = ({
                 </span>
               </div>
 
-              {task.category?.name && (
+              {task.category?.name && !inInvoiceView && (
                 <>
                   <span className={styles.metaDivider}>•</span>
                   <div className={styles.metaItem}>
@@ -108,17 +113,19 @@ const TaskRow = ({
 
         {/* Column 2: Client Info + Meta */}
         <div className={styles.centerSection}>
-          <div className={styles.clientWrapper}>
-            <div className={styles.clientNameRow}>
-              <span className={styles.clientName}>{task.entity?.name}</span>
-              {taskConfig.clientBadge.show && (
-                <span className={styles[taskConfig.clientBadge.className]}>
-                  {taskConfig.clientBadge.text}
-                </span>
-              )}
+          {!inInvoiceView && (
+            <div className={styles.clientWrapper}>
+              <div className={styles.clientNameRow}>
+                <span className={styles.clientName}>{task.entity?.name}</span>
+                {taskConfig.clientBadge.show && (
+                  <span className={styles[taskConfig.clientBadge.className]}>
+                    {taskConfig.clientBadge.text}
+                  </span>
+                )}
+              </div>
+              <span className={styles.clientEmail}>{task.entity?.email}</span>
             </div>
-            <span className={styles.clientEmail}>{task.entity?.email}</span>
-          </div>
+          )}
         </div>
 
         {/* Column 3: Amount */}

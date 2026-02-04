@@ -472,12 +472,10 @@ const ChargesTable = ({ charges = [], taskId, data, config }) => {
 
   const handleDeleteCharge = async (chargeId) => {
     if (!chargesConfig?.allowDelete) return;
+  
 
-    // Removed alert - using confirmation dialog instead if needed
     try {
-      if (chargesConfig.handlers?.onDelete) {
-        await chargesConfig.handlers.onDelete(taskId, chargeId);
-      }
+      await chargesConfig.handlers?.onDelete?.(taskId, chargeId);
     } catch (error) {
       console.log("Failed to delete charge:", error);
     }

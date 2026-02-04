@@ -1,4 +1,5 @@
-import { updateInvoiceStatus } from "@/services/invoice/invoice.service";
+
+import { updateInvoiceStatus } from "@/services/task/invoicing.service";
 import {
   createSuccessResponse,
   handleApiError,
@@ -10,7 +11,7 @@ export async function PATCH(request, { params }) {
   try {
     const [permissionError, session, adminUser] = await requirePermission(
       request,
-      "invoices.manage",
+   
     );
     if (permissionError) return permissionError;
 
@@ -25,7 +26,6 @@ export async function PATCH(request, { params }) {
     const result = await updateInvoiceStatus(
       parsed.params.id,
       parsed.body.status,
-      parsed.body.external_number,
     );
 
     return createSuccessResponse("Invoice status updated", result);

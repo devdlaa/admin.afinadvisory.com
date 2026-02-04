@@ -26,6 +26,7 @@ const BillingTable = ({
 
   selectedTaskIds = [],
   expandedTaskIds = new Set(),
+  inInvoiceView = false,
 
   onToggleTask,
   onToggleExpand,
@@ -68,10 +69,6 @@ const BillingTable = ({
 
     if (control.id === "expand-all") {
       onExpandAll?.();
-      return;
-    }
-
-    if (control.id === "remove-selection") {
       return;
     }
 
@@ -284,6 +281,7 @@ const BillingTable = ({
                   onToggleSelect={() => onToggleTask(item.task)}
                   hasAnySelection={hasSelection}
                   isDisableTaskRows={!config?.showTaskSelection}
+                  inInvoiceView={inInvoiceView}
                 />
               ))}
         </div>

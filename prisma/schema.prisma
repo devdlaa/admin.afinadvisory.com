@@ -556,7 +556,7 @@ model Invoice {
  
   creator         AdminUser            @relation(fields: [created_by], references: [id])
 
-  // 🚀 OPTIMIZED INDEXES
+
   @@index([entity_id, created_at, status])
   @@index([entity_id, invoice_date])
   @@index([entity_id, status])

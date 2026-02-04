@@ -8,6 +8,15 @@ import {
 /* =====================================================
  Helpers
 ===================================================== */
+export const BulkRejectReason = {
+  ALREADY_ISSUED: "ALREADY_ISSUED",
+  ALREADY_PAID: "ALREADY_PAID",
+  ALREADY_DRAFT: "ALREADY_DRAFT",
+  NO_TASKS_LINKED: "NO_TASKS_LINKED",
+  MISSING_EXTERNAL_NUMBER: "MISSING_EXTERNAL_NUMBER",
+  CANCELLED_INVOICE: "CANCELLED_INVOICE",
+  NOT_ISSUED_YET: "NOT_ISSUED_YET",
+};
 
 function ensureDraft(invoice) {
   if (invoice.status !== "DRAFT") {
@@ -18,7 +27,7 @@ function generateInternalNumber() {
   return `INV-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 }
 
-function formatInvoice(invoice) {
+function formatInvoiceWithoutGroups(invoice) {
   return {
     invoice: {
       id: invoice.id,
@@ -32,6 +41,51 @@ function formatInvoice(invoice) {
       notes: invoice.notes,
       company_profile_id: invoice.company_profile_id,
       created_at: invoice.created_at,
+      updated_at: invoice.updated_at,
+    },
+
+    entity: invoice.entity
+      ? {
+          id: invoice.entity.id,
+          name: invoice.entity.name,
+          email: invoice.entity.email,
+          primary_phone: invoice.entity.primary_phone,
+          secondary_phone: invoice.entity.secondary_phone,
+          address_line1: invoice.entity.address_line1,
+          address_line2: invoice.entity.address_line2,
+          city: invoice.entity.city,
+          state: invoice.entity.state,
+          pincode: invoice.entity.pincode,
+        }
+      : null,
+
+    company_profile: invoice.company_profile
+      ? {
+          id: invoice.company_profile.id,
+          name: invoice.company_profile.name,
+          legal_name: invoice.company_profile.legal_name,
+          gst_number: invoice.company_profile.gst_number,
+          pan: invoice.company_profile.pan,
+          email: invoice.company_profile.email,
+          phone: invoice.company_profile.phone,
+          address_line1: invoice.company_profile.address_line1,
+          address_line2: invoice.company_profile.address_line2,
+          city: invoice.company_profile.city,
+          state: invoice.company_profile.state,
+          pincode: invoice.company_profile.pincode,
+          bank_name: invoice.company_profile.bank_name,
+          bank_account_no: invoice.company_profile.bank_account_no,
+          bank_ifsc: invoice.company_profile.bank_ifsc,
+          bank_branch: invoice.company_profile.bank_branch,
+        }
+      : null,
+  };
+}
+
+function formatInvoiceGroupsOnly(invoice) {
+  return {
+    invoice: {
+      id: invoice.id,
     },
     groups: invoice.tasks.map((task) => ({
       type: task.task_type === "SYSTEM_ADHOC" ? "ADHOC" : "TASK",
@@ -51,8 +105,118 @@ function formatInvoice(invoice) {
   };
 }
 
+async function fetchInvoiceWithoutGroups(invoiceId) {
+  const invoice = await prisma.invoice.findUnique({
+    where: { id: invoiceId },
+    include: {
+      entity: true,
+      company_profile: true,
+    },
+  });
+
+  if (!invoice) throw new NotFoundError("Invoice not found");
+
+  return formatInvoiceWithoutGroups(invoice);
+}
+
+async function fetchInvoiceGroupsOnly(invoiceId) {
+  const invoice = await prisma.invoice.findUnique({
+    where: { id: invoiceId },
+    select: {
+      id: true,
+      tasks: {
+        include: {
+          charges: {
+            where: { deleted_at: null },
+            orderBy: { created_at: "asc" },
+          },
+        },
+      },
+    },
+  });
+
+  if (!invoice) throw new NotFoundError("Invoice not found");
+
+  return formatInvoiceGroupsOnly(invoice);
+}
+
+function formatInvoice(invoice) {
+  return {
+    invoice: {
+      id: invoice.id,
+      entity_id: invoice.entity_id,
+      internal_number: invoice.internal_number,
+      external_number: invoice.external_number,
+      status: invoice.status,
+      invoice_date: invoice.invoice_date,
+      issued_at: invoice.issued_at,
+      paid_at: invoice.paid_at,
+      notes: invoice.notes,
+      company_profile_id: invoice.company_profile_id,
+      created_at: invoice.created_at,
+      updated_at: invoice.updated_at,
+    },
+
+    entity: invoice.entity
+      ? {
+          id: invoice.entity.id,
+          name: invoice.entity.name,
+          email: invoice.entity.email,
+          pan: invoice.entity.pan,
+          primary_phone: invoice.entity.primary_phone,
+          secondary_phone: invoice.entity.secondary_phone,
+        }
+      : null,
+
+    company_profile: invoice.company_profile
+      ? {
+          id: invoice.company_profile.id,
+          name: invoice.company_profile.name,
+          legal_name: invoice.company_profile.legal_name,
+          gst_number: invoice.company_profile.gst_number,
+          pan: invoice.company_profile.pan,
+          email: invoice.company_profile.email,
+          phone: invoice.company_profile.phone,
+          address_line1: invoice.company_profile.address_line1,
+          address_line2: invoice.company_profile.address_line2,
+          city: invoice.company_profile.city,
+          state: invoice.company_profile.state,
+          pincode: invoice.company_profile.pincode,
+          bank_name: invoice.company_profile.bank_name,
+          bank_account_no: invoice.company_profile.bank_account_no,
+          bank_ifsc: invoice.company_profile.bank_ifsc,
+          bank_branch: invoice.company_profile.bank_branch,
+        }
+      : null,
+
+    groups: invoice.tasks.map((task) => ({
+      task_type: task.task_type === "SYSTEM_ADHOC" ? "ADHOC" : "TASK",
+      id: task.id,
+      title: task.title,
+      description: task.description,
+      status: task.status,
+      priority: task.priority,
+      created_at: task.created_at,
+      category: task.category
+        ? { id: task.category.id, name: task.category.name }
+        : null,
+      is_system: task.is_system,
+      invoice_internal_number: task?.invoice_internal_number,
+      charges: task.charges.map((c) => ({
+        id: c.id,
+        title: c.title,
+        amount: c.amount,
+        charge_type: c.charge_type,
+        status: c.status,
+        remark: c.remark,
+        created_at: c.created_at,
+        updated_at: c.updated_at,
+      })),
+    })),
+  };
+}
+
 async function fetchInvoiceFull(invoiceId) {
-  console.log("invoice.internal_number", invoiceId);
   const invoice = await prisma.invoice.findUnique({
     where: { internal_number: invoiceId },
     include: {
@@ -64,6 +228,7 @@ async function fetchInvoiceFull(invoiceId) {
             where: { deleted_at: null },
             orderBy: { created_at: "asc" },
           },
+          category: { select: { id: true, name: true } },
         },
       },
     },
@@ -106,8 +271,8 @@ export async function createOrAppendInvoice({
       }
 
       ensureDraft(invoice);
-      console.log(invoice)
-      console.log(entity_id)
+      console.log(invoice);
+      console.log(entity_id);
 
       if (invoice.entity_id !== entity_id) {
         throw new ValidationError("Entity mismatch with existing invoice");
@@ -176,11 +341,6 @@ export async function createOrAppendInvoice({
         continue;
       }
 
-      if (!task.is_billable) {
-        errors.push(`Task ${task.id}: not billable`);
-        continue;
-      }
-
       if (task.charges.length === 0) {
         errors.push(`Task ${task.id}: has no charges`);
         continue;
@@ -237,21 +397,91 @@ export async function getInvoices(filters) {
 
   const where = {};
 
-  if (filters.entity_id) where.entity_id = filters.entity_id;
-  if (filters.status) where.status = filters.status;
-
-  if (filters.from_date || filters.to_date) {
-    where.invoice_date = {};
-    if (filters.from_date) where.invoice_date.gte = new Date(filters.from_date);
-    if (filters.to_date) where.invoice_date.lte = new Date(filters.to_date);
+  // Entity filter
+  if (filters.entity_id) {
+    where.entity_id = filters.entity_id;
   }
+
+  if (filters.company_profile_id) {
+    where.company_profile_id = filters.company_profile_id;
+  }
+
+  // Status filter
+  if (filters.status) {
+    where.status = filters.status;
+  }
+
+  // Date filtering
+  if (filters.from_date || filters.to_date) {
+    const dateField = filters.date_field || "created_at";
+    where[dateField] = {};
+
+    if (filters.from_date) {
+      where[dateField].gte = filters.from_date;
+    }
+
+    if (filters.to_date) {
+      where[dateField].lte = filters.to_date;
+    }
+  }
+
+  // 🔍 Exact Search: internal + external invoice number
+  if (filters.search) {
+    const search = filters.search.trim();
+
+    where.OR = [
+      {
+        internal_number: {
+          equals: search,
+          mode: "insensitive",
+        },
+      },
+      {
+        external_number: {
+          equals: search,
+          mode: "insensitive",
+        },
+      },
+    ];
+  }
+
+  const orderBy = {
+    [filters.sort_by || "created_at"]: filters.sort_order || "desc",
+  };
 
   const [items, total] = await Promise.all([
     prisma.invoice.findMany({
       where,
-      orderBy: { created_at: "desc" },
+      orderBy,
       skip: (page - 1) * pageSize,
       take: pageSize,
+      include: {
+        company_profile: {
+          select: {
+            id: true,
+            name: true,
+            legal_name: true,
+          },
+        },
+        entity: {
+          select: {
+            name: true,
+            email: true,
+            primary_phone: true,
+          },
+        },
+        creator: {
+          select: {
+            name: true,
+            email: true,
+          },
+        },
+        _count: {
+          select: {
+            tasks: true,
+          },
+        },
+      },
     }),
     prisma.invoice.count({ where }),
   ]);
@@ -281,21 +511,40 @@ export async function getInvoiceDetails(invoiceId) {
 ===================================================== */
 
 export async function updateInvoiceInfo(invoiceId, data) {
-  const invoice = await prisma.invoice.findUnique({ where: { id: invoiceId } });
-  if (!invoice) throw new NotFoundError("Invoice not found");
+  const invoice = await prisma.invoice.findUnique({
+    where: { id: invoiceId },
+  });
+
+  if (!invoice) {
+    throw new NotFoundError("Invoice not found");
+  }
 
   ensureDraft(invoice);
 
+  const updateData = {};
+
+  if ("company_profile_id" in data) {
+    updateData.company_profile_id = data.company_profile_id;
+  }
+
+  if ("invoice_date" in data) {
+    updateData.invoice_date = data.invoice_date;
+  }
+
+  if ("external_number" in data) {
+    updateData.external_number = data.external_number;
+  }
+
+  if ("notes" in data) {
+    updateData.notes = data.notes;
+  }
+
   await prisma.invoice.update({
     where: { id: invoiceId },
-    data: {
-      company_profile_id: data.company_profile_id ?? invoice.company_profile_id,
-      invoice_date: data.invoice_date ?? invoice.invoice_date,
-      notes: data.notes ?? invoice.notes,
-    },
+    data: updateData,
   });
 
-  return { invoice_id: invoiceId };
+  return fetchInvoiceWithoutGroups(invoiceId);
 }
 
 /* =====================================================
@@ -305,9 +554,9 @@ export async function updateInvoiceInfo(invoiceId, data) {
 function ensureValidStatusTransition(current, next) {
   const allowed = {
     DRAFT: ["ISSUED", "CANCELLED"],
-    ISSUED: ["PAID", "CANCELLED"],
-    PAID: [],
-    CANCELLED: [],
+    ISSUED: ["DRAFT", "PAID", "CANCELLED"],
+    PAID: ["DRAFT", "CANCELLED","ISSUED"],
+    CANCELLED: ["DRAFT"],
   };
 
   if (!allowed[current]?.includes(next)) {
@@ -317,71 +566,39 @@ function ensureValidStatusTransition(current, next) {
   }
 }
 
-export async function updateInvoiceStatus(
-  invoiceId,
-  status,
-  external_number,
-  options = {},
-) {
-  const invoice = await prisma.invoice.findUnique({ where: { id: invoiceId } });
-  if (!invoice) throw new NotFoundError("Invoice not found");
+export async function updateInvoiceStatus(invoiceId, status, options = {}) {
+  const invoice = await prisma.invoice.findUnique({
+    where: { id: invoiceId },
+  });
 
-  const { force_to_draft = false, currentUser } = options;
-
-  // 🚨 Emergency path: revert to DRAFT from ISSUED or PAID
-  if (status === "DRAFT" && force_to_draft) {
-    if (!currentUser || currentUser.admin_role !== "SUPER_ADMIN") {
-      throw new ForbiddenError(
-        "Only super admins can revert invoices to draft",
-      );
-    }
-
-    if (invoice.status === "DRAFT") {
-      return { invoice_id: invoiceId, status: "DRAFT" };
-    }
-
-    if (!["ISSUED", "PAID"].includes(invoice.status)) {
-      throw new ValidationError(
-        `Cannot revert invoice from status ${invoice.status} to DRAFT`,
-      );
-    }
-
-    await prisma.invoice.update({
-      where: { id: invoiceId },
-      data: {
-        status: "DRAFT",
-        reverted_from_status: invoice.status,
-        reverted_at: new Date(),
-      },
-    });
-
-    return { invoice_id: invoiceId, status: "DRAFT", forced: true };
+  if (!invoice) {
+    throw new NotFoundError("Invoice not found");
   }
 
-  // ✅ Normal strict flow
   ensureValidStatusTransition(invoice.status, status);
 
-  if (status === "ISSUED") {
-    if (!external_number) {
-      throw new ValidationError(
-        "external_number required when issuing invoice",
-      );
-    }
+  if (status === "ISSUED" && !invoice.external_number) {
+    throw new ValidationError("Please update invoice number before issuing");
   }
 
   const data = { status };
 
-  if (status === "ISSUED") {
-    data.external_number = external_number;
-    data.issued_at = new Date();
-  }
+  switch (status) {
+    case "DRAFT":
+      data.issued_at = null;
+      data.paid_at = null;
+      break;
 
-  if (status === "PAID") {
-    data.paid_at = new Date();
-  }
+    case "ISSUED":
+      data.issued_at = new Date();
+      data.paid_at = null;
+      break;
 
-  if (status === "CANCELLED") {
-    data.cancelled_at = new Date(); // optional
+    case "PAID":
+      // If your transitions allow skipping ISSUED
+      data.issued_at ??= invoice.issued_at ?? new Date();
+      data.paid_at = new Date();
+      break;
   }
 
   await prisma.invoice.update({
@@ -389,8 +606,9 @@ export async function updateInvoiceStatus(
     data,
   });
 
-  return { invoice_id: invoiceId, status };
+  return fetchInvoiceWithoutGroups(invoiceId);
 }
+
 /* =====================================================
  Unlink Tasks from Invoice (Draft only)
 ===================================================== */
@@ -448,119 +666,126 @@ export async function cancelInvoice(invoiceId) {
   };
 }
 
-export async function bulkUpdateInvoiceStatus({
-  invoice_ids,
-  status,
-  external_number_map,
-  force_to_draft = false,
-  currentUser,
-}) {
+export async function bulkInvoiceAction(invoiceIds, action) {
   const success = [];
+  const ignored = [];
   const rejected = [];
 
-  await prisma.$transaction(async (tx) => {
-    for (const invoiceId of invoice_ids) {
-      const invoice = await tx.invoice.findUnique({
-        where: { id: invoiceId },
-      });
+  const ACTION_TO_STATUS = {
+    MARK_ISSUED: "ISSUED",
+    MARK_PAID: "PAID",
+    MARK_DRAFT: "DRAFT",
+  };
 
-      if (!invoice) {
-        rejected.push({ id: invoiceId, reason: "NOT_FOUND" });
-        continue;
-      }
-
-      if (status === "DRAFT" && force_to_draft) {
-        if (!currentUser || currentUser.admin_role !== "SUPER_ADMIN") {
-          rejected.push({ id: invoiceId, reason: "FORBIDDEN" });
-          continue;
-        }
-
-        if (!["ISSUED", "PAID"].includes(invoice.status)) {
-          rejected.push({ id: invoiceId, reason: "INVALID_CURRENT_STATUS" });
-          continue;
-        }
-
-        await tx.invoice.update({
-          where: { id: invoiceId },
-          data: {
-            status: "DRAFT",
-            reverted_from_status: invoice.status, // optional column
-            reverted_at: new Date(), // optional column
-          },
-        });
-
-        success.push(invoiceId);
-        continue;
-      }
-
-      // ❄️ Immutable invoices
-      if (["PAID", "CANCELLED"].includes(invoice.status)) {
-        rejected.push({ id: invoiceId, reason: "IMMUTABLE_STATUS" });
-        continue;
-      }
-
-      // 🚦 Normal transition validation
-      if (!ensureValidStatusTransition(invoice.status, status)) {
-        rejected.push({ id: invoiceId, reason: "INVALID_STATUS_TRANSITION" });
-        continue;
-      }
-
-      // ISSUED requires external number
-      if (status === "ISSUED") {
-        const external = external_number_map?.[invoiceId];
-        if (!external) {
-          rejected.push({ id: invoiceId, reason: "MISSING_EXTERNAL_NUMBER" });
-          continue;
-        }
-
-        await tx.invoice.update({
-          where: { id: invoiceId },
-          data: {
-            status: "ISSUED",
-            external_number: external,
-            issued_at: new Date(),
-          },
-        });
-
-        success.push(invoiceId);
-        continue;
-      }
-
-      if (status === "PAID") {
-        await tx.invoice.update({
-          where: { id: invoiceId },
-          data: {
-            status: "PAID",
-            paid_at: new Date(),
-          },
-        });
-
-        success.push(invoiceId);
-        continue;
-      }
-
-      if (status === "CANCELLED") {
-        // reuse your existing logic but transactional
-        await tx.task.updateMany({
-          where: { invoice_internal_number: invoice.internal_number },
-          data: {
-            invoice_internal_number: null,
-            invoiced_at: null,
-          },
-        });
-
-        await tx.invoice.update({
-          where: { id: invoiceId },
-          data: { status: "CANCELLED" },
-        });
-
-        success.push(invoiceId);
-        continue;
-      }
-
-      rejected.push({ id: invoiceId, reason: "UNHANDLED_CASE" });
-    }
+  const invoices = await prisma.invoice.findMany({
+    where: { id: { in: invoiceIds } },
+    include: {
+      tasks: { select: { id: true } },
+    },
   });
 
-  return { success, rejected };
+  for (const invoice of invoices) {
+    const nextStatus = ACTION_TO_STATUS[action];
+
+    if (!nextStatus) {
+      rejected.push({
+        id: invoice.id,
+        reason: "UNKNOWN_ACTION",
+      });
+      continue;
+    }
+
+    try {
+      await prisma.$transaction(async (tx) => {
+        // =====================
+        // IGNORE SAME STATUS
+        // =====================
+        if (invoice.status === nextStatus) {
+          ignored.push({
+            id: invoice.id,
+            reason:
+              nextStatus === "ISSUED"
+                ? BulkRejectReason.ALREADY_ISSUED
+                : nextStatus === "PAID"
+                  ? BulkRejectReason.ALREADY_PAID
+                  : BulkRejectReason.ALREADY_DRAFT,
+          });
+          return;
+        }
+
+        // =====================
+        // VALIDATE TRANSITION
+        // =====================
+        try {
+          ensureValidStatusTransition(invoice.status, nextStatus);
+        } catch (err) {
+          rejected.push({
+            id: invoice.id,
+            reason: err.message,
+          });
+          return;
+        }
+
+        // =====================
+        // EXTRA RULES
+        // =====================
+        if (nextStatus === "ISSUED") {
+          if (!invoice.external_number) {
+            rejected.push({
+              id: invoice.id,
+              reason: BulkRejectReason.MISSING_EXTERNAL_NUMBER,
+            });
+            return;
+          }
+
+          if (!invoice.tasks?.length) {
+            rejected.push({
+              id: invoice.id,
+              reason: BulkRejectReason.NO_TASKS_LINKED,
+            });
+            return;
+          }
+        }
+
+        // =====================
+        // STATUS + DATE UPDATE
+        // =====================
+        const data = { status: nextStatus };
+
+        switch (nextStatus) {
+          case "DRAFT":
+            data.issued_at = null;
+            data.paid_at = null;
+            break;
+
+          case "ISSUED":
+            data.issued_at = new Date();
+            data.paid_at = null;
+            break;
+
+          case "PAID":
+            data.paid_at = new Date();
+            break;
+        }
+
+        await tx.invoice.update({
+          where: { id: invoice.id },
+          data,
+        });
+
+        success.push(invoice.id);
+      });
+    } catch (err) {
+      rejected.push({
+        id: invoice.id,
+        reason: "INTERNAL_ERROR",
+      });
+    }
+  }
+
+  return {
+    success,
+    ignored,
+    rejected,
+  };
 }

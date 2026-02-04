@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { X, FileText, CheckCircle2, ExternalLink, Blocks } from "lucide-react";
 import { CircularProgress } from "@mui/material";
 import ConfirmationDialog from "@/app/components/shared/ConfirmationDialog/ConfirmationDialog";
@@ -30,9 +30,9 @@ export default function CreateInvoiceDialog({
   onClose,
 }) {
   const dispatch = useDispatch();
-  const router = useRouter();
-  const searchParams = useSearchParams();
 
+  const searchParams = useSearchParams();
+  const hasAutoLoadedFromURL = useRef(false);
   const loading = useSelector(selectInvoiceLoading);
   const selectedInvoice = useSelector(selectSelectedInvoice);
   const companyProfiles = useSelector(selectListProfiles);
@@ -41,8 +41,8 @@ export default function CreateInvoiceDialog({
     selectCompanyProfileLoading(state, "list"),
   );
 
-  const [mode, setMode] = useState(null); // 'new' | 'append'
-  const [step, setStep] = useState("mode"); // 'mode' | 'preview' | 'success'
+  const [mode, setMode] = useState(null);
+  const [step, setStep] = useState("mode");
 
   // Form state
   const [formData, setFormData] = useState({
@@ -67,15 +67,30 @@ export default function CreateInvoiceDialog({
     }
   }, [dispatch, cachedProfilesCount]);
 
+  useEffect(() => {
+    const internalNumber = searchParams.get("internal_number");
+    if (!internalNumber || hasAutoLoadedFromURL.current) return;
+
+    hasAutoLoadedFromURL.current = true;
+
+    setMode("append");
+    setExistingInvoiceNumber(internalNumber);
+    setStep("preview");
+    dispatch(fetchInvoiceDetails(internalNumber));
+  }, [searchParams, dispatch]);
+
   // Check for append_to parameter
   useEffect(() => {
-    const appendTo = searchParams.get("append_to");
-    if (appendTo) {
-      setMode("append");
-      setExistingInvoiceNumber(appendTo);
-      setStep("preview");
-      dispatch(fetchInvoiceDetails(appendTo));
-    }
+    const internalNumber = searchParams.get("internal_number");
+    if (!internalNumber) return;
+
+    // Auto-enter append mode
+    setMode("append");
+    setExistingInvoiceNumber(internalNumber);
+    setStep("preview");
+
+    // Auto-load invoice
+    dispatch(fetchInvoiceDetails(internalNumber));
   }, [searchParams, dispatch]);
 
   // Pre-fill from existing invoice
@@ -179,6 +194,7 @@ export default function CreateInvoiceDialog({
 
       const invoiceNumber =
         result?.invoice?.internal_number || result?.internal_number || null;
+ 
 
       setCreatedInvoiceId(invoiceNumber);
       setStep("success");
@@ -192,10 +208,19 @@ export default function CreateInvoiceDialog({
   };
 
   const handleViewInvoice = () => {
-    router.push(`/invoice/${createdInvoiceId}`);
+    if (!createdInvoiceId) return;
+
+    const params = new URLSearchParams({
+      invoice: createdInvoiceId,
+    });
+
+    window.open(
+      `/dashboard/task-managment/invoices?${params.toString()}`,
+      "_blank",
+    );
+
     onClose();
   };
-
   // Check if company profile should be locked (append mode with loaded invoice)
   const isLocked = mode === "append" && selectedInvoice.invoice;
   const isSubmitting = loading?.create;

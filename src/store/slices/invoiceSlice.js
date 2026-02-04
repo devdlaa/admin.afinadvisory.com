@@ -11,7 +11,7 @@ import {
 // ============================================
 
 const initialState = {
-  // Invoice list
+  // Invoice list - separate lists per status
   list: {
     items: {}, // { 1: [...], 2: [...], 3: [...] }
     fetchedPages: {}, // Track which pages we have
@@ -25,6 +25,8 @@ const initialState = {
   // Selected invoice details (when opening an invoice)
   selectedInvoice: {
     invoice: null,
+    entity: null,
+    company_profile: null,
     groups: [],
     attachments: [],
   },
@@ -52,7 +54,7 @@ const initialState = {
     create: false,
     updateInfo: false,
     updateStatus: false,
-    bulkUpdateStatus: false,
+    bulkUpdateStatus: null, // Will store { isLoading: boolean, action: string }
     unlinkTasks: false,
     reconciled: false,
     reconciledNext: false,
@@ -78,20 +80,36 @@ const initialState = {
 export const fetchInvoices = createAsyncThunk(
   "invoice/fetchList",
   async (
-    { filters, page = 1, isNext = false, isPrev = false },
+    {
+      filters,
+      page = 1,
+      isNext = false,
+      isPrev = false,
+      isFilterChange = false,
+    },
     { rejectWithValue },
   ) => {
     try {
       const params = new URLSearchParams({
         page: page.toString(),
         page_size: filters.page_size || "50",
+
         ...(filters.entity_id && { entity_id: filters.entity_id }),
+        ...(filters.company_profile_id && {
+          company_profile_id: filters.company_profile_id,
+        }),
+
         ...(filters.status && { status: filters.status }),
+
         ...(filters.from_date && { from_date: filters.from_date }),
         ...(filters.to_date && { to_date: filters.to_date }),
-      });
 
-      const response = await fetch(`/api/invoices?${params}`, {
+        ...(filters.search && { search: filters.search }),
+
+        ...(filters.sort_by && { sort_by: filters.sort_by }),
+        ...(filters.sort_order && { sort_order: filters.sort_order }),
+      });
+      const response = await fetch(`/api/admin_ops/invoices?${params}`, {
         method: "GET",
         headers: { "Content-Type": "application/json" },
       });
@@ -109,7 +127,8 @@ export const fetchInvoices = createAsyncThunk(
         page,
         isNext,
         isPrev,
-        isFilterChange: !isNext && !isPrev && page === 1,
+        isFilterChange,
+        currentStatus: filters.status, // Track which status tab this is for
       };
     } catch (error) {
       return rejectWithValue(error.message);
@@ -232,7 +251,7 @@ export const updateInvoiceInfo = createAsyncThunk(
         );
       }
 
-      return { invoiceId, ...result.data };
+      return result.data;
     } catch (error) {
       return rejectWithValue(error.message);
     }
@@ -261,29 +280,50 @@ export const updateInvoiceStatus = createAsyncThunk(
         );
       }
 
-      return { invoiceId, ...result.data };
+      return result.data;
     } catch (error) {
       return rejectWithValue(error.message);
     }
   },
 );
 
-// Bulk Update Invoice Status
-export const bulkUpdateInvoiceStatus = createAsyncThunk(
-  "invoice/bulkUpdateStatus",
-  async (
-    { invoiceIds, status, external_number_map, force_to_draft = false },
-    { rejectWithValue },
-  ) => {
+export const cancelInvoice = createAsyncThunk(
+  "invoice/cancel",
+  async (invoiceId, { rejectWithValue }) => {
     try {
-      const response = await fetch("/api/admin_ops/invoices/bulk-invoices", {
-        method: "PATCH",
+      const response = await fetch(
+        `/api/admin_ops/invoices/${invoiceId}/cancel`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        return rejectWithValue(
+          result.error?.message || "Failed to cancel invoice",
+        );
+      }
+
+      return result.data;
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  },
+);
+
+export const bulkInvoiceAction = createAsyncThunk(
+  "invoice/bulkAction",
+  async ({ invoiceIds, action }, { rejectWithValue }) => {
+    try {
+      const response = await fetch("/api/admin_ops/invoices/bulk-action", {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           invoice_ids: invoiceIds,
-          status,
-          external_number_map,
-          force_to_draft,
+          action,
         }),
       });
 
@@ -291,11 +331,14 @@ export const bulkUpdateInvoiceStatus = createAsyncThunk(
 
       if (!response.ok) {
         return rejectWithValue(
-          result.error?.message || "Failed to bulk update invoices",
+          result.error?.message || "Failed to perform bulk invoice action",
         );
       }
 
-      return { result: result.data, invoiceIds, status };
+      return {
+        action,
+        ...result.data, // { success, ignored, rejected }
+      };
     } catch (error) {
       return rejectWithValue(error.message);
     }
@@ -324,22 +367,7 @@ export const unlinkTasksFromInvoice = createAsyncThunk(
         );
       }
 
-      // Fetch updated invoice details after unlinking
-      const detailsResponse = await fetch(
-        `/api/admin_ops/invoices/${invoiceId}`,
-        {
-          method: "GET",
-          headers: { "Content-Type": "application/json" },
-        },
-      );
-
-      if (!detailsResponse.ok) {
-        // If fetching details fails, just return the unlink result
-        return { invoiceId, taskIds };
-      }
-
-      const detailsData = await detailsResponse.json();
-      return { invoiceId, taskIds, updatedInvoice: detailsData.data };
+      return result;
     } catch (error) {
       return rejectWithValue(error.message);
     }
@@ -392,6 +420,8 @@ const invoiceSlice = createSlice({
     clearSelectedInvoice: (state) => {
       state.selectedInvoice = {
         invoice: null,
+        entity: null,
+        company_profile: null,
         groups: [],
         attachments: [],
       };
@@ -540,6 +570,84 @@ const invoiceSlice = createSlice({
       });
 
     // ============================================
+    // BULK INVOICE ACTION - FIXED TO REMOVE FROM CURRENT LIST
+    // ============================================
+    builder
+      .addCase(bulkInvoiceAction.pending, (state, action) => {
+        const { action: bulkAction } = action.meta.arg;
+        state.loading.bulkUpdateStatus = {
+          isLoading: true,
+          action: bulkAction,
+        };
+        state.error.bulkUpdate = null;
+      })
+
+      .addCase(bulkInvoiceAction.fulfilled, (state, action) => {
+        const {
+          action: bulkAction,
+          success,
+          ignored,
+          rejected,
+        } = action.payload;
+
+        state.error.bulkUpdate = {
+          success: success || [],
+          ignored: ignored || [],
+          rejected: rejected || [],
+        };
+
+        // Determine resulting status
+        let nextStatus = null;
+        if (bulkAction === "MARK_ISSUED") nextStatus = "ISSUED";
+        if (bulkAction === "MARK_PAID") nextStatus = "PAID";
+        if (bulkAction === "MARK_DRAFT") nextStatus = "DRAFT";
+
+        if (nextStatus && success.length > 0) {
+          // FIXED: Remove successfully updated invoices from current list pages
+          // This prevents them from showing in the wrong status tab
+          Object.keys(state.list.items).forEach((page) => {
+            state.list.items[page] = state.list.items[page].filter(
+              (invoice) => !success.includes(invoice.id),
+            );
+          });
+
+          // Update reconciled invoices status (if applicable)
+          Object.keys(state.reconciledInvoices.items).forEach((page) => {
+            state.reconciledInvoices.items[page] =
+              state.reconciledInvoices.items[page].map((item) =>
+                success.includes(item.invoice.id)
+                  ? {
+                      ...item,
+                      invoice: { ...item.invoice, status: nextStatus },
+                    }
+                  : item,
+              );
+          });
+
+          // Clear selection for successfully processed invoices
+          state.selectedInvoiceIds = state.selectedInvoiceIds.filter(
+            (id) => !success.includes(id),
+          );
+        }
+
+        state.loading.bulkUpdateStatus = null;
+      })
+
+      .addCase(bulkInvoiceAction.rejected, (state, action) => {
+        state.loading.bulkUpdateStatus = null;
+        state.error.bulkUpdate = {
+          success: [],
+          ignored: [],
+          rejected: [
+            {
+              message:
+                action.payload || "Failed to perform bulk invoice action",
+            },
+          ],
+        };
+      });
+
+    // ============================================
     // FETCH INVOICE DETAILS
     // ============================================
     builder
@@ -566,7 +674,6 @@ const invoiceSlice = createSlice({
         state.error.create = null;
       })
       .addCase(createOrAppendInvoice.fulfilled, (state, action) => {
-        // New invoice created, optionally set it as selected
         state.selectedInvoice = action.payload;
         state.loading.create = false;
       })
@@ -584,17 +691,31 @@ const invoiceSlice = createSlice({
         state.error.update = null;
       })
       .addCase(updateInvoiceInfo.fulfilled, (state, action) => {
-        // If this is the currently selected invoice, update it
+        const invoiceId = action?.payload?.invoice?.id;
+        const data = action.payload;
+
         if (
           state.selectedInvoice.invoice &&
-          state.selectedInvoice.invoice.id === action.payload.invoiceId
+          state.selectedInvoice.invoice.id === invoiceId
         ) {
-          // Refetch to get updated data - handled by component
-          // Or optimistically update specific fields if passed
+          state.selectedInvoice = {
+            ...state.selectedInvoice,
+            invoice: data.invoice,
+            entity: data.entity || state.selectedInvoice.entity,
+            company_profile:
+              data.company_profile || state.selectedInvoice.company_profile,
+          };
         }
+
+        Object.keys(state.list.items).forEach((page) => {
+          state.list.items[page] = state.list.items[page].map((invoice) =>
+            invoice.id === invoiceId ? data.invoice : invoice,
+          );
+        });
 
         state.loading.updateInfo = false;
       })
+
       .addCase(updateInvoiceInfo.rejected, (state, action) => {
         state.loading.updateInfo = false;
         state.error.update = action.payload || "Failed to update invoice";
@@ -609,31 +730,28 @@ const invoiceSlice = createSlice({
         state.error.update = null;
       })
       .addCase(updateInvoiceStatus.fulfilled, (state, action) => {
-        const { invoiceId, status } = action.payload;
+        const invoiceId = action?.payload?.invoice?.id;
+        const data = action.payload;
 
         // Update in selected invoice if it matches
         if (
           state.selectedInvoice.invoice &&
           state.selectedInvoice.invoice.id === invoiceId
         ) {
-          state.selectedInvoice.invoice.status = status;
+          state.selectedInvoice = {
+            ...state.selectedInvoice,
+            invoice: data.invoice,
+            entity: data.entity || state.selectedInvoice.entity,
+            company_profile:
+              data.company_profile || state.selectedInvoice.company_profile,
+          };
         }
 
-        // Update in list items
+        // FIXED: Remove from current list instead of updating
+        // (forces user to refresh to see in new status tab)
         Object.keys(state.list.items).forEach((page) => {
-          state.list.items[page] = state.list.items[page].map((invoice) =>
-            invoice.id === invoiceId ? { ...invoice, status } : invoice,
-          );
-        });
-
-        // Update in reconciled items
-        Object.keys(state.reconciledInvoices.items).forEach((page) => {
-          state.reconciledInvoices.items[page] = state.reconciledInvoices.items[
-            page
-          ].map((item) =>
-            item.invoice.id === invoiceId
-              ? { ...item, invoice: { ...item.invoice, status } }
-              : item,
+          state.list.items[page] = state.list.items[page].filter(
+            (invoice) => invoice.id !== invoiceId,
           );
         });
 
@@ -646,56 +764,43 @@ const invoiceSlice = createSlice({
       });
 
     // ============================================
-    // BULK UPDATE INVOICE STATUS
+    // CANCEL INVOICE (SPECIAL FLOW)
     // ============================================
     builder
-      .addCase(bulkUpdateInvoiceStatus.pending, (state) => {
-        state.loading.bulkUpdateStatus = true;
-        state.error.bulkUpdate = null;
+      .addCase(cancelInvoice.pending, (state) => {
+        state.loading.updateStatus = true;
+        state.error.update = null;
       })
-      .addCase(bulkUpdateInvoiceStatus.fulfilled, (state, action) => {
-        const { result, status } = action.payload;
+      .addCase(cancelInvoice.fulfilled, (state, action) => {
+        const { invoice_id, status, groups } = action.payload;
 
-        state.error.bulkUpdate = {
-          success: result.success || [],
-          rejected: result.rejected || [],
-        };
-
-        // Update status for successful invoices
-        if (result.success && result.success.length > 0) {
-          Object.keys(state.list.items).forEach((page) => {
-            state.list.items[page] = state.list.items[page].map((invoice) =>
-              result.success.includes(invoice.id)
-                ? { ...invoice, status }
-                : invoice,
-            );
-          });
-
-          Object.keys(state.reconciledInvoices.items).forEach((page) => {
-            state.reconciledInvoices.items[page] =
-              state.reconciledInvoices.items[page].map((item) =>
-                result.success.includes(item.invoice.id)
-                  ? { ...item, invoice: { ...item.invoice, status } }
-                  : item,
-              );
-          });
-
-          // Clear selection for successfully processed invoices
-          state.selectedInvoiceIds = state.selectedInvoiceIds.filter(
-            (id) => !result.success.includes(id),
-          );
+        // Update selected invoice
+        if (
+          state.selectedInvoice.invoice &&
+          state.selectedInvoice.invoice.id === invoice_id
+        ) {
+          state.selectedInvoice = {
+            ...state.selectedInvoice,
+            invoice: {
+              ...state.selectedInvoice.invoice,
+              status,
+            },
+            groups: groups || [],
+          };
         }
 
-        state.loading.bulkUpdateStatus = false;
+        // FIXED: Remove from current list
+        Object.keys(state.list.items).forEach((page) => {
+          state.list.items[page] = state.list.items[page].filter(
+            (invoice) => invoice.id !== invoice_id,
+          );
+        });
+
+        state.loading.updateStatus = false;
       })
-      .addCase(bulkUpdateInvoiceStatus.rejected, (state, action) => {
-        state.loading.bulkUpdateStatus = false;
-        state.error.bulkUpdate = {
-          success: [],
-          rejected: [
-            { message: action.payload || "Failed to bulk update invoices" },
-          ],
-        };
+      .addCase(cancelInvoice.rejected, (state, action) => {
+        state.loading.updateStatus = false;
+        state.error.update = action.payload || "Failed to cancel invoice";
       });
 
     // ============================================
@@ -706,100 +811,84 @@ const invoiceSlice = createSlice({
         state.loading.unlinkTasks = true;
         state.error.update = null;
       })
-      .addCase(unlinkTasksFromInvoice.fulfilled, (state, action) => {
-        const { invoiceId, updatedInvoice } = action.payload;
 
-        // If we got updated invoice data, swap it
-        if (
-          updatedInvoice &&
-          state.selectedInvoice.invoice &&
-          state.selectedInvoice.invoice.id === invoiceId
-        ) {
-          state.selectedInvoice = updatedInvoice;
-        }
-
-        state.loading.unlinkTasks = false;
-      })
       .addCase(unlinkTasksFromInvoice.rejected, (state, action) => {
         state.loading.unlinkTasks = false;
         state.error.update = action.payload || "Failed to unlink tasks";
       });
 
     // ============================================
-    // MICRO SURGERY - ADD CHARGE (Invoice Details)
+    // MICRO SURGERY - ADD CHARGE
     // ============================================
     builder.addCase(addChargeToTask.fulfilled, (state, action) => {
+      if (!action.payload || !state.selectedInvoice.groups) return;
+
       const { taskId, charges } = action.payload;
 
-      // Update charges in selected invoice groups
-      if (state.selectedInvoice.groups) {
-        state.selectedInvoice.groups = state.selectedInvoice.groups.map(
-          (group) => {
-            if (group.task_id === taskId) {
-              return { ...group, charges };
-            }
-            return group;
-          },
-        );
-      }
+      state.selectedInvoice.groups = state.selectedInvoice.groups.map(
+        (group) => (group.id === taskId ? { ...group, charges } : group),
+      );
     });
 
     // ============================================
-    // MICRO SURGERY - DELETE CHARGE (Invoice Details)
+    // MICRO SURGERY - DELETE CHARGE
     // ============================================
     builder.addCase(deleteTaskCharge.fulfilled, (state, action) => {
+      if (!action.payload || !state.selectedInvoice.groups) return;
+
       const { taskId, remainingCharges } = action.payload;
 
-      // Update charges in selected invoice groups
-      if (state.selectedInvoice.groups) {
-        state.selectedInvoice.groups = state.selectedInvoice.groups.map(
-          (group) => {
-            if (group.task_id === taskId) {
-              return { ...group, charges: remainingCharges };
-            }
-            return group;
-          },
-        );
-      }
+      state.selectedInvoice.groups = state.selectedInvoice.groups.map(
+        (group) =>
+          group.id === taskId ? { ...group, charges: remainingCharges } : group,
+      );
     });
 
     // ============================================
-    // MICRO SURGERY - BULK UPDATE CHARGES (Invoice Details)
+    // MICRO SURGERY - BULK UPDATE CHARGES (FIELDS)
     // ============================================
     builder.addCase(bulkUpdateTaskCharges.fulfilled, (state, action) => {
+      if (!action.payload || !state.selectedInvoice.groups) return;
+
       const { taskId, charges } = action.payload;
 
-      // Replace all charges for this task in selected invoice
-      if (state.selectedInvoice.groups) {
-        state.selectedInvoice.groups = state.selectedInvoice.groups.map(
-          (group) => {
-            if (group.task_id === taskId) {
-              return { ...group, charges };
-            }
-            return group;
-          },
-        );
-      }
+      state.selectedInvoice.groups = state.selectedInvoice.groups.map(
+        (group) => (group.id === taskId ? { ...group, charges } : group),
+      );
     });
 
     // ============================================
-    // MICRO SURGERY - BULK UPDATE STATUS (Invoice Details)
+    // MICRO SURGERY - BULK UPDATE CHARGE STATUS
     // ============================================
     builder.addCase(bulkUpdateChargeStatus.fulfilled, (state, action) => {
-      const { chargesByTask } = action.payload;
+      if (!action.payload || !state.selectedInvoice.groups) return;
 
-      // Update charges for all affected tasks in selected invoice
-      if (state.selectedInvoice.groups) {
-        state.selectedInvoice.groups = state.selectedInvoice.groups.map(
-          (group) => {
-            const taskId = group.task_id;
-            if (chargesByTask[taskId]) {
-              return { ...group, charges: chargesByTask[taskId] };
-            }
-            return group;
-          },
-        );
+      const chargesByTask = action.payload?.chargesByTask || {};
+
+      state.selectedInvoice.groups = state.selectedInvoice.groups.map(
+        (group) =>
+          chargesByTask[group.id]
+            ? { ...group, charges: chargesByTask[group.id] }
+            : group,
+      );
+    });
+
+    // ============================================
+    // MICRO SURGERY - UNLINK TASKS (NO REFETCH)
+    // ============================================
+    builder.addCase(unlinkTasksFromInvoice.fulfilled, (state, action) => {
+      if (!action.payload || !state.selectedInvoice.groups) return;
+      const { invoice_id, unlinked_task_ids } = action.payload?.data;
+
+      if (invoice_id !== state.selectedInvoice?.invoice?.id) {
+        return;
       }
+
+      state.selectedInvoice.groups = state.selectedInvoice.groups.filter(
+        (group) => !unlinked_task_ids.includes(group.id),
+      );
+
+      state.loading.unlinkTasks = false;
     });
   },
 });

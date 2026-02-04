@@ -1,0 +1,692 @@
+// Animations
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+// Layout
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+.drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 80%;
+  background-color: #ffffff;
+  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  animation: slideIn 0.3s ease-in-out;
+}
+
+// Header
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px 32px;
+  border-bottom: 1px solid #e5e7eb;
+  background-color: #f9fafb;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.titleSection {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  align-items: center;
+}
+
+.title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.internalId {
+  font-size: 14px;
+  color: #6b7280;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  span {
+    display: flex;
+    align-items: center;
+  }
+  .cp_button {
+    visibility: hidden;
+  }
+
+  &:hover {
+    .cp_button {
+      visibility: visible;
+    }
+  }
+}
+
+.sectionHeader {
+  display: flex;
+  justify-content: flex-end;
+  gap: 15px;
+  align-items: center;
+}
+
+.closeButton {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background-color: #f1f1f1;
+  color: #6b7280;
+  font-size: 24px;
+  cursor: pointer;
+  border-radius: 50%;
+  transition: all 0.2s;
+
+  &:hover {
+    background-color: #f3f4f6;
+    color: #111827;
+  }
+}
+
+// Content
+.content {
+  flex: 1;
+  overflow: hidden;
+  padding: 0;
+}
+
+// Status Badge
+.statusBadge {
+  padding: 4px 12px;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  outline: 1px solid rgba(0, 0, 0, 0.075);
+}
+
+.statusDraft {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.statusIssued {
+  background-color: #dbeafe;
+  color: #1e40af;
+}
+
+.statusPaid {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.statusCancelled {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.statusDefault {
+  background-color: #f3f4f6;
+  color: #4b5563;
+}
+
+// States (Loading, Error, Empty)
+.loadingState,
+.errorState,
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 32px;
+  text-align: center;
+  color: #6b7280;
+}
+
+.spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid #f3f4f6;
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-bottom: 16px;
+}
+
+.retryButton {
+  margin-top: 16px;
+  padding: 8px 16px;
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: #2563eb;
+  }
+}
+
+// Invoice Drawer Layout - Two Column Design
+.invoice_drawr_layout {
+  display: grid;
+  grid-template-columns: 70% 30%;
+  gap: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+// Left Section (Task List) - Scrollable
+.lowerSection {
+  padding: 20px;
+  padding-bottom: 0px;
+  border-right: 1px solid #e5e7eb;
+  background-color: #ffffff;
+
+  h3 {
+    margin: 0 0 20px 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #111827;
+  }
+
+  // Custom scrollbar styling
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: #f1f1f1;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+
+    &:hover {
+      background: #a8a8a8;
+    }
+  }
+}
+
+// Right Section (Invoice Details) - Scrollable
+.upperSection {
+  padding: 32px 24px;
+  overflow-y: auto;
+  background-color: #fafafa;
+
+  // Custom scrollbar styling
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: #f1f1f1;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+
+    &:hover {
+      background: #a8a8a8;
+    }
+  }
+}
+
+// Client Info Card - New Design
+.clientInfoCard {
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.clientHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.clientName {
+  margin: 0 0 6px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.clientType {
+  display: inline-block;
+  font-size: 12px;
+  color: #888b91;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.activeStatus {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.clientDetails {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.clientDetailItem {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.detailIcon {
+  color: #9ca3af;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.detailLabel {
+  font-size: 11px;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+
+.detailValue {
+  font-size: 14px;
+  color: #111827;
+  font-weight: 500;
+}
+
+// Form Sections
+.infoGrid {
+  display: grid;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.infoField {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+}
+
+.required {
+  font-weight: 500;
+  color: #ef4444;
+}
+
+.inputWrapper {
+  position: relative;
+  width: 100%;
+}
+
+.fieldIcon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #9ca3af;
+  pointer-events: none;
+}
+
+.readOnlyValue,
+.inputField {
+  width: 100%;
+  padding: 14px 12px 14px 40px;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #51565e;
+  font-weight: 600;
+}
+
+.readOnlyValue {
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+  display: flex;
+  align-items: center;
+  color: #51565e;
+  font-weight: 600;
+}
+
+.inputField {
+  border: 1px solid #d1d5db;
+  transition: all 0.2s;
+  background-color: #ffffff;
+
+  &:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+}
+
+// Buttons - Base Styles
+.editButton,
+.saveButton,
+.cancelButton,
+.statusButton {
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s;
+  border: none;
+  font-size: 14px;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.editButton {
+  background-color: transparent;
+  color: #6b7280;
+  border: 1px solid #d1d5db;
+
+  &:hover:not(:disabled) {
+    background-color: #f3f4f6;
+    border-color: #9ca3af;
+  }
+}
+
+.editActions {
+  display: flex;
+  gap: 12px;
+}
+
+.saveButton {
+  background-color: #3b82f6;
+  color: white;
+
+  &:hover:not(:disabled) {
+    background-color: #2563eb;
+  }
+}
+
+.cancelButton {
+  background-color: transparent;
+  color: #6b7280;
+  border: 1px solid #d1d5db;
+
+  &:hover:not(:disabled) {
+    background-color: #f3f4f6;
+    border-color: #9ca3af;
+  }
+}
+
+// Status Action Buttons - Improved styling
+.statusActions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.statusButton {
+  color: white;
+  border: 1px solid transparent;
+}
+
+.statusButtonDRAFT {
+  background-color: #f59e0b;
+  border-color: #f59e0b;
+
+  &:hover {
+    background-color: #d97706;
+    border-color: #d97706;
+  }
+}
+
+.statusButtonISSUED {
+  background-color: #3b82f6;
+  border-color: #3b82f6;
+
+  &:hover {
+    background-color: #2563eb;
+    border-color: #2563eb;
+  }
+}
+
+.statusButtonPAID {
+  background-color: #10b981;
+  border-color: #10b981;
+
+  &:hover {
+    background-color: #059669;
+    border-color: #059669;
+  }
+}
+
+.statusButtonCANCELLED {
+  background-color: #ef4444;
+  border-color: #ef4444;
+
+  &:hover {
+    background-color: #dc2626;
+    border-color: #dc2626;
+  }
+}
+
+// Validation & Errors
+.errorMessage {
+  background-color: #fef2f2;
+  border: 1px solid #fee2e2;
+  border-radius: 6px;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  color: #991b1b;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fieldError {
+  color: #ef4444;
+  font-size: 12px;
+  margin-top: 4px;
+  margin-left: 4px;
+}
+
+.inputError {
+  border-color: #ef4444 !important;
+
+  &:focus {
+    border-color: #ef4444 !important;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+  }
+}
+
+// Company Profile Dropdown Override
+.company_profile_override {
+  button {
+    padding: 13px;
+  }
+
+  &.inputError {
+    border: 1px solid #ef4444;
+  }
+}
+
+// Placeholder for Task List
+.placeholder {
+  padding: 48px 32px;
+  background-color: #f9fafb;
+  border: 2px dashed #d1d5db;
+  border-radius: 8px;
+  text-align: center;
+  color: #6b7280;
+
+  p {
+    margin: 0;
+    font-size: 14px;
+
+    &:first-child {
+      font-size: 16px;
+      font-weight: 500;
+      color: #374151;
+      margin-bottom: 8px;
+    }
+  }
+
+  .taskCount {
+    font-size: 12px;
+    color: #9ca3af;
+  }
+}
+
+// Responsive Design
+@media (max-width: 1024px) {
+  .drawer {
+    width: 90%;
+  }
+
+  .invoice_drawr_layout {
+    grid-template-columns: 60% 40%;
+  }
+}
+
+@media (max-width: 768px) {
+  .drawer {
+    width: 100%;
+  }
+
+  .content {
+    padding: 0;
+  }
+
+  .header {
+    padding: 16px 24px;
+  }
+
+  .invoice_drawr_layout {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+  }
+
+  .lowerSection {
+    border-right: none;
+    border-bottom: 1px solid #e5e7eb;
+    max-height: 300px;
+  }
+
+  .upperSection {
+    padding: 24px 16px;
+  }
+
+  .clientInfoCard {
+    margin-bottom: 20px;
+  }
+}
+
+.tabs {
+  display: flex;
+  gap: 24px;
+  border-bottom: 1px solid #e5e7eb;
+  margin-bottom: 16px;
+}
+
+.tab {
+  padding: 14px 0;
+  font-size: 16px;
+  font-weight: 500;
+  color: #6b7280;
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  position: relative;
+
+  &:hover {
+    color: #111827;
+  }
+  svg {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+.active {
+  color: #2563eb;
+  font-weight: 600;
+  &::after {
+    content: "";
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: #2563eb;
+  }
+}
+
+.documentsTab {
+  padding: 16px 0;
+  color: #6b7280;
+}

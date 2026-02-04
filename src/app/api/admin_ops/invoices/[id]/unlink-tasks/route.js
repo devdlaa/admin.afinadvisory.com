@@ -1,4 +1,5 @@
-import { unlinkTasksFromInvoice } from "@/services/invoice/invoice.service";
+
+import { unlinkTasksFromInvoice } from "@/services/task/invoicing.service";
 import {
   createSuccessResponse,
   handleApiError,
@@ -11,7 +12,7 @@ export async function POST(request, { params }) {
   try {
     const [permissionError, session, adminUser] = await requirePermission(
       request,
-      "invoices.manage"
+   
     );
     if (permissionError) return permissionError;
 

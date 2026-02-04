@@ -56,7 +56,7 @@ function TasksPageContent() {
   const currentFilters = useSelector(selectFilters);
   const categories = useSelector(selectAllCategories);
   const categoriesLoading = useSelector((state) =>
-    selectCategoryLoading(state, "list")
+    selectCategoryLoading(state, "list"),
   );
 
   // Harden selectors
@@ -86,13 +86,11 @@ function TasksPageContent() {
 
   const hasLoadedCategories = useRef(false);
   const hasLoadedUsers = useRef(false);
-  const ignoreNextDeepLink = useRef(false);
 
   const isUpdatingFromUrl = useRef(false);
 
   const deepLinkTaskId = searchParams.get("taskId");
 
-  // FIX: Parse URL params and sync to Redux on mount AND when URL changes
   useEffect(() => {
     const urlFilters = {};
     const urlPage = searchParams.get("page");
@@ -105,6 +103,9 @@ function TasksPageContent() {
       "priority",
       "search",
       "is_billable",
+      "created_date_from",
+      "created_date_to",
+      "entity_missing",
     ];
 
     let hasChanges = false;
@@ -113,7 +114,7 @@ function TasksPageContent() {
       const value = searchParams.get(key);
       if (value !== null) {
         // Convert boolean strings to actual booleans for is_billable
-        if (key === "is_billable") {
+        if (key === "is_billable" || key === "entity_missing") {
           urlFilters[key] = value === "true";
         } else {
           urlFilters[key] = value;
@@ -175,6 +176,7 @@ function TasksPageContent() {
       "priority",
       "search",
       "is_billable",
+      "entity_missing",
     ];
 
     filterKeys.forEach((key) => {
@@ -230,7 +232,7 @@ function TasksPageContent() {
       setIsSearchingEntities(true);
       try {
         const result = await dispatch(
-          quickSearchEntities({ search: query, limit: 20 })
+          quickSearchEntities({ search: query, limit: 20 }),
         ).unwrap();
 
         const safeData = Array.isArray(result?.data)
@@ -244,7 +246,7 @@ function TasksPageContent() {
         setIsSearchingEntities(false);
       }
     },
-    [dispatch]
+    [dispatch],
   );
 
   const selectedEntity = useSelector((state) => {
@@ -335,6 +337,16 @@ function TasksPageContent() {
           { value: false, label: "Non-billable" },
         ],
       },
+      {
+        filterKey: "entity_missing",
+        label: "Client",
+        placeholder: "All Tasks",
+        icon: Building2,
+        options: [
+          { value: false, label: "With Client" },
+          { value: true, label: "Without Client" },
+        ],
+      },
     ];
   }, [
     entityOptions,
@@ -354,7 +366,7 @@ function TasksPageContent() {
       dispatch(setPage(1));
       dispatch(fetchTasks(true));
     },
-    [dispatch]
+    [dispatch],
   );
 
   const handleClearAllFilters = useCallback(() => {
@@ -366,7 +378,7 @@ function TasksPageContent() {
         priority: null,
         search: null,
         is_billable: null,
-      })
+      }),
     );
     dispatch(setPage(1));
     dispatch(fetchTasks(true));
@@ -389,14 +401,14 @@ function TasksPageContent() {
       dispatch(setPage(page));
       dispatch(fetchTasks());
     },
-    [dispatch]
+    [dispatch],
   );
 
   const handleTaskClick = useCallback(
     (task) => {
       dispatch(openManageDialog(task.id));
     },
-    [dispatch]
+    [dispatch],
   );
 
   return (
@@ -409,6 +421,7 @@ function TasksPageContent() {
             task_category_id: currentFilters.task_category_id,
             assigned_to: currentFilters.assigned_to,
             is_billable: currentFilters.is_billable,
+             entity_missing: currentFilters.entity_missing,  
           }}
           onFilterChange={handleFilterChange}
           onClearAllFilters={handleClearAllFilters}

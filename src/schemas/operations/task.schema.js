@@ -68,16 +68,12 @@ export const createTaskSchema = z
      * NEW BILLING FIELDS
      */
     is_billable: z.boolean().default(false),
-
-  
-
-  
   })
   // end >= start
   .refine(
     (data) =>
       !data.end_date || !data.start_date || data.end_date >= data.start_date,
-    { message: "End date must be after start date", path: ["end_date"] }
+    { message: "End date must be after start date", path: ["end_date"] },
   )
   // due date not in past
   .refine((data) => !data.due_date || data.due_date >= new Date(), {
@@ -91,7 +87,6 @@ export const createTaskSchema = z
 export const listTasksSchema = z
   .object({
     page: z.coerce.number().int().positive().optional().default(1),
-
     page_size: z.coerce
       .number()
       .int()
@@ -101,6 +96,8 @@ export const listTasksSchema = z
       .default(20),
 
     entity_id: z.string().uuid("Invalid entity ID").optional(),
+    entity_missing: z.boolean().optional(),
+
     status: TaskStatusEnum.optional().nullable(),
     priority: TaskPriorityEnumD.optional().nullable(),
 
@@ -109,19 +106,16 @@ export const listTasksSchema = z
     created_by: z.string().uuid("Invalid user ID").optional(),
     assigned_to: z.string().uuid("Invalid user ID").optional(),
 
-    // date filters
+    // due date filters
     due_date_from: z.string().datetime().optional(),
     due_date_to: z.string().datetime().optional(),
 
-    // search term
-    search: z
-      .string()
-      .min(3, "Search must be at least 3 characters")
-      .optional(),
+    created_date_from: z.string().datetime().optional(),
+    created_date_to: z.string().datetime().optional(),
 
-    // new billing filters
+    search: z.string().min(3).optional(),
+
     is_billable: z.boolean().optional(),
-  
 
     sort_by: z
       .enum(["due_date", "priority", "created_at"])
@@ -130,19 +124,20 @@ export const listTasksSchema = z
 
     sort_order: z.enum(["asc", "desc"]).default("desc").optional(),
   })
-  // ensure valid date window
   .refine(
     (data) =>
       !data.due_date_from ||
       !data.due_date_to ||
       new Date(data.due_date_from) <= new Date(data.due_date_to),
-    { message: "due_date_from must be before or equal to due_date_to" }
+    { message: "due_date_from must be before or equal to due_date_to" },
+  )
+  .refine(
+    (data) =>
+      !data.created_date_from ||
+      !data.created_date_to ||
+      new Date(data.created_date_from) <= new Date(data.created_date_to),
+    { message: "created_date_from must be before or equal to created_date_to" },
   );
-
-const optionalDate = z.preprocess(
-  (val) => (val === "" || val === null ? undefined : val),
-  z.coerce.date().optional()
-);
 
 /**
  * UPDATE TASK
@@ -160,12 +155,10 @@ export const TaskUpdateSchema = z
 
     task_category_id: z.string().uuid().optional().nullable(),
 
-    start_date: optionalDate,
+    start_date: z.coerce.date().optional().nullable(),
 
-    due_date: optionalDate,
-
+    due_date: z.coerce.date().optional().nullable(),
     is_billable: z.boolean().optional(),
-
   })
 
   .refine((data) => !data.due_date || data.due_date >= new Date(), {
@@ -192,5 +185,3 @@ export const TaskBulkPriorityUpdateSchema = z.object({
     .min(1, "At least one task ID is required"),
   priority: TaskPriorityEnum,
 });
-
-

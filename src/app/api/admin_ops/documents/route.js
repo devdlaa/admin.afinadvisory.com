@@ -39,6 +39,7 @@ export async function GET(req) {
 
     return createSuccessResponse("Documents retrieved successfully", result);
   } catch (e) {
+    console.log(e)
     return handleApiError(e);
   }
 }
