@@ -401,7 +401,7 @@ model Task {
   task_type         TaskType      @default(REGULAR)     // REGULAR or SYSTEM_ADHOC
   is_system         Boolean       @default(false)       // Hide from normal task lists
   invoice_internal_number String? @db.VarChar(50)
-  invoiced_at DateTime?
+  invoiced_at DateTime? 
   
   title             String
   description       String?
@@ -556,7 +556,7 @@ model Invoice {
  
   creator         AdminUser            @relation(fields: [created_by], references: [id])
 
-  // 🚀 OPTIMIZED INDEXES
+
   @@index([entity_id, created_at, status])
   @@index([entity_id, invoice_date])
   @@index([entity_id, status])
