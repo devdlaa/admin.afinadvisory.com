@@ -50,7 +50,7 @@ export async function syncUserPermissionsByCode(adminUserId, newCodes = []) {
 
     if (invalid.length > 0) {
       throw new ValidationError(
-        `Invalid permission codes: ${invalid.join(", ")}`
+        `Invalid permission codes: ${invalid.join(", ")}`,
       );
     }
 
@@ -99,3 +99,82 @@ export async function syncUserPermissionsByCode(adminUserId, newCodes = []) {
     return final.map((r) => r.permission.code);
   });
 }
+
+// ================= CREATE (BULK) =================
+export const createPermissions = async (permissions) => {
+  const result = await prisma.permission.createMany({
+    data: permissions,
+    skipDuplicates: true, // avoids duplicate code errors
+  });
+
+  return {
+    created_count: result.count,
+  };
+};
+
+// ================= UPDATE =================
+export const updatePermission = async (id, data) => {
+  const existing = await prisma.permission.findUnique({
+    where: { id },
+  });
+
+  if (!existing) {
+    throw new NotFoundError("Permission not found");
+  }
+
+  return prisma.permission.update({
+    where: { id },
+    data,
+  });
+};
+
+// ================= BULK UPDATE =================
+export const bulkUpdatePermissions = async (updates) => {
+  await prisma.$transaction(async (tx) => {
+    for (const { id, fields } of updates) {
+      await tx.permission.update({
+        where: { id },
+        data: fields,
+      });
+    }
+  });
+
+  return {
+    updated_count: updates.length,
+  };
+};
+
+// ================= DELETE =================
+export const deletePermission = async (id) => {
+  const existing = await prisma.permission.findUnique({
+    where: { id },
+  });
+
+  if (!existing) {
+    throw new NotFoundError("Permission not found");
+  }
+
+  await prisma.permission.delete({
+    where: { id },
+  });
+
+  return {
+    deleted_id: id,
+  };
+};
+
+// ================= LIST =================
+export const listPermissions = async ({ category, search }) => {
+  return prisma.permission.findMany({
+    where: {
+      ...(category && { category }),
+      ...(search && {
+        OR: [
+          { code: { contains: search, mode: "insensitive" } },
+          { label: { contains: search, mode: "insensitive" } },
+        ],
+      }),
+    },
+    orderBy: [{ category: "asc" }, { code: "asc" }],
+  });
+};

@@ -15,8 +15,11 @@ import {   createCompanyProfile,
  */
 export async function GET(req) {
   try {
-    const [permissionError] = await requirePermission(req);
-    if (permissionError) return permissionError;
+ const [permissionError, session, admin_user] = await requirePermission(
+   req,
+   "companyprofile.view",
+ );
+ if (permissionError) return permissionError;
 
     const { searchParams } = new URL(req.url);
 
@@ -47,7 +50,10 @@ export async function GET(req) {
  */
 export async function POST(req) {
   try {
-    const [permissionError, session, admin_user] = await requirePermission(req);
+    const [permissionError, session, admin_user] = await requirePermission(
+      req,
+      "companyprofile.manage",
+    );
     if (permissionError) return permissionError;
 
     const body = schemas.companyProfile.create.parse(await req.json());

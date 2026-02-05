@@ -1,6 +1,7 @@
-
-import { updateEntityCharge,
-  deleteEntityCharge, } from "@/services/task/taskChargesOverride.service";
+import {
+  updateEntityCharge,
+  deleteEntityCharge,
+} from "@/services/task/taskChargesOverride.service";
 import {
   createSuccessResponse,
   handleApiError,
@@ -10,9 +11,9 @@ import { schemas } from "@/schemas";
 
 export async function PATCH(request, { params }) {
   try {
-    const [permissionError, session] = await requirePermission(
+    const [permissionError, session, admin_user] = await requirePermission(
       request,
-  
+      "reconcile.manage",
     );
     if (permissionError) return permissionError;
 
@@ -37,9 +38,9 @@ export async function PATCH(request, { params }) {
 }
 export async function DELETE(request, { params }) {
   try {
-    const [permissionError, session,adminuser] = await requirePermission(
+    const [permissionError, session, admin_user] = await requirePermission(
       request,
-    
+      "reconcile.manage",
     );
     if (permissionError) return permissionError;
 

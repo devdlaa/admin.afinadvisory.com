@@ -10,9 +10,9 @@ import { schemas } from "@/schemas";
 
 export async function GET(request, { params }) {
   try {
-    const [permissionError, session, adminUser] = await requirePermission(
+    const [permissionError, session, admin_user] = await requirePermission(
       request,
- 
+      "invoice.view",
     );
     if (permissionError) return permissionError;
 
@@ -29,9 +29,9 @@ export async function GET(request, { params }) {
 
 export async function PATCH(request, { params }) {
   try {
-    const [permissionError, session, adminUser] = await requirePermission(
+   const [permissionError, session, admin_user] = await requirePermission(
       request,
- 
+      "invoice.manage",
     );
     if (permissionError) return permissionError;
 

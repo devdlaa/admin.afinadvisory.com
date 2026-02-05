@@ -12,9 +12,9 @@ import {
 } from "@/services/shared/companyprofile.service";
 export async function GET_BY_ID(req, { params }) {
   try {
-    const [permissionError] = await requirePermission(
+    const [permissionError, session, admin_user] = await requirePermission(
       req,
-
+      "companyprofile.view",
     );
     if (permissionError) return permissionError;
 
@@ -33,9 +33,9 @@ export async function GET_BY_ID(req, { params }) {
 
 export async function PATCH(req, { params }) {
   try {
-    const [permissionError, session, admin_user] = await requirePermission(
+   const [permissionError, session, admin_user] = await requirePermission(
       req,
-
+      "companyprofile.manage",
     );
     if (permissionError) return permissionError;
 
@@ -61,7 +61,10 @@ export async function PATCH(req, { params }) {
  */
 export async function DELETE(req, { params }) {
   try {
-    const [permissionError] = await requirePermission(req);
+   const [permissionError, session, admin_user] = await requirePermission(
+      req,
+      "companyprofile.manage",
+    );
     if (permissionError) return permissionError;
 
     const { id } = params;

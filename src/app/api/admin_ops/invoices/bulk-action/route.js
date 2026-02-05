@@ -9,9 +9,9 @@ import { bulkInvoiceAction } from "@/services/task/invoicing.service";
 
 export async function POST(request) {
   try {
-    const [permissionError] = await requirePermission(
+  const [permissionError, session, admin_user] = await requirePermission(
       request,
-
+      "invoice.manage",
     );
     if (permissionError) return permissionError;
 

@@ -14,6 +14,7 @@ import entityReducer from "./slices/entitySlice";
 import ReconcileReducer from "./slices/reconcileSlice";
 import documentsReducer from "./slices/documentSlice";
 import companyProfileReducer from "./slices/companyProfileSlice";
+import permissionsReducer from "./slices/permissionSlice";
 import notificationReducer, {
   setSoundEnabled,
 } from "./slices/notificationSlice";
@@ -49,6 +50,7 @@ export const store = configureStore({
     outstanding: outstandingReducer,
     documents: documentsReducer,
     companyProfile: companyProfileReducer,
+    permissions : permissionsReducer
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware()

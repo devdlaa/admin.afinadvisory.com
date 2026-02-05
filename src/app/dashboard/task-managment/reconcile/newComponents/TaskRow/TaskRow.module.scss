@@ -1,7 +1,6 @@
 .taskRow {
   outline: 1px solid #e5e7eb;
 
-
   background: #ffffff;
   transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
 
@@ -13,7 +12,9 @@
   &.expanded {
     background-color: rgb(245, 249, 255);
     border-color: #d1d5db;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    box-shadow:
+      0 4px 6px -1px rgba(0, 0, 0, 0.1),
+      0 2px 4px -1px rgba(0, 0, 0, 0.06);
   }
 }
 
@@ -172,7 +173,6 @@
   font-size: 12px;
 }
 
-
 /* Base pill (already present) */
 .metaValue {
   font-size: 12px;
@@ -324,5 +324,37 @@
 
   .metaDivider {
     display: none;
+  }
+}
+
+.taskLinkButton {
+  margin-left: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+
+  background: rgba(0, 0, 0, 0.05);
+  color: #272c35;
+  border-radius: 4px;
+  font-weight: 500;
+
+  padding: 2px 8px;
+  border-radius: 50px;
+  outline: 1px solid rgba(0, 0, 0, 0.068);
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 50px;
+  line-height: 1.4;
+  text-transform: capitalize;
+  outline: 1px solid rgba(0, 0, 0, 0.068);
+  &:hover {
+    background: rgba(0, 0, 0, 0.096);
+    color: #111827;
   }
 }

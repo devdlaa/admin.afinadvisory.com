@@ -1267,10 +1267,17 @@ const toastMiddleware = () => (next) => (action) => {
         break;
 
       case "reconcile/markNonBillable/rejected":
-        const markNonBillableErr = action.payload || action.error?.message;
+        const markNonBillableErrRaw = action.payload || action.error?.message;
+
+        const markNonBillableErr =
+          typeof markNonBillableErrRaw === "string"
+            ? markNonBillableErrRaw
+            : markNonBillableErrRaw?.message ||
+              JSON.stringify(markNonBillableErrRaw || "");
+
         if (
-          markNonBillableErr?.includes("validation") ||
-          markNonBillableErr?.includes("Validation")
+          markNonBillableErr.includes("validation") ||
+          markNonBillableErr.includes("Validation")
         ) {
           showError(
             "Invalid request. Please check your selection and try again.",

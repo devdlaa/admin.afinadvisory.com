@@ -1,4 +1,3 @@
-
 import { bulkUpdateTaskCharges } from "@/services/task/taskChargesOverride.service";
 import {
   createSuccessResponse,
@@ -9,25 +8,25 @@ import { schemas } from "@/schemas";
 
 export async function PATCH(request, { params }) {
   try {
-    const [permissionError, session] = await requirePermission(request);
+    const [permissionError, session, admin_user] = await requirePermission(
+      request,
+      ["reconcile.manage", "invoice.manage"],
+      "ANY",
+    );
     if (permissionError) return permissionError;
 
     const body = await request.json();
     const resolvedParams = await params;
-      console.log("resolvedParams",resolvedParams);
-      console.log("body",body);
 
     const parsed = schemas.taskCharge.bulkTaskChargeUpdate.parse({
       params: resolvedParams,
       body,
     });
 
-  
-
     const result = await bulkUpdateTaskCharges(
       parsed.params.task_id,
       parsed.body.updates,
-      session.user,
+      admin_user,
     );
 
     return createSuccessResponse("Charges updated successfully", result);

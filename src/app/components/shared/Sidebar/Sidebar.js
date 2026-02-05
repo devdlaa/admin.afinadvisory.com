@@ -18,6 +18,7 @@ import {
   LayoutDashboard,
   ListChecks,
   FileText,
+  Building,
 } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
 import Avatar from "../newui/Avatar/Avatar";
@@ -139,6 +140,12 @@ const SIDEBAR_CONFIG = {
           label: "Manage Team",
           icon: ShieldAlert,
           path: "/dashboard/manage-team",
+        },
+        {
+          id: "company",
+          label: "Company Profiles",
+          icon: Building,
+          path: "/dashboard/company-profiles",
         },
       ],
     },

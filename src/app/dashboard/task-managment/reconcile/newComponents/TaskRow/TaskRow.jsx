@@ -1,7 +1,7 @@
 "use client";
 import React, { useMemo } from "react";
 import styles from "./TaskRow.module.scss";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight, ExternalLink } from "lucide-react";
 
 import ChargesTable from "../ChargesTable/ChargesTable";
 
@@ -22,7 +22,7 @@ const TaskRow = ({
     () => config.getTaskRowConfig(data),
     [config, data],
   );
-
+  const isLinkableTask = Boolean(task?.id && !taskConfig.badge?.isSystem);
   // Calculate total recoverable for this task using config
   const calculateRecoverable = () => {
     let total = 0;
@@ -41,6 +41,15 @@ const TaskRow = ({
     }
 
     return { total, count };
+  };
+
+  const goToTask = (e) => {
+    e.stopPropagation();
+    window.open(
+      `/dashboard/task-managment?taskId=${task.id}`,
+      "_blank",
+      "noopener,noreferrer",
+    );
   };
 
   const { total: recoverableAmount, count: recoverableCount } =
@@ -94,6 +103,17 @@ const TaskRow = ({
                 >
                   {task.status}
                 </span>
+                {isLinkableTask && (
+                  <button
+                    type="button"
+                    onClick={goToTask}
+                    className={styles.taskLinkButton}
+                    title="Open task"
+                  >
+                    View Task
+                    <ExternalLink size={14} />
+                  </button>
+                )}
               </div>
 
               {task.category?.name && !inInvoiceView && (

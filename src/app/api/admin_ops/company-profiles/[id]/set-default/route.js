@@ -7,7 +7,10 @@ import { requirePermission } from "@/utils/server/requirePermission";
 import { setDefaultCompanyProfile } from "@/services/shared/companyprofile.service";
 export async function POST_SET_DEFAULT(req, { params }) {
   try {
-    const [permissionError, session, admin_user] = await requirePermission(req);
+    const [permissionError, session, admin_user] = await requirePermission(
+      req,
+      "companyprofile.manage",
+    );
     if (permissionError) return permissionError;
 
     const { id } = params;

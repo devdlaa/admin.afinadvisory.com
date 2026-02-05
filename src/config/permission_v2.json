@@ -76,7 +76,13 @@
             "coupons.access",
             "coupons.create",
             "coupons.update",
-            "coupons.delete"
+            "coupons.delete",
+            "reconcile.view",
+            "reconcile.manage",
+            "invoice.view",
+            "invoice.manage",
+            "companyprofile.view",
+            "companyprofile.manage"
         ]
     },
     "roles": [

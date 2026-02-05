@@ -1,5 +1,3 @@
-
-
 import { createEntityCharge } from "@/services/task/taskChargesOverride.service";
 import {
   createSuccessResponse,
@@ -10,13 +8,14 @@ import { schemas } from "@/schemas";
 
 export async function POST(request, { params }) {
   try {
-    const [permissionError, session, adminuser] =
-      await requirePermission(request);
+    const [permissionError, session, admin_user] = await requirePermission(
+      request,
+      "reconcile.manage",
+    );
     if (permissionError) return permissionError;
 
     const body = await request.json();
     const resolvedParams = await params;
-   
 
     const parsed = schemas.entityAdhocCharge.create.parse({
       params: {

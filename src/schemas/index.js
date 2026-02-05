@@ -90,6 +90,14 @@ import {
   CompanyProfileUpdateSchema,
 } from "./operations/Companyprofile.schema.js";
 
+import {
+  PermissionCreateSchema,
+  PermissionUpdateSchema,
+  PermissionBulkUpdateSchema,
+  PermissionDeleteSchema,
+  PermissionListSchema,
+} from "./core/permission.schema.js";
+
 // ============================================================================
 // Structured Export Object
 // ============================================================================
@@ -188,12 +196,19 @@ export const schemas = Object.freeze({
     updateStatus: InvoiceUpdateStatusSchema,
     unlinkTasks: InvoiceUnlinkTasksSchema,
     cancel: InvoiceCancelSchema,
-    bulkAction : bulkInvoiceActionSchema
+    bulkAction: bulkInvoiceActionSchema,
   },
   companyProfile: {
     update: CompanyProfileUpdateSchema,
     query: CompanyProfileQuerySchema,
     create: CompanyProfileCreateSchema,
+  },
+  permission: {
+    create: PermissionCreateSchema,
+    update: PermissionUpdateSchema,
+    bulkUpdate: PermissionBulkUpdateSchema,
+    delete: PermissionDeleteSchema,
+    list: PermissionListSchema,
   },
 });
 

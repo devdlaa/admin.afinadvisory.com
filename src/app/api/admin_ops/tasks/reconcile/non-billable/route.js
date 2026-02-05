@@ -1,12 +1,18 @@
 import { schemas } from "@/schemas";
 import { getNonBillableTasks } from "@/services/task/reconcile.service";
-import { createSuccessResponse, handleApiError } from "@/utils/server/apiResponse";
+import {
+  createSuccessResponse,
+  handleApiError,
+} from "@/utils/server/apiResponse";
 import { requirePermission } from "@/utils/server/requirePermission";
 
 export async function GET(req) {
   try {
-    const [err] = await requirePermission(req);
-    if (err) return err;
+    const [permissionError, session, admin_user] = await requirePermission(
+      req,
+      "reconcile.view",
+    );
+    if (permissionError) return permissionError;
 
     const { searchParams } = new URL(req.url);
 

@@ -40,7 +40,7 @@ export async function GET(req) {
         category: "asc",
       },
     });
-
+    
     // 3) send combined payload
     return NextResponse.json({
       success: true,

@@ -9,8 +9,10 @@ import { schemas } from "@/schemas";
 // POST /api/invoices/:id/cancel - Cancel invoice
 export async function POST(request, { params }) {
   try {
-    const [permissionError, session, adminUser] =
-      await requirePermission(request);
+   const [permissionError, session, admin_user] = await requirePermission(
+      request,
+      "invoice.manage",
+    );
     if (permissionError) return permissionError;
 
     const resolvedParams = await params;

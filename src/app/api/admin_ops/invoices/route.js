@@ -11,11 +11,11 @@ import { schemas } from "@/schemas";
 
 export async function GET(request) {
   try {
-    const [permissionError, session, adminUser] = await requirePermission(
-      request,
-
-    );
-    if (permissionError) return permissionError;
+  const [permissionError, session, admin_user] = await requirePermission(
+    request,
+    "invoice.view",
+  );
+  if (permissionError) return permissionError;
 
     const { searchParams } = new URL(request.url);
     const filters = Object.fromEntries(searchParams);
@@ -31,9 +31,9 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
-    const [permissionError, session, adminUser] = await requirePermission(
+  const [permissionError, session, admin_user] = await requirePermission(
       request,
-   
+      "invoice.manage",
     );
     if (permissionError) return permissionError;
 
@@ -43,7 +43,7 @@ export async function POST(request) {
 
     const result = await createOrAppendInvoice({
       ...parsed.body,
-      currentUser: adminUser,
+      currentUser: admin_user,
     });
 
     return createSuccessResponse("Invoice created successfully", result);

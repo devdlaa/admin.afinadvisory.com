@@ -11,7 +11,10 @@ import { requirePermission } from "@/utils/server/requirePermission";
 
 export async function GET(req) {
   try {
-    const [permissionError] = await requirePermission(req);
+    const [permissionError, session, admin_user] = await requirePermission(
+      req,
+      "reconcile.manage",
+    );
     if (permissionError) return permissionError;
 
     const { searchParams } = new URL(req.url);

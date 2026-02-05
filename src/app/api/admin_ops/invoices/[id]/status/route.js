@@ -9,9 +9,9 @@ import { schemas } from "@/schemas";
 
 export async function PATCH(request, { params }) {
   try {
-    const [permissionError, session, adminUser] = await requirePermission(
+   const [permissionError, session, admin_user] = await requirePermission(
       request,
-   
+      "invoice.manage",
     );
     if (permissionError) return permissionError;
 

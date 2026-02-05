@@ -1,7 +1,13 @@
 import { auth } from "@/utils/server/auth";
 import { prisma } from "@/utils/server/db";
 import { createErrorResponse } from "./apiResponse";
-export async function requirePermission(req, required) {
+
+/**
+ * @param req Request
+ * @param required string | string[]
+ * @param mode "ALL" | "ANY" (optional, defaults to "ALL")
+ */
+export async function requirePermission(req, required, mode = "ALL") {
   const session = await auth();
 
   if (!session) {
@@ -11,7 +17,6 @@ export async function requirePermission(req, required) {
       null,
     ];
   }
-
 
   const user = await prisma.adminUser.findUnique({
     where: { id: session.user.id },
@@ -30,14 +35,12 @@ export async function requirePermission(req, required) {
     ];
   }
 
-
   const permissionCodes = user.permissions.map((p) => p.permission.code);
 
   const normalizedUser = {
     ...user,
-    permissions: permissionCodes, 
+    permissions: permissionCodes,
   };
-
 
   if (normalizedUser.deleted_at || normalizedUser.status !== "ACTIVE") {
     return [
@@ -62,12 +65,14 @@ export async function requirePermission(req, required) {
 
   const requiredArray = Array.isArray(required) ? required : [required];
 
- 
-  const hasAll = requiredArray.every((perm) =>
-    normalizedUser.permissions.includes(perm),
-  );
+  const hasPermission =
+    mode === "ANY"
+      ? requiredArray.some((perm) => normalizedUser.permissions.includes(perm))
+      : requiredArray.every((perm) =>
+          normalizedUser.permissions.includes(perm),
+        );
 
-  if (!hasAll) {
+  if (!hasPermission) {
     return [
       createErrorResponse("Access Denied", 403, "PERMISSION_DENIED", {
         forceLogout: false,

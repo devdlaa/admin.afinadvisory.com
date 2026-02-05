@@ -13,7 +13,7 @@ export async function POST(request) {
   try {
     const [permissionError, session, admin_user] = await requirePermission(
       request,
-      "tasks.manage",
+      "reconcile.manage",
     );
     if (permissionError) return permissionError;
 
@@ -34,7 +34,7 @@ export async function GET(request) {
   try {
     const [permissionError, session, admin_user] = await requirePermission(
       request,
-      "tasks.access",
+      "reconcile.view",
     );
     if (permissionError) return permissionError;
 

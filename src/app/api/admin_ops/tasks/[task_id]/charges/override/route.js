@@ -1,4 +1,3 @@
-
 import { createTaskChargeOverride } from "@/services/task/taskChargesOverride.service";
 
 import {
@@ -12,9 +11,10 @@ import { schemas } from "@/schemas";
 
 export async function POST(request, { params }) {
   try {
-    const [permissionError, session] = await requirePermission(
+    const [permissionError, session,admin_user] = await requirePermission(
       request,
-
+      ["reconcile.manage", "invoice.manage"],
+      "ANY",
     );
     if (permissionError) return permissionError;
 
@@ -29,7 +29,7 @@ export async function POST(request, { params }) {
     const result = await createTaskChargeOverride(
       parsed.params.task_id,
       parsed.body,
-      session.user,
+      admin_user,
     );
 
     return createSuccessResponse("Charge added successfully", result);
