@@ -145,12 +145,18 @@ export const updateTaskChargeLib = async (
   await chargesModifyValidationCheck(previous.task_id, currentUser);
 
   const result = await prisma.$transaction(async (tx) => {
+    const updateData = {
+      ...data,
+      updated_by: currentUser.id,
+    };
+
+    if (data.status === "PAID") {
+      updateData.paid_via_invoice_id = null;
+    }
+
     const updated = await tx.taskCharge.update({
       where: { id },
-      data: {
-        ...data,
-        updated_by: currentUser.id,
-      },
+      data: updateData,
     });
 
     await applyChargeUpdate(previous.task.entity_id, previous, updated, tx);

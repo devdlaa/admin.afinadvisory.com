@@ -82,29 +82,6 @@ function formatInvoiceWithoutGroups(invoice) {
   };
 }
 
-function formatInvoiceGroupsOnly(invoice) {
-  return {
-    invoice: {
-      id: invoice.id,
-    },
-    groups: invoice.tasks.map((task) => ({
-      type: task.task_type === "SYSTEM_ADHOC" ? "ADHOC" : "TASK",
-      task_id: task.id,
-      task_title: task.title,
-      charges: task.charges.map((c) => ({
-        id: c.id,
-        title: c.title,
-        amount: c.amount,
-        charge_type: c.charge_type,
-        status: c.status,
-        remark: c.remark,
-        created_at: c.created_at,
-        updated_at: c.updated_at,
-      })),
-    })),
-  };
-}
-
 async function fetchInvoiceWithoutGroups(invoiceId) {
   const invoice = await prisma.invoice.findUnique({
     where: { id: invoiceId },
@@ -117,27 +94,6 @@ async function fetchInvoiceWithoutGroups(invoiceId) {
   if (!invoice) throw new NotFoundError("Invoice not found");
 
   return formatInvoiceWithoutGroups(invoice);
-}
-
-async function fetchInvoiceGroupsOnly(invoiceId) {
-  const invoice = await prisma.invoice.findUnique({
-    where: { id: invoiceId },
-    select: {
-      id: true,
-      tasks: {
-        include: {
-          charges: {
-            where: { deleted_at: null },
-            orderBy: { created_at: "asc" },
-          },
-        },
-      },
-    },
-  });
-
-  if (!invoice) throw new NotFoundError("Invoice not found");
-
-  return formatInvoiceGroupsOnly(invoice);
 }
 
 function formatInvoice(invoice) {
@@ -271,8 +227,6 @@ export async function createOrAppendInvoice({
       }
 
       ensureDraft(invoice);
-      console.log(invoice);
-      console.log(entity_id);
 
       if (invoice.entity_id !== entity_id) {
         throw new ValidationError("Entity mismatch with existing invoice");
@@ -555,7 +509,7 @@ function ensureValidStatusTransition(current, next) {
   const allowed = {
     DRAFT: ["ISSUED", "CANCELLED"],
     ISSUED: ["DRAFT", "PAID", "CANCELLED"],
-    PAID: ["DRAFT", "CANCELLED","ISSUED"],
+    PAID: ["DRAFT", "CANCELLED", "ISSUED"],
     CANCELLED: ["DRAFT"],
   };
 
@@ -581,6 +535,8 @@ export async function updateInvoiceStatus(invoiceId, status, options = {}) {
     throw new ValidationError("Please update invoice number before issuing");
   }
 
+  const isRollback = invoice.status === "PAID" && status !== "PAID";
+
   const data = { status };
 
   switch (status) {
@@ -595,15 +551,49 @@ export async function updateInvoiceStatus(invoiceId, status, options = {}) {
       break;
 
     case "PAID":
-      // If your transitions allow skipping ISSUED
       data.issued_at ??= invoice.issued_at ?? new Date();
       data.paid_at = new Date();
       break;
   }
 
-  await prisma.invoice.update({
-    where: { id: invoiceId },
-    data,
+  await prisma.$transaction(async (tx) => {
+    // 🔁 ROLLBACK: PAID → NOT PAID
+    if (isRollback) {
+      await tx.taskCharge.updateMany({
+        where: {
+          paid_via_invoice_id: invoice.id,
+        },
+        data: {
+          status: "NOT_PAID",
+          paid_via_invoice_id: null,
+          updated_at: new Date(),
+        },
+      });
+    }
+
+    // 🔥 PAY: NOT PAID → PAID
+    if (status === "PAID" && invoice.status !== "PAID") {
+      await tx.taskCharge.updateMany({
+        where: {
+          task: {
+            invoice_internal_number: invoice.internal_number,
+          },
+          bearer: "CLIENT",
+          status: "NOT_PAID",
+          deleted_at: null,
+        },
+        data: {
+          status: "PAID",
+          paid_via_invoice_id: invoice.id,
+          updated_at: new Date(),
+        },
+      });
+    }
+
+    await tx.invoice.update({
+      where: { id: invoiceId },
+      data,
+    });
   });
 
   return fetchInvoiceWithoutGroups(invoiceId);
@@ -641,21 +631,50 @@ export async function unlinkTasksFromInvoice(invoiceId, taskIds) {
 ===================================================== */
 
 export async function cancelInvoice(invoiceId) {
-  const invoice = await prisma.invoice.findUnique({ where: { id: invoiceId } });
+  const invoice = await prisma.invoice.findUnique({
+    where: { id: invoiceId },
+  });
+
   if (!invoice) throw new NotFoundError("Invoice not found");
 
   await prisma.$transaction(async (tx) => {
+    // =====================
+    // 🔁 ROLLBACK PAID CHARGES (ONLY THOSE PAID VIA THIS INVOICE)
+    // =====================
+    await tx.taskCharge.updateMany({
+      where: {
+        paid_via_invoice_id: invoice.id,
+      },
+      data: {
+        status: "NOT_PAID",
+        paid_via_invoice_id: null,
+        updated_at: new Date(),
+      },
+    });
+
+    // =====================
+    // UNLINK TASKS FROM INVOICE
+    // =====================
     await tx.task.updateMany({
-      where: { invoice_internal_number: invoice.internal_number },
+      where: {
+        invoice_internal_number: invoice.internal_number,
+      },
       data: {
         invoice_internal_number: null,
         invoiced_at: null,
       },
     });
 
+    // =====================
+    // CANCEL INVOICE
+    // =====================
     await tx.invoice.update({
       where: { id: invoiceId },
-      data: { status: "CANCELLED" },
+      data: {
+        status: "CANCELLED",
+        issued_at: null,
+        paid_at: null,
+      },
     });
   });
 
@@ -745,6 +764,43 @@ export async function bulkInvoiceAction(invoiceIds, action) {
             });
             return;
           }
+        }
+
+        // =====================
+        // 🔁 ROLLBACK CHARGES (PAID → NOT PAID)
+        // =====================
+        if (invoice.status === "PAID" && nextStatus !== "PAID") {
+          await tx.taskCharge.updateMany({
+            where: {
+              paid_via_invoice_id: invoice.id,
+            },
+            data: {
+              status: "NOT_PAID",
+              paid_via_invoice_id: null,
+              updated_at: new Date(),
+            },
+          });
+        }
+
+        // =====================
+        // 🔥 MARK CHARGES AS PAID
+        // =====================
+        if (nextStatus === "PAID") {
+          await tx.taskCharge.updateMany({
+            where: {
+              task: {
+                invoice_internal_number: invoice.internal_number,
+              },
+              bearer: "CLIENT",
+              status: "NOT_PAID",
+              deleted_at: null,
+            },
+            data: {
+              status: "PAID",
+              paid_via_invoice_id: invoice.id,
+              updated_at: new Date(),
+            },
+          });
         }
 
         // =====================

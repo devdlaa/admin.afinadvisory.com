@@ -121,12 +121,18 @@ export const bulkUpdateTaskCharges = async (taskId, updates, user) => {
     for (const { id, fields } of updates) {
       const oldCharge = chargeMap.get(id);
 
+      const updateData = {
+        ...fields,
+        updated_by: user.id,
+      };
+
+      if (fields.status === "PAID") {
+        updateData.paid_via_invoice_id = null;
+      }
+
       const updatedCharge = await tx.taskCharge.update({
         where: { id },
-        data: {
-          ...fields,
-          updated_by: user.id,
-        },
+        data: updateData,
       });
 
       const relevantFields = ["amount", "charge_type", "status"];
@@ -193,6 +199,7 @@ export const bulkUpdateChargesByChargeIds = async (
       data: {
         status: newStatus,
         updated_by: user.id,
+        paid_via_invoice_id: newStatus === "PAID" ? null : undefined,
       },
     });
 
