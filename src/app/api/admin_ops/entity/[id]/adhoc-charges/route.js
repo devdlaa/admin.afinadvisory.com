@@ -27,7 +27,7 @@ export async function POST(request, { params }) {
     const result = await createEntityCharge(
       parsed.params.entity_id,
       parsed.body,
-      adminuser,
+      admin_user,
     );
 
     return createSuccessResponse("Ad-hoc charge created successfully", result);

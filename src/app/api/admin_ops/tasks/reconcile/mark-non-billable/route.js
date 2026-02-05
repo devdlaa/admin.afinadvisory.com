@@ -18,7 +18,7 @@ export async function POST(req) {
 
     const data = schemas.reconcile.markNonBillable.parse(body);
 
-    const result = await markTasksNonBillable(data.task_ids, user);
+    const result = await markTasksNonBillable(data.task_ids, admin_user);
 
     return createSuccessResponse("Tasks processed", result);
   } catch (e) {

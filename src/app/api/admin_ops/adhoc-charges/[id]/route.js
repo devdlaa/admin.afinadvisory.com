@@ -28,7 +28,7 @@ export async function PATCH(request, { params }) {
     const result = await updateEntityCharge(
       parsed.params.id,
       parsed.body,
-      session.user,
+      admin_user,
     );
 
     return createSuccessResponse("Ad-hoc charge updated successfully", result);
@@ -50,7 +50,7 @@ export async function DELETE(request, { params }) {
       params: resolvedParams,
     });
 
-    const result = await deleteEntityCharge(parsed.params.id, adminuser);
+    const result = await deleteEntityCharge(parsed.params.id, admin_user);
 
     return createSuccessResponse("Ad-hoc charge deleted successfully", result);
   } catch (error) {
