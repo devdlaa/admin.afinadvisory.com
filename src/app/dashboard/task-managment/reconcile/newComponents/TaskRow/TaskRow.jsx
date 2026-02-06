@@ -22,7 +22,7 @@ const TaskRow = ({
     () => config.getTaskRowConfig(data),
     [config, data],
   );
-  const isLinkableTask = Boolean(task?.id && !taskConfig.badge?.isSystem);
+
   // Calculate total recoverable for this task using config
   const calculateRecoverable = () => {
     let total = 0;
@@ -103,7 +103,7 @@ const TaskRow = ({
                 >
                   {task.status}
                 </span>
-                {isLinkableTask && (
+                {!taskConfig?.isSystemTask && (
                   <button
                     type="button"
                     onClick={goToTask}

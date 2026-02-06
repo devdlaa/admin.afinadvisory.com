@@ -17,9 +17,9 @@ const SUPPORT_EMAIL = process.env.SERVICE_EMAIL;
 
 export async function POST(req) {
   try {
-    const [permissionError, session] = await requirePermission(
+    const [permissionError, session, admin_user] = await requirePermission(
       req,
-      "admin_users.create"
+      "admin_users.create",
     );
 
     if (permissionError) return permissionError;
@@ -28,7 +28,7 @@ export async function POST(req) {
       return createErrorResponse(
         "Unauthorized - Please login to continue",
         401,
-        "AUTH_REQUIRED"
+        "AUTH_REQUIRED",
       );
     }
 
@@ -36,7 +36,7 @@ export async function POST(req) {
 
     const { user, onboardingToken } = await createAdminUser(
       body,
-      session?.user?.id
+      admin_user?.id,
     );
 
     const inviteLink = `${FRONTEND_URL}/user-onboarding?token=${onboardingToken}`;
@@ -46,7 +46,7 @@ export async function POST(req) {
       type: "SEND_USER_INVITE_LINK",
       variables: {
         recipientName: user.name,
-        inviterName: session?.user?.name,
+        inviterName: admin_user.name,
         inviteLink,
         expiryHours: 24,
         supportEmail: SUPPORT_EMAIL,
@@ -60,7 +60,7 @@ export async function POST(req) {
     return createSuccessResponse(
       "Admin user created successfully. Invitation email sent.",
       user,
-      201
+      201,
     );
   } catch (e) {
     return handleApiError(e);
@@ -71,7 +71,7 @@ export async function GET(req) {
   try {
     const [permissionError] = await requirePermission(
       req,
-      "admin_users.access"
+      "admin_users.access",
     );
 
     if (permissionError) return permissionError;

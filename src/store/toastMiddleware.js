@@ -4,6 +4,41 @@ import {
   showInfo,
 } from "@/app/components/toastService";
 
+// Helper function to safely check if a string includes a substring
+const safeIncludes = (str, searchString) => {
+  if (typeof str !== "string") {
+    return false;
+  }
+  return str.includes(searchString);
+};
+
+// Helper function to safely get error message
+const getErrorMessage = (action) => {
+  // Try different paths where error message might be
+  const possibleMessages = [
+    action.payload?.message,
+    action.error?.message,
+    action.payload,
+    action.error,
+  ];
+
+  for (const msg of possibleMessages) {
+    if (typeof msg === "string" && msg.length > 0) {
+      return msg;
+    }
+  }
+
+  return null;
+};
+
+// Helper to extract message from array payload
+const getArrayErrorMessage = (payload) => {
+  if (Array.isArray(payload) && payload.length > 0 && payload[0]?.message) {
+    return payload[0].message;
+  }
+  return null;
+};
+
 const toastMiddleware = () => (next) => (action) => {
   // Success messages
   if (action.type.endsWith("/fulfilled")) {
@@ -117,28 +152,15 @@ const toastMiddleware = () => (next) => (action) => {
         break;
 
       case "charges/bulkUpdateStatus/fulfilled":
-        const chargesStatusPayload = action.payload;
         showSuccess("Charge status updated successfully");
         break;
 
       case "reconcile/fetchUnreconciled/fulfilled":
       case "reconcile/fetchNonBillable/fulfilled":
-        // Silent operations - no toast
-        break;
-
-      // Fetch Invoices - No toast (silent background operation)
       case "invoice/fetchList/fulfilled":
-        // No toast - fetching is expected to be silent
-        break;
-
-      // Fetch Reconciled Invoices - No toast (silent background operation)
       case "invoice/fetchReconciled/fulfilled":
-        // No toast - fetching is expected to be silent
-        break;
-
-      // Fetch Invoice Details - No toast (silent background operation)
       case "invoice/fetchDetails/fulfilled":
-        // No toast - fetching is expected to be silent
+        // Silent operations - no toast
         break;
 
       // Create or Append Invoice
@@ -283,22 +305,16 @@ const toastMiddleware = () => (next) => (action) => {
 
       // ===== USERS SLICE =====
 
-      // Fetch Users - No toast (silent background operation)
       case "users/fetchUsers/fulfilled":
-        // No toast - fetching is expected to be silent
-        break;
-
-      // Search Users - No toast (silent background operation)
       case "users/searchUsers/fulfilled":
-        // No toast - search is expected to be silent
+      case "users/fetchPermissions/fulfilled":
+        // Silent operations
         break;
 
-      // Update User (general profile updates)
       case "users/updateUser/fulfilled":
         showSuccess("User profile updated successfully");
         break;
 
-      // Update User Permissions/Role
       case "users/updateUserPermissions/fulfilled":
         const permissionsPayload = action.payload;
         const updatedFields = permissionsPayload?.result?.data?.changes;
@@ -319,7 +335,6 @@ const toastMiddleware = () => (next) => (action) => {
         }
         break;
 
-      // Invite User
       case "users/inviteUser/fulfilled":
         const invitePayload = action.payload;
         if (invitePayload?.data?.emailSent) {
@@ -333,12 +348,10 @@ const toastMiddleware = () => (next) => (action) => {
         }
         break;
 
-      // Resend Invitation
       case "users/resendInvite/fulfilled":
         showSuccess("Invitation resent successfully");
         break;
 
-      // Reset User Onboarding
       case "users/resetUserOnboarding/fulfilled":
         const resetPayload = action.payload;
         if (resetPayload?.data?.emailSent) {
@@ -348,39 +361,26 @@ const toastMiddleware = () => (next) => (action) => {
         }
         break;
 
-      // Reset User Onboarding
       case "users/sendPasswordResetLink/fulfilled":
-        const resetPassowrdLinkPayload = action.payload;
-        if (resetPassowrdLinkPayload?.success) {
+        const resetPasswordLinkPayload = action.payload;
+        if (resetPasswordLinkPayload?.success) {
           showSuccess("Password reset link sent successfully");
         } else {
           showInfo("Password reset processed but email could not be sent");
         }
         break;
 
-      // Fetch Permissions - No toast (silent background operation)
-      case "users/fetchPermissions/fulfilled":
-        // No toast - fetching permissions is expected to be silent
-        break;
-
-      // Delete User
       case "users/deleteUser/fulfilled":
         showSuccess("User deleted successfully");
         break;
 
       // ===== CUSTOMERS SLICE =====
 
-      // Fetch Customers - No toast (silent background operation)
       case "customers/fetchCustomers/fulfilled":
-        // No toast - fetching is expected to be silent
-        break;
-
-      // Search Customers - No toast (silent background operation)
       case "customers/searchCustomers/fulfilled":
-        // No toast - search is expected to be silent
+        // Silent operations
         break;
 
-      // Filter Customers - Show toast only for export mode
       case "customers/filterCustomers/fulfilled":
         const customerFilterPayload = action.payload;
         if (customerFilterPayload?.mode === "export") {
@@ -391,10 +391,8 @@ const toastMiddleware = () => (next) => (action) => {
             } ready for download`,
           );
         }
-        // No toast for regular filtering - it's expected to be silent
         break;
 
-      // Update Customer
       case "customers/updateCustomer/fulfilled":
         const updateCustomerPayload = action.payload;
         const customerName =
@@ -405,7 +403,6 @@ const toastMiddleware = () => (next) => (action) => {
         showSuccess(`${customerName} updated successfully`);
         break;
 
-      // Add New User/Customer
       case "customers/addNewUser/fulfilled":
         const newUserPayload = action.payload;
         const newUserName =
@@ -425,63 +422,42 @@ const toastMiddleware = () => (next) => (action) => {
 
       // ===== COMMISSIONS SLICE =====
 
-      // Fetch Commissions - No toast (silent background operation)
       case "commissions/fetchCommissions/fulfilled":
-        // No toast - fetching is expected to be silent
-        break;
-
-      // Search Commissions - No toast (silent background operation)
       case "commissions/searchCommissions/fulfilled":
-        // No toast - search is expected to be silent
-        break;
-
-      // Filter Commissions - No toast (silent background operation)
       case "commissions/filterCommissions/fulfilled":
-        // No toast - filtering is expected to be silent
+        // Silent operations
         break;
 
-      // Update Commission Status
       case "commissions/updateStatus/fulfilled":
         const statusPayload = action.payload;
-        const { updatedCount, skippedCount, actionType, newStatus } =
-          statusPayload;
+        const { updatedCount, skippedCount, newStatus } = statusPayload || {};
 
         if (updatedCount > 0 && skippedCount > 0) {
-          // Some updated, some skipped
           showSuccess(
             `${updatedCount} commission${
               updatedCount !== 1 ? "s" : ""
             } marked as ${newStatus}. ${skippedCount} already had this status.`,
           );
         } else if (updatedCount > 0) {
-          // All updated successfully
           showSuccess(
             `${updatedCount} commission${
               updatedCount !== 1 ? "s" : ""
             } marked as ${newStatus} successfully`,
           );
         } else if (skippedCount > 0) {
-          // None updated (all already had the status)
           showInfo(`All selected commissions already have ${newStatus} status`);
         } else {
-          // Fallback success message
           showSuccess("Commission status updated successfully");
         }
         break;
 
       // ===== INFLUENCERS SLICE =====
 
-      // Fetch Influencers - No toast (silent background operation)
       case "influencers/fetchInfluencers/fulfilled":
-        // No toast - fetching is expected to be silent
-        break;
-
-      // Search Influencers - No toast (silent background operation)
       case "influencers/searchInfluencers/fulfilled":
-        // No toast - search is expected to be silent
+        // Silent operations
         break;
 
-      // Filter Influencers - Show toast only for export mode
       case "influencers/filterInfluencers/fulfilled":
         const filterPayload = action.payload;
         if (filterPayload?.mode === "export") {
@@ -492,10 +468,8 @@ const toastMiddleware = () => (next) => (action) => {
             } ready for download`,
           );
         }
-        // No toast for regular filtering - it's expected to be silent
         break;
 
-      // Add New Influencer
       case "influencers/addNewInfluencer/fulfilled":
         const newInfluencerPayload = action.payload;
         const influencerName =
@@ -505,7 +479,6 @@ const toastMiddleware = () => (next) => (action) => {
         showSuccess(`${influencerName} added successfully`);
         break;
 
-      // Update Influencer
       case "influencers/updateInfluencer/fulfilled":
         const updatePayload = action.payload;
         const updatedInfluencerName =
@@ -515,24 +488,17 @@ const toastMiddleware = () => (next) => (action) => {
         showSuccess(`${updatedInfluencerName} updated successfully`);
         break;
 
-      // Delete Influencer
       case "influencers/deleteInfluencer/fulfilled":
         showSuccess("Influencer deleted successfully");
         break;
 
       // ===== SERVICES SLICE =====
 
-      // Fetch Bookings - No toast (silent background operation)
       case "services/fetchBookings/fulfilled":
-        // No toast - fetching is expected to be silent
-        break;
-
-      // Search Bookings - No toast (silent background operation)
       case "services/searchBookings/fulfilled":
-        // No toast - search is expected to be silent
+        // Silent operations
         break;
 
-      // Filter Bookings - Show toast only for export mode
       case "services/filterBookings/fulfilled":
         const servicesFilterPayload = action.payload;
         if (servicesFilterPayload?.mode === "export") {
@@ -543,41 +509,33 @@ const toastMiddleware = () => (next) => (action) => {
             } ready for download`,
           );
         }
-        // No toast for regular filtering - it's expected to be silent
         break;
 
-      // Fetch Entities - No toast (silent background operation)
+      // ===== ENTITY SLICE =====
+
       case "entity/fetchEntities/fulfilled":
-        // No toast - fetching is expected to be silent
-        break;
-
-      // Quick Search Entities - No toast (silent background operation)
       case "entity/quickSearchEntities/fulfilled":
-        // No toast - search is expected to be silent
-        break;
-
-      // Fetch Entity By ID - No toast (silent background operation)
       case "entity/fetchEntityById/fulfilled":
-        // No toast - fetching single entity is expected to be silent
+        // Silent operations
         break;
 
-      // Create Entity
       case "entity/createEntity/fulfilled":
         const newEntity = action.payload;
         const entityName = newEntity?.name || "Entity";
         showSuccess(`${entityName} created successfully`);
         break;
 
-      // Update Entity
       case "entity/updateEntity/fulfilled":
         const updatedEntity = action.payload;
         const updatedEntityName = updatedEntity?.name || "Entity";
         showSuccess(`${updatedEntityName} updated successfully`);
         break;
 
-      // Delete Entity
       case "entity/deleteEntity/fulfilled":
         showSuccess("Entity deleted successfully");
+        break;
+
+      default:
         break;
     }
   }
@@ -586,11 +544,10 @@ const toastMiddleware = () => (next) => (action) => {
   if (action.type.endsWith("/rejected")) {
     switch (action.type) {
       case "task/fetchAssignmentReport/rejected":
-        const assignmentReportError =
-          action.payload?.message || action.error?.message;
-        if (assignmentReportError?.includes("unauthorized")) {
+        const assignmentReportError = getErrorMessage(action);
+        if (safeIncludes(assignmentReportError, "unauthorized")) {
           showError("You don't have permission to view workload data");
-        } else if (assignmentReportError?.includes("no data")) {
+        } else if (safeIncludes(assignmentReportError, "no data")) {
           showInfo("No assignment data available yet");
         } else {
           showError("Failed to load workload data. Please try again.");
@@ -604,9 +561,8 @@ const toastMiddleware = () => (next) => (action) => {
         break;
 
       case "task/createTask/rejected":
-        const createTaskError =
-          action.payload?.message || action.error?.message;
-        if (createTaskError?.includes("validation")) {
+        const createTaskError = getErrorMessage(action);
+        if (safeIncludes(createTaskError, "validation")) {
           showError("Invalid task data. Please check your input.");
         } else {
           showError(createTaskError || "Failed to create task");
@@ -614,9 +570,8 @@ const toastMiddleware = () => (next) => (action) => {
         break;
 
       case "task/updateTask/rejected":
-        const updateTaskError =
-          action.payload?.message || action.error?.message;
-        if (updateTaskError?.includes("not found")) {
+        const updateTaskError = getErrorMessage(action);
+        if (safeIncludes(updateTaskError, "not found")) {
           showError("Task not found. Please refresh the page.");
         } else {
           showError(updateTaskError || "Failed to update task");
@@ -624,8 +579,7 @@ const toastMiddleware = () => (next) => (action) => {
         break;
 
       case "task/deleteTask/rejected":
-        const deleteTaskError =
-          action.payload?.message || action.error?.message;
+        const deleteTaskError = getErrorMessage(action);
         showError(deleteTaskError || "Failed to delete task");
         break;
 
@@ -644,8 +598,8 @@ const toastMiddleware = () => (next) => (action) => {
       // ===== TASK DETAILS SLICE ERRORS =====
 
       case "taskDetail/fetchTaskById/rejected":
-        const fetchTaskError = action.payload?.message || action.error?.message;
-        if (fetchTaskError?.includes("not found")) {
+        const fetchTaskError = getErrorMessage(action);
+        if (safeIncludes(fetchTaskError, "not found")) {
           showError("Task not found. Please refresh the page.");
         } else {
           showError("Failed to load task details. Please try again.");
@@ -653,8 +607,8 @@ const toastMiddleware = () => (next) => (action) => {
         break;
 
       case "taskDetail/addCharge/rejected":
-        const addChargeError = action.payload?.message || action.error?.message;
-        if (addChargeError?.includes("validation")) {
+        const addChargeError = getErrorMessage(action);
+        if (safeIncludes(addChargeError, "validation")) {
           showError("Invalid charge data. Please check your input.");
         } else {
           showError(addChargeError || "Failed to add charge");
@@ -662,9 +616,8 @@ const toastMiddleware = () => (next) => (action) => {
         break;
 
       case "taskDetail/updateCharge/rejected":
-        const updateChargeError =
-          action.payload?.message || action.error?.message;
-        showError(updateChargeError || "Failed to add charge");
+        const updateChargeError = getErrorMessage(action);
+        showError(updateChargeError || "Failed to update charge");
         break;
 
       case "taskDetail/deleteCharge/rejected":
@@ -676,9 +629,8 @@ const toastMiddleware = () => (next) => (action) => {
         break;
 
       case "taskDetail/syncAssignments/rejected":
-        const syncAssignmentsError =
-          action.payload?.message || action.error?.message;
-        if (syncAssignmentsError?.includes("not found")) {
+        const syncAssignmentsError = getErrorMessage(action);
+        if (safeIncludes(syncAssignmentsError, "not found")) {
           showError("Some users were not found. Please refresh and try again.");
         } else {
           showError(syncAssignmentsError || "Failed to update assignments");
@@ -692,14 +644,13 @@ const toastMiddleware = () => (next) => (action) => {
         break;
 
       case "taskCategory/createCategory/rejected":
-        const createCategoryError =
-          action.payload?.message || action.error?.message;
+        const createCategoryError = getErrorMessage(action);
         if (
-          createCategoryError?.includes("already exists") ||
-          createCategoryError?.includes("duplicate")
+          safeIncludes(createCategoryError, "already exists") ||
+          safeIncludes(createCategoryError, "duplicate")
         ) {
           showError("Category with this name already exists");
-        } else if (createCategoryError?.includes("validation")) {
+        } else if (safeIncludes(createCategoryError, "validation")) {
           showError("Invalid category data. Please check your input.");
         } else {
           showError(createCategoryError || "Failed to create category");
@@ -707,9 +658,8 @@ const toastMiddleware = () => (next) => (action) => {
         break;
 
       case "taskCategory/updateCategory/rejected":
-        const updateCategoryError =
-          action.payload?.message || action.error?.message;
-        if (updateCategoryError?.includes("not found")) {
+        const updateCategoryError = getErrorMessage(action);
+        if (safeIncludes(updateCategoryError, "not found")) {
           showError("Category not found. Please refresh the page.");
         } else {
           showError(updateCategoryError || "Failed to update category");
@@ -717,11 +667,10 @@ const toastMiddleware = () => (next) => (action) => {
         break;
 
       case "taskCategory/deleteCategory/rejected":
-        const deleteCategoryError =
-          action.payload?.message || action.error?.message;
+        const deleteCategoryError = getErrorMessage(action);
         if (
-          deleteCategoryError?.includes("in use") ||
-          deleteCategoryError?.includes("associated")
+          safeIncludes(deleteCategoryError, "in use") ||
+          safeIncludes(deleteCategoryError, "associated")
         ) {
           showError("Cannot delete category: It's being used by tasks");
         } else {
@@ -740,9 +689,8 @@ const toastMiddleware = () => (next) => (action) => {
         break;
 
       case "taskTimeline/createComment/rejected":
-        const createCommentError =
-          action.payload?.message || action.error?.message;
-        if (createCommentError?.includes("validation")) {
+        const createCommentError = getErrorMessage(action);
+        if (safeIncludes(createCommentError, "validation")) {
           showError("Invalid comment. Please check your input.");
         } else {
           showError(createCommentError || "Failed to add comment");
@@ -768,13 +716,13 @@ const toastMiddleware = () => (next) => (action) => {
         break;
 
       case "users/updateUser/rejected":
-        const updateError = action.error?.message || action.payload?.message;
+        const updateError = getErrorMessage(action);
         if (
-          updateError?.includes("already exists") ||
-          updateError?.includes("duplicate")
+          safeIncludes(updateError, "already exists") ||
+          safeIncludes(updateError, "duplicate")
         ) {
           showError("Update failed: Email or phone number already in use");
-        } else if (updateError?.includes("not found")) {
+        } else if (safeIncludes(updateError, "not found")) {
           showError("User not found. Please refresh the page.");
         } else {
           showError(updateError || "Failed to update user profile");
@@ -783,16 +731,13 @@ const toastMiddleware = () => (next) => (action) => {
 
       case "users/deleteUser/rejected":
         const deleteError =
-          action.payload?.[0]?.message ||
-          action.payload?.message ||
-          action.error?.message ||
-          "Failed to delete user";
-        showError(deleteError);
+          getArrayErrorMessage(action.payload) || getErrorMessage(action);
+        showError(deleteError || "Failed to delete user");
         break;
 
       case "users/updateUserPermissions/rejected":
-        const permError = action.error?.message || action.payload?.message;
-        if (permError?.includes("permission")) {
+        const permError = getErrorMessage(action);
+        if (safeIncludes(permError, "permission")) {
           showError("Insufficient permissions to update user roles");
         } else {
           showError(permError || "Failed to update user permissions");
@@ -801,84 +746,51 @@ const toastMiddleware = () => (next) => (action) => {
 
       case "users/inviteUser/rejected":
         const inviteError = action.payload;
-        if (inviteError?.errors) {
-          // Handle structured errors from API
+        if (inviteError?.errors && Array.isArray(inviteError.errors)) {
           const primaryError =
             inviteError.errors.find((err) => err.field === "email") ||
             inviteError.errors.find((err) => err.field === "phone") ||
             inviteError.errors[0];
 
-          if (primaryError?.message?.includes("already exists")) {
+          const errMsg = primaryError?.message || "";
+          if (safeIncludes(errMsg, "already exists")) {
             showError(`User with this ${primaryError.field} already exists`);
           } else {
-            showError(
-              primaryError?.message ||
-                inviteError.message ||
-                "Failed to invite user",
-            );
+            showError(errMsg || inviteError.message || "Failed to invite user");
           }
         } else {
-          showError(
+          const msg =
             inviteError?.message ||
-              action.error?.message ||
-              "Failed to invite user",
-          );
+            action.error?.message ||
+            "Failed to invite user";
+          showError(msg);
         }
         break;
 
       case "users/resendInvite/rejected":
-        const resendError = action.payload;
-        if (Array.isArray(resendError) && resendError[0]?.message) {
-          showError(resendError[0].message);
-        } else {
-          showError(
-            resendError?.message ||
-              action.error?.message ||
-              "Failed to resend invitation",
-          );
-        }
+        const resendError =
+          getArrayErrorMessage(action.payload) || getErrorMessage(action);
+        showError(resendError || "Failed to resend invitation");
         break;
 
       case "users/resetUserOnboarding/rejected":
-        const resetError = action.payload;
-        if (Array.isArray(resetError) && resetError[0]?.message) {
-          showError(resetError[0].message);
-        } else {
-          showError(
-            resetError?.message ||
-              action.error?.message ||
-              "Failed to send Onboarding reset link",
-          );
-        }
+        const resetError =
+          getArrayErrorMessage(action.payload) || getErrorMessage(action);
+        showError(resetError || "Failed to send Onboarding reset link");
         break;
 
       case "users/sendPasswordResetLink/rejected":
-        const sendPasswordResetLinkErr = action.payload;
-        if (
-          Array.isArray(sendPasswordResetLinkErr) &&
-          sendPasswordResetLinkErr[0]?.message
-        ) {
-          showError(sendPasswordResetLinkErr[0].message);
-        } else {
-          showError(
-            sendPasswordResetLinkErr?.message ||
-              action.error?.message ||
-              "Failed to send Password reset link",
-          );
-        }
+        const sendPasswordResetLinkErr =
+          getArrayErrorMessage(action.payload) || getErrorMessage(action);
+        showError(
+          sendPasswordResetLinkErr || "Failed to send Password reset link",
+        );
         break;
 
       case "users/toggleUserStatus/rejected":
-        const toggleStatusError = action.payload;
-        if (Array.isArray(toggleStatusError) && toggleStatusError[0]?.message) {
-          showError(toggleStatusError[0].message);
-        } else {
-          showError(
-            toggleStatusError?.message ||
-              action.error?.message ||
-              "Failed to Update Account Status",
-          );
-        }
+        const toggleStatusError =
+          getArrayErrorMessage(action.payload) || getErrorMessage(action);
+        showError(toggleStatusError || "Failed to Update Account Status");
         break;
 
       case "users/fetchPermissions/rejected":
@@ -892,9 +804,8 @@ const toastMiddleware = () => (next) => (action) => {
         break;
 
       case "customers/searchCustomers/rejected":
-        const customerSearchError =
-          action.error?.message || action.payload?.message;
-        if (customerSearchError?.includes("Invalid search")) {
+        const customerSearchError = getErrorMessage(action);
+        if (safeIncludes(customerSearchError, "Invalid search")) {
           showError(
             "Invalid search format. Please check your input and try again.",
           );
@@ -904,15 +815,17 @@ const toastMiddleware = () => (next) => (action) => {
         break;
 
       case "customers/filterCustomers/rejected":
-        const customerFilterError =
-          action.error?.message || action.payload?.message || action.payload;
+        const customerFilterError = getErrorMessage(action);
         if (
-          customerFilterError?.includes("Validation failed") ||
-          customerFilterError?.includes("validation")
+          safeIncludes(customerFilterError, "Validation failed") ||
+          safeIncludes(customerFilterError, "validation")
         ) {
           showError("Invalid filter parameters. Please check your input.");
         } else if (
-          customerFilterError?.includes("Use either quickRange OR custom dates")
+          safeIncludes(
+            customerFilterError,
+            "Use either quickRange OR custom dates",
+          )
         ) {
           showError("Please use either quick range or custom dates, not both.");
         } else {
@@ -921,16 +834,21 @@ const toastMiddleware = () => (next) => (action) => {
         break;
 
       case "customers/updateCustomer/rejected":
-        const updateCustomerError = action.payload?.message?.details?.errors;
+        const updateCustomerErrorRaw = action.payload?.message?.details?.errors;
+        const updateCustomerError = Array.isArray(updateCustomerErrorRaw)
+          ? updateCustomerErrorRaw.join(", ")
+          : typeof updateCustomerErrorRaw === "string"
+            ? updateCustomerErrorRaw
+            : getErrorMessage(action);
 
-        if (updateCustomerError?.includes("not found")) {
+        if (safeIncludes(updateCustomerError, "not found")) {
           showError("Customer not found. Please refresh the page.");
         } else if (
-          updateCustomerError?.includes("duplicate") ||
-          updateCustomerError?.includes("already exists")
+          safeIncludes(updateCustomerError, "duplicate") ||
+          safeIncludes(updateCustomerError, "already exists")
         ) {
           showError("Update failed: Email or phone number already in use");
-        } else if (updateCustomerError?.includes("validation")) {
+        } else if (safeIncludes(updateCustomerError, "validation")) {
           showError("Invalid data provided. Please check your input.");
         } else {
           showError(updateCustomerError || "Failed to update customer");
@@ -939,12 +857,19 @@ const toastMiddleware = () => (next) => (action) => {
 
       case "customers/addNewUser/rejected":
         const addNewUserError = action.payload;
-        const addUserErrorStr =
-          addNewUserError?.message?.details?.errors?.join(",") || "N/A";
+        const addUserErrors = addNewUserError?.message?.details?.errors;
+        const addUserErrorStr = Array.isArray(addUserErrors)
+          ? addUserErrors.join(", ")
+          : typeof addUserErrors === "string"
+            ? addUserErrors
+            : "";
+
         if (addNewUserError?.type === "duplicate_data") {
-          showError(`Customer already exists: ${addUserErrorStr}`);
+          showError(
+            `Customer already exists: ${addUserErrorStr || "Duplicate data"}`,
+          );
         } else if (addNewUserError?.type === "validation_error") {
-          showError(`Invalid data: ${addUserErrorStr}`);
+          showError(`Invalid data: ${addUserErrorStr || "Validation failed"}`);
         } else if (addNewUserError?.type === "server_error") {
           showError("Server error occurred. Please try again later.");
         } else if (addNewUserError?.type === "network_error") {
@@ -967,8 +892,8 @@ const toastMiddleware = () => (next) => (action) => {
         break;
 
       case "commissions/searchCommissions/rejected":
-        const searchError = action.error?.message || action.payload?.message;
-        if (searchError?.includes("Unsupported search format")) {
+        const searchError = getErrorMessage(action);
+        if (safeIncludes(searchError, "Unsupported search format")) {
           showError(
             "Invalid search format. Please check your input and try again.",
           );
@@ -978,15 +903,14 @@ const toastMiddleware = () => (next) => (action) => {
         break;
 
       case "commissions/filterCommissions/rejected":
-        const filterError =
-          action.error?.message || action.payload?.message || action.payload;
+        const filterError = getErrorMessage(action);
         if (
-          filterError?.includes("Validation failed") ||
-          filterError?.includes("validation")
+          safeIncludes(filterError, "Validation failed") ||
+          safeIncludes(filterError, "validation")
         ) {
           showError("Invalid filter parameters. Please check your input.");
         } else if (
-          filterError?.includes("Use either quickRange OR custom dates")
+          safeIncludes(filterError, "Use either quickRange OR custom dates")
         ) {
           showError("Please use either quick range or custom dates, not both.");
         } else {
@@ -995,12 +919,12 @@ const toastMiddleware = () => (next) => (action) => {
         break;
 
       case "commissions/updateStatus/rejected":
-        const statusError = action.error?.message || action.payload?.message;
-        if (statusError?.includes("not found")) {
+        const statusError = getErrorMessage(action);
+        if (safeIncludes(statusError, "not found")) {
           showError(
             "Some commissions were not found. Please refresh and try again.",
           );
-        } else if (statusError?.includes("validation")) {
+        } else if (safeIncludes(statusError, "validation")) {
           showError(
             "Invalid request. Please check your selection and try again.",
           );
@@ -1016,9 +940,8 @@ const toastMiddleware = () => (next) => (action) => {
         break;
 
       case "influencers/searchInfluencers/rejected":
-        const influencerSearchError =
-          action.error?.message || action.payload?.message;
-        if (influencerSearchError?.includes("Invalid search")) {
+        const influencerSearchError = getErrorMessage(action);
+        if (safeIncludes(influencerSearchError, "Invalid search")) {
           showError(
             "Invalid search format. Please check your input and try again.",
           );
@@ -1028,9 +951,8 @@ const toastMiddleware = () => (next) => (action) => {
         break;
 
       case "influencers/filterInfluencers/rejected":
-        const influencerFilterError =
-          action.error?.message || action.payload?.message;
-        if (influencerFilterError?.includes("validation")) {
+        const influencerFilterError = getErrorMessage(action);
+        if (safeIncludes(influencerFilterError, "validation")) {
           showError("Invalid filter parameters. Please check your input.");
         } else {
           showError("Failed to filter influencers. Please try again.");
@@ -1039,11 +961,15 @@ const toastMiddleware = () => (next) => (action) => {
 
       case "influencers/addNewInfluencer/rejected":
         const addInfluencerError = action.payload;
+        const addInfluencerMsg =
+          addInfluencerError?.message || getErrorMessage(action);
 
         if (addInfluencerError?.type === "duplicate_data") {
-          showError(`Influencer already exists: ${addInfluencerError.message}`);
+          showError(
+            `Influencer already exists: ${addInfluencerMsg || "Duplicate data"}`,
+          );
         } else if (addInfluencerError?.type === "validation_error") {
-          showError(`Invalid data: ${addInfluencerError.message}`);
+          showError(`Invalid data: ${addInfluencerMsg || "Validation failed"}`);
         } else if (addInfluencerError?.type === "server_error") {
           showError("Server error occurred. Please try again later.");
         } else if (addInfluencerError?.type === "network_error") {
@@ -1051,20 +977,15 @@ const toastMiddleware = () => (next) => (action) => {
             "Network error. Please check your connection and try again.",
           );
         } else {
-          showError(
-            addInfluencerError?.message ||
-              action.error?.message ||
-              "Failed to add new influencer",
-          );
+          showError(addInfluencerMsg || "Failed to add new influencer");
         }
         break;
 
       case "influencers/updateInfluencer/rejected":
-        const updateInfluencerError =
-          action.error?.message || action.payload?.message;
-        if (updateInfluencerError?.includes("not found")) {
+        const updateInfluencerError = getErrorMessage(action);
+        if (safeIncludes(updateInfluencerError, "not found")) {
           showError("Influencer not found. Please refresh the page.");
-        } else if (updateInfluencerError?.includes("duplicate")) {
+        } else if (safeIncludes(updateInfluencerError, "duplicate")) {
           showError(
             "Update failed: Data already exists for another influencer",
           );
@@ -1074,11 +995,10 @@ const toastMiddleware = () => (next) => (action) => {
         break;
 
       case "influencers/deleteInfluencer/rejected":
-        const deleteInfluencerError =
-          action.error?.message || action.payload?.message;
-        if (deleteInfluencerError?.includes("not found")) {
+        const deleteInfluencerError = getErrorMessage(action);
+        if (safeIncludes(deleteInfluencerError, "not found")) {
           showError("Influencer not found. Please refresh the page.");
-        } else if (deleteInfluencerError?.includes("associated")) {
+        } else if (safeIncludes(deleteInfluencerError, "associated")) {
           showError("Cannot delete influencer: Has associated data");
         } else {
           showError(deleteInfluencerError || "Failed to delete influencer");
@@ -1092,9 +1012,8 @@ const toastMiddleware = () => (next) => (action) => {
         break;
 
       case "services/searchBookings/rejected":
-        const servicesSearchError =
-          action.error?.message || action.payload?.message;
-        if (servicesSearchError?.includes("Invalid search")) {
+        const servicesSearchError = getErrorMessage(action);
+        if (safeIncludes(servicesSearchError, "Invalid search")) {
           showError(
             "Invalid search format. Please check your input and try again.",
           );
@@ -1104,29 +1023,33 @@ const toastMiddleware = () => (next) => (action) => {
         break;
 
       case "services/filterBookings/rejected":
-        const servicesFilterError =
-          action.error?.message || action.payload?.message || action.payload;
+        const servicesFilterError = getErrorMessage(action);
         if (
-          servicesFilterError?.includes("Validation failed") ||
-          servicesFilterError?.includes("validation")
+          safeIncludes(servicesFilterError, "Validation failed") ||
+          safeIncludes(servicesFilterError, "validation")
         ) {
           showError("Invalid filter parameters. Please check your input.");
         } else if (
-          servicesFilterError?.includes("Use either quickRange OR custom dates")
+          safeIncludes(
+            servicesFilterError,
+            "Use either quickRange OR custom dates",
+          )
         ) {
           showError("Please use either quick range or custom dates, not both.");
         } else {
           showError("Failed to filter bookings. Please try again.");
         }
         break;
+
+      // ===== ENTITY SLICE ERRORS =====
+
       case "entity/fetchEntities/rejected":
         showError("Failed to load entities. Please refresh and try again.");
         break;
 
       case "entity/quickSearchEntities/rejected":
-        const quickSearchError =
-          action.error?.message || action.payload?.message;
-        if (quickSearchError?.includes("Invalid search")) {
+        const quickSearchError = getErrorMessage(action);
+        if (safeIncludes(quickSearchError, "Invalid search")) {
           showError(
             "Invalid search format. Please check your input and try again.",
           );
@@ -1136,8 +1059,8 @@ const toastMiddleware = () => (next) => (action) => {
         break;
 
       case "entity/fetchEntityById/rejected":
-        const fetchByIdError = action.error?.message || action.payload?.message;
-        if (fetchByIdError?.includes("not found")) {
+        const fetchByIdError = getErrorMessage(action);
+        if (safeIncludes(fetchByIdError, "not found")) {
           showError("Entity not found. Please refresh the page.");
         } else {
           showError(fetchByIdError || "Failed to fetch entity");
@@ -1146,67 +1069,67 @@ const toastMiddleware = () => (next) => (action) => {
 
       case "entity/createEntity/rejected":
         const createError = action.payload;
+        const createErrorMsg = createError?.message || getErrorMessage(action);
+
         if (
           createError?.code === "DUPLICATE_ENTRY" ||
-          createError?.message?.includes("already exists")
+          safeIncludes(createErrorMsg, "already exists")
         ) {
-          showError(`Entity creation failed: ${createError.message}`);
-        } else if (createError?.code === "VALIDATION_ERROR") {
-          showError(`Invalid data: ${createError.message}`);
-        } else {
           showError(
-            createError?.message ||
-              action.error?.message ||
-              "Failed to create entity",
+            `Entity creation failed: ${createErrorMsg || "Duplicate entry"}`,
           );
+        } else if (createError?.code === "VALIDATION_ERROR") {
+          showError(`Invalid data: ${createErrorMsg || "Validation failed"}`);
+        } else {
+          showError(createErrorMsg || "Failed to create entity");
         }
         break;
 
       case "entity/updateEntity/rejected":
         const updateEntityError = action.payload;
-        if (updateEntityError?.message?.includes("not found")) {
+        const updateEntityMsg =
+          updateEntityError?.message || getErrorMessage(action);
+
+        if (safeIncludes(updateEntityMsg, "not found")) {
           showError("Entity not found. Please refresh the page.");
         } else if (
-          updateEntityError?.message?.includes("duplicate") ||
-          updateEntityError?.message?.includes("already exists")
+          safeIncludes(updateEntityMsg, "duplicate") ||
+          safeIncludes(updateEntityMsg, "already exists")
         ) {
           showError("Update failed: Data already exists for another entity");
         } else if (updateEntityError?.code === "VALIDATION_ERROR") {
           showError("Invalid data provided. Please check your input.");
         } else {
-          showError(
-            updateEntityError?.message ||
-              action.error?.message ||
-              "Failed to update entity",
-          );
+          showError(updateEntityMsg || "Failed to update entity");
         }
         break;
 
       case "entity/deleteEntity/rejected":
         const deleteEntityError = action.payload;
-        if (deleteEntityError?.message?.includes("not found")) {
+        const deleteEntityMsg =
+          deleteEntityError?.message || getErrorMessage(action);
+
+        if (safeIncludes(deleteEntityMsg, "not found")) {
           showError("Entity not found. Please refresh the page.");
         } else if (
-          deleteEntityError?.message?.includes("associated") ||
-          deleteEntityError?.message?.includes("dependent")
+          safeIncludes(deleteEntityMsg, "associated") ||
+          safeIncludes(deleteEntityMsg, "dependent")
         ) {
           showError(
             "Cannot delete entity: Has associated data or dependencies",
           );
         } else {
-          showError(
-            deleteEntityError?.message ||
-              action.error?.message ||
-              "Failed to delete entity",
-          );
+          showError(deleteEntityMsg || "Failed to delete entity");
         }
         break;
 
+      // ===== CHARGES SLICE ERRORS =====
+
       case "charges/addToTask/rejected":
-        const addChargeErr = action.payload?.message || action.error?.message;
+        const addChargeErr = getErrorMessage(action);
         if (
-          addChargeErr?.includes("validation") ||
-          addChargeErr?.includes("Validation")
+          safeIncludes(addChargeErr, "validation") ||
+          safeIncludes(addChargeErr, "Validation")
         ) {
           showError(`Invalid charge data: ${addChargeErr}`);
         } else {
@@ -1215,13 +1138,12 @@ const toastMiddleware = () => (next) => (action) => {
         break;
 
       case "charges/updateCharge/rejected":
-        const updateChargeErr =
-          action.payload?.message || action.error?.message;
-        if (updateChargeErr?.includes("not found")) {
+        const updateChargeErr = getErrorMessage(action);
+        if (safeIncludes(updateChargeErr, "not found")) {
           showError("Charge not found. Please refresh the page.");
         } else if (
-          updateChargeErr?.includes("validation") ||
-          updateChargeErr?.includes("Validation")
+          safeIncludes(updateChargeErr, "validation") ||
+          safeIncludes(updateChargeErr, "Validation")
         ) {
           showError(`Invalid data: ${updateChargeErr}`);
         } else {
@@ -1230,16 +1152,15 @@ const toastMiddleware = () => (next) => (action) => {
         break;
 
       case "charges/deleteCharge/rejected":
-        const deleteChargeErr =
-          action.payload?.message || action.error?.message;
+        const deleteChargeErr = getErrorMessage(action);
         showError(deleteChargeErr || "Failed to delete charge");
         break;
 
       case "charges/bulkUpdate/rejected":
-        const bulkUpdateErr = action.payload?.message || action.error?.message;
+        const bulkUpdateErr = getErrorMessage(action);
         if (
-          bulkUpdateErr?.includes("validation") ||
-          bulkUpdateErr?.includes("Validation")
+          safeIncludes(bulkUpdateErr, "validation") ||
+          safeIncludes(bulkUpdateErr, "Validation")
         ) {
           showError(`Invalid data: ${bulkUpdateErr}`);
         } else {
@@ -1248,7 +1169,7 @@ const toastMiddleware = () => (next) => (action) => {
         break;
 
       case "charges/bulkUpdateStatus/rejected":
-        const bulkStatusErr = action.payload?.message || action.error?.message;
+        const bulkStatusErr = getErrorMessage(action);
         showError(bulkStatusErr || "Failed to update charge status");
         break;
 
@@ -1267,17 +1188,10 @@ const toastMiddleware = () => (next) => (action) => {
         break;
 
       case "reconcile/markNonBillable/rejected":
-        const markNonBillableErrRaw = action.payload || action.error?.message;
-
-        const markNonBillableErr =
-          typeof markNonBillableErrRaw === "string"
-            ? markNonBillableErrRaw
-            : markNonBillableErrRaw?.message ||
-              JSON.stringify(markNonBillableErrRaw || "");
-
+        const markNonBillableErr = getErrorMessage(action);
         if (
-          markNonBillableErr.includes("validation") ||
-          markNonBillableErr.includes("Validation")
+          safeIncludes(markNonBillableErr, "validation") ||
+          safeIncludes(markNonBillableErr, "Validation")
         ) {
           showError(
             "Invalid request. Please check your selection and try again.",
@@ -1290,10 +1204,10 @@ const toastMiddleware = () => (next) => (action) => {
         break;
 
       case "reconcile/restoreBillable/rejected":
-        const restoreBillableErr = action.payload || action.error?.message;
+        const restoreBillableErr = getErrorMessage(action);
         if (
-          restoreBillableErr?.includes("validation") ||
-          restoreBillableErr?.includes("Validation")
+          safeIncludes(restoreBillableErr, "validation") ||
+          safeIncludes(restoreBillableErr, "Validation")
         ) {
           showError(
             "Invalid request. Please check your selection and try again.",
@@ -1306,14 +1220,13 @@ const toastMiddleware = () => (next) => (action) => {
         break;
 
       case "reconcile/createAdHocCharge/rejected":
-        const createAdHocErr = action.payload || action.error?.message;
-    
+        const createAdHocErr = getErrorMessage(action);
         if (
-          createAdHocErr?.includes("validation") ||
-          createAdHocErr?.includes("Validation")
+          safeIncludes(createAdHocErr, "validation") ||
+          safeIncludes(createAdHocErr, "Validation")
         ) {
           showError(`Invalid charge data: ${createAdHocErr}`);
-        } else if (createAdHocErr?.includes("not found")) {
+        } else if (safeIncludes(createAdHocErr, "not found")) {
           showError("Entity not found. Please select a valid entity.");
         } else {
           showError(createAdHocErr || "Failed to create ad-hoc charge");
@@ -1321,13 +1234,15 @@ const toastMiddleware = () => (next) => (action) => {
         break;
 
       case "reconcile/deleteAdHocCharge/rejected":
-        const deleteAdHocErr = action.payload || action.error?.message;
-        if (deleteAdHocErr?.includes("not found")) {
+        const deleteAdHocErr = getErrorMessage(action);
+        if (safeIncludes(deleteAdHocErr, "not found")) {
           showError("Ad-hoc charge not found. Please refresh the page.");
         } else {
           showError(deleteAdHocErr || "Failed to delete ad-hoc charge");
         }
         break;
+
+      // ===== INVOICE SLICE ERRORS =====
 
       case "invoice/fetchList/rejected":
         showError("Failed to load invoices. Please refresh and try again.");
@@ -1340,9 +1255,8 @@ const toastMiddleware = () => (next) => (action) => {
         break;
 
       case "invoice/fetchDetails/rejected":
-        const fetchInvoiceError =
-          action.payload?.message || action.error?.message;
-        if (fetchInvoiceError?.includes("not found")) {
+        const fetchInvoiceError = getErrorMessage(action);
+        if (safeIncludes(fetchInvoiceError, "not found")) {
           showError("Invoice not found. Please check the invoice number.");
         } else {
           showError(fetchInvoiceError || "Failed to load invoice details");
@@ -1350,14 +1264,13 @@ const toastMiddleware = () => (next) => (action) => {
         break;
 
       case "invoice/createOrAppend/rejected":
-        const createInvoiceError =
-          action.payload?.message || action.error?.message;
+        const createInvoiceError = getErrorMessage(action);
         if (
-          createInvoiceError?.includes("validation") ||
-          createInvoiceError?.includes("VALIDATION_ERROR")
+          safeIncludes(createInvoiceError, "validation") ||
+          safeIncludes(createInvoiceError, "VALIDATION_ERROR")
         ) {
           showError("Invalid invoice data. Please check your input.");
-        } else if (createInvoiceError?.includes("not found")) {
+        } else if (safeIncludes(createInvoiceError, "not found")) {
           showError(
             "Invoice not found. Please check the invoice number and try again.",
           );
@@ -1367,13 +1280,12 @@ const toastMiddleware = () => (next) => (action) => {
         break;
 
       case "invoice/updateInfo/rejected":
-        const updateInvoiceError =
-          action.payload?.message || action.error?.message;
-        if (updateInvoiceError?.includes("not found")) {
+        const updateInvoiceError = getErrorMessage(action);
+        if (safeIncludes(updateInvoiceError, "not found")) {
           showError("Invoice not found. Please refresh the page.");
         } else if (
-          updateInvoiceError?.includes("validation") ||
-          updateInvoiceError?.includes("VALIDATION_ERROR")
+          safeIncludes(updateInvoiceError, "validation") ||
+          safeIncludes(updateInvoiceError, "VALIDATION_ERROR")
         ) {
           showError("Invalid data provided. Please check your input.");
         } else {
@@ -1382,11 +1294,10 @@ const toastMiddleware = () => (next) => (action) => {
         break;
 
       case "invoice/updateStatus/rejected":
-        const statusUpdateError =
-          action.payload?.message || action.error?.message;
-        if (statusUpdateError?.includes("not found")) {
+        const statusUpdateError = getErrorMessage(action);
+        if (safeIncludes(statusUpdateError, "not found")) {
           showError("Invoice not found. Please refresh the page.");
-        } else if (statusUpdateError?.includes("Invalid status")) {
+        } else if (safeIncludes(statusUpdateError, "Invalid status")) {
           showError("Invalid status. Please select a valid status.");
         } else {
           showError(statusUpdateError || "Failed to update invoice status");
@@ -1394,11 +1305,10 @@ const toastMiddleware = () => (next) => (action) => {
         break;
 
       case "invoice/bulkUpdateStatus/rejected":
-        const bulkStatusError =
-          action.payload?.message || action.error?.message;
+        const bulkStatusError = getErrorMessage(action);
         if (
-          bulkStatusError?.includes("validation") ||
-          bulkStatusError?.includes("VALIDATION_ERROR")
+          safeIncludes(bulkStatusError, "validation") ||
+          safeIncludes(bulkStatusError, "VALIDATION_ERROR")
         ) {
           showError(
             "Invalid request. Please check your selection and try again.",
@@ -1409,8 +1319,8 @@ const toastMiddleware = () => (next) => (action) => {
         break;
 
       case "invoice/unlinkTasks/rejected":
-        const unlinkError = action.payload?.message || action.error?.message;
-        if (unlinkError?.includes("not found")) {
+        const unlinkError = getErrorMessage(action);
+        if (safeIncludes(unlinkError, "not found")) {
           showError(
             "Invoice or tasks not found. Please refresh and try again.",
           );
@@ -1423,72 +1333,33 @@ const toastMiddleware = () => (next) => (action) => {
       default:
         if (action.type.startsWith("services/")) {
           const errMsg =
-            action.error?.message ||
-            action.payload?.message ||
-            (Array.isArray(action.payload)
-              ? action.payload[0]?.message
-              : null) ||
-            "Booking operation failed";
-          showError(errMsg);
+            getArrayErrorMessage(action.payload) || getErrorMessage(action);
+          showError(errMsg || "Booking operation failed");
         } else if (action.type.startsWith("customers/")) {
           const errMsg =
-            action.error?.message ||
-            action.payload?.message ||
-            (Array.isArray(action.payload)
-              ? action.payload[0]?.message
-              : null) ||
-            "Customer operation failed";
-          showError(errMsg);
+            getArrayErrorMessage(action.payload) || getErrorMessage(action);
+          showError(errMsg || "Customer operation failed");
         } else if (action.type.startsWith("influencers/")) {
           const errMsg =
-            action.error?.message ||
-            action.payload?.message ||
-            (Array.isArray(action.payload)
-              ? action.payload[0]?.message
-              : null) ||
-            "Influencer operation failed";
-          showError(errMsg);
+            getArrayErrorMessage(action.payload) || getErrorMessage(action);
+          showError(errMsg || "Influencer operation failed");
         } else if (action.type.startsWith("commissions/")) {
           const errMsg =
-            action.error?.message ||
-            action.payload?.message ||
-            (Array.isArray(action.payload)
-              ? action.payload[0]?.message
-              : null) ||
-            "Commission operation failed";
-          showError(errMsg);
+            getArrayErrorMessage(action.payload) || getErrorMessage(action);
+          showError(errMsg || "Commission operation failed");
         } else if (action.type.startsWith("users/")) {
-          // Default error handler for users slice
           const errMsg =
-            action.error?.message ||
-            action.payload?.message ||
-            (Array.isArray(action.payload)
-              ? action.payload[0]?.message
-              : null) ||
-            "Operation failed";
-          showError(errMsg);
+            getArrayErrorMessage(action.payload) || getErrorMessage(action);
+          showError(errMsg || "Operation failed");
         } else if (action.type.startsWith("entity/")) {
           const errMsg =
-            action.error?.message ||
-            action.payload?.message ||
-            (Array.isArray(action.payload)
-              ? action.payload[0]?.message
-              : null) ||
-            "Entity operation failed";
-          showError(errMsg);
-        }
-        // ADD THIS NEW BLOCK HERE ⬇️
-        else if (action.type.startsWith("invoice/")) {
+            getArrayErrorMessage(action.payload) || getErrorMessage(action);
+          showError(errMsg || "Entity operation failed");
+        } else if (action.type.startsWith("invoice/")) {
           const errMsg =
-            action.error?.message ||
-            action.payload?.message ||
-            (Array.isArray(action.payload)
-              ? action.payload[0]?.message
-              : null) ||
-            "Invoice operation failed";
-          showError(errMsg);
+            getArrayErrorMessage(action.payload) || getErrorMessage(action);
+          showError(errMsg || "Invoice operation failed");
         }
-
         break;
     }
   }
@@ -1531,9 +1402,9 @@ const toastMiddleware = () => (next) => (action) => {
       case "taskCategory/deleteCategory/pending":
         showInfo("Deleting category...");
         break;
+
       // ===== USERS SLICE PENDING =====
 
-      // Show loading for operations that take longer time
       case "users/inviteUser/pending":
         showInfo("Sending invitation...");
         break;
@@ -1573,7 +1444,6 @@ const toastMiddleware = () => (next) => (action) => {
         break;
 
       case "customers/filterCustomers/pending":
-        // Only show pending for export operations
         const customerFilterMeta = action.meta?.arg;
         if (customerFilterMeta?.mode === "export") {
           showInfo("Preparing customer export data...");
@@ -1586,6 +1456,8 @@ const toastMiddleware = () => (next) => (action) => {
         showInfo("Updating commission status...");
         break;
 
+      // ===== ENTITY SLICE PENDING =====
+
       case "entity/createEntity/pending":
         showInfo("Creating entity...");
         break;
@@ -1596,13 +1468,6 @@ const toastMiddleware = () => (next) => (action) => {
 
       case "entity/deleteEntity/pending":
         showInfo("Deleting entity...");
-        break;
-
-      // No pending messages for these operations (they should be fast/silent)
-      case "entity/fetchEntities/pending":
-      case "entity/quickSearchEntities/pending":
-      case "entity/fetchEntityById/pending":
-        // No toast - these operations should be silent while pending
         break;
 
       // ===== INFLUENCERS SLICE PENDING =====
@@ -1620,7 +1485,6 @@ const toastMiddleware = () => (next) => (action) => {
         break;
 
       case "influencers/filterInfluencers/pending":
-        // Only show pending for export operations
         const filterMeta = action.meta?.arg;
         if (filterMeta?.mode === "export") {
           showInfo("Preparing export data...");
@@ -1630,7 +1494,6 @@ const toastMiddleware = () => (next) => (action) => {
       // ===== SERVICES SLICE PENDING =====
 
       case "services/filterBookings/pending":
-        // Only show pending for export operations
         const servicesFilterMeta = action.meta?.arg;
         if (servicesFilterMeta?.mode === "export") {
           showInfo("Preparing booking export data...");
@@ -1651,17 +1514,7 @@ const toastMiddleware = () => (next) => (action) => {
         showInfo("Deleting coupon...");
         break;
 
-      case "charges/addToTask/pending":
-        // Silent - loading handled by UI component
-        break;
-
-      case "charges/updateCharge/pending":
-        // Silent - loading handled by UI component
-        break;
-
-      case "charges/deleteCharge/pending":
-        // Silent - loading handled by UI component
-        break;
+      // ===== CHARGES SLICE PENDING =====
 
       case "charges/bulkUpdate/pending":
         showInfo("Saving changes...");
@@ -1672,11 +1525,6 @@ const toastMiddleware = () => (next) => (action) => {
         break;
 
       // ===== RECONCILE SLICE PENDING =====
-
-      case "reconcile/fetchUnreconciled/pending":
-      case "reconcile/fetchNonBillable/pending":
-        // Silent - loading handled by pagination UI
-        break;
 
       case "reconcile/markNonBillable/pending":
         showInfo("Marking tasks as non-billable...");
@@ -1694,11 +1542,7 @@ const toastMiddleware = () => (next) => (action) => {
         showInfo("Deleting ad-hoc charge...");
         break;
 
-      case "invoice/fetchList/pending":
-      case "invoice/fetchReconciled/pending":
-      case "invoice/fetchDetails/pending":
-        // Silent - loading handled by UI components
-        break;
+      // ===== INVOICE SLICE PENDING =====
 
       case "invoice/createOrAppend/pending":
         const createPendingArg = action.meta?.arg;
@@ -1725,7 +1569,7 @@ const toastMiddleware = () => (next) => (action) => {
         showInfo("Removing tasks from invoice...");
         break;
 
-      // No pending messages for these operations (they should be fast/silent)
+      // Silent operations - no pending messages
       case "users/fetchUsers/pending":
       case "users/searchUsers/pending":
       case "users/fetchPermissions/pending":
@@ -1768,6 +1612,17 @@ const toastMiddleware = () => (next) => (action) => {
       case "taskTimeline/createComment/pending":
       case "taskTimeline/updateComment/pending":
       case "taskTimeline/deleteComment/pending":
+      case "entity/fetchEntities/pending":
+      case "entity/quickSearchEntities/pending":
+      case "entity/fetchEntityById/pending":
+      case "charges/addToTask/pending":
+      case "charges/updateCharge/pending":
+      case "charges/deleteCharge/pending":
+      case "reconcile/fetchUnreconciled/pending":
+      case "reconcile/fetchNonBillable/pending":
+      case "invoice/fetchList/pending":
+      case "invoice/fetchReconciled/pending":
+      case "invoice/fetchDetails/pending":
         // Silent operations
         break;
 

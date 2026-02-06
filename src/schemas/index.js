@@ -59,6 +59,7 @@ import {
   bulkMarkNonBillableSchema,
   bulkRestoreBillableSchema,
   nonBillableReconcileQuerySchema,
+  OutstandingEntityBreakdownSchema,
   OutstandingQuerySchema,
   reconciledReconcileQuerySchema,
   unreconciledReconcileQuerySchema,
@@ -174,6 +175,7 @@ export const schemas = Object.freeze({
   },
   outstanding: {
     query: OutstandingQuerySchema,
+    entityBreakdown: OutstandingEntityBreakdownSchema,
   },
   entityAdhocCharge: {
     create: createEntityAdhocChargeSchema,

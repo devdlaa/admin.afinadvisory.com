@@ -155,9 +155,17 @@ export const TaskUpdateSchema = z
 
     task_category_id: z.string().uuid().optional().nullable(),
 
-    start_date: z.coerce.date().optional().nullable(),
+    start_date: z
+      .union([z.coerce.date(), z.literal("")])
+      .optional()
+      .nullable()
+      .transform((v) => (v === "" ? null : v)),
 
-    due_date: z.coerce.date().optional().nullable(),
+    due_date: z
+      .union([z.coerce.date(), z.literal("")])
+      .optional()
+      .nullable()
+      .transform((v) => (v === "" ? null : v)),
     is_billable: z.boolean().optional(),
   })
 

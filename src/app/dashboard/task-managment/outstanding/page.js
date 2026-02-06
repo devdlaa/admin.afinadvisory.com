@@ -1,16 +1,20 @@
 "use client";
 import React, { useEffect, useState, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
+
 import OutstandingStats from "./components/OutstandingStats/OutstandingStats.jsx";
 import OutstandingTable from "./components/OutstandingTable/OutstandingTable.jsx";
 
 import {
   fetchOutstanding,
+  fetchOutstandingStats,
+  fetchEntityBreakdown,
   selectOutstandingItems,
   selectOutstandingCards,
   selectOutstandingPagination,
   selectOutstandingFilters,
-  selectOutstandingLoading,
+  selectOutstandingLoadingList,
+  selectOutstandingLoadingStats,
   selectOutstandingError,
   setOutstandingFilters,
 } from "@/store/slices/outstandingSlice.js";
@@ -19,30 +23,42 @@ import {
   quickSearchEntities,
   selectQuickSearchResults,
 } from "@/store/slices/entitySlice.js";
+
 import styles from "./Outstanding.module.scss";
 
 const Outstanding = () => {
   const dispatch = useDispatch();
 
+  // =========================
   // Redux selectors
+  // =========================
   const items = useSelector(selectOutstandingItems);
   const cards = useSelector(selectOutstandingCards);
   const pagination = useSelector(selectOutstandingPagination);
   const filters = useSelector(selectOutstandingFilters);
-  const loading = useSelector(selectOutstandingLoading);
+  const loadingList = useSelector(selectOutstandingLoadingList);
+  const loadingStats = useSelector(selectOutstandingLoadingStats);
   const error = useSelector(selectOutstandingError);
 
   // Entity search selectors
   const entitySearchResults = useSelector(selectQuickSearchResults);
 
+  // Breakdowns selector
+  const breakdowns = useSelector((state) => state.outstanding.breakdowns);
+
+  // =========================
   // Local state
+  // =========================
   const [selectedEntityId, setSelectedEntityId] = useState(null);
   const [entityOptions, setEntityOptions] = useState([]);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [isEntitySearching, setIsEntitySearching] = useState(false);
+  const [expandedEntityId, setExpandedEntityId] = useState(null);
 
-  // Fetch outstanding data
-  const fetchData = useCallback(() => {
+  // =========================
+  // Fetch list data
+  // =========================
+  const fetchListData = useCallback(() => {
     const fetchFilters = {
       ...filters,
       entity_ids: selectedEntityId ? [selectedEntityId] : [],
@@ -59,62 +75,64 @@ const Outstanding = () => {
     pagination.page_size,
   ]);
 
-  // Initial load - fetch cards (stats)
+  // =========================
+  // Initial load
+  // =========================
   useEffect(() => {
     if (isInitialLoad) {
-      dispatch(fetchOutstanding({}));
+      dispatch(fetchOutstandingStats());
+      fetchListData();
       setIsInitialLoad(false);
     }
-  }, [dispatch, isInitialLoad]);
+  }, [dispatch, fetchListData, isInitialLoad]);
 
-  // Fetch data when filters or pagination change
+  // =========================
+  // Refetch list on filters / pagination change
+  // =========================
   useEffect(() => {
     if (!isInitialLoad) {
-      fetchData();
+      fetchListData();
     }
-  }, [fetchData, isInitialLoad]);
+  }, [fetchListData, isInitialLoad]);
 
-  // Update entity options when search results change
+  // =========================
+  // Entity search results → options
+  // =========================
   useEffect(() => {
-    if (entitySearchResults && entitySearchResults.length > 0) {
-      const options = entitySearchResults.map((entity) => ({
-        value: entity.id,
-        label: entity.name,
-        metadata: entity.email,
-      }));
-      setEntityOptions(options);
+    if (entitySearchResults?.length > 0) {
+      setEntityOptions(
+        entitySearchResults.map((entity) => ({
+          value: entity.id,
+          label: entity.name,
+          metadata: entity.email,
+        })),
+      );
     }
   }, [entitySearchResults]);
 
-  // Handle entity search
+  // =========================
+  // Entity search handler
+  // =========================
   const handleEntitySearch = useCallback(
     (searchTerm) => {
-      if (searchTerm) {
-        setIsEntitySearching(true);
-        dispatch(
-          quickSearchEntities({
-            search: searchTerm,
-            limit: 20,
-          }),
-        ).finally(() => {
-          setIsEntitySearching(false);
-        });
-      }
+      if (!searchTerm) return;
+
+      setIsEntitySearching(true);
+      dispatch(
+        quickSearchEntities({
+          search: searchTerm,
+          limit: 20,
+        }),
+      ).finally(() => {
+        setIsEntitySearching(false);
+      });
     },
     [dispatch],
   );
 
-  const handleChargeTypeChange = useCallback(
-    (type) => {
-      dispatch(
-        setOutstandingFilters({
-          charge_type: type || undefined,
-          page: 1,
-        }),
-      );
-    },
-    [dispatch],
-  );
+  // =========================
+  // Sorting
+  // =========================
   const handleSortChange = useCallback(
     (column) => {
       let nextOrder = "desc";
@@ -134,58 +152,81 @@ const Outstanding = () => {
     [dispatch, filters.sort_by, filters.sort_order],
   );
 
-  // Handle entity selection
+  // =========================
+  // Entity filter
+  // =========================
   const handleEntitySelect = useCallback(
     (entityId) => {
       setSelectedEntityId(entityId);
 
-      // Reset to page 1 when changing entity filter
       dispatch(
         setOutstandingFilters({
           entity_ids: entityId ? [entityId] : [],
+          page: 1,
         }),
       );
-
-      // Reset pagination to page 1
-      if (pagination.page !== 1) {
-        handlePageChange(1);
-      }
-    },
-    [dispatch, pagination.page],
-  );
-
-  // Handle page change
-  const handlePageChange = useCallback(
-    (newPage) => {
-      window.scrollTo({ top: 0, behavior: "smooth" });
-      dispatch(setOutstandingFilters({ page: newPage }));
     },
     [dispatch],
   );
 
-  // Handle refresh
-  const handleRefresh = useCallback(() => {
-    fetchData();
-  }, [fetchData]);
+  // =========================
+  // Pagination
+  // =========================
+  const handlePageChange = useCallback(
+    (newPage) => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      dispatch(setOutstandingFilters({ page: newPage }));
+      // Close expanded row on page change
+      setExpandedEntityId(null);
+    },
+    [dispatch],
+  );
 
+  // =========================
+  // Refresh
+  // =========================
+  const handleRefresh = useCallback(() => {
+    dispatch(fetchOutstandingStats());
+    fetchListData();
+    // Close expanded row on refresh
+    setExpandedEntityId(null);
+  }, [dispatch, fetchListData]);
+
+  // =========================
+  // Toggle expand/collapse
+  // =========================
+  const handleToggleExpand = useCallback(
+    (entityId) => {
+      if (expandedEntityId === entityId) {
+        // Collapse if already expanded
+        setExpandedEntityId(null);
+      } else {
+        // Expand and fetch breakdown if not already loaded
+        setExpandedEntityId(entityId);
+
+        if (!breakdowns[entityId]) {
+          dispatch(fetchEntityBreakdown(entityId));
+        }
+      }
+    },
+    [dispatch, expandedEntityId, breakdowns],
+  );
+
+  // =========================
+  // Render
+  // =========================
   return (
     <div className={styles.outstanding}>
       <div className={styles.outstanding__container}>
-        {/* Stats Cards */}
-        <OutstandingStats
-          cards={cards}
-          loading={isInitialLoad && loading}
-          selectedChargeType={filters.charge_type}
-        />
+        {/* Global Stats */}
+        <OutstandingStats cards={cards} loading={loadingStats} />
 
-        {/* Table */}
+        {/* Outstanding Table */}
         <OutstandingTable
           items={items}
-          loading={!isInitialLoad && loading}
+          loading={loadingList}
           currentPage={pagination.page}
           totalPages={pagination.total_pages}
-          chargeType={filters.charge_type}
-          onChargeTypeChange={handleChargeTypeChange}
           onPageChange={handlePageChange}
           onRefresh={handleRefresh}
           selectedEntityId={selectedEntityId}
@@ -196,9 +237,12 @@ const Outstanding = () => {
           onSortChange={handleSortChange}
           onEntitySearch={handleEntitySearch}
           isEntitySearching={isEntitySearching}
+          expandedEntityId={expandedEntityId}
+          onToggleExpand={handleToggleExpand}
+          breakdowns={breakdowns}
         />
 
-        {/* Error Display */}
+        {/* Error */}
         {error && (
           <div className={styles.outstanding__error}>
             <p>{error}</p>

@@ -58,6 +58,12 @@ const SIDEBAR_CONFIG = {
           icon: FileText,
           path: "/dashboard/task-managment/invoices",
         },
+        {
+          id: "task-outstandings",
+          label: "Outstandings",
+          icon: IndianRupee,
+          path: "/dashboard/task-managment/outstanding",
+        },
       ],
     },
     {

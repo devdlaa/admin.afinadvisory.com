@@ -1,3 +1,4 @@
+import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/utils/server/db";
 import { NotFoundError, ValidationError } from "@/utils/server/errors";
 
@@ -560,114 +561,92 @@ export async function applyChargeRestore(entityId, charge, tx = prisma) {
 }
 
 // ------------------Outstanding-api-service------------------------------
-const SORTABLE_FIELDS = new Set([
-  "client_total_outstanding",
-  "service_fee_outstanding",
-  "government_fee_outstanding",
-  "external_charge_outstanding",
-  "pending_charges_count",
-  "updated_at",
-]);
 
 export const listOutstandingEntities = async (filters = {}) => {
   const page = Number(filters.page) > 0 ? Number(filters.page) : 1;
   const pageSize =
     Number(filters.page_size) > 0 ? Number(filters.page_size) : 20;
 
-  const where = {
-    client_total_outstanding: { gt: 0 },
+  const offset = (page - 1) * pageSize;
+
+  // ===============================
+  // SORT (STRICT WHITELIST)
+  // ===============================
+  const sortFieldMap = {
+    total_outstanding: "total_outstanding",
+    service_fee: "service_fee",
+    government_fee: "government_fee",
+    external_charge: "external_charge",
   };
 
-  if (filters.charge_type === "SERVICE_FEE") {
-    where.service_fee_outstanding = { gt: 0 };
+  const sortBy = sortFieldMap[filters.sort_by] || "total_outstanding";
+  const sortOrder = filters.sort_order === "asc" ? "ASC" : "DESC";
+
+  // ===============================
+  // ENTITY FILTER
+  // ===============================
+  let entityWhereClause = "";
+  if (Array.isArray(filters.entity_ids) && filters.entity_ids.length > 0) {
+    const ids = filters.entity_ids.map((id) => `'${id}'`).join(",");
+
+    entityWhereClause = `AND tc.entity_id IN (${ids})`;
   }
 
-  if (filters.charge_type === "GOVERNMENT_FEE") {
-    where.government_fee_outstanding = { gt: 0 };
-  }
+  // ===============================
+  // LIST QUERY
+  // ===============================
+  const listSql = `
+    SELECT
+      tc.entity_id,
 
-  if (filters.charge_type === "EXTERNAL_CHARGE") {
-    where.external_charge_outstanding = { gt: 0 };
-  }
+      COALESCE(SUM(tc.amount), 0)::numeric AS total_outstanding,
 
-  if (filters.entity_ids?.length > 0) {
-    where.entity_id = { in: filters.entity_ids.slice(0, 10) };
-  }
+      COALESCE(SUM(tc.amount) FILTER (
+        WHERE tc.charge_type = 'SERVICE_FEE'
+      ), 0)::numeric AS service_fee,
 
-  // ===================================
-  // DB-LEVEL SORTING
-  // ===================================
-  let orderBy = { client_total_outstanding: "desc" };
+      COALESCE(SUM(tc.amount) FILTER (
+        WHERE tc.charge_type = 'GOVERNMENT_FEE'
+      ), 0)::numeric AS government_fee,
 
-  if (filters.sort_by && SORTABLE_FIELDS.has(filters.sort_by)) {
-    if (filters.sort_by === "entity_name") {
-      orderBy = { entity: { name: filters.sort_order || "asc" } };
-    } else {
-      orderBy = { [filters.sort_by]: filters.sort_order || "desc" };
-    }
-  }
+      COALESCE(SUM(tc.amount) FILTER (
+        WHERE tc.charge_type = 'EXTERNAL_CHARGE'
+      ), 0)::numeric AS external_charge,
 
-  // ===================================
-  // PARALLEL QUERY BATCH
-  // ===================================
-  const [rows, total, cardsAgg] = await Promise.all([
-    prisma.reconcileStatsCurrent.findMany({
-      where,
-      orderBy,
-      skip: (page - 1) * pageSize,
-      take: pageSize,
-      select: {
-        entity_id: true,
-        client_total_outstanding: true,
-        service_fee_total: true,
-        service_fee_outstanding: true,
-        service_fee_written_off: true,
-        government_fee_total: true,
-        government_fee_outstanding: true,
-        government_fee_written_off: true,
-        external_charge_total: true,
-        external_charge_outstanding: true,
-        external_charge_written_off: true,
-        pending_charges_count: true,
-        entity: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            status: true,
-          },
-        },
-      },
-    }),
+      COUNT(*)::int AS pending_charges_count
 
-    prisma.reconcileStatsCurrent.count({ where }),
+    FROM "TaskCharge" tc
+    WHERE tc.deleted_at IS NULL
+      AND tc.status = 'NOT_PAID'
+      AND tc.bearer = 'CLIENT'
+      ${entityWhereClause}
 
-    prisma.reconcileStatsCurrent.aggregate({
-      where,
-      _sum: {
-        client_total_outstanding: true,
-        service_fee_outstanding: true,
-        government_fee_outstanding: true,
-        external_charge_outstanding: true,
-      },
-    }),
+    GROUP BY tc.entity_id
+    HAVING SUM(tc.amount) > 0
+    ORDER BY ${sortBy} ${sortOrder}
+    LIMIT ${pageSize}
+    OFFSET ${offset};
+  `;
+
+  // ===============================
+  // COUNT QUERY
+  // ===============================
+  const countSql = `
+    SELECT COUNT(DISTINCT tc.entity_id)::int AS total
+    FROM "TaskCharge" tc
+    WHERE tc.deleted_at IS NULL
+      AND tc.status = 'NOT_PAID'
+      AND tc.bearer = 'CLIENT'
+      ${entityWhereClause};
+  `;
+
+  const [rows, countResult] = await Promise.all([
+    prisma.$queryRawUnsafe(listSql),
+    prisma.$queryRawUnsafe(countSql),
   ]);
 
-  // ===================================
-  // EMPTY RESULT
-  // ===================================
-  if (rows.length === 0) {
+  if (!rows.length) {
     return {
-      cards: {
-        total_pending: Number(cardsAgg._sum.client_total_outstanding || 0),
-        service_fee_pending: Number(cardsAgg._sum.service_fee_outstanding || 0),
-        government_fee_pending: Number(
-          cardsAgg._sum.government_fee_outstanding || 0,
-        ),
-        external_charges_pending: Number(
-          cardsAgg._sum.external_charge_outstanding || 0,
-        ),
-      },
       list: {
         data: [],
         pagination: {
@@ -681,108 +660,41 @@ export const listOutstandingEntities = async (filters = {}) => {
     };
   }
 
-  // ===================================
-  // TASK STATS
-  // ===================================
+  // ===============================
+  // ENTITY DETAILS
+  // ===============================
   const entityIds = rows.map((r) => r.entity_id);
 
-  const taskStats = await prisma.entityTaskStats.findMany({
-    where: { entity_id: { in: entityIds } },
+  const entities = await prisma.entity.findMany({
+    where: { id: { in: entityIds } },
     select: {
-      entity_id: true,
-      pending: true,
-      in_progress: true,
-      completed: true,
-      cancelled: true,
-      on_hold: true,
-      pending_client_input: true,
-      total_tasks: true,
+      id: true,
+      name: true,
+      email: true,
+      status: true,
     },
   });
 
-  const taskStatsLookup = Object.fromEntries(
-    taskStats.map((t) => [t.entity_id, t]),
-  );
+  const entityMap = Object.fromEntries(entities.map((e) => [e.id, e]));
 
-  // ===================================
-  // FORMAT ROWS
-  // ===================================
-  const data = rows.map((r) => {
-    const tasks = taskStatsLookup[r.entity_id];
+  // ===============================
+  // FORMAT RESPONSE
+  // ===============================
+  const data = rows.map((r) => ({
+    entity: entityMap[r.entity_id] || null,
+    money: {
+      total_outstanding: Number(r.total_outstanding),
+      pending_charges_count: Number(r.pending_charges_count),
+      service_fee: Number(r.service_fee),
+      government_fee: Number(r.government_fee),
+      external_charge: Number(r.external_charge),
+    },
+  }));
 
-    const serviceFeeTotal = Number(r.service_fee_total);
-    const serviceFeeOutstanding = Number(r.service_fee_outstanding);
-    const serviceFeeWrittenOff = Number(r.service_fee_written_off);
-
-    const govFeeTotal = Number(r.government_fee_total);
-    const govFeeOutstanding = Number(r.government_fee_outstanding);
-    const govFeeWrittenOff = Number(r.government_fee_written_off);
-
-    const extChargeTotal = Number(r.external_charge_total);
-    const extChargeOutstanding = Number(r.external_charge_outstanding);
-    const extChargeWrittenOff = Number(r.external_charge_written_off);
-
-    return {
-      entity: r.entity,
-
-      money: {
-        client_total_outstanding: Number(r.client_total_outstanding),
-
-        service_fee: {
-          total: serviceFeeTotal,
-          outstanding: serviceFeeOutstanding,
-          written_off: serviceFeeWrittenOff,
-          paid: serviceFeeTotal - serviceFeeOutstanding - serviceFeeWrittenOff,
-        },
-
-        government_fee: {
-          total: govFeeTotal,
-          outstanding: govFeeOutstanding,
-          written_off: govFeeWrittenOff,
-          paid: govFeeTotal - govFeeOutstanding - govFeeWrittenOff,
-        },
-
-        external_charge: {
-          total: extChargeTotal,
-          outstanding: extChargeOutstanding,
-          written_off: extChargeWrittenOff,
-          paid: extChargeTotal - extChargeOutstanding - extChargeWrittenOff,
-        },
-
-        pending_charges_count: r.pending_charges_count,
-      },
-
-      tasks: tasks
-        ? {
-            pending: tasks.pending,
-            in_progress: tasks.in_progress,
-            completed: tasks.completed,
-            cancelled: tasks.cancelled,
-            on_hold: tasks.on_hold,
-            pending_client_input: tasks.pending_client_input,
-            total: tasks.total_tasks,
-          }
-        : null,
-    };
-  });
-
-  // ===================================
-  // FINAL RESPONSE
-  // ===================================
+  const total = Number(countResult[0]?.total || 0);
   const totalPages = Math.ceil(total / pageSize);
 
   return {
-    cards: {
-      total_pending: Number(cardsAgg._sum.client_total_outstanding || 0),
-      service_fee_pending: Number(cardsAgg._sum.service_fee_outstanding || 0),
-      government_fee_pending: Number(
-        cardsAgg._sum.government_fee_outstanding || 0,
-      ),
-      external_charges_pending: Number(
-        cardsAgg._sum.external_charge_outstanding || 0,
-      ),
-    },
-
     list: {
       data,
       pagination: {
@@ -791,6 +703,138 @@ export const listOutstandingEntities = async (filters = {}) => {
         total_items: total,
         total_pages: totalPages,
         has_more: page < totalPages,
+      },
+    },
+  };
+};
+
+export const getOutstandingGlobalStats = async () => {
+  const result = await prisma.$queryRaw`
+    SELECT
+      -- TOTAL RECOVERABLE
+      COALESCE(SUM(tc.amount), 0)::numeric AS total_recoverable,
+
+      -- UNINVOICED
+      COALESCE(SUM(tc.amount) FILTER (
+        WHERE t.invoice_internal_number IS NULL
+      ), 0)::numeric AS uninvoiced,
+
+      -- DRAFT INVOICES
+      COALESCE(SUM(tc.amount) FILTER (
+        WHERE i.status = 'DRAFT'
+      ), 0)::numeric AS draft_invoices,
+
+      -- ISSUED BUT UNPAID
+      COALESCE(SUM(tc.amount) FILTER (
+        WHERE i.status = 'ISSUED'
+      ), 0)::numeric AS issued_pending
+
+    FROM "TaskCharge" tc
+    LEFT JOIN "Task" t ON t.id = tc.task_id
+    LEFT JOIN "Invoice" i ON i.internal_number = t.invoice_internal_number
+    WHERE tc.deleted_at IS NULL
+      AND tc.status = 'NOT_PAID'
+      AND tc.bearer = 'CLIENT'
+  `;
+
+  const row = result[0];
+
+  return {
+    total_recoverable: Number(row.total_recoverable || 0),
+    uninvoiced: Number(row.uninvoiced || 0),
+    draft_invoices: Number(row.draft_invoices || 0),
+    issued_pending: Number(row.issued_pending || 0),
+  };
+};
+
+/**
+ * Get detailed breakdown of outstanding charges for a specific entity
+ * Shows: Unreconciled, Draft Invoices, Issued Invoices
+ */
+export const getEntityOutstandingBreakdown = async (entityId) => {
+  const result = await prisma.$queryRaw`
+    SELECT 
+      -- UNRECONCILED (no invoice attached)
+      COALESCE(SUM(tc.amount) FILTER (
+        WHERE t.invoice_internal_number IS NULL
+      ), 0)::numeric AS unreconciled_amount,
+      COUNT(*) FILTER (
+        WHERE t.invoice_internal_number IS NULL
+      )::int AS unreconciled_count,
+
+      -- DRAFT INVOICES
+      COALESCE(SUM(tc.amount) FILTER (
+        WHERE t.invoice_internal_number IS NOT NULL
+          AND i.status = 'DRAFT'
+      ), 0)::numeric AS draft_amount,
+      COUNT(*) FILTER (
+        WHERE t.invoice_internal_number IS NOT NULL
+          AND i.status = 'DRAFT'
+      )::int AS draft_count,
+      COUNT(DISTINCT i.internal_number) FILTER (
+        WHERE i.status = 'DRAFT'
+      )::int AS draft_invoice_count,
+
+      -- ISSUED INVOICES
+      COALESCE(SUM(tc.amount) FILTER (
+        WHERE t.invoice_internal_number IS NOT NULL
+          AND i.status = 'ISSUED'
+      ), 0)::numeric AS issued_amount,
+      COUNT(*) FILTER (
+        WHERE t.invoice_internal_number IS NOT NULL
+          AND i.status = 'ISSUED'
+      )::int AS issued_count,
+      COUNT(DISTINCT i.internal_number) FILTER (
+        WHERE i.status = 'ISSUED'
+      )::int AS issued_invoice_count,
+
+      -- TOTAL
+      COALESCE(SUM(tc.amount), 0)::numeric AS total_outstanding,
+      COUNT(*)::int AS total_count
+
+    FROM "TaskCharge" tc
+    LEFT JOIN "Task" t ON t.id = tc.task_id
+    LEFT JOIN "Invoice" i ON i.internal_number = t.invoice_internal_number
+    WHERE tc.entity_id = ${entityId}::uuid
+      AND tc.deleted_at IS NULL
+      AND tc.status = 'NOT_PAID'
+      AND tc.bearer = 'CLIENT'
+  `;
+
+  const row = result[0];
+
+  if (!row || Number(row.total_count) === 0) {
+    return {
+      entity_id: entityId,
+      breakdown: {
+        unreconciled: { amount: 0, count: 0 },
+        draft_invoices: { amount: 0, count: 0, invoice_count: 0 },
+        issued_invoices: { amount: 0, count: 0, invoice_count: 0 },
+        total: { amount: 0, count: 0 },
+      },
+    };
+  }
+
+  return {
+    entity_id: entityId,
+    breakdown: {
+      unreconciled: {
+        amount: Number(row.unreconciled_amount),
+        count: Number(row.unreconciled_count),
+      },
+      draft_invoices: {
+        amount: Number(row.draft_amount),
+        count: Number(row.draft_count),
+        invoice_count: Number(row.draft_invoice_count),
+      },
+      issued_invoices: {
+        amount: Number(row.issued_amount),
+        count: Number(row.issued_count),
+        invoice_count: Number(row.issued_invoice_count),
+      },
+      total: {
+        amount: Number(row.total_outstanding),
+        count: Number(row.total_count),
       },
     },
   };

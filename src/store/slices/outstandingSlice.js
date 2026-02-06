@@ -40,9 +40,33 @@ const apiFetch = async (url, options = {}) => {
 };
 
 /* ============================================
-   Async thunk
+   Async thunks
 ============================================ */
 
+/**
+ * 1️⃣ Global stats (cards)
+ * GET /api/admin_ops/outstanding/stats
+ */
+export const fetchOutstandingStats = createAsyncThunk(
+  "outstanding/fetchOutstandingStats",
+  async (_, { rejectWithValue }) => {
+    try {
+      const result = await apiFetch("/api/admin_ops/outstanding/stats");
+      return result.data;
+    } catch (error) {
+      return rejectWithValue({
+        message: error.message || "Failed to fetch outstanding stats",
+        code: error.code,
+        details: error.details,
+      });
+    }
+  },
+);
+
+/**
+ * 2️⃣ Outstanding list (filters + pagination)
+ * GET /api/admin_ops/outstanding
+ */
 export const fetchOutstanding = createAsyncThunk(
   "outstanding/fetchOutstanding",
   async (filters = {}, { rejectWithValue }) => {
@@ -57,8 +81,6 @@ export const fetchOutstanding = createAsyncThunk(
       if (filters.sort_order) params.append("sort_order", filters.sort_order);
       if (filters.page) params.append("page", filters.page);
       if (filters.page_size) params.append("page_size", filters.page_size);
-      if (filters.charge_type)
-        params.append("charge_type", filters.charge_type);
 
       const result = await apiFetch(
         `/api/admin_ops/outstanding?${params.toString()}`,
@@ -67,7 +89,32 @@ export const fetchOutstanding = createAsyncThunk(
       return result.data;
     } catch (error) {
       return rejectWithValue({
-        message: error.message || "Failed to fetch outstanding data",
+        message: error.message || "Failed to fetch outstanding list",
+        code: error.code,
+        details: error.details,
+      });
+    }
+  },
+);
+
+/**
+ * 3️⃣ Entity expand breakdown
+ * GET /api/admin_ops/outstanding/:id/breakdown
+ */
+export const fetchEntityBreakdown = createAsyncThunk(
+  "outstanding/fetchEntityBreakdown",
+  async (entityId, { rejectWithValue }) => {
+    try {
+      const result = await apiFetch(`/api/admin_ops/outstanding/${entityId}`);
+
+      return {
+        entityId,
+        breakdown: result.data.breakdown,
+      };
+    } catch (error) {
+      return rejectWithValue({
+        entityId,
+        message: error.message || "Failed to fetch entity breakdown",
         code: error.code,
         details: error.details,
       });
@@ -80,15 +127,8 @@ export const fetchOutstanding = createAsyncThunk(
 ============================================ */
 
 const initialState = {
+  // List
   items: [],
-
-  cards: {
-    total_pending: 0,
-    service_fee_pending: 0,
-    government_fee_pending: 0,
-    external_charges_pending: 0,
-  },
-
   pagination: {
     page: 1,
     page_size: 20,
@@ -97,14 +137,28 @@ const initialState = {
     has_more: false,
   },
 
-  filters: {
-    entity_ids: [],
-    sort_by: "client_total_outstanding",
-    sort_order: "desc",
-    charge_type: undefined,
+  // Cards (global stats)
+  cards: {
+    total_recoverable: 0,
+    uninvoiced: 0,
+    draft_invoices: 0,
+    issued_pending: 0,
   },
 
-  loading: false,
+  // Filters
+  filters: {
+    entity_ids: [],
+    sort_by: "total_outstanding",
+    sort_order: "desc",
+  },
+
+  // Entity expand breakdowns
+  breakdowns: {},
+
+  // Loading states
+  loadingList: false,
+  loadingStats: false,
+
   error: null,
 };
 
@@ -128,27 +182,82 @@ const outstandingSlice = createSlice({
     clearOutstandingError: (state) => {
       state.error = null;
     },
+
+    clearEntityBreakdown: (state, action) => {
+      delete state.breakdowns[action.payload];
+    },
+
+    clearAllBreakdowns: (state) => {
+      state.breakdowns = {};
+    },
   },
 
   extraReducers: (builder) => {
     builder
-      .addCase(fetchOutstanding.pending, (state) => {
-        state.loading = true;
+      // ==============================
+      // GLOBAL STATS
+      // ==============================
+      .addCase(fetchOutstandingStats.pending, (state) => {
+        state.loadingStats = true;
         state.error = null;
       })
-
-      .addCase(fetchOutstanding.fulfilled, (state, action) => {
-        const { cards, list } = action.payload;
-        state.cards = cards;
-        state.items = list.data;
-        state.pagination = list.pagination;
-        state.loading = false;
+      .addCase(fetchOutstandingStats.fulfilled, (state, action) => {
+        state.cards = action.payload;
+        state.loadingStats = false;
+      })
+      .addCase(fetchOutstandingStats.rejected, (state, action) => {
+        state.loadingStats = false;
+        state.error =
+          action.payload?.message || "Failed to fetch outstanding stats";
       })
 
+      // ==============================
+      // LIST
+      // ==============================
+      .addCase(fetchOutstanding.pending, (state) => {
+        state.loadingList = true;
+        state.error = null;
+      })
+      .addCase(fetchOutstanding.fulfilled, (state, action) => {
+        const { list } = action.payload;
+        state.items = list.data;
+        state.pagination = list.pagination;
+        state.loadingList = false;
+      })
       .addCase(fetchOutstanding.rejected, (state, action) => {
-        state.loading = false;
+        state.loadingList = false;
         state.error =
-          action.payload?.message || "Failed to fetch outstanding data";
+          action.payload?.message || "Failed to fetch outstanding list";
+      })
+
+      // ==============================
+      // ENTITY BREAKDOWN
+      // ==============================
+      .addCase(fetchEntityBreakdown.pending, (state, action) => {
+        const entityId = action.meta.arg;
+        state.breakdowns[entityId] = {
+          data: null,
+          loading: true,
+          error: null,
+        };
+      })
+      .addCase(fetchEntityBreakdown.fulfilled, (state, action) => {
+        const { entityId, breakdown } = action.payload;
+        state.breakdowns[entityId] = {
+          data: breakdown,
+          loading: false,
+          error: null,
+        };
+      })
+      .addCase(fetchEntityBreakdown.rejected, (state, action) => {
+        const { entityId, message } = action.payload || {};
+        if (entityId) {
+          state.breakdowns[entityId] = {
+            data: null,
+            loading: false,
+            error: message || "Failed to load breakdown",
+          };
+        }
       });
   },
 });
@@ -161,6 +270,8 @@ export const {
   setOutstandingFilters,
   resetOutstandingFilters,
   clearOutstandingError,
+  clearEntityBreakdown,
+  clearAllBreakdowns,
 } = outstandingSlice.actions;
 
 /* ============================================
@@ -169,16 +280,28 @@ export const {
 
 export const selectOutstandingItems = (state) => state.outstanding.items;
 
-export const selectOutstandingCards = (state) => state.outstanding.cards;
-
 export const selectOutstandingPagination = (state) =>
   state.outstanding.pagination;
 
 export const selectOutstandingFilters = (state) => state.outstanding.filters;
 
-export const selectOutstandingLoading = (state) => state.outstanding.loading;
+export const selectOutstandingCards = (state) => state.outstanding.cards;
+
+export const selectOutstandingLoadingList = (state) =>
+  state.outstanding.loadingList;
+
+export const selectOutstandingLoadingStats = (state) =>
+  state.outstanding.loadingStats;
 
 export const selectOutstandingError = (state) => state.outstanding.error;
+
+// Entity breakdown selectors
+export const selectEntityBreakdown = (entityId) => (state) =>
+  state.outstanding.breakdowns[entityId] || {
+    data: null,
+    loading: false,
+    error: null,
+  };
 
 export const selectOutstandingStats = createSelector(
   [selectOutstandingPagination, selectOutstandingItems],
@@ -192,61 +315,6 @@ export const selectOutstandingStats = createSelector(
     currentPageSize: items.length,
   }),
 );
-
-/* ============================================
-   Card helpers
-============================================ */
-
-export const selectOutstandingCardMetrics = createSelector(
-  [selectOutstandingCards],
-  (cards) => {
-    const totalReimbursements =
-      cards.government_fee_pending + cards.external_charges_pending;
-
-    return {
-      total_pending: cards.total_pending,
-      service_fee_pending: cards.service_fee_pending,
-      government_fee_pending: cards.government_fee_pending,
-      external_charges_pending: cards.external_charges_pending,
-      total_reimbursements_pending: totalReimbursements,
-    };
-  },
-);
-
-export const selectOutstandingByCategory = createSelector(
-  [selectOutstandingCards],
-  (cards) => {
-    return [
-      {
-        label: "Service Fees",
-        amount: cards.service_fee_pending,
-        percentage:
-          cards.total_pending > 0
-            ? (cards.service_fee_pending / cards.total_pending) * 100
-            : 0,
-      },
-      {
-        label: "Government Fees",
-        amount: cards.government_fee_pending,
-        percentage:
-          cards.total_pending > 0
-            ? (cards.government_fee_pending / cards.total_pending) * 100
-            : 0,
-      },
-      {
-        label: "External Charges",
-        amount: cards.external_charges_pending,
-        percentage:
-          cards.total_pending > 0
-            ? (cards.external_charges_pending / cards.total_pending) * 100
-            : 0,
-      },
-    ];
-  },
-);
-
-export const setOutstandingChargeType = (type) =>
-  setOutstandingFilters({ charge_type: type });
 
 /* ============================================
    Export reducer

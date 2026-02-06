@@ -1,45 +1,37 @@
 import React from "react";
-import { Wallet, CirclePercent, Info, Landmark } from "lucide-react";
+import { Wallet, FileMinus, FileEdit, FileCheck } from "lucide-react";
 import styles from "./OutstandingStats.module.scss";
 import { formatCurrency } from "@/utils/client/cutils";
-const OutstandingStats = ({ cards, loading = false, selectedChargeType }) => {
-  const activeCardIdMap = {
-    SERVICE_FEE: "service_charge",
-    GOVERNMENT_FEE: "government_fee",
-    EXTERNAL_CHARGE: "other_charges",
-  };
-  const activeCardId = activeCardIdMap[selectedChargeType];
 
-
-
+const OutstandingStats = ({ cards, loading = false }) => {
   const statsConfig = [
     {
       id: "total_recoverable",
       label: "Total Recoverable",
-      value: cards?.total_pending || 0,
+      value: cards?.total_recoverable || 0,
       icon: Wallet,
       color: "red",
     },
     {
-      id: "service_charge",
-      label: "Service Charge",
-      value: cards?.service_fee_pending || 0,
-      icon: CirclePercent,
-      color: "green",
-    },
-    {
-      id: "government_fee",
-      label: "Government Fee",
-      value: cards?.government_fee_pending || 0,
-      icon: Landmark,
+      id: "uninvoiced",
+      label: "Un-Reconciled",
+      value: cards?.uninvoiced || 0,
+      icon: FileMinus,
       color: "orange",
     },
     {
-      id: "other_charges",
-      label: "Other Charges",
-      value: cards?.external_charges_pending || 0,
-      icon: Info,
+      id: "draft_invoices",
+      label: "Draft Invoices",
+      value: cards?.draft_invoices || 0,
+      icon: FileEdit,
       color: "blue",
+    },
+    {
+      id: "issued_pending",
+      label: "Issued Invoices",
+      value: cards?.issued_pending || 0,
+      icon: FileCheck,
+      color: "green",
     },
   ];
 
@@ -63,20 +55,14 @@ const OutstandingStats = ({ cards, loading = false, selectedChargeType }) => {
     <div className={styles.outstandingStats}>
       {statsConfig.map((stat) => {
         const IconComponent = stat.icon;
+
         return (
           <div
             key={stat.id}
             className={`
-    ${styles.outstandingStats__card}
-    ${styles[`outstandingStats__card--${stat.color}`]}
-    ${
-      activeCardId === stat.id
-        ? styles.outstandingStats__card__active
-        : selectedChargeType
-          ? styles.outstandingStats__card__dimmed
-          : ""
-    }
-  `}
+              ${styles.outstandingStats__card}
+              ${styles[`outstandingStats__card--${stat.color}`]}
+            `}
           >
             <div className={styles.outstandingStats__cardHeader}>
               <div

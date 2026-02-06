@@ -11,7 +11,7 @@ import { schemas } from "@/schemas";
 
 export async function DELETE(request, { params }) {
   try {
-    const [permissionError, session] = await requirePermission(
+    const [permissionError, session,admin_user] = await requirePermission(
       request,
     
     );
@@ -23,7 +23,7 @@ export async function DELETE(request, { params }) {
       params: resolvedParams,
     });
 
-    const deleted = await deleteTaskChargeOverride(parsed.params.id, session.user);
+    const deleted = await deleteTaskChargeOverride(parsed.params.id, admin_user);
 
     return createSuccessResponse("Charge deleted successfully", deleted);
   } catch (error) {

@@ -161,6 +161,7 @@ model TaskCharge {
   title       String
   amount      Decimal      @db.Decimal(12, 2)
   charge_type ChargeType
+  
   bearer      ChargeBearer
   status      ChargeStatus
   remark      String?
@@ -177,6 +178,8 @@ model TaskCharge {
   restorer    AdminUser?   @relation("task_charge_restorer", fields: [restored_by], references: [id])
   task        Task         @relation(fields: [task_id], references: [id], onDelete: Cascade)
   updater     AdminUser    @relation("task_charge_updater", fields: [updated_by], references: [id])
+  paid_via_invoice_id String? @db.Uuid
+  paid_via_invoice    Invoice? @relation("InvoicePaidCharges", fields: [paid_via_invoice_id], references: [id], onDelete: SetNull)
 
   @@index([task_id, status, deleted_at])
   @@index([status])
@@ -383,7 +386,7 @@ model Invoice {
   creator            AdminUser       @relation(fields: [created_by], references: [id])
   entity             Entity          @relation(fields: [entity_id], references: [id])
   tasks              Task[]
-
+  paid_charges TaskCharge[] @relation("InvoicePaidCharges")
   @@index([entity_id, created_at, status])
   @@index([entity_id, invoice_date])
   @@index([entity_id, status])

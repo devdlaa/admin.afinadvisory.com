@@ -2,6 +2,9 @@ import { auth } from "@/utils/server/auth";
 import { prisma } from "@/utils/server/db";
 import { createErrorResponse } from "./apiResponse";
 
+// Permission bypass flag - set this env var to "true" to bypass all permission checks
+const BYPASS_PERMISSIONS = process.env.BYPASS_PERMISSIONS === "true";
+
 /**
  * @param req Request
  * @param required string | string[]
@@ -55,6 +58,22 @@ export async function requirePermission(req, required, mode = "ALL") {
     ];
   }
 
+  // ====================================
+  // BYPASS PERMISSIONS CHECK
+  // ====================================
+  if (BYPASS_PERMISSIONS) {
+    // Log warning in development
+    if (process.env.NODE_ENV !== "production") {
+      console.warn(
+        "⚠️  PERMISSION BYPASS ACTIVE - All permission checks are being skipped",
+      );
+    }
+    return [null, session, normalizedUser];
+  }
+
+  // ====================================
+  // NORMAL PERMISSION CHECK
+  // ====================================
   if (
     required === undefined ||
     required === null ||

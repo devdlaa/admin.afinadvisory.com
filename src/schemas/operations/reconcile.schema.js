@@ -107,12 +107,11 @@ export const OutstandingQuerySchema = z.object({
 
   sort_by: z
     .enum([
-      "client_total_outstanding",
-      "service_fee_outstanding",
-      "government_fee_outstanding",
-      "external_charge_outstanding",
+      "total_outstanding",           
+      "service_fee",                
+      "government_fee",              
+      "external_charge",             
       "pending_charges_count",
-      "updated_at",
       "entity_name",
     ])
     .optional(),
@@ -121,6 +120,10 @@ export const OutstandingQuerySchema = z.object({
 
   page: z.coerce.number().min(1).default(1),
   page_size: z.coerce.number().min(1).max(50).default(20),
+});
+
+export const OutstandingEntityBreakdownSchema = z.object({
+  entity_id: z.string().uuid(),
 });
 
 export const bulkMarkNonBillableSchema = z.object({
