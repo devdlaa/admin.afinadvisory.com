@@ -15,6 +15,7 @@ const ClientSelectionDialog = ({
   onSelectEntity,
   onClearSelection,
   onConfirmSelection,
+  onAddNewClient,
 }) => {
   if (!isOpen) return null;
 
@@ -104,16 +105,15 @@ const ClientSelectionDialog = ({
           {tempSelectedEntity && !isRemovingClient && (
             <div className="client-dialog__current">
               <div className="client-dialog__current-label">New Selection:</div>
-              <div
-                className="client-dialog__current-card client-dialog__current-card--new"
-              >
+              <div className="client-dialog__current-card client-dialog__current-card--new">
                 <div className="client-dialog__current-info">
                   <div className="client-dialog__current-name">
                     {tempSelectedEntity.name}
                   </div>
                   <div className="client-dialog__current-meta">
                     {tempSelectedEntity.entity_type?.replaceAll("_", " ")}
-                    {tempSelectedEntity.email && ` • ${tempSelectedEntity.email}`}
+                    {tempSelectedEntity.email &&
+                      ` • ${tempSelectedEntity.email}`}
                   </div>
                 </div>
                 <span
@@ -180,32 +180,49 @@ const ClientSelectionDialog = ({
           )}
 
           {/* Actions */}
+          {/* Actions */}
           <div className="client-dialog__actions">
-            <button
-              className="client-dialog__btn client-dialog__btn--secondary"
-              onClick={onClose}
-              type="button"
-              disabled={isUpdating}
-            >
-              Cancel
-            </button>
-            <button
-              className="client-dialog__btn client-dialog__btn--primary"
-              onClick={onConfirmSelection}
-              disabled={!hasEntityChanged || isUpdating}
-              type="button"
-            >
-              {isUpdating ? (
-                <>
-                  <Loader2 size={16} className="spinner" />
-                  Updating...
-                </>
-              ) : isRemovingClient ? (
-                "Remove Client"
-              ) : (
-                "Confirm Selection"
-              )}
-            </button>
+            {/* Left side */}
+            <div className="client-dialog__actions-left">
+              <button
+                className="client-dialog__btn client-dialog__btn--secondary"
+                onClick={onAddNewClient}
+                type="button"
+                disabled={isUpdating}
+              >
+                + Add New Client
+              </button>
+            </div>
+
+            {/* Right side */}
+            <div className="client-dialog__actions-right">
+              <button
+                className="client-dialog__btn client-dialog__btn--secondary"
+                onClick={onClose}
+                type="button"
+                disabled={isUpdating}
+              >
+                Cancel
+              </button>
+
+              <button
+                className="client-dialog__btn client-dialog__btn--primary"
+                onClick={onConfirmSelection}
+                disabled={!hasEntityChanged || isUpdating}
+                type="button"
+              >
+                {isUpdating ? (
+                  <>
+                    <Loader2 size={16} className="spinner" />
+                    Updating...
+                  </>
+                ) : isRemovingClient ? (
+                  "Remove Client"
+                ) : (
+                  "Confirm Selection"
+                )}
+              </button>
+            </div>
           </div>
         </div>
       </div>

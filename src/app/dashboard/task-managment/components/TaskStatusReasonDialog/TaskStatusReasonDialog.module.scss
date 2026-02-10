@@ -1,0 +1,275 @@
+.taskStatusReason__overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.637);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1200;
+  animation: fadeIn 0.15s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.taskStatusReason__dialog {
+  width: 520px;
+  max-width: 90vw;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 20px 25px -5px rgba(0, 0, 0, 0.1),
+    0 0 0 1px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  animation: slideUp 0.2s ease-out;
+  overflow: hidden;
+  box-shadow:
+    rgba(0, 0, 0, 0.25) 0px 54px 55px,
+    rgba(0, 0, 0, 0.12) 0px -12px 30px,
+    rgba(0, 0, 0, 0.12) 0px 4px 6px,
+    rgba(0, 0, 0, 0.17) 0px 12px 13px,
+    rgba(0, 0, 0, 0.09) 0px -3px 5px;
+}
+
+.taskStatusReason__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 24px 24px 0;
+}
+
+.taskStatusReason__headerText {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  h3 {
+    margin: 0;
+    font-size: 19px;
+    font-weight: 600;
+    color: #353535;
+    line-height: 1.3;
+    letter-spacing: -0.01em;
+  }
+}
+
+.taskStatusReason__subtitle {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #6b7280;
+  line-height: 1.5;
+  background-color: #d5d5fb;
+  color: #210480;
+  padding: 6px 16px;
+  border-radius: 20px;
+  width: fit-content;
+}
+
+.taskStatusReason__close {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  padding: 0;
+
+  &:hover:not(:disabled) {
+    background: #f3f4f6;
+    color: #1a1a1a;
+  }
+
+  &:active:not(:disabled) {
+    background: #e5e7eb;
+    transform: scale(0.95);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.taskStatusReason__body {
+  padding: 20px 24px;
+}
+
+.taskStatusReason__textarea {
+  width: 100%;
+  min-height: 100px;
+  resize: vertical;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1.5px solid #e5e7eb;
+  font-size: 14px;
+  font-family: inherit;
+  line-height: 1.6;
+  color: #1a1a1a;
+  background: #ffffff;
+  transition: all 0.15s ease;
+
+  &::placeholder {
+    color: #9ca3af;
+  }
+
+  &:hover:not(:disabled) {
+    border-color: #d1d5db;
+  }
+
+  &:focus {
+    outline: none;
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  }
+
+  &:disabled {
+    background: #f9fafb;
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+}
+
+.taskStatusReason__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 0 24px 24px;
+  border-top: 1px solid #f3f4f6;
+  padding-top: 16px;
+  margin-top: 0;
+
+  button {
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    border: none;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    white-space: nowrap;
+    letter-spacing: -0.01em;
+
+    &:disabled {
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+
+    &:active:not(:disabled) {
+      transform: scale(0.97);
+    }
+  }
+}
+
+.btnSecondary {
+  background: transparent;
+  color: #6b7280;
+  padding: 9px 16px;
+  border-radius: 8px;
+
+  &:hover:not(:disabled) {
+    background: #f3f4f6;
+    color: #1a1a1a;
+  }
+
+  &:active:not(:disabled) {
+    background: #e5e7eb;
+  }
+}
+
+.btnPrimary {
+  background: #6366f1;
+  color: #ffffff;
+  padding: 10px 20px;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+
+  &:hover:not(:disabled) {
+    background: #5558e3;
+    box-shadow:
+      0 1px 3px rgba(0, 0, 0, 0.1),
+      0 0 0 3px rgba(99, 102, 241, 0.1);
+  }
+
+  &:active:not(:disabled) {
+    background: #4f46e5;
+  }
+
+  &:disabled {
+    background: #a5b4fc;
+  }
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 640px) {
+  .taskStatusReason__dialog {
+    width: 95vw;
+    border-radius: 12px;
+  }
+
+  .taskStatusReason__header {
+    padding: 20px 20px 0;
+  }
+
+  .taskStatusReason__headerText h3 {
+    font-size: 16px;
+  }
+
+  .taskStatusReason__subtitle {
+    font-size: 13px;
+  }
+
+  .taskStatusReason__body {
+    padding: 16px 20px;
+  }
+
+  .taskStatusReason__actions {
+    padding: 0 20px 20px;
+    padding-top: 14px;
+  }
+}

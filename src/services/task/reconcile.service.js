@@ -1,4 +1,3 @@
-import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/utils/server/db";
 import { NotFoundError, ValidationError } from "@/utils/server/errors";
 
@@ -583,21 +582,26 @@ export const listOutstandingEntities = async (filters = {}) => {
   const sortOrder = filters.sort_order === "asc" ? "ASC" : "DESC";
 
   // ===============================
-  // ENTITY FILTER
+  // ENTITY FILTER (applies to Task.entity_id)
   // ===============================
   let entityWhereClause = "";
   if (Array.isArray(filters.entity_ids) && filters.entity_ids.length > 0) {
-    const ids = filters.entity_ids.map((id) => `'${id}'`).join(",");
+    const ids = filters.entity_ids
+      .filter((id) => id != null)
+      .map((id) => `'${String(id).replace(/'/g, "''")}'`)
+      .join(",");
 
-    entityWhereClause = `AND tc.entity_id IN (${ids})`;
+    if (ids) {
+      entityWhereClause = `AND t.entity_id IN (${ids})`;
+    }
   }
 
   // ===============================
-  // LIST QUERY
+  // LIST QUERY (CORRECT MODEL)
   // ===============================
   const listSql = `
     SELECT
-      tc.entity_id,
+      t.entity_id,
 
       COALESCE(SUM(tc.amount), 0)::numeric AS total_outstanding,
 
@@ -616,36 +620,48 @@ export const listOutstandingEntities = async (filters = {}) => {
       COUNT(*)::int AS pending_charges_count
 
     FROM "TaskCharge" tc
+    JOIN "Task" t ON t.id = tc.task_id
+
     WHERE tc.deleted_at IS NULL
       AND tc.status = 'NOT_PAID'
       AND tc.bearer = 'CLIENT'
+      AND t.entity_id IS NOT NULL
       ${entityWhereClause}
 
-    GROUP BY tc.entity_id
-    HAVING SUM(tc.amount) > 0
-    ORDER BY ${sortBy} ${sortOrder}
-    LIMIT ${pageSize}
-    OFFSET ${offset};
+    GROUP BY t.entity_id
+    HAVING COALESCE(SUM(tc.amount), 0) > 0
+    ORDER BY "${sortBy}" ${sortOrder}
+    LIMIT $1
+    OFFSET $2;
   `;
 
   // ===============================
-  // COUNT QUERY
+  // COUNT QUERY (MATCHES LIST)
   // ===============================
   const countSql = `
-    SELECT COUNT(DISTINCT tc.entity_id)::int AS total
-    FROM "TaskCharge" tc
-    WHERE tc.deleted_at IS NULL
-      AND tc.status = 'NOT_PAID'
-      AND tc.bearer = 'CLIENT'
-      ${entityWhereClause};
+    SELECT COUNT(*)::int AS total
+    FROM (
+      SELECT t.entity_id
+      FROM "TaskCharge" tc
+      JOIN "Task" t ON t.id = tc.task_id
+      WHERE tc.deleted_at IS NULL
+        AND tc.status = 'NOT_PAID'
+        AND tc.bearer = 'CLIENT'
+        AND t.entity_id IS NOT NULL
+        ${entityWhereClause}
+      GROUP BY t.entity_id
+      HAVING SUM(tc.amount) > 0
+    ) sub;
   `;
 
   const [rows, countResult] = await Promise.all([
-    prisma.$queryRawUnsafe(listSql),
+    prisma.$queryRawUnsafe(listSql, pageSize, offset),
     prisma.$queryRawUnsafe(countSql),
   ]);
 
-  if (!rows.length) {
+  const total = Number(countResult[0]?.total || 0);
+
+  if (!rows.length || total === 0) {
     return {
       list: {
         data: [],
@@ -681,7 +697,7 @@ export const listOutstandingEntities = async (filters = {}) => {
   // FORMAT RESPONSE
   // ===============================
   const data = rows.map((r) => ({
-    entity: entityMap[r.entity_id] || null,
+    entity: entityMap[r.entity_id], // guaranteed to exist
     money: {
       total_outstanding: Number(r.total_outstanding),
       pending_charges_count: Number(r.pending_charges_count),
@@ -691,7 +707,6 @@ export const listOutstandingEntities = async (filters = {}) => {
     },
   }));
 
-  const total = Number(countResult[0]?.total || 0);
   const totalPages = Math.ceil(total / pageSize);
 
   return {
@@ -707,6 +722,7 @@ export const listOutstandingEntities = async (filters = {}) => {
     },
   };
 };
+
 
 export const getOutstandingGlobalStats = async () => {
   const result = await prisma.$queryRaw`

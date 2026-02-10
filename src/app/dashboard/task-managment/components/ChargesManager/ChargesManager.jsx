@@ -19,16 +19,16 @@ const ChargesManager = ({
   onDeleteCharge,
   onRestoreCharge,
   onHardDeleteCharge,
-  onSaveInvoiceDetails,
-  onFetchDeletedCharges, // NEW: Callback to fetch deleted charges on demand
 
-  isSavingInvoiceDetails = false,
+  onFetchDeletedCharges,
+
+
   isLoadingDeletedCharges = false,
   invoiceNumber = "",
   practiceFirm = null,
   chargeOperations = {},
 }) => {
-  const [view, setView] = useState("items"); // 'items' | 'summary' | 'deleted'
+  const [view, setView] = useState("items"); 
   const [draftCharge, setDraftCharge] = useState(null);
   const [hasLoadedDeletedCharges, setHasLoadedDeletedCharges] = useState(false);
 
@@ -346,10 +346,9 @@ const ChargesManager = ({
         {view === "summary" && (
           <ChargesSummary
             summary={calculateSummary()}
-            initialInvoiceNumber={invoiceNumber}
+          
             initialPracticeFirm={practiceFirm}
-            onSaveInvoiceDetails={onSaveInvoiceDetails}
-            isSavingInvoiceDetails={isSavingInvoiceDetails}
+          
           />
         )}
 

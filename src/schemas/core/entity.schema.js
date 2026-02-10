@@ -52,7 +52,7 @@ const CustomFieldsArraySchema = z
 
 export const EntityStatusEnum = z.enum(["ACTIVE", "INACTIVE", "SUSPENDED"]);
 
-const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
+const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/; 
 const pincodeRegex = /^[0-9]{6}$/;
 const phoneRegex = /^[0-9]{10}$/;
 
@@ -106,7 +106,7 @@ const EntityBaseSchema = z.object({
     .optional()
     .nullable(),
 
-  is_retainer: z.boolean().default(false),
+
 
   status: EntityStatusEnum.default("INACTIVE"),
 
@@ -149,7 +149,6 @@ export const EntityBulkImportSchema = z
 export const EntityQuerySchema = z.object({
   entity_type: EntityTypeEnum.optional(),
   status: EntityStatusEnum.optional(),
-  is_retainer: z.boolean().optional(),
   state: z.string().optional(),
   search: z.string().optional(),
   page: z.coerce.number().min(1).default(1),

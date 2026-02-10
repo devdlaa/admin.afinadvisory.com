@@ -53,7 +53,7 @@ export const createTaskSchema = z
 
     priority: TaskPriorityEnum,
 
-    start_date: z.coerce.date().optional().nullable(),
+   
     end_date: z.coerce.date().optional().nullable(),
     due_date: z.coerce.date().optional().nullable(),
 
@@ -69,12 +69,7 @@ export const createTaskSchema = z
      */
     is_billable: z.boolean().default(false),
   })
-  // end >= start
-  .refine(
-    (data) =>
-      !data.end_date || !data.start_date || data.end_date >= data.start_date,
-    { message: "End date must be after start date", path: ["end_date"] },
-  )
+  
   // due date not in past
   .refine((data) => !data.due_date || data.due_date >= new Date(), {
     message: "Due date cannot be in the past",
@@ -155,11 +150,7 @@ export const TaskUpdateSchema = z
 
     task_category_id: z.string().uuid().optional().nullable(),
 
-    start_date: z
-      .union([z.coerce.date(), z.literal("")])
-      .optional()
-      .nullable()
-      .transform((v) => (v === "" ? null : v)),
+
 
     due_date: z
       .union([z.coerce.date(), z.literal("")])

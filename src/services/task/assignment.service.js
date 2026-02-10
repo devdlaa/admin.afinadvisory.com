@@ -7,7 +7,7 @@ export const syncTaskAssignments = async (
   task_id,
   user_ids,
   assigned_to_all,
-  updated_by
+  updated_by,
 ) => {
   const result = await prisma.$transaction(async (tx) => {
     const task = await tx.task.findUnique({
@@ -27,7 +27,7 @@ export const syncTaskAssignments = async (
       user_ids.length
     ) {
       throw new ValidationError(
-        "Cannot provide specific assignees when assigned_to_all is true"
+        "Cannot provide specific assignees when assigned_to_all is true",
       );
     }
 
@@ -213,7 +213,7 @@ export const syncTaskAssignments = async (
 export const bulkAssignUnownedTasks = async (
   task_ids,
   user_ids,
-  assigned_by
+  assigned_by,
 ) => {
   return prisma.$transaction(async (tx) => {
     if (!Array.isArray(user_ids) || user_ids.length === 0) {
@@ -224,7 +224,7 @@ export const bulkAssignUnownedTasks = async (
 
     if (user_ids.length > 5) {
       throw new ValidationError(
-        "A maximum of 5 assignees is allowed per task in bulk assignment"
+        "A maximum of 5 assignees is allowed per task in bulk assignment",
       );
     }
 
@@ -249,7 +249,7 @@ export const bulkAssignUnownedTasks = async (
       .map((t) => t.id);
 
     const skippedTaskIds = task_ids.filter(
-      (id) => !eligibleTaskIds.includes(id)
+      (id) => !eligibleTaskIds.includes(id),
     );
 
     if (eligibleTaskIds.length === 0) {
@@ -284,7 +284,7 @@ export const bulkAssignUnownedTasks = async (
           assigned_by,
           assigned_at: now,
           assignment_source: "BULK_ASSIGNMENT",
-        }))
+        })),
       ),
       skipDuplicates: true,
     });
@@ -360,6 +360,7 @@ export const getAssignmentCountsPerUser = async () => {
         in_progress: 0,
         completed: 0,
         on_hold: 0,
+        pending_client_input: 0,
         cancelled: 0,
       });
     }
@@ -380,6 +381,10 @@ export const getAssignmentCountsPerUser = async () => {
         break;
       case "ON_HOLD":
         stats.on_hold++;
+        break;
+
+      case "PENDING_CLIENT_INPUT":
+        stats.pending_client_input++;
         break;
       case "CANCELLED":
         stats.cancelled++;
@@ -406,6 +411,7 @@ export const getAssignmentCountsPerUser = async () => {
     pending: stats.pending,
     in_progress: stats.in_progress,
     completed: stats.completed,
+    pending_client_input: stats.pending_client_input,
     on_hold: stats.on_hold,
     cancelled: stats.cancelled,
   }));

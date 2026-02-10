@@ -4,247 +4,66 @@ import {
   RotateCw,
   ChevronLeft,
   ChevronRight,
-  ChevronDown,
-  ChevronUp,
   Building2,
   Loader2,
   Search,
   User2,
   ArrowUp,
   ArrowDown,
-  FileX,
-  FileEdit,
-  FileCheck,
-  ExternalLink,
 } from "lucide-react";
 import FilterDropdown from "@/app/components/pages/FilterDropdown/FilterDropdown";
 import Button from "@/app/components/shared/Button/Button";
 import styles from "./OutstandingTable.module.scss";
 import { formatCurrency } from "@/utils/client/cutils";
 
-const BreakdownSkeleton = () => {
+const OutstandingTableRow = ({ item }) => {
   return (
-    <div className={styles.outstandingTable__breakdownContent}>
-      <div className={styles.outstandingTable__breakdownGrid}>
-        {[...Array(3)].map((_, index) => (
-          <div key={index} className={styles.outstandingTable__breakdownCard}>
-            <div className={styles.outstandingTable__skeletonIcon} />
-            <div className={styles.outstandingTable__breakdownDetails}>
-              <div className={styles.outstandingTable__skeletonName} />
-              <div className={styles.outstandingTable__skeletonAmount} />
-            </div>
+    <tr className={styles.outstandingTable__row}>
+      <td className={styles.outstandingTable__cell}>
+        <div className={styles.outstandingTable__entityInfo}>
+          <div className={styles.outstandingTable__entityIcon}>
+            <User2 size={20} />
           </div>
-        ))}
-      </div>
-    </div>
-  );
-};
-
-const BreakdownRow = ({ breakdown, entityId, loading }) => {
-  if (loading) {
-    return (
-      <tr className={styles.outstandingTable__expandedRow}>
-        <td colSpan="6">
-          <BreakdownSkeleton />
-        </td>
-      </tr>
-    );
-  }
-
-  if (!breakdown) {
-    return null;
-  }
-
-  const handleNavigate = (type) => {
-    const baseUrl = "/dashboard/task-managment";
-    let url = "";
-
-    switch (type) {
-      case "unreconciled":
-        url = `${baseUrl}/reconcile?tab=unreconciled&page=1&page_size=50&order=desc&entity_id=${entityId}`;
-        break;
-      case "draft":
-        url = `${baseUrl}/invoices?date_field=created_at&status=DRAFT&page_size=25&entity_id=${entityId}`;
-        break;
-      case "issued":
-        url = `${baseUrl}/invoices?date_field=created_at&status=ISSUED&page_size=25&entity_id=${entityId}`;
-        break;
-      default:
-        return;
-    }
-
-    window.open(url, "_blank");
-  };
-
-  return (
-    <tr className={styles.outstandingTable__expandedRow}>
-      <td colSpan="6">
-        <div className={styles.outstandingTable__breakdownContent}>
-          <div className={styles.outstandingTable__breakdownHeader}>
-            <h4>Outstanding Breakdown</h4>
-            <p>Click on any card to view details in a new tab</p>
-          </div>
-
-          <div className={styles.outstandingTable__breakdownGrid}>
-            {/* Unreconciled */}
-            <div
-              className={`${styles.outstandingTable__breakdownCard} ${styles.outstandingTable__breakdownCard__clickable}`}
-              onClick={() => handleNavigate("unreconciled")}
-            >
-              <div
-                className={`${styles.outstandingTable__breakdownIcon} ${styles.outstandingTable__breakdownIcon__orange}`}
-              >
-                <FileX size={24} />
-              </div>
-              <div className={styles.outstandingTable__breakdownDetails}>
-                <div className={styles.outstandingTable__breakdownLabel}>
-                  <span>Unreconciled</span>
-                  <ExternalLink size={14} />
-                </div>
-                <div className={styles.outstandingTable__breakdownAmount}>
-                  {formatCurrency(breakdown.unreconciled.amount)}
-                </div>
-                <div className={styles.outstandingTable__breakdownCount}>
-                  {breakdown.unreconciled.count} charge
-                  {breakdown.unreconciled.count !== 1 ? "s" : ""}
-                </div>
-              </div>
+          <div className={styles.outstandingTable__entityDetails}>
+            <div className={styles.outstandingTable__entityName}>
+              {item.entity.name}
             </div>
-
-            {/* Draft Invoices */}
-            <div
-              className={`${styles.outstandingTable__breakdownCard} ${styles.outstandingTable__breakdownCard__clickable}`}
-              onClick={() => handleNavigate("draft")}
-            >
-              <div
-                className={`${styles.outstandingTable__breakdownIcon} ${styles.outstandingTable__breakdownIcon__blue}`}
-              >
-                <FileEdit size={24} />
-              </div>
-              <div className={styles.outstandingTable__breakdownDetails}>
-                <div className={styles.outstandingTable__breakdownLabel}>
-                  <span>Draft Invoices</span>
-                  <ExternalLink size={14} />
-                </div>
-                <div className={styles.outstandingTable__breakdownAmount}>
-                  {formatCurrency(breakdown.draft_invoices.amount)}
-                </div>
-                <div className={styles.outstandingTable__breakdownCount}>
-                  {breakdown.draft_invoices.invoice_count} invoice
-                  {breakdown.draft_invoices.invoice_count !== 1
-                    ? "s"
-                    : ""} • {breakdown.draft_invoices.count} charge
-                  {breakdown.draft_invoices.count !== 1 ? "s" : ""}
-                </div>
-              </div>
-            </div>
-
-            {/* Issued Invoices */}
-            <div
-              className={`${styles.outstandingTable__breakdownCard} ${styles.outstandingTable__breakdownCard__clickable}`}
-              onClick={() => handleNavigate("issued")}
-            >
-              <div
-                className={`${styles.outstandingTable__breakdownIcon} ${styles.outstandingTable__breakdownIcon__green}`}
-              >
-                <FileCheck size={24} />
-              </div>
-              <div className={styles.outstandingTable__breakdownDetails}>
-                <div className={styles.outstandingTable__breakdownLabel}>
-                  <span>Issued & Pending</span>
-                  <ExternalLink size={14} />
-                </div>
-                <div className={styles.outstandingTable__breakdownAmount}>
-                  {formatCurrency(breakdown.issued_invoices.amount)}
-                </div>
-                <div className={styles.outstandingTable__breakdownCount}>
-                  {breakdown.issued_invoices.invoice_count} invoice
-                  {breakdown.issued_invoices.invoice_count !== 1
-                    ? "s"
-                    : ""} • {breakdown.issued_invoices.count} charge
-                  {breakdown.issued_invoices.count !== 1 ? "s" : ""}
-                </div>
-              </div>
+            <div className={styles.outstandingTable__entityEmail}>
+              {item.entity.email}
             </div>
           </div>
         </div>
       </td>
+
+      <td className={styles.outstandingTable__cell}>
+        <div className={styles.outstandingTable__amount}>
+          {formatCurrency(item.money.service_fee)}
+        </div>
+      </td>
+      <td className={styles.outstandingTable__cell}>
+        <div className={styles.outstandingTable__amount}>
+          {formatCurrency(item.money.government_fee)}
+        </div>
+      </td>
+      <td className={styles.outstandingTable__cell}>
+        <div className={styles.outstandingTable__amount}>
+          {formatCurrency(item.money.external_charge)}
+        </div>
+      </td>
+      <td className={styles.outstandingTable__cell}>
+        <div
+          className={`${styles.outstandingTable__amount} ${styles.outstandingTable__amountTotal}`}
+        >
+          {formatCurrency(item.money.total_outstanding)}
+        </div>
+      </td>
+      <td className={styles.outstandingTable__cell}>
+        <div className={styles.outstandingTable__badge}>
+          {item.money.pending_charges_count} charge
+          {item.money.pending_charges_count !== 1 ? "s" : ""}
+        </div>
+      </td>
     </tr>
-  );
-};
-
-const OutstandingTableRow = ({
-  item,
-  isExpanded,
-  onToggleExpand,
-  breakdown,
-  loadingBreakdown,
-}) => {
-  return (
-    <>
-      <tr
-        className={`${styles.outstandingTable__row} ${
-          isExpanded ? styles.outstandingTable__row__expanded : ""
-        }`}
-        onClick={onToggleExpand}
-      >
-        <td className={styles.outstandingTable__cell}>
-          <div className={styles.outstandingTable__entityInfo}>
-            <div className={styles.outstandingTable__expandIcon}>
-              {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-            </div>
-            <div className={styles.outstandingTable__entityIcon}>
-              <User2 size={20} />
-            </div>
-            <div className={styles.outstandingTable__entityDetails}>
-              <div className={styles.outstandingTable__entityName}>
-                {item.entity.name}
-              </div>
-              <div className={styles.outstandingTable__entityEmail}>
-                {item.entity.email}
-              </div>
-            </div>
-          </div>
-        </td>
-
-        <td className={styles.outstandingTable__cell}>
-          <div className={styles.outstandingTable__amount}>
-            {formatCurrency(item.money.service_fee)}
-          </div>
-        </td>
-        <td className={styles.outstandingTable__cell}>
-          <div className={styles.outstandingTable__amount}>
-            {formatCurrency(item.money.government_fee)}
-          </div>
-        </td>
-        <td className={styles.outstandingTable__cell}>
-          <div className={styles.outstandingTable__amount}>
-            {formatCurrency(item.money.external_charge)}
-          </div>
-        </td>
-        <td className={styles.outstandingTable__cell}>
-          <div
-            className={`${styles.outstandingTable__amount} ${styles.outstandingTable__amountTotal}`}
-          >
-            {formatCurrency(item.money.total_outstanding)}
-          </div>
-        </td>
-        <td className={styles.outstandingTable__cell}>
-          <div className={styles.outstandingTable__badge}>
-            {item.money.pending_charges_count} charge
-            {item.money.pending_charges_count !== 1 ? "s" : ""}
-          </div>
-        </td>
-      </tr>
-
-      {isExpanded && (
-        <BreakdownRow
-          breakdown={breakdown}
-          entityId={item.entity.id}
-          loading={loadingBreakdown}
-        />
-      )}
-    </>
   );
 };
 
@@ -298,9 +117,6 @@ const OutstandingTable = ({
   sortBy,
   sortOrder,
   onSortChange,
-  expandedEntityId = null,
-  onToggleExpand,
-  breakdowns = {},
 }) => {
   const [isPrevLoading, setIsPrevLoading] = useState(false);
   const [isNextLoading, setIsNextLoading] = useState(false);
@@ -484,14 +300,7 @@ const OutstandingTable = ({
               </tr>
             ) : (
               items.map((item) => (
-                <OutstandingTableRow
-                  key={item.entity.id}
-                  item={item}
-                  isExpanded={expandedEntityId === item.entity.id}
-                  onToggleExpand={() => onToggleExpand(item.entity.id)}
-                  breakdown={breakdowns[item.entity.id]?.data}
-                  loadingBreakdown={breakdowns[item.entity.id]?.loading}
-                />
+                <OutstandingTableRow key={item.entity.id} item={item} />
               ))
             )}
           </tbody>

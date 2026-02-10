@@ -10,12 +10,9 @@ import {
   TicketPercent,
   ChevronDown,
   ShieldAlert,
-  ClipboardList,
-  UsersRound,
   Briefcase,
   CheckSquare,
   Globe,
-  LayoutDashboard,
   ListChecks,
   FileText,
   Building,
@@ -110,22 +107,10 @@ const SIDEBAR_CONFIG = {
           path: "/dashboard/marketing",
           children: [
             {
-              id: "partners",
-              label: "Brand Partners",
-              icon: Megaphone,
-              path: "/dashboard/marketing/partners",
-            },
-            {
               id: "coupons",
               label: "Coupons",
               icon: TicketPercent,
               path: "/dashboard/marketing/coupons",
-            },
-            {
-              id: "join-list",
-              label: "Influencer Join List",
-              icon: ClipboardList,
-              path: "/dashboard/marketing/partner-programm-join-list",
             },
           ],
         },
@@ -135,12 +120,6 @@ const SIDEBAR_CONFIG = {
       id: "account",
       title: "Account",
       items: [
-        {
-          id: "my-profile",
-          label: "My Profile",
-          icon: UsersRound,
-          path: "/dashboard/user-profile",
-        },
         {
           id: "users",
           label: "Manage Team",

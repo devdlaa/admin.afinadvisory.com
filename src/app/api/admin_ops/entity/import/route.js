@@ -112,24 +112,7 @@ export async function POST(req) {
         row.status = "ACTIVE"; // Default value
       }
 
-      // Convert boolean strings to actual booleans for is_retainer
-      if (row.is_retainer !== null && row.is_retainer !== undefined) {
-        const val = String(row.is_retainer).trim().toLowerCase();
-        if (val === "true" || val === "1" || val === "yes") {
-          row.is_retainer = true;
-        } else if (
-          val === "false" ||
-          val === "0" ||
-          val === "no" ||
-          val === ""
-        ) {
-          row.is_retainer = false;
-        } else {
-          row.is_retainer = false; // Default to false for invalid values
-        }
-      } else {
-        row.is_retainer = false; // Default value
-      }
+      
 
       // Trim all string fields
       if (row.name) row.name = String(row.name).trim();

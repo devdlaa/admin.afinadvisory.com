@@ -59,6 +59,7 @@ const initialState = {
     reconciled: false,
     reconciledNext: false,
     reconciledPrev: false,
+    export: false,
   },
 
   // Errors
@@ -69,6 +70,7 @@ const initialState = {
     update: null,
     bulkUpdate: null, // { success: [], rejected: [{ id, reason }] }
     reconciled: null,
+    export: null, // ADD THIS
   },
 };
 
@@ -200,6 +202,51 @@ export const fetchInvoiceDetails = createAsyncThunk(
       }
 
       return result.data;
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  },
+);
+
+// Add to ASYNC THUNKS section
+export const exportInvoice = createAsyncThunk(
+  "invoice/export",
+  async (invoiceId, { rejectWithValue }) => {
+    try {
+      const response = await fetch(
+        `/api/admin_ops/invoices/${invoiceId}/export`,
+        {
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+
+      if (!response.ok) {
+        const result = await response.json();
+        return rejectWithValue(
+          result.error?.message || "Failed to export invoice",
+        );
+      }
+
+      // Get the blob data
+      const blob = await response.blob();
+
+      // Extract filename from Content-Disposition header
+      const contentDisposition = response.headers.get("Content-Disposition");
+      const filenameMatch = contentDisposition?.match(/filename="(.+)"/);
+      const filename = filenameMatch?.[1] || `invoice-${invoiceId}.xlsx`;
+
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      return { invoiceId, filename };
     } catch (error) {
       return rejectWithValue(error.message);
     }
@@ -462,6 +509,22 @@ const invoiceSlice = createSlice({
   },
 
   extraReducers: (builder) => {
+    // ============================================
+    // EXPORT INVOICE
+    // ============================================
+    builder
+      .addCase(exportInvoice.pending, (state) => {
+        state.loading.export = true;
+        state.error.export = null;
+      })
+      .addCase(exportInvoice.fulfilled, (state) => {
+        state.loading.export = false;
+      })
+      .addCase(exportInvoice.rejected, (state, action) => {
+        state.loading.export = false;
+        state.error.export = action.payload || "Failed to export invoice";
+      });
+
     // ============================================
     // FETCH INVOICES LIST
     // ============================================

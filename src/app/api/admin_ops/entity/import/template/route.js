@@ -56,7 +56,7 @@ export async function GET(req) {
     { header: "city", width: 20 },
     { header: "state", width: 20 },
     { header: "pincode", width: 12 },
-    { header: "is_retainer", width: 12 },
+
     { header: "status", width: 12 },
   ];
 
@@ -82,7 +82,7 @@ export async function GET(req) {
     city: "Mumbai",
     state: "Maharashtra",
     pincode: "400001",
-    is_retainer: "FALSE",
+
     status: "ACTIVE",
     custom_field_01: "GST Number",
     custom_field_value_01: "29ABCDE1234F1Z5",
@@ -124,37 +124,24 @@ export async function GET(req) {
     };
   }
 
-  // Add data validation for status (column N - 14th column)
+  // Add data validation for status (column M - 14th column)
   for (let row = 2; row <= 501; row++) {
-    sheet.getCell(`N${row}`).dataValidation = {
-      type: "list",
-      allowBlank: true,
-      formulae: [`"${STATUS_OPTIONS.join(",")}"`],
-      showErrorMessage: true,
-      errorStyle: "error",
-      errorTitle: "Invalid Status",
-      error: "Please select ACTIVE, INACTIVE, or SUSPENDED",
-      showInputMessage: true,
-      promptTitle: "Status",
-      prompt: "Select the entity status (default: ACTIVE)",
-    };
-  }
+  sheet.getCell(`M${row}`).dataValidation = {
+    type: "list",
+    allowBlank: true,
+    formulae: [`"${STATUS_OPTIONS.join(",")}"`],
+    showErrorMessage: true,
+    errorStyle: "error",
+    errorTitle: "Invalid Status",
+    error: "Please select ACTIVE, INACTIVE, or SUSPENDED",
+    showInputMessage: true,
+    promptTitle: "Status",
+    prompt: "Select the entity status (default: ACTIVE)",
+  };
+}
 
-  // Add data validation for is_retainer (column M - 13th column)
-  for (let row = 2; row <= 501; row++) {
-    sheet.getCell(`M${row}`).dataValidation = {
-      type: "list",
-      allowBlank: true,
-      formulae: ['"TRUE,FALSE"'],
-      showErrorMessage: true,
-      errorStyle: "error",
-      errorTitle: "Invalid Value",
-      error: "Please select TRUE or FALSE",
-      showInputMessage: true,
-      promptTitle: "Is Retainer",
-      prompt: "Select TRUE or FALSE",
-    };
-  }
+
+
 
   // Add data validation for custom field names (columns O, Q, S, U, W, Y, AA, AC, AE, AG)
   // These are the custom_field_01, custom_field_02, etc. columns
@@ -213,7 +200,6 @@ export async function GET(req) {
     ["• city: City name"],
     ["• state: State name"],
     ["• pincode: 6-digit pincode"],
-    ["• is_retainer: Select TRUE or FALSE (default: FALSE)"],
     ["• status: Select from dropdown (default: ACTIVE)"],
     [""],
     ["CUSTOM FIELDS:"],

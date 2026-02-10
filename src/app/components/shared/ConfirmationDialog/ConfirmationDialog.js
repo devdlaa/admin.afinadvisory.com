@@ -11,15 +11,19 @@ const ConfirmationDialog = ({
   confirmText = "Confirm",
   cancelText = "Cancel",
   variant = "default", // default, danger, warning
+  isCritical = false,
+  criticalConfirmWord = "DELETE", // Word user must type to confirm
   onConfirm = () => {},
   onCancel = () => {},
 }) => {
   const [loading, setLoading] = useState(false);
+  const [confirmInput, setConfirmInput] = useState("");
 
-  // Reset loading state when dialog opens/closes
+  // Reset state when dialog opens/closes
   useEffect(() => {
     if (isOpen) {
       setLoading(false);
+      setConfirmInput("");
     }
   }, [isOpen]);
 
@@ -46,6 +50,13 @@ const ConfirmationDialog = ({
     } finally {
       setLoading(false);
     }
+  };
+
+  // Check if confirm button should be disabled
+  const isConfirmDisabled = () => {
+    if (loading) return true;
+    if (isCritical && confirmInput !== criticalConfirmWord) return true;
+    return false;
   };
 
   if (!isOpen) return null;
@@ -75,6 +86,23 @@ const ConfirmationDialog = ({
               {actionInfo && <p className="confirmation-info">{actionInfo}</p>}
             </div>
 
+            {isCritical && (
+              <div className="confirmation-critical">
+                <label className="confirmation-critical-label">
+                  Type <strong>{criticalConfirmWord}</strong> to confirm the action.
+                </label>
+                <input
+                  type="text"
+                  className="confirmation-critical-input"
+                  value={confirmInput}
+                  onChange={(e) => setConfirmInput(e.target.value)}
+                  placeholder={criticalConfirmWord}
+                  disabled={loading}
+                  autoFocus
+                />
+              </div>
+            )}
+
             <div className="confirmation-actions">
               <button
                 className="confirmation-btn confirmation-btn-secondary"
@@ -86,7 +114,7 @@ const ConfirmationDialog = ({
               <button
                 className={`confirmation-btn confirmation-btn-${variant}`}
                 onClick={handleConfirm}
-                disabled={loading}
+                disabled={isConfirmDisabled()}
               >
                 {loading ? (
                   <>

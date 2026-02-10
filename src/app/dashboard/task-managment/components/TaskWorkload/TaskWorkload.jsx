@@ -16,7 +16,7 @@ const TaskWorkload = () => {
   // Get workload data and loading state from Redux
   const assignmentReport = useSelector(selectAssignmentReport);
   const isLoading = useSelector(
-    (state) => state.task?.assignmentReportLoading ?? false
+    (state) => state.task?.assignmentReportLoading ?? false,
   );
 
   // Fetch data only if not already loaded
@@ -30,7 +30,7 @@ const TaskWorkload = () => {
   const handleRefresh = () => {
     dispatch(fetchAssignmentReport());
   };
-
+  
   // Calculate summary statistics
   const summary = Array.isArray(assignmentReport)
     ? assignmentReport.reduce(
@@ -40,6 +40,8 @@ const TaskWorkload = () => {
           in_progress: acc.in_progress + (user.in_progress || 0),
           completed: acc.completed + (user.completed || 0),
           on_hold: acc.on_hold + (user.on_hold || 0),
+          pending_client_input:
+            acc.pending_client_input + (user.pending_client_input || 0),
           cancelled: acc.cancelled + (user.cancelled || 0),
         }),
         {
@@ -48,8 +50,9 @@ const TaskWorkload = () => {
           in_progress: 0,
           completed: 0,
           on_hold: 0,
+          pending_client_input: 0,
           cancelled: 0,
-        }
+        },
       )
     : {
         total: 0,
@@ -57,6 +60,7 @@ const TaskWorkload = () => {
         in_progress: 0,
         completed: 0,
         on_hold: 0,
+        pending_client_input: 0,
         cancelled: 0,
       };
 
@@ -152,9 +156,7 @@ const TaskWorkload = () => {
       <div className="workload__summary">
         <div className="workload__summary-item">
           <span className="workload__summary-label">
-
-        Assignments (These are not total tasks)
-
+            Assignments (These are not total tasks)
           </span>
           <span className="workload__summary-value">{summary.total}</span>
         </div>
@@ -194,6 +196,9 @@ const TaskWorkload = () => {
           <div className="workload__table-cell workload__table-cell--hold">
             On Hold
           </div>
+          <div className="workload__table-cell workload__table-cell--client-input">
+            Client Input
+          </div>
           <div className="workload__table-cell workload__table-cell--cancelled">
             Cancelled
           </div>
@@ -207,7 +212,11 @@ const TaskWorkload = () => {
                 <div className="workload__table-cell workload__table-cell--user">
                   <div className="workload__user">
                     <Avatar
-                      src={user.admin_user_id ? getProfileUrl(user.admin_user_id) : undefined}
+                      src={
+                        user.admin_user_id
+                          ? getProfileUrl(user.admin_user_id)
+                          : undefined
+                      }
                       alt={user.name}
                       size={32}
                       fallbackText={user.name}
@@ -245,6 +254,11 @@ const TaskWorkload = () => {
                 <div className="workload__table-cell workload__table-cell--hold">
                   <span className="workload__count workload__count--hold">
                     {user.on_hold}
+                  </span>
+                </div>
+                <div className="workload__table-cell workload__table-cell--pending">
+                  <span className="workload__count workload__count--pending">
+                    {user.pending_client_input}
                   </span>
                 </div>
                 <div className="workload__table-cell workload__table-cell--cancelled">

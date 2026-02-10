@@ -14,7 +14,7 @@ import {
 } from "./task_aggregation_deltas.js";
 
 // ==================== INVOICE LOCK HELPER ====================
-
+const WORKING_STATUSES = new Set(["IN_PROGRESS"]);
 /**
  * Check if critical invoice-locked fields are being modified
  * LOCKS: title, status, entity_id, task_category_id, is_billable,
@@ -199,9 +199,9 @@ export const createTask = async (data, created_by) => {
         description: data.description ?? null,
         status: data.status ?? "PENDING",
         priority: data.priority ?? "NORMAL",
-        start_date: data.start_date ? new Date(data.start_date) : null,
-        end_date: data.end_date ? new Date(data.end_date) : null,
-        due_date: data.due_date ? new Date(data.due_date) : null,
+        start_date: null,
+        end_date: null,
+        due_date: null,
         task_category_id: data.task_category_id ?? null,
         is_billable: true,
 
@@ -449,6 +449,22 @@ export const updateTask = async (task_id, data, currentUser) => {
       computedEndDate = new Date();
     }
 
+    let computedStartDate = undefined;
+
+    const prevStatus = existing.status;
+    const nextStatus = data.status;
+
+    const wasWorking = WORKING_STATUSES.has(prevStatus);
+    const isWorking = WORKING_STATUSES.has(nextStatus);
+
+    if (!wasWorking && isWorking) {
+      computedStartDate = new Date();
+    }
+
+    if (wasWorking && !isWorking) {
+      computedStartDate = null;
+    }
+
     if (Object.keys(from).length || Object.keys(to).length) {
       changes.push({
         action: "TASK_UPDATED",
@@ -467,12 +483,7 @@ export const updateTask = async (task_id, data, currentUser) => {
         priority: data.priority,
         entity_id: data.entity_id,
         task_category_id: data.task_category_id,
-        start_date:
-          data.start_date === undefined
-            ? undefined
-            : data.start_date
-              ? new Date(data.start_date)
-              : null,
+        start_date: computedStartDate,
         due_date:
           data.due_date === undefined
             ? undefined

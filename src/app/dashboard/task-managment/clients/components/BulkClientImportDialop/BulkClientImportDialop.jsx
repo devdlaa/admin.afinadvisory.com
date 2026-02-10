@@ -1,5 +1,10 @@
 "use client";
-import React, { useState, forwardRef, useImperativeHandle, useRef } from "react";
+import React, {
+  useState,
+  forwardRef,
+  useImperativeHandle,
+  useRef,
+} from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   X,
@@ -19,6 +24,32 @@ import {
   selectTemplateDownloadLoading,
 } from "@/store/slices/entitySlice";
 import styles from "./BulkClientImportDialog.module.scss";
+
+const normalizeValidationErrors = (details) => {
+  const rowMap = {};
+
+  details.forEach((err) => {
+    const rowIndex = err.path?.[0];
+    const field = err.path?.[1];
+
+    if (rowIndex === undefined) return;
+
+    const rowNumber = rowIndex + 2;
+
+    if (!rowMap[rowNumber]) {
+      rowMap[rowNumber] = new Set();
+    }
+
+    if (field) {
+      rowMap[rowNumber].add(field.replace("_", " "));
+    }
+  });
+
+  return Object.entries(rowMap).map(([row, fields]) => ({
+    row,
+    fields: Array.from(fields),
+  }));
+};
 
 const BulkClientImportDialog = forwardRef((props, ref) => {
   const dialogRef = useRef(null);
@@ -105,7 +136,19 @@ const BulkClientImportDialog = forwardRef((props, ref) => {
       setImportResults(result);
       setUploadStatus("success");
     } catch (error) {
-      setErrorMessage(error.message || "Upload failed");
+      if (error?.code === "VALIDATION_ERROR" && error.details) {
+        const rows = normalizeValidationErrors(error.details);
+        
+        setImportResults({
+          validationOnly: true,
+          invalidRows: rows,
+        });
+
+        setErrorMessage("Validation failed. Please fix the errors in Excel Sheet and Re-upload.");
+      } else {
+        setErrorMessage(error.message || "Upload failed");
+      }
+
       setUploadStatus("error");
     }
   };
@@ -371,6 +414,7 @@ const BulkClientImportDialog = forwardRef((props, ref) => {
           )}
         </div>
       )}
+     
     </div>
   );
 

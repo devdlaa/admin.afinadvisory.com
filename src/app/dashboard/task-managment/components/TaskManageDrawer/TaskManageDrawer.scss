@@ -2348,3 +2348,21 @@
     color: #991b1b;
   }
 }
+
+
+.client-dialog__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.client-dialog__actions-left,
+.client-dialog__actions-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+
+

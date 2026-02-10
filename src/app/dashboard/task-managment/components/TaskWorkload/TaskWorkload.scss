@@ -134,7 +134,7 @@
 
   &__table-header {
     display: grid;
-    grid-template-columns: 2fr repeat(6, 1fr);
+    grid-template-columns: 2fr repeat(7, 1fr);
     background: #fafafa;
     border-bottom: 1px solid #e0e0e0;
   }
@@ -145,7 +145,7 @@
 
   &__table-row {
     display: grid;
-    grid-template-columns: 2fr repeat(6, 1fr);
+    grid-template-columns: 2fr repeat(7, 1fr);
     border-bottom: 1px solid #f0f0f0;
     transition: background-color 0.15s ease;
 
@@ -273,6 +273,10 @@
     &--cancelled {
       background: #fee2e2;
       color: #991b1b;
+    }
+    &--client-input {
+      background: #ede9fe;
+      color: #6d28d9;
     }
   }
 
@@ -426,7 +430,9 @@
       padding: 18px 24px;
       gap: 8px;
     }
-
+    &--client-input {
+      background: #f5f3ff;
+    }
     &__summary-label {
       font-size: 13px;
     }
@@ -566,7 +572,7 @@
 
     &__table-header,
     &__table-row {
-      grid-template-columns: 2fr repeat(6, 0.9fr);
+      grid-template-columns: 2fr repeat(7, 0.9fr);
     }
 
     &__table-cell {
@@ -668,7 +674,7 @@
 
     &__table-header,
     &__table-row {
-      grid-template-columns: 1.8fr repeat(6, 0.8fr);
+      grid-template-columns: 1.8fr repeat(7, 0.8fr);
     }
 
     &__table-cell {
@@ -780,7 +786,7 @@
 
     &__table-header,
     &__table-row {
-      grid-template-columns: 1.6fr repeat(6, 0.75fr);
+      grid-template-columns: 1.6fr repeat(7, 0.75fr);
     }
 
     &__table-cell {
@@ -872,7 +878,7 @@
 
     &__table-header,
     &__table-row {
-      grid-template-columns: 150px repeat(6, 80px);
+      grid-template-columns: 150px repeat(7, 80px);
       min-width: 600px;
     }
   }

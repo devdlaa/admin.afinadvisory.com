@@ -95,7 +95,9 @@ const TaskPrimaryInfo = ({
           <CustomDatePicker
             label="Start Date"
             selectedDate={primaryInfo.start_date}
-            onDateSelect={(date) => onPrimaryInfoChange("start_date", date)}
+            disabled
+            readonly
+         
           />
         </div>
 

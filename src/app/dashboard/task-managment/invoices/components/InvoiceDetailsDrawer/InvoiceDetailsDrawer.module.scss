@@ -436,8 +436,8 @@
   transition: all 0.2s;
   border: none;
   font-size: 14px;
-
-  &:disabled {
+  
+  &:disabled {  
     opacity: 0.6;
     cursor: not-allowed;
   }
@@ -447,7 +447,9 @@
   background-color: transparent;
   color: #6b7280;
   border: 1px solid #d1d5db;
-
+  display: flex;
+  align-items: center;
+  gap: 5px;
   &:hover:not(:disabled) {
     background-color: #f3f4f6;
     border-color: #9ca3af;

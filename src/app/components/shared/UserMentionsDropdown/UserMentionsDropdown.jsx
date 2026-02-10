@@ -29,35 +29,35 @@ const UserMentionsDropdown = ({
 
   // Filter users based on task assignment
   const getEligibleUsers = () => {
-    // If no task data or users not loaded, return empty
     if (!users || users.length === 0) return [];
 
-    // If no task provided, return all users (fallback)
     if (!task) return users;
 
-    // If assigned_to_all is true, return all users
     if (task.assigned_to_all === true) {
       return users;
     }
 
-    // Otherwise, only return users assigned to this task
     const assignedUserIds = Array.isArray(task.assignments)
       ? task.assignments.map((a) => a.admin_user_id).filter(Boolean)
       : [];
 
-    // Always include the task creator if it exists
     const eligibleUserIds = new Set(assignedUserIds);
+
     if (task.created_by) {
       eligibleUserIds.add(task.created_by);
     }
 
-    // If no eligible users found, return all users (safety fallback)
-    if (eligibleUserIds.size === 0) {
+    const eligibleUsers = users.filter((user) => {
+      if (user.admin_role === "SUPER_ADMIN") return true;
+      return eligibleUserIds.has(user.id);
+    });
+
+    if (eligibleUsers.length === 0) {
       console.warn("No eligible users found, showing all users");
       return users;
     }
 
-    return users.filter((user) => eligibleUserIds.has(user.id));
+    return eligibleUsers;
   };
 
   // Filter users by query
@@ -82,13 +82,13 @@ const UserMentionsDropdown = ({
         case "ArrowDown":
           e.preventDefault();
           setSelectedIndex((prev) =>
-            prev < filteredUsers.length - 1 ? prev + 1 : 0
+            prev < filteredUsers.length - 1 ? prev + 1 : 0,
           );
           break;
         case "ArrowUp":
           e.preventDefault();
           setSelectedIndex((prev) =>
-            prev > 0 ? prev - 1 : filteredUsers.length - 1
+            prev > 0 ? prev - 1 : filteredUsers.length - 1,
           );
           break;
         case "Enter":
@@ -135,7 +135,7 @@ const UserMentionsDropdown = ({
   // Auto-scroll selected item
   useEffect(() => {
     const selected = dropdownRef.current?.querySelectorAll(
-      `.${styles.userItem}`
+      `.${styles.userItem}`,
     )[selectedIndex];
     selected?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }, [selectedIndex]);

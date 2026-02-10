@@ -8,6 +8,7 @@ import {
   selectInvoiceLoading,
   selectInvoiceError,
   clearSelectedInvoice,
+  exportInvoice,
 } from "@/store/slices/invoiceSlice";
 
 import FilterDropdown from "@/app/components/pages/FilterDropdown/FilterDropdown";
@@ -30,6 +31,8 @@ import {
   HashIcon,
   ListCheckIcon,
   ArchiveRestore,
+  Download,
+  Loader2,
 } from "lucide-react";
 
 // ============================================================================
@@ -172,7 +175,7 @@ const InfoField = React.memo(
         </div>
       )}
     </div>
-  )
+  ),
 );
 
 InfoField.displayName = "InfoField";
@@ -201,7 +204,7 @@ const InvoiceDetailsDrawer = ({
   // ============================================================================
   // LOCAL STATE
   // ============================================================================
-  
+
   // Form state
   const [isEditingInfo, setIsEditingInfo] = useState(false);
   const [editForm, setEditForm] = useState({
@@ -255,7 +258,7 @@ const InvoiceDetailsDrawer = ({
         value: profile.id,
         label: profile.name,
       })),
-    [companyProfiles]
+    [companyProfiles],
   );
 
   // ============================================================================
@@ -447,7 +450,7 @@ const InvoiceDetailsDrawer = ({
         if (fullyPaidTasks && fullyPaidTasks.length > 0) {
           fullyPaidTasks.forEach((task) => {
             taskList.push(
-              `• ${task.title} (${task.chargeCount} ${task.chargeCount === 1 ? "charge" : "charges"} - ${task.reason})`
+              `• ${task.title} (${task.chargeCount} ${task.chargeCount === 1 ? "charge" : "charges"} - ${task.reason})`,
             );
           });
         }
@@ -499,7 +502,7 @@ These tasks can be unlinked using the multi-select feature in the table below. W
           break;
 
         case "unlinkTasks":
-          await handlers.onUnlinkTasks(invoice.id,data.taskIds);
+          await handlers.onUnlinkTasks(invoice.id, data.taskIds);
           setSelectedTaskIds([]);
           break;
 
@@ -512,7 +515,7 @@ These tasks can be unlinked using the multi-select feature in the table below. W
           break;
 
         case "unlinkAdHoc":
-          await handlers.onUnlinkTasks(invoice.id,[data.taskId]);
+          await handlers.onUnlinkTasks(invoice.id, [data.taskId]);
           break;
 
         case "tasksNeedingAttention":
@@ -581,6 +584,19 @@ These tasks can be unlinked using the multi-select feature in the table below. W
       });
     }
   }, [validateForm, handlers, invoice, editForm]);
+
+  const handleExportInvoice = useCallback(async () => {
+    if (!invoice?.internal_number) {
+      console.log("No invoice ID available for export");
+      return;
+    }
+
+    try {
+      await dispatch(exportInvoice(invoice.internal_number)).unwrap();
+    } catch (err) {
+      console.error("Failed to export invoice:", err);
+    }
+  }, [invoice?.internal_number, dispatch]);
 
   const handleCancelEdit = useCallback(() => {
     setIsEditingInfo(false);
@@ -659,7 +675,7 @@ These tasks can be unlinked using the multi-select feature in the table below. W
         handlers.onUpdateInvoiceStatus(invoice.id, status);
       }
     },
-    [editForm.external_number, groups, hasIgnoredValidation, invoice, handlers]
+    [editForm.external_number, groups, hasIgnoredValidation, invoice, handlers],
   );
 
   // ============================================================================
@@ -709,7 +725,7 @@ These tasks can be unlinked using the multi-select feature in the table below. W
         data: { taskIds },
       });
     },
-    [invoice?.id]
+    [invoice?.id],
   );
 
   const handleUnlinkAdhocTask = useCallback((taskId) => {
@@ -754,7 +770,7 @@ These tasks can be unlinked using the multi-select feature in the table below. W
 
     window.open(
       `/dashboard/task-managment/reconcile?${params.toString()}`,
-      "_blank"
+      "_blank",
     );
   }, [selectedInvoice]);
 
@@ -852,6 +868,17 @@ These tasks can be unlinked using the multi-select feature in the table below. W
           </div>
 
           <div className={styles.sectionHeader}>
+            {invoice && (
+              <button
+                onClick={handleExportInvoice}
+                className={styles.editButton}
+                disabled={loading.export || loading.details}
+                title="Export invoice to Excel"
+              >
+                {loading?.export ? "Exporting..." : "Export Excel"}
+              </button>
+            )}
+
             {!isEditingInfo && canEdit && (
               <button
                 onClick={() => setIsEditingInfo(true)}

@@ -18,6 +18,8 @@ import { useSearchParams, useRouter } from "next/navigation";
 import TaskTimeline from "../TaskTimeline/TaskTimeline";
 import Checklist from "../Checklist/Checklist";
 import ChargesManager from "../ChargesManager/ChargesManager";
+import ClientAddUpdateDialog from "../../clients/components/ClientAddUpdateDialog";
+import TaskStatusReasonDialog from "../TaskStatusReasonDialog/TaskStatusReasonDialog";
 
 import AssignmentDialog from "@/app/components/pages/AssignmentDialog/AssignmentDialog";
 import TaskPrimaryInfo from "../TaskPrimaryInfo";
@@ -69,6 +71,7 @@ import { toDateInputValue } from "@/utils/shared/shared_util";
 // Styles
 import "./TaskManageDrawer.scss";
 
+const CRITICAL_STATUS = ["ON_HOLD", "PENDING_CLIENT_INPUT", "CANCELLED"];
 const TaskManageDrawer = () => {
   const dispatch = useDispatch();
 
@@ -80,7 +83,12 @@ const TaskManageDrawer = () => {
   const categories = useSelector(selectAllCategories);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showConfirmClose, setShowConfirmClose] = useState(false);
+  const addClientDialogRef = useRef(null);
 
+  const [needsReason, setNeedsReason] = useState(false);
+  const [reasonContext, setReasonContext] = useState(null);
+  const [showStatusReasonDialog, setShowStatusReasonDialog] = useState(false);
+  setShowStatusReasonDialog;
   const searchParams = useSearchParams();
   const router = useRouter();
   const urlTab = searchParams.get("tab");
@@ -113,7 +121,6 @@ const TaskManageDrawer = () => {
 
   // Local state
   const [activeTab, setActiveTab] = useState("checklist");
-  const [isSavingInvoiceDetails, setIsSavingInvoiceDetails] = useState(false);
 
   // Primary info state
   const [primaryInfo, setPrimaryInfo] = useState({
@@ -172,6 +179,18 @@ const TaskManageDrawer = () => {
       }
     }
   }, [task]);
+
+  useEffect(() => {
+    if (!originalPrimaryInfo) return;
+
+    if (
+      primaryInfo.status !== originalPrimaryInfo.status &&
+      CRITICAL_STATUS.includes(primaryInfo.status)
+    ) {
+      setNeedsReason(true);
+      setReasonContext(primaryInfo.status);
+    }
+  }, [primaryInfo.status, originalPrimaryInfo]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -249,6 +268,11 @@ const TaskManageDrawer = () => {
 
     const isForced = force === true;
 
+    if (!force && needsReason) {
+      setShowStatusReasonDialog(true);
+      return;
+    }
+
     if (!isForced && hasPrimaryInfoChanges()) {
       setShowConfirmClose(true);
       return;
@@ -264,6 +288,8 @@ const TaskManageDrawer = () => {
     const params = new URLSearchParams(window.location.search);
     params.delete("taskId");
     params.delete("tab");
+    setNeedsReason(false);
+    setReasonContext(null);
 
     const newUrl = params.toString()
       ? `${window.location.pathname}?${params.toString()}`
@@ -424,27 +450,6 @@ const TaskManageDrawer = () => {
   const handleFetchDeletedCharges = () => {
     if (task?.id) {
       dispatch(fetchDeletedCharges(task.id));
-    }
-  };
-
-  const handleSaveInvoiceDetails = async (invoiceData) => {
-    setIsSavingInvoiceDetails(true);
-    try {
-      await dispatch(
-        updateTask({
-          taskId: task.id,
-          data: {
-            invoice_number: invoiceData.invoice_number,
-            practice_firm: invoiceData.practice_firm,
-          },
-        }),
-      ).unwrap();
-
-      setIsSavingInvoiceDetails(false);
-      return true;
-    } catch (error) {
-      setIsSavingInvoiceDetails(false);
-      return false;
     }
   };
 
@@ -614,10 +619,8 @@ const TaskManageDrawer = () => {
                     onRestoreCharge={handleRestoreCharge}
                     onHardDeleteCharge={handleHardDeleteCharge}
                     onFetchDeletedCharges={handleFetchDeletedCharges}
-                    onSaveInvoiceDetails={handleSaveInvoiceDetails}
                     isLoading={isLoadingCharges}
                     isLoadingDeletedCharges={isLoadingDeletedCharges}
-                    isSavingInvoiceDetails={isSavingInvoiceDetails}
                     invoiceNumber={task.invoice_number || ""}
                     practiceFirm={task.practice_firm || null}
                     chargeOperations={chargeOperations}
@@ -636,7 +639,6 @@ const TaskManageDrawer = () => {
 
             {/* Right Panel */}
             <div className="task-drawer__right">
-     
               {task?.invoice && (
                 <div
                   className={`invoice-linked-badge invoice-linked-badge--${task?.invoice?.status?.toLowerCase()}`}
@@ -647,7 +649,6 @@ const TaskManageDrawer = () => {
                         Linked to Invoice
                       </span>
 
-              
                       <span
                         className={`invoice-status-badge invoice-status-badge--${task?.invoice?.status?.toLowerCase()}`}
                       >
@@ -677,7 +678,7 @@ const TaskManageDrawer = () => {
                       }
                     >
                       View Invoice
-                      <Link size={12}/>
+                      <Link size={12} />
                     </button>
                   </div>
                 </div>
@@ -749,6 +750,7 @@ const TaskManageDrawer = () => {
         actionName="Delete this task?"
         actionInfo="This action cannot be undone."
         confirmText="Delete Task"
+        isCritical={true}
         cancelText="Cancel"
         variant="danger"
         onConfirm={async () => {
@@ -759,6 +761,19 @@ const TaskManageDrawer = () => {
           } catch (e) {}
         }}
         onCancel={() => setShowDeleteConfirm(false)}
+      />
+      <TaskStatusReasonDialog
+        isOpen={showStatusReasonDialog}
+        taskId={task?.id}
+        status={reasonContext}
+        onSkip={() => {
+          setShowStatusReasonDialog(false);
+          handleClose(true);
+        }}
+        onDone={() => {
+          setShowStatusReasonDialog(false);
+          handleClose(true);
+        }}
       />
 
       <ClientSelectionDialog
@@ -775,6 +790,19 @@ const TaskManageDrawer = () => {
         onSelectEntity={handleSelectEntity}
         onClearSelection={handleClearEntitySelection}
         onConfirmSelection={handleConfirmEntitySelection}
+        onAddNewClient={() => {
+          addClientDialogRef.current?.showModal();
+        }}
+      />
+
+      <ClientAddUpdateDialog
+        ref={addClientDialogRef}
+        mode="add"
+        onCreated={(client) => {
+          addClientDialogRef.current?.close();
+
+          setShowClientDialog(true);
+        }}
       />
 
       {showAssignmentDialog && (
