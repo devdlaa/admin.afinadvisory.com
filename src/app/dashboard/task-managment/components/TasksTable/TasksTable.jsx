@@ -299,10 +299,19 @@ const TaskTable = ({
             {selectedTasks.length === 0 ? (
               <>
                 <div className="status-tabs">
+                  <button
+                    key="all"
+                    className={`status-tab ${activeStatusFilter === "ALL" ? "active" : ""}`}
+                    onClick={() => handleStatusChange("ALL")} 
+                    style={{ "--tab-color": "#6b7280" }} 
+                  >
+                    All
+                  </button>
+
                   {statusOptions.map((tab) => {
                     return (
                       <button
-                        key={tab.value || "all"}
+                        key={tab.value ?? tab.label} // safer key ✔
                         className={`status-tab ${
                           activeStatusFilter === tab.value ? "active" : ""
                         }`}

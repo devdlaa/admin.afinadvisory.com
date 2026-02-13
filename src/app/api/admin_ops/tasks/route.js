@@ -70,16 +70,19 @@ export async function GET(request) {
     if (params.is_billable === "true") params.is_billable = true;
     else if (params.is_billable === "false") params.is_billable = false;
     else delete params.is_billable;
+
     if (params.entity_missing === "true") params.entity_missing = true;
     else if (params.entity_missing === "false") params.entity_missing = false;
     else delete params.entity_missing;
+
+    
 
     Object.keys(params).forEach(
       (key) => params[key] === null && delete params[key],
     );
 
     const validatedParams = schemas.task.query.parse(params);
-
+   
     const result = await listTasks(validatedParams, admin_user);
 
     return createSuccessResponse("Tasks retrieved successfully", result);

@@ -26,6 +26,7 @@ import outstandingReducer from "./slices/outstandingSlice";
 import TaskTimelineReducer from "./slices/taskTimelineSlice";
 import { forceLogoutMiddleware } from "@/lib/forceLogoutMiddleware";
 import chargesReducer from "./slices/chargesSlice";
+
 export const store = configureStore({
   reducer: {
     session: sessionReducer,
@@ -50,7 +51,7 @@ export const store = configureStore({
     outstanding: outstandingReducer,
     documents: documentsReducer,
     companyProfile: companyProfileReducer,
-    permissions : permissionsReducer
+    permissions: permissionsReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware()

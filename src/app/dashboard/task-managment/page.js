@@ -327,20 +327,11 @@ function TasksPageContent() {
         lazyLoad: true,
         onLazyLoad: handleLoadUsers,
       },
-      {
-        filterKey: "is_billable",
-        label: "Billing",
-        placeholder: "All Tasks",
-        icon: IndianRupee,
-        options: [
-          { value: true, label: "Billable" },
-          { value: false, label: "Non-billable" },
-        ],
-      },
+     
       {
         filterKey: "entity_missing",
         label: "Client",
-        placeholder: "All Tasks",
+        placeholder: "Client Linked",
         icon: Building2,
         options: [
           { value: false, label: "With Client" },

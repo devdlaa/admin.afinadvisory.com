@@ -309,7 +309,7 @@ const initialState = {
   // Filters
   filters: {
     entity_id: null,
-    status: "PENDING", // null means "All"
+    status: "ALL", // null means "All"
 
     priority: null, // null means "All"
     task_category_id: null,

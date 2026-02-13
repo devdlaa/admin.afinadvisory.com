@@ -1,5 +1,5 @@
 import { prisma } from "@/utils/server/db.js";
-
+import admin from "@/lib/firebase-admin.js";
 const ADMIN_ROLES = ["SUPER_ADMIN", "ADMIN", "MANAGER"];
 
 import crypto from "crypto";
@@ -142,6 +142,14 @@ export const createAdminUser = async (data, created_by) => {
       },
     });
 
+    await admin.firestore().collection("users").doc(user.id).set({
+      displayName: user.name,
+      email: user.email,
+      avatarUrl: null,
+      isActive: false,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
     // 2) sign token including UUID
     const onboardingToken = jwt.sign(
       {
@@ -238,6 +246,15 @@ export const updateAdminUser = async (id, data, updated_by) => {
       },
     });
 
+    await admin.firestore().collection("users").doc(id).set(
+      {
+        displayName: updatedUser.name,
+        email: updatedUser.email,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true },
+    );
+
     return sanitizeAdminUser(updatedUser);
   });
 };
@@ -324,6 +341,13 @@ export const deleteAdminUser = async (id, deleted_by) => {
     await tx.adminUserPermission.deleteMany({
       where: { admin_user_id: id },
     });
+    await admin.firestore().collection("users").doc(id).set(
+      {
+        isActive: false,
+        deletedAt: admin.firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true },
+    );
 
     const deletedUser = await tx.adminUser.delete({
       where: { id },
@@ -685,6 +709,18 @@ export async function toggleAdminUserActiveStatus({
       updated_by: actingUserId,
     },
   });
+
+  await admin
+    .firestore()
+    .collection("users")
+    .doc(targetUserId)
+    .set(
+      {
+        isActive: newStatus === "ACTIVE",
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true },
+    );
 
   return sanitizeAdminUser(updated);
 }

@@ -13,10 +13,9 @@ const firebaseConfig = {
 
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
-// Auth is simple
+
 const auth = getAuth(app);
 
-// Messaging must be gated and may be unsupported (Safari, SSR, etc)
 let messaging = null;
 
 if (typeof window !== "undefined") {

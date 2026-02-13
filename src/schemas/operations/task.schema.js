@@ -4,6 +4,7 @@ import { z } from "zod";
  * Task status aligned with service layer
  */
 export const TaskStatusEnum = z.enum([
+  "ALL",
   "PENDING",
   "IN_PROGRESS",
   "COMPLETED",

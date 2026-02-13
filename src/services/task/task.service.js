@@ -726,7 +726,9 @@ export const listTasks = async (filters = {}, currentUser) => {
   const andConditions = [visibilityWhere];
   andConditions.push({ is_system: { not: true } });
   if (filters.entity_id) andConditions.push({ entity_id: filters.entity_id });
-  if (filters.status) andConditions.push({ status: filters.status });
+  if (filters.status && filters.status !== "ALL") {
+    andConditions.push({ status: filters.status });
+  }
   if (filters.priority) andConditions.push({ priority: filters.priority });
   if (filters.task_category_id)
     andConditions.push({ task_category_id: filters.task_category_id });
