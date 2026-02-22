@@ -3,7 +3,6 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { X, FileText, Building2, Tag, Flag, AlertCircle } from "lucide-react";
 
-
 import Button from "@/app/components/shared/Button/Button";
 import FilterDropdown from "@/app/components/pages/FilterDropdown/FilterDropdown";
 import {
@@ -39,6 +38,7 @@ const TaskCreateDialog = () => {
     entity_id: null,
     task_category_id: null,
     priority: "NORMAL",
+    apply_sla: true,
   });
 
   // Validation errors
@@ -66,6 +66,7 @@ const TaskCreateDialog = () => {
         entity_id: null,
         task_category_id: null,
         priority: "NORMAL",
+        apply_sla: true,
       });
       setErrors({});
       setEntitySearchResults([]);
@@ -86,7 +87,7 @@ const TaskCreateDialog = () => {
 
       try {
         const result = await dispatch(
-          quickSearchEntities({ search: query, limit: 20 })
+          quickSearchEntities({ search: query, limit: 20 }),
         ).unwrap();
 
         if (active) {
@@ -102,7 +103,7 @@ const TaskCreateDialog = () => {
         active = false;
       };
     },
-    [dispatch]
+    [dispatch],
   );
 
   // Priority options
@@ -116,7 +117,7 @@ const TaskCreateDialog = () => {
   const getEntityOptions = () => {
     if (selectedEntityData) {
       const exists = entitySearchResults.some(
-        (e) => e.id === selectedEntityData.id
+        (e) => e.id === selectedEntityData.id,
       );
       if (!exists) {
         return [selectedEntityData, ...entitySearchResults];
@@ -192,6 +193,7 @@ const TaskCreateDialog = () => {
         entity_id: formData.entity_id || null,
         task_category_id: formData.task_category_id || null,
         priority: formData.priority,
+        apply_sla: formData.apply_sla,
       };
 
       await dispatch(createTask(taskData)).unwrap();
@@ -293,6 +295,27 @@ const TaskCreateDialog = () => {
                 {errors.description}
               </span>
             )}
+          </div>
+
+          {/* SLA Toggle */}
+          <div className="task-create-dialog__sla-toggle">
+            <div className="task-create-dialog__sla-toggle-text">
+              <span className="task-create-dialog__sla-toggle-title">
+                Will you work on this task now?
+              </span>
+              <span className="task-create-dialog__sla-toggle-sub">
+                Enable tracking or assign it to a team member
+              </span>
+            </div>
+            <button
+              type="button"
+              className={`task-create-dialog__toggle ${formData.apply_sla ? "task-create-dialog__toggle--on" : ""}`}
+              onClick={() => handleChange("apply_sla", !formData.apply_sla)}
+              disabled={isCreating}
+              aria-label="Toggle SLA"
+            >
+              <span className="task-create-dialog__toggle-knob" />
+            </button>
           </div>
 
           {/* Client & Category Row */}

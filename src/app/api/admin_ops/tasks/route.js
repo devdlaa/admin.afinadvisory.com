@@ -21,7 +21,7 @@ export async function POST(request) {
 
     const validatedData = schemas.task.create.parse(body);
 
-    const task = await createTask(validatedData, admin_user.id);
+    const task = await createTask(validatedData, admin_user);
 
     return createSuccessResponse("Task created successfully", task, 201);
   } catch (error) {
@@ -51,6 +51,7 @@ export async function GET(request) {
 
       created_by: searchParams.get("created_by"),
       assigned_to: searchParams.get("assigned_to"),
+      unassigned_only: searchParams.get("unassigned_only"),
 
       due_date_from: searchParams.get("due_date_from"),
       due_date_to: searchParams.get("due_date_to"),
@@ -60,12 +61,23 @@ export async function GET(request) {
       created_date_from: searchParams.get("created_date_from"),
       created_date_to: searchParams.get("created_date_to"),
 
-      is_billable: searchParams.get("is_billable"),
-      billed_from_firm: searchParams.get("billed_from_firm"),
+      is_magic_sort: searchParams.get("is_magic_sort"),
+
+      sla_status: searchParams.get("sla_status"),
+      sla_due_date_from: searchParams.get("sla_due_date_from"),
+      sla_due_date_to: searchParams.get("sla_due_date_to"),
+      sla_paused_before: searchParams.get("sla_paused_before"),
 
       sort_by: searchParams.get("sort_by"),
       sort_order: searchParams.get("sort_order"),
     };
+
+    // ── Boolean coercions ──────────────────────────────────────────────────
+    if (params.is_magic_sort === "true") params.is_magic_sort = true;
+    else delete params.is_magic_sort;
+
+    if (params.unassigned_only === "true") params.unassigned_only = true;
+    else delete params.unassigned_only;
 
     if (params.is_billable === "true") params.is_billable = true;
     else if (params.is_billable === "false") params.is_billable = false;
@@ -75,14 +87,19 @@ export async function GET(request) {
     else if (params.entity_missing === "false") params.entity_missing = false;
     else delete params.entity_missing;
 
-    
+    // ── BUG FIX: "ALL" status means "no status filter" — strip it before
+    //    Zod validation so the schema never sees "ALL" (not in the enum).
+    if (params.status === "ALL" || params.status === null) {
+      delete params.status;
+    }
 
+    // ── Strip all null values left over from searchParams.get() misses ────
     Object.keys(params).forEach(
       (key) => params[key] === null && delete params[key],
     );
 
     const validatedParams = schemas.task.query.parse(params);
-   
+
     const result = await listTasks(validatedParams, admin_user);
 
     return createSuccessResponse("Tasks retrieved successfully", result);

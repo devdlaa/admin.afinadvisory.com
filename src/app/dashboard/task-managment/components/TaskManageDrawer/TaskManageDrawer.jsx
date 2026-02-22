@@ -1,6 +1,5 @@
 "use client";
-import React, { useState, useEffect, useRef } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import React from "react";
 import {
   Loader2,
   ListTodo,
@@ -12,7 +11,6 @@ import {
   ArchiveRestore,
   Link,
 } from "lucide-react";
-import { useSearchParams, useRouter } from "next/navigation";
 
 // Components
 import TaskTimeline from "../TaskTimeline/TaskTimeline";
@@ -20,7 +18,6 @@ import Checklist from "../Checklist/Checklist";
 import ChargesManager from "../ChargesManager/ChargesManager";
 import ClientAddUpdateDialog from "../../clients/components/ClientAddUpdateDialog";
 import TaskStatusReasonDialog from "../TaskStatusReasonDialog/TaskStatusReasonDialog";
-
 import AssignmentDialog from "@/app/components/pages/AssignmentDialog/AssignmentDialog";
 import TaskPrimaryInfo from "../TaskPrimaryInfo";
 import CreatorInfoCard from "../CreatorInfoCard";
@@ -29,465 +26,153 @@ import ClientSelectionDialog from "../ClientSelectionDialog";
 import AssignmentInfoCard from "../AssignmentInfoCard";
 import CopyButton from "@/app/components/shared/newui/CopyButton/CopyButton";
 import ConfirmationDialog from "@/app/components/shared/ConfirmationDialog/ConfirmationDialog";
-
 import DocumentManager from "@/app/components/shared/DocumentManager/DocumentManager";
-
-// Redux
-import {
-  updateTask,
-  closeManageDialog,
-  selectManageDialogOpen,
-  selectManageDialogTaskId,
-  updateTaskAssignmentsInList,
-  deleteTask,
-} from "@/store/slices/taskSlice";
-
-import {
-  fetchTaskById,
-  syncChecklist,
-  syncAssignments,
-  selectCurrentTask,
-  addCharge,
-  updateCharge,
-  deleteCharge,
-  fetchDeletedCharges,
-  restoreCharge,
-  hardDeleteCharge,
-  selectDeletedCharges,
-} from "@/store/slices/taskDetailsSlice";
-
-import {
-  fetchCategories,
-  selectAllCategories,
-} from "@/store/slices/taskCategorySlice";
-
-import { quickSearchEntities } from "@/store/slices/entitySlice";
-
 import TaskDrawerSkeleton from "../TaskDrawerSkeleton/TaskDrawerSkeleton";
 
-// Utils
-import { toDateInputValue } from "@/utils/shared/shared_util";
+import { useTaskManageDrawer } from "@/hooks/useTaskManageDrawer";
 
 // Styles
 import "./TaskManageDrawer.scss";
 
-const CRITICAL_STATUS = ["ON_HOLD", "PENDING_CLIENT_INPUT", "CANCELLED"];
+// ─────────────────────────────────────────────
+// Sub-components
+// ─────────────────────────────────────────────
+
+const LinkedInvoiceBadge = ({ invoice }) => (
+  <div
+    className={`invoice-linked-badge invoice-linked-badge--${invoice.status?.toLowerCase()}`}
+  >
+    <div className="invoice-linked-badge__left">
+      <div className="invoice-linked-badge__header">
+        <span className="invoice-linked-badge__label">Linked to Invoice</span>
+        <span
+          className={`invoice-status-badge invoice-status-badge--${invoice.status?.toLowerCase()}`}
+        >
+          {invoice.status}
+        </span>
+      </div>
+      <span className="invoice-linked-badge__number">
+        {invoice.internal_number}
+      </span>
+    </div>
+
+    <div className="invoice-linked-badge__actions">
+      <CopyButton
+        value={invoice.internal_number}
+        size="sm"
+        rootClass="invoice-linked-badge__copy"
+      />
+      <button
+        className="invoice-linked-badge__view"
+        onClick={() =>
+          window.open(
+            `/dashboard/task-managment/invoices?invoice=${invoice.internal_number}`,
+            "_blank",
+          )
+        }
+      >
+        View Invoice
+        <Link size={12} />
+      </button>
+    </div>
+  </div>
+);
+
+// ─────────────────────────────────────────────
+// Main component
+// ─────────────────────────────────────────────
+
 const TaskManageDrawer = () => {
-  const dispatch = useDispatch();
-
-  // Selectors
-  const isOpen = useSelector(selectManageDialogOpen);
-  const taskId = useSelector(selectManageDialogTaskId);
-  const task = useSelector(selectCurrentTask);
-  const deletedCharges = useSelector(selectDeletedCharges);
-  const categories = useSelector(selectAllCategories);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [showConfirmClose, setShowConfirmClose] = useState(false);
-  const addClientDialogRef = useRef(null);
-
-  const [needsReason, setNeedsReason] = useState(false);
-  const [reasonContext, setReasonContext] = useState(null);
-  const [showStatusReasonDialog, setShowStatusReasonDialog] = useState(false);
-  setShowStatusReasonDialog;
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  const urlTab = searchParams.get("tab");
-
-  // Refs
-  const drawerRef = useRef(null);
-  const isClosingRef = useRef(false);
-
-  // Loading states
-  const isLoading = useSelector((state) => state.taskDetail.loading.task);
-  const isUpdating = useSelector((state) => state.task.loading.update);
-  const isDeleting = useSelector((state) => state.task.loading.delete);
-  const taskError = useSelector((state) => state.taskDetail.error.task);
-  const isSyncingChecklist = useSelector(
-    (state) => state.taskDetail.loading.checklist,
-  );
-  const isLoadingCharges = useSelector(
-    (state) => state.taskDetail.loading.charges,
-  );
-  const isLoadingDeletedCharges = useSelector(
-    (state) => state.taskDetail.loading.deletedCharges,
-  );
-  const isSavingAssignments = useSelector(
-    (state) => state.taskDetail.loading.assignments,
-  );
-
-  const chargeOperations = useSelector(
-    (state) => state.taskDetail.loading.chargeOperations || {},
-  );
-
-  // Local state
-  const [activeTab, setActiveTab] = useState("checklist");
-
-  // Primary info state
-  const [primaryInfo, setPrimaryInfo] = useState({
-    title: "",
-    description: "",
-    priority: "NORMAL",
-    status: "PENDING",
-    task_category_id: null,
-    entity_id: null,
-    start_date: "",
-    due_date: "",
-    end_date: "",
-  });
-  const [originalPrimaryInfo, setOriginalPrimaryInfo] = useState(null);
-
-  // Entity search state
-  const [entitySearchResults, setEntitySearchResults] = useState([]);
-  const [isSearchingEntities, setIsSearchingEntities] = useState(false);
-  const [selectedEntityData, setSelectedEntityData] = useState(null);
-  const [showClientDialog, setShowClientDialog] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [tempSelectedEntity, setTempSelectedEntity] = useState(null);
-
-  // Assignment Dialog
-  const [showAssignmentDialog, setShowAssignmentDialog] = useState(false);
-
-  useEffect(() => {
-    if (isOpen && taskId) {
-      dispatch(fetchTaskById(taskId));
-      dispatch(fetchCategories({ page: 1, page_size: 100 }));
-      isClosingRef.current = false;
-    }
-  }, [isOpen, taskId, dispatch]);
-
-  useEffect(() => {
-    if (task) {
-      const taskData = {
-        title: task.title || "",
-        description: task.description || "",
-        priority: task.priority || "NORMAL",
-        status: task.status || "PENDING",
-        task_category_id: task.task_category_id || null,
-        entity_id: task.entity_id || null,
-        start_date: task.start_date ? toDateInputValue(task.start_date) : "",
-        due_date: task.due_date ? toDateInputValue(task.due_date) : "",
-        end_date: task.end_date ? toDateInputValue(task.end_date) : "",
-      };
-
-      setPrimaryInfo(taskData);
-      setOriginalPrimaryInfo(taskData);
-
-      if (task.entity) {
-        setSelectedEntityData(task.entity);
-      } else {
-        setSelectedEntityData(null);
-      }
-    }
-  }, [task]);
-
-  useEffect(() => {
-    if (!originalPrimaryInfo) return;
-
-    if (
-      primaryInfo.status !== originalPrimaryInfo.status &&
-      CRITICAL_STATUS.includes(primaryInfo.status)
-    ) {
-      setNeedsReason(true);
-      setReasonContext(primaryInfo.status);
-    }
-  }, [primaryInfo.status, originalPrimaryInfo]);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    if (!urlTab) return;
-
-    setActiveTab(urlTab);
-  }, [urlTab, isOpen]);
-
-  // Entity search with debouncing
-  useEffect(() => {
-    if (!searchQuery || !searchQuery.trim()) {
-      setEntitySearchResults([]);
-      return;
-    }
-
-    const timer = setTimeout(async () => {
-      setIsSearchingEntities(true);
-      try {
-        const result = await dispatch(
-          quickSearchEntities({ search: searchQuery, limit: 20 }),
-        ).unwrap();
-        setEntitySearchResults(result.data || []);
-      } catch (error) {
-        setEntitySearchResults([]);
-      } finally {
-        setIsSearchingEntities(false);
-      }
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [searchQuery, dispatch]);
-
-  // Handlers
-  const hasPrimaryInfoChanges = () => {
-    if (!originalPrimaryInfo) return false;
-    return JSON.stringify(primaryInfo) !== JSON.stringify(originalPrimaryInfo);
-  };
-
-  const handlePrimaryInfoChange = (field, value) => {
-    setPrimaryInfo((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const handleSavePrimaryInfo = async () => {
-    try {
-      await dispatch(
-        updateTask({
-          taskId: task.id,
-          data: {
-            ...primaryInfo,
-            start_date: primaryInfo.start_date || null,
-            due_date: primaryInfo.due_date || null,
-          },
-        }),
-      ).unwrap();
-
-      setOriginalPrimaryInfo({ ...primaryInfo });
-    } catch (error) {}
-  };
-
-  const setTab = (tab) => {
-    setActiveTab(tab);
-
-    const params = new URLSearchParams(window.location.search);
-    params.set("tab", tab);
-
-    router.replace(`${window.location.pathname}?${params.toString()}`, {
-      scroll: false,
-    });
-  };
-
-  const handleClose = (force = false) => {
-    if (isClosingRef.current) {
-      return;
-    }
-
-    const isForced = force === true;
-
-    if (!force && needsReason) {
-      setShowStatusReasonDialog(true);
-      return;
-    }
-
-    if (!isForced && hasPrimaryInfoChanges()) {
-      setShowConfirmClose(true);
-      return;
-    }
-
-    isClosingRef.current = true;
-
-    dispatch(closeManageDialog());
-    window.__closingTaskDrawer = true;
-    setActiveTab("checklist");
-    setSelectedEntityData(null);
-
-    const params = new URLSearchParams(window.location.search);
-    params.delete("taskId");
-    params.delete("tab");
-    setNeedsReason(false);
-    setReasonContext(null);
-
-    const newUrl = params.toString()
-      ? `${window.location.pathname}?${params.toString()}`
-      : window.location.pathname;
-
-    router.replace(newUrl, { scroll: false });
-  };
-
-  const handleOverlayClick = (e) => {
-    e.stopPropagation();
-
-    if (isClosingRef.current) {
-      return;
-    }
-
-    if (isDeleting) {
-      return;
-    }
-
-    handleClose();
-  };
-
-  // Client dialog handlers
-  const handleSelectEntity = (entity) => {
-    setTempSelectedEntity(entity);
-  };
-
-  const handleClearEntitySelection = () => {
-    setTempSelectedEntity({ id: null, __cleared: true });
-  };
-
-  const handleConfirmEntitySelection = async () => {
-    if (!tempSelectedEntity) {
-      handleCloseClientDialog();
-      return;
-    }
-
-    let nextEntityId = null;
-
-    if (tempSelectedEntity.__cleared === true) {
-      nextEntityId = null;
-    } else if (tempSelectedEntity.id !== task?.entity_id) {
-      nextEntityId = tempSelectedEntity.id;
-    } else {
-      handleCloseClientDialog();
-      return;
-    }
-
-    try {
-      const updatedTask = await dispatch(
-        updateTask({
-          taskId: task.id,
-          data: {
-            ...primaryInfo,
-            entity_id: nextEntityId,
-          },
-        }),
-      ).unwrap();
-
-      setSelectedEntityData(updatedTask.task.entity);
-
-      const updatedInfo = {
-        ...primaryInfo,
-        entity_id: nextEntityId,
-      };
-
-      setPrimaryInfo(updatedInfo);
-      setOriginalPrimaryInfo(updatedInfo);
-
-      handleCloseClientDialog();
-    } catch (error) {}
-  };
-
-  const handleCloseClientDialog = () => {
-    setShowClientDialog(false);
-    setSearchQuery("");
-    setEntitySearchResults([]);
-    setTempSelectedEntity(null);
-  };
-
-  const hasEntityChanged =
-    tempSelectedEntity &&
-    (tempSelectedEntity.__cleared === true ||
-      tempSelectedEntity.id !== task?.entity_id);
-
-  // Checklist handlers
-  const handleSaveChecklist = async (items) => {
-    try {
-      await dispatch(
-        syncChecklist({
-          taskId: task.id,
-          items: items,
-        }),
-      ).unwrap();
-    } catch (error) {}
-  };
-
-  // Charge handlers
-  const handleAddCharge = async (chargeData) => {
-    try {
-      await dispatch(
-        addCharge({
-          taskId: task.id,
-          chargeData,
-        }),
-      ).unwrap();
-      return true;
-    } catch (error) {
-      return false;
-    }
-  };
-
-  const handleUpdateCharge = async (chargeId, chargeData) => {
-    try {
-      await dispatch(
-        updateCharge({
-          taskId: task.id,
-          chargeId,
-          data: chargeData,
-        }),
-      ).unwrap();
-    } catch (error) {}
-  };
-
-  const handleDeleteCharge = async (chargeId) => {
-    try {
-      await dispatch(
-        deleteCharge({
-          taskId: task.id,
-          chargeId,
-        }),
-      ).unwrap();
-    } catch (error) {}
-  };
-
-  const handleRestoreCharge = async (chargeId) => {
-    try {
-      await dispatch(
-        restoreCharge({
-          taskId: task.id,
-          chargeId,
-        }),
-      ).unwrap();
-    } catch (error) {}
-  };
-
-  const handleHardDeleteCharge = async (chargeId) => {
-    try {
-      await dispatch(
-        hardDeleteCharge({
-          taskId: task.id,
-          chargeId,
-        }),
-      ).unwrap();
-    } catch (error) {}
-  };
-
-  const handleFetchDeletedCharges = () => {
-    if (task?.id) {
-      dispatch(fetchDeletedCharges(task.id));
-    }
-  };
-
-  // Assignment handlers
-  const handleSaveAssignments = async (assignmentData) => {
-    try {
-      const result = await dispatch(
-        syncAssignments({
-          taskId: task.id,
-          user_ids: assignmentData.user_ids,
-          assigned_to_all: assignmentData.assigned_to_all,
-        }),
-      ).unwrap();
-
-      dispatch(updateTaskAssignmentsInList(result));
-      setShowAssignmentDialog(false);
-    } catch (error) {}
-  };
-
-  // Calculate overdue days
-  const getOverdueDays = () => {
-    if (!task?.due_date) return 0;
-    const dueDate = new Date(task.due_date);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    dueDate.setHours(0, 0, 0, 0);
-
-    const diffTime = today - dueDate;
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays > 0 ? diffDays : 0;
-  };
-
-  const overdueDays = getOverdueDays();
-  const isActivityTab = activeTab === "task-activity";
-  const isPaymentTab = activeTab === "payment";
-  const isDocumentsTab = activeTab === "task-documents";
+  const {
+    // Selectors
+    isOpen,
+    task,
+    categories,
+    deletedCharges,
+
+    // Loading
+    isLoading,
+    isUpdating,
+    isDeleting,
+    taskError,
+    isSyncingChecklist,
+    isLoadingCharges,
+    isLoadingDeletedCharges,
+    isSavingAssignments,
+    chargeOperations,
+
+    // Refs
+    drawerRef,
+    addClientDialogRef,
+
+    // UI state
+    activeTab,
+    setTab,
+    showDeleteConfirm,
+    setShowDeleteConfirm,
+    showConfirmClose,
+    setShowConfirmClose,
+
+    // Status-reason
+    reasonContext,
+    showStatusReasonDialog,
+    setShowStatusReasonDialog,
+
+    // Primary info
+    primaryInfo,
+    hasPrimaryInfoChanges,
+    handlePrimaryInfoChange,
+    handleSavePrimaryInfo,
+
+    // Entity / client
+    selectedEntityData,
+    showClientDialog,
+    setShowClientDialog,
+    searchQuery,
+    setSearchQuery,
+    entitySearchResults,
+    isSearchingEntities,
+    tempSelectedEntity,
+    hasEntityChanged,
+    handleSelectEntity,
+    handleClearEntitySelection,
+    handleCloseClientDialog,
+    handleConfirmEntitySelection,
+
+    // Assignment
+    showAssignmentDialog,
+    setShowAssignmentDialog,
+    handleSaveAssignments,
+
+    // Checklist
+    handleSaveChecklist,
+
+    // Charges
+    handleAddCharge,
+    handleUpdateCharge,
+    handleDeleteCharge,
+    handleRestoreCharge,
+    handleHardDeleteCharge,
+    handleFetchDeletedCharges,
+
+    // Task deletion
+    handleDeleteTask,
+
+    // Drawer lifecycle
+    handleClose,
+    handleOverlayClick,
+
+    // Derived
+    overdueDays,
+    isActivityTab,
+    isPaymentTab,
+    isDocumentsTab,
+  } = useTaskManageDrawer();
 
   if (!isOpen) return null;
+
+  const leftPanelScrollable =
+    !isActivityTab && !isPaymentTab && !isDocumentsTab;
 
   return (
     <>
@@ -500,10 +185,10 @@ const TaskManageDrawer = () => {
         ref={drawerRef}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Loading State */}
+        {/* Loading */}
         {isLoading && <TaskDrawerSkeleton />}
 
-        {/* Error State */}
+        {/* Error */}
         {!isLoading && taskError && (
           <div className="task-drawer__error">
             <div className="task-drawer__error-content">
@@ -527,13 +212,9 @@ const TaskManageDrawer = () => {
         {/* Content */}
         {!isLoading && !taskError && task && (
           <div className="task-drawer__body">
-            {/* Left Panel */}
+            {/* ── Left Panel ── */}
             <div
-              className={`task-drawer__left ${
-                !isActivityTab && !isPaymentTab && !isDocumentsTab
-                  ? "scrollable"
-                  : ""
-              }`}
+              className={`task-drawer__left ${leftPanelScrollable ? "scrollable" : ""}`}
             >
               <TaskPrimaryInfo
                 primaryInfo={primaryInfo}
@@ -548,9 +229,7 @@ const TaskManageDrawer = () => {
               {/* Tabs */}
               <div className="task-drawer__tabs">
                 <button
-                  className={`task-drawer__tab ${
-                    activeTab === "checklist" ? "active" : ""
-                  }`}
+                  className={`task-drawer__tab ${activeTab === "checklist" ? "active" : ""}`}
                   onClick={() => setTab("checklist")}
                 >
                   <ListTodo size={16} />
@@ -558,9 +237,7 @@ const TaskManageDrawer = () => {
                 </button>
 
                 <button
-                  className={`task-drawer__tab ${
-                    activeTab === "payment" ? "active" : ""
-                  }`}
+                  className={`task-drawer__tab ${activeTab === "payment" ? "active" : ""}`}
                   onClick={() => setTab("payment")}
                 >
                   <IndianRupee size={16} />
@@ -568,18 +245,15 @@ const TaskManageDrawer = () => {
                 </button>
 
                 <button
-                  className={`task-drawer__tab ${
-                    activeTab === "task-activity" ? "active" : ""
-                  }`}
+                  className={`task-drawer__tab ${activeTab === "task-activity" ? "active" : ""}`}
                   onClick={() => setTab("task-activity")}
                 >
                   <Rocket size={16} />
                   <span>Task Activity</span>
                 </button>
+
                 <button
-                  className={`task-drawer__tab ${
-                    activeTab === "task-documents" ? "active" : ""
-                  }`}
+                  className={`task-drawer__tab ${activeTab === "task-documents" ? "active" : ""}`}
                   onClick={() => setTab("task-documents")}
                 >
                   <ArchiveRestore size={16} />
@@ -589,11 +263,7 @@ const TaskManageDrawer = () => {
 
               {/* Tab Content */}
               <div
-                className={`task-drawer__tab-content ${
-                  !isActivityTab && !isPaymentTab && !isDocumentsTab
-                    ? "scrollable"
-                    : ""
-                }`}
+                className={`task-drawer__tab-content ${leftPanelScrollable ? "scrollable" : ""}`}
               >
                 {activeTab === "checklist" && (
                   <Checklist
@@ -637,52 +307,9 @@ const TaskManageDrawer = () => {
               </div>
             </div>
 
-            {/* Right Panel */}
+            {/* ── Right Panel ── */}
             <div className="task-drawer__right">
-              {task?.invoice && (
-                <div
-                  className={`invoice-linked-badge invoice-linked-badge--${task?.invoice?.status?.toLowerCase()}`}
-                >
-                  <div className="invoice-linked-badge__left">
-                    <div className="invoice-linked-badge__header">
-                      <span className="invoice-linked-badge__label">
-                        Linked to Invoice
-                      </span>
-
-                      <span
-                        className={`invoice-status-badge invoice-status-badge--${task?.invoice?.status?.toLowerCase()}`}
-                      >
-                        {task.invoice.status}
-                      </span>
-                    </div>
-
-                    <span className="invoice-linked-badge__number">
-                      {task.invoice.internal_number}
-                    </span>
-                  </div>
-
-                  <div className="invoice-linked-badge__actions">
-                    <CopyButton
-                      value={task.invoice.internal_number}
-                      size="sm"
-                      rootClass="invoice-linked-badge__copy"
-                    />
-
-                    <button
-                      className="invoice-linked-badge__view"
-                      onClick={() =>
-                        window.open(
-                          `/dashboard/task-managment/invoices?invoice=${task.invoice.internal_number}`,
-                          "_blank",
-                        )
-                      }
-                    >
-                      View Invoice
-                      <Link size={12} />
-                    </button>
-                  </div>
-                </div>
-              )}
+              {task?.invoice && <LinkedInvoiceBadge invoice={task.invoice} />}
 
               <CreatorInfoCard task={task} />
 
@@ -696,6 +323,7 @@ const TaskManageDrawer = () => {
                 onOpenClientDialog={() => setShowClientDialog(true)}
               />
 
+              {/* Danger zone */}
               <div className="task-danger-zone">
                 <button
                   className="task-delete-btn"
@@ -716,7 +344,7 @@ const TaskManageDrawer = () => {
                 </button>
               </div>
 
-              {/* Save Primary Info Button */}
+              {/* Save bar — only visible when there are unsaved changes */}
               {hasPrimaryInfoChanges() && (
                 <div className="task-save-bar">
                   <button
@@ -743,25 +371,22 @@ const TaskManageDrawer = () => {
         )}
       </div>
 
-      {/* Dialogs */}
+      {/* ── Dialogs ── */}
+
       <ConfirmationDialog
         isOpen={showDeleteConfirm}
         onClose={() => setShowDeleteConfirm(false)}
         actionName="Delete this task?"
-        actionInfo="This action cannot be undone."
+        actionInfo="This action cannot be undone. A Super Admin must authorize this."
         confirmText="Delete Task"
         isCritical={true}
+        requireTotp={true}
         cancelText="Cancel"
         variant="danger"
-        onConfirm={async () => {
-          try {
-            await dispatch(deleteTask(task.id)).unwrap();
-            setShowDeleteConfirm(false);
-            handleClose(true);
-          } catch (e) {}
-        }}
+        onConfirm={handleDeleteTask}
         onCancel={() => setShowDeleteConfirm(false)}
       />
+
       <TaskStatusReasonDialog
         isOpen={showStatusReasonDialog}
         taskId={task?.id}
@@ -790,17 +415,14 @@ const TaskManageDrawer = () => {
         onSelectEntity={handleSelectEntity}
         onClearSelection={handleClearEntitySelection}
         onConfirmSelection={handleConfirmEntitySelection}
-        onAddNewClient={() => {
-          addClientDialogRef.current?.showModal();
-        }}
+        onAddNewClient={() => addClientDialogRef.current?.showModal()}
       />
 
       <ClientAddUpdateDialog
         ref={addClientDialogRef}
         mode="add"
-        onCreated={(client) => {
+        onCreated={() => {
           addClientDialogRef.current?.close();
-
           setShowClientDialog(true);
         }}
       />

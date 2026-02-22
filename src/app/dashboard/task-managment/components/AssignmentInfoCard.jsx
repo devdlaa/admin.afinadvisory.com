@@ -1,7 +1,6 @@
 import React from "react";
 import { CircleCheckBig, Users2Icon, Plus } from "lucide-react";
 import Avatar from "@/app/components/shared/newui/Avatar/Avatar";
-
 import { getProfileUrl } from "@/utils/shared/shared_util";
 
 const AssignmentInfoCard = ({ task, onOpenAssignmentDialog }) => {
@@ -26,35 +25,40 @@ const AssignmentInfoCard = ({ task, onOpenAssignmentDialog }) => {
         )}
       </div>
 
-      {/* Avatar Row */}
-      <div className="task-drawer__avatar-row">
-        {!task.assigned_to_all && task.assignments?.length > 0 && (
-          <>
-            {task.assignments.slice(0, 5).map((assignment) => (
+      {/* Assignee List */}
+      <div className="task-drawer__assignee-list">
+        {!task.assigned_to_all &&
+          task.assignments?.map((assignment) => (
+            <div key={assignment.id} className="task-drawer__assignee-row">
               <Avatar
-                key={assignment.id}
                 src={getProfileUrl(assignment.assignee.id)}
                 alt={assignment.assignee.name}
-                size={44}
+                size={36}
                 fallbackText={assignment.assignee.name}
               />
-            ))}
-
-            {task.assignments.length > 5 && (
-              <div className="task-drawer__avatar-overflow">
-                +{task.assignments.length - 5}
+              <div className="task-drawer__assignee-info">
+                <span className="task-drawer__assignee-name">
+                  {assignment.assignee.name}
+                </span>
+                <span className="task-drawer__assignee-email">
+                  {assignment.assignee.email}
+                </span>
               </div>
-            )}
-          </>
-        )}
+            </div>
+          ))}
 
-        {/* Always show the plus button */}
+        {/* Add / Manage button */}
         <button
-          className="task-drawer__add-avatar"
+          className="task-drawer__assignee-add"
           onClick={onOpenAssignmentDialog}
           title="Manage assignments"
         >
-          <Plus size={24} />
+          <span className="task-drawer__assignee-add-icon">
+            <Plus size={16} />
+          </span>
+          <span className="task-drawer__assignee-add-label">
+            {task.assignments?.length > 0 ? "Manage assignees" : "Assign someone"}
+          </span>
         </button>
       </div>
     </div>

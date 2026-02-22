@@ -1,0 +1,638 @@
+// ─────────────────────────────────────────────
+// SLAAttentionDialog.module.scss
+// Matches dashboard green aesthetic
+// ─────────────────────────────────────────────
+
+$green-primary: #16a34a;
+$green-light: #dcfce7;
+$green-mid: #bbf7d0;
+
+$red-primary: #dc2626;
+$red-light: #fef2f2;
+$red-mid: #fecaca;
+$red-text: #991b1b;
+
+$amber-primary: #d97706;
+$amber-light: #fffbeb;
+$amber-mid: #fde68a;
+$amber-text: #92400e;
+
+$blue-primary: #2563eb;
+$blue-light: #eff6ff;
+$blue-mid: #bfdbfe;
+$blue-text: #1e40af;
+
+$gray-50: #f9fafb;
+$gray-100: #f3f4f6;
+$gray-200: #e5e7eb;
+$gray-300: #d1d5db;
+$gray-400: #9ca3af;
+$gray-500: #6b7280;
+$gray-600: #4b5563;
+$gray-700: #374151;
+$gray-800: #1f2937;
+$gray-900: #111827;
+
+$radius: 12px;
+$radius-sm: 8px;
+$radius-xs: 6px;
+$shadow-lg:
+  0 20px 60px rgba(0, 0, 0, 0.18),
+  0 8px 24px rgba(0, 0, 0, 0.1);
+
+// ─────────────────────────────────────────────
+// Overlay
+// ─────────────────────────────────────────────
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 15, 31, 0.811);
+  backdrop-filter: blur(3px);
+  z-index: 200;
+  animation: fadeIn 0.15s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+
+
+// ─────────────────────────────────────────────
+// Dialog
+// ─────────────────────────────────────────────
+
+.dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 201;
+  width: 560px;
+  max-width: calc(100vw - 32px);
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border-radius: $radius;
+  box-shadow: $shadow-lg;
+  overflow: hidden;
+
+}
+
+// ─────────────────────────────────────────────
+// Header
+// ─────────────────────────────────────────────
+
+.dialog__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 20px 20px 16px;
+  border-bottom: 1px solid $gray-100;
+  flex-shrink: 0;
+}
+
+.dialog__titleRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.dialog__titleIcon {
+  width: 40px;
+  height: 40px;
+  border-radius: $radius-sm;
+  background: $green-light;
+  color: $green-primary;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.dialog__title {
+  font-size: 15px;
+  font-weight: 600;
+  color: $gray-900;
+  margin: 0 0 2px;
+  line-height: 1.3;
+}
+
+.dialog__subtitle {
+  font-size: 12px;
+  color: $gray-500;
+  margin: 0;
+}
+
+.dialog__headerActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.dialog__refreshBtn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: $radius-xs;
+  border: 1px solid $gray-200;
+  background: $gray-50;
+  color: $gray-600;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:hover:not(:disabled) {
+    background: $green-light;
+    border-color: $green-mid;
+    color: $green-primary;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.dialog__closeBtn {
+  width: 32px;
+  height: 32px;
+  border-radius: $radius-xs;
+  border: 1px solid $gray-200;
+  background: transparent;
+  color: $gray-500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background: $gray-100;
+    color: $gray-800;
+  }
+}
+
+// ─────────────────────────────────────────────
+// Critical Banner
+// ─────────────────────────────────────────────
+
+.criticalBanner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: $red-light;
+  border-bottom: 1px solid $red-mid;
+  color: $red-text;
+  font-size: 12.5px;
+  font-weight: 600;
+  flex-shrink: 0;
+  animation: pulseIn 0.3s ease;
+
+  svg {
+    flex-shrink: 0;
+    color: $red-primary;
+  }
+}
+
+@keyframes pulseIn {
+  0% {
+    opacity: 0;
+  }
+  60% {
+    opacity: 1;
+  }
+  80% {
+    background: lighten(#dc2626, 38%);
+  }
+  100% {
+    background: $red-light;
+  }
+}
+
+// ─────────────────────────────────────────────
+// Body
+// ─────────────────────────────────────────────
+
+.dialog__body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  &::-webkit-scrollbar {
+    width: 5px;
+  }
+  &::-webkit-scrollbar-track {
+    background: $gray-50;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: $gray-200;
+    border-radius: 4px;
+  }
+}
+
+// ─────────────────────────────────────────────
+// Section
+// ─────────────────────────────────────────────
+
+.section {
+  border-radius: $radius-sm;
+  border: 1px solid $gray-200;
+  overflow: hidden;
+
+  &--critical {
+    border-color: $red-mid;
+  }
+
+  &--attention {
+    border-color: $amber-mid;
+  }
+
+  &--informational {
+    border-color: $blue-mid;
+  }
+}
+
+.section__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 14px;
+
+  .section--critical & {
+    background: $red-light;
+  }
+
+  .section--attention & {
+    background: $amber-light;
+  }
+
+  .section--informational & {
+    background: $blue-light;
+  }
+}
+
+.section__titleRow {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+
+  svg {
+    .section--critical & {
+      color: $red-primary;
+    }
+    .section--attention & {
+      color: $amber-primary;
+    }
+    .section--informational & {
+      color: $blue-primary;
+    }
+  }
+}
+
+.section__title {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+
+  .section--critical & {
+    color: $red-text;
+  }
+  .section--attention & {
+    color: $amber-text;
+  }
+  .section--informational & {
+    color: $blue-text;
+  }
+}
+
+.section__badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 20px;
+
+  &--critical {
+    background: $red-primary;
+    color: #fff;
+  }
+  &--attention {
+    background: $amber-primary;
+    color: #fff;
+  }
+  &--informational {
+    background: $blue-primary;
+    color: #fff;
+  }
+}
+
+.section__body {
+  display: flex;
+  flex-direction: column;
+}
+
+// ─────────────────────────────────────────────
+// SLA Row
+// ─────────────────────────────────────────────
+
+.slaRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: #fff;
+  border-top: 1px solid $gray-100;
+  transition: background 0.1s ease;
+
+  &:hover {
+    background: $gray-50;
+  }
+
+  &--empty {
+    opacity: 0.5;
+  }
+}
+
+.slaRow__icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  .slaRow--critical & {
+    background: $red-light;
+    color: $red-primary;
+  }
+
+  .slaRow--attention & {
+    background: $amber-light;
+    color: $amber-primary;
+  }
+
+  .slaRow--informational & {
+    background: $blue-light;
+    color: $blue-primary;
+  }
+}
+
+.slaRow__content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.slaRow__label {
+  font-size: 13px;
+  font-weight: 600;
+  color: $gray-800;
+}
+
+.slaRow__desc {
+  font-size: 11px;
+  color: $gray-500;
+  line-height: 1.4;
+}
+
+.slaRow__right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.slaRow__count {
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1;
+  min-width: 28px;
+  text-align: right;
+
+  &--critical {
+    color: $red-primary;
+  }
+  &--attention {
+    color: $amber-primary;
+  }
+  &--informational {
+    color: $blue-primary;
+  }
+}
+
+.slaRow__filterBtn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 9px;
+  border-radius: $radius-xs;
+  border: 1px solid $gray-200;
+  background: $gray-50;
+  color: $gray-600;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+
+  &:hover {
+    background: $green-light;
+    border-color: $green-mid;
+    color: $green-primary;
+  }
+
+  &--active {
+    background: $red-light;
+    border-color: $red-mid;
+    color: $red-text;
+
+    &:hover {
+      background: darken($red-light, 4%);
+    }
+  }
+}
+
+// ─────────────────────────────────────────────
+// Skeleton
+// ─────────────────────────────────────────────
+
+.skeletonRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-top: 1px solid $gray-100;
+  background: #fff;
+}
+
+.skeletonIcon {
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  background: $gray-200;
+  animation: shimmer 1.4s infinite;
+  flex-shrink: 0;
+}
+
+.skeletonText {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.skeletonLine {
+  height: 10px;
+  border-radius: 6px;
+  background: $gray-200;
+  animation: shimmer 1.4s infinite;
+}
+
+.skeletonBadge {
+  width: 32px;
+  height: 24px;
+  border-radius: 6px;
+  background: $gray-200;
+  animation: shimmer 1.4s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+// ─────────────────────────────────────────────
+// Footer
+// ─────────────────────────────────────────────
+
+.dialog__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 20px;
+  border-top: 1px solid $gray-100;
+  background: $gray-50;
+  flex-shrink: 0;
+
+  @media (max-width: 480px) {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+.dialog__footerLeft {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dialog__footerRight {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.suppressCheck {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+
+  input[type="checkbox"] {
+    width: 14px;
+    height: 14px;
+    cursor: pointer;
+    accent-color: $green-primary;
+  }
+
+  span {
+    font-size: 12px;
+    color: $gray-600;
+    font-weight: 500;
+    user-select: none;
+  }
+}
+
+.dialog__fetchedAt {
+  font-size: 10.5px;
+  color: $gray-400;
+}
+
+.dialog__clearFiltersBtn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border-radius: $radius-xs;
+  border: 1px solid $red-mid;
+  background: $red-light;
+  color: $red-text;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background: darken($red-light, 4%);
+  }
+}
+
+.dialog__closeFooterBtn {
+  padding: 6px 16px;
+  border-radius: $radius-xs;
+  border: 1px solid $gray-200;
+  background: #fff;
+  color: $gray-600;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background: $gray-100;
+  }
+}
+
+// ─────────────────────────────────────────────
+// Spinning animation (for refresh icon)
+// ─────────────────────────────────────────────
+
+.spinning {
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}

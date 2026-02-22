@@ -1,5 +1,5 @@
 "use client";
-import { Building2, Tag, Users, IndianRupee } from "lucide-react";
+import { Building2, Tag, Users } from "lucide-react";
 import {
   useState,
   useEffect,
@@ -15,6 +15,11 @@ import ForceNotification from "./components/ForceNotification/ForceNotification.
 import TaskTable from "./components/TasksTable/TasksTable.jsx";
 import TaskActionBar from "./components/TaskActionBar/TaskActionBar.jsx";
 import TaskManageDrawer from "./components/TaskManageDrawer/TaskManageDrawer.jsx";
+
+import SLAAttentionDialog, {
+  readSuppress,
+  readCache,
+} from "./components/SLAAttentionDialog/SLAAttentionDialog.jsx";
 
 import TaskCategoryBoard from "@/app/components/pages/TaskCategoryBoard/TaskCategoryBoard.jsx";
 import TaskWorkload from "./components/TaskWorkload/TaskWorkload.jsx";
@@ -33,6 +38,11 @@ import {
   selectStatusCounts,
   selectIsLoading,
   selectManageDialogTaskId,
+  selectUnassignedTasksCount,
+  selectUnassignedTasksCountLoading,
+  selectSLASummary,
+  fetchUnassignedTasksCount,
+  fetchSLASummary,
 } from "@/store/slices/taskSlice";
 
 import { quickSearchEntities } from "@/store/slices/entitySlice";
@@ -47,29 +57,58 @@ import { fetchUsers } from "@/store/slices/userSlice";
 
 import style from "./page.module.scss";
 
-// Separate component that uses useSearchParams
+const SLA_FILTER_KEYS = [
+  "sla_status",
+  "sla_due_date_from",
+  "sla_due_date_to",
+  "sla_paused_before",
+];
+
+const STANDARD_FILTER_KEYS = [
+  "entity_id",
+  "task_category_id",
+  "assigned_to",
+  "status",
+  "priority",
+  "search",
+  "is_billable",
+  "created_date_from",
+  "created_date_to",
+  "entity_missing",
+  "due_date_from",
+  "due_date_to",
+  "is_magic_sort",
+  ...SLA_FILTER_KEYS,
+];
+
+// Keys whose Redux default should NOT be nulled-out when absent from URL.
+// is_magic_sort: we want Focus Assist ON on first visit (slice default = null,
+// but the UI treats null as "on"). If the user explicitly turns it off, the
+// URL will carry the value, so this branch only fires on a clean first load.
+const URL_ABSENT_PRESERVE_KEYS = new Set(["is_magic_sort"]);
+
 function TasksPageContent() {
   const dispatch = useDispatch();
   const router = useRouter();
   const searchParams = useSearchParams();
 
+  // ── Selectors ──────────────────────────────────────────────────────────────
   const currentFilters = useSelector(selectFilters);
   const categories = useSelector(selectAllCategories);
   const categoriesLoading = useSelector((state) =>
     selectCategoryLoading(state, "list"),
   );
-
-  // Harden selectors
   const users = useSelector((state) => state.user?.users || []);
   const usersLoading = useSelector((state) => state.user?.loading || false);
-
   const tasks = useSelector(selectTasks);
   const { currentPage, totalPages } = useSelector(selectPagination);
-
   const totalCount = useSelector((state) => state.task?.totalTasks || 0);
   const statusCounts = useSelector(selectStatusCounts);
   const tasksLoading = useSelector(selectIsLoading({ type: "list" }));
   const currentTaskId = useSelector(selectManageDialogTaskId);
+  const unassignedCount = useSelector(selectUnassignedTasksCount);
+  const unassignedCountLoading = useSelector(selectUnassignedTasksCountLoading);
+  const slaSummary = useSelector(selectSLASummary);
 
   const globalCounts = statusCounts?.global || {};
   const actualTotal =
@@ -78,54 +117,74 @@ function TasksPageContent() {
     0;
   const filteredCount = tasks?.length || 0;
 
+  // ── Local state ────────────────────────────────────────────────────────────
   const [entitySearchResults, setEntitySearchResults] = useState([]);
   const [isSearchingEntities, setIsSearchingEntities] = useState(false);
   const [showWorkload, setShowWorkload] = useState(false);
   const [showCategoryDialog, setShowCategoryDialog] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [showSLADialog, setShowSLADialog] = useState(false);
 
   const hasLoadedCategories = useRef(false);
   const hasLoadedUsers = useRef(false);
-
   const isUpdatingFromUrl = useRef(false);
 
   const deepLinkTaskId = searchParams.get("taskId");
 
+  // ── Derived ────────────────────────────────────────────────────────────────
+  const hasSLACritical = useMemo(() => {
+    if (!slaSummary?.critical) return false;
+    return Object.values(slaSummary.critical).some((i) => i.count > 0);
+  }, [slaSummary]);
+
+  // ── SLA init on mount ──────────────────────────────────────────────────────
+  useEffect(() => {
+    if (readSuppress()) return;
+
+    const cached = readCache();
+    if (cached) {
+      dispatch({ type: "task/fetchSLASummary/fulfilled", payload: cached });
+      setShowSLADialog(true);
+      return;
+    }
+
+    dispatch(fetchSLASummary()).then(() => {
+      setShowSLADialog(true);
+    });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── URL → Redux filter sync ────────────────────────────────────────────────
+  // Rules:
+  //   • Most filter keys: if absent from URL → null out in Redux
+  //   • Keys in URL_ABSENT_PRESERVE_KEYS: if absent from URL → leave Redux
+  //     default intact (e.g. is_magic_sort stays ON on first visit)
   useEffect(() => {
     const urlFilters = {};
     const urlPage = searchParams.get("page");
 
-    const filterKeys = [
-      "entity_id",
-      "task_category_id",
-      "assigned_to",
-      "status",
-      "priority",
-      "search",
-      "is_billable",
-      "created_date_from",
-      "created_date_to",
-      "entity_missing",
-    ];
-
     let hasChanges = false;
 
-    filterKeys.forEach((key) => {
+    STANDARD_FILTER_KEYS.forEach((key) => {
       const value = searchParams.get(key);
-      if (value !== null) {
-        // Convert boolean strings to actual booleans for is_billable
-        if (key === "is_billable" || key === "entity_missing") {
-          urlFilters[key] = value === "true";
-        } else {
-          urlFilters[key] = value;
-        }
 
-        // Check if different from current filter
-        if (currentFilters[key] !== urlFilters[key]) {
-          hasChanges = true;
+      if (value !== null) {
+        // Key is present in URL — parse and apply it
+        let parsed;
+        if (key === "is_billable" || key === "entity_missing") {
+          parsed = value === "true";
+        } else if (key === "is_magic_sort") {
+          parsed = value === "true";
+        } else {
+          parsed = value;
         }
+        urlFilters[key] = parsed;
+        if (currentFilters[key] !== parsed) hasChanges = true;
       } else {
-        // URL doesn't have this filter, should be null
+        // Key is absent from URL
+        if (URL_ABSENT_PRESERVE_KEYS.has(key)) {
+          // Don't null it out — preserve the slice default.
+          return;
+        }
         if (currentFilters[key] !== null) {
           urlFilters[key] = null;
           hasChanges = true;
@@ -134,52 +193,35 @@ function TasksPageContent() {
     });
 
     const parsedPage = urlPage ? parseInt(urlPage) : 1;
-    if (currentPage !== parsedPage) {
-      hasChanges = true;
-    }
+    if (currentPage !== parsedPage) hasChanges = true;
 
-    // Only update Redux if there are actual changes
     if (hasChanges || !isInitialized) {
       isUpdatingFromUrl.current = true;
-
       dispatch(setFilters(urlFilters));
-
-      if (parsedPage !== currentPage) {
-        dispatch(setPage(parsedPage));
-      }
-
+      // setFilters already resets currentPage to 1 in the slice,
+      // so only dispatch setPage when the URL specifically asks for another page.
+      if (parsedPage !== 1) dispatch(setPage(parsedPage));
       dispatch(fetchTasks());
-
-      // Reset flag after a tick
       setTimeout(() => {
         isUpdatingFromUrl.current = false;
       }, 0);
     }
 
-    if (!isInitialized) {
-      setIsInitialized(true);
-    }
-  }, [searchParams]); // Re-run when URL changes
+    if (!isInitialized) setIsInitialized(true);
+  }, [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // FIX: Sync Redux state to URL (only when not updating from URL)
+  // ── Fetch unassigned count on mount ───────────────────────────────────────
+  useEffect(() => {
+    dispatch(fetchUnassignedTasksCount());
+  }, [dispatch]);
+
+  // ── Redux → URL sync ───────────────────────────────────────────────────────
   useEffect(() => {
     if (!isInitialized || isUpdatingFromUrl.current) return;
 
     const params = new URLSearchParams(window.location.search);
 
-    // Filters
-    const filterKeys = [
-      "entity_id",
-      "task_category_id",
-      "assigned_to",
-      "status",
-      "priority",
-      "search",
-      "is_billable",
-      "entity_missing",
-    ];
-
-    filterKeys.forEach((key) => {
+    STANDARD_FILTER_KEYS.forEach((key) => {
       const value = currentFilters[key];
       if (value !== null && value !== "" && value !== undefined) {
         params.set(key, value.toString());
@@ -188,57 +230,46 @@ function TasksPageContent() {
       }
     });
 
-    // Page
-    if (currentPage > 1) {
-      params.set("page", currentPage.toString());
-    } else {
-      params.delete("page");
-    }
+    if (currentPage > 1) params.set("page", currentPage.toString());
+    else params.delete("page");
 
-    // Drawer state
-    if (currentTaskId) {
-      params.set("taskId", currentTaskId);
-    } else {
+    if (currentTaskId) params.set("taskId", currentTaskId);
+    else {
       params.delete("taskId");
       params.delete("tab");
     }
 
     const newUrl = `${window.location.pathname}?${params.toString()}`;
-
     if (newUrl !== window.location.pathname + window.location.search) {
       router.replace(newUrl, { scroll: false });
     }
   }, [currentFilters, currentPage, currentTaskId, router, isInitialized]);
 
-  // Handle deep link task opening
+  // ── Deep link task open ────────────────────────────────────────────────────
   useEffect(() => {
     if (window.__closingTaskDrawer) {
       window.__closingTaskDrawer = false;
       return;
     }
-
     if (!deepLinkTaskId || currentTaskId === deepLinkTaskId) return;
-
     dispatch(openManageDialog(deepLinkTaskId));
   }, [deepLinkTaskId, currentTaskId, dispatch]);
 
+  // ── Entity search ──────────────────────────────────────────────────────────
   const handleEntitySearch = useCallback(
     async (query) => {
-      if (!query || !query.trim()) {
+      if (!query?.trim()) {
         setEntitySearchResults([]);
         return;
       }
-
       setIsSearchingEntities(true);
       try {
         const result = await dispatch(
           quickSearchEntities({ search: query, limit: 20 }),
         ).unwrap();
-
         const safeData = Array.isArray(result?.data)
           ? result.data.filter((e) => e && e.id && e.name)
           : [];
-
         setEntitySearchResults(safeData);
       } catch {
         setEntitySearchResults([]);
@@ -264,6 +295,7 @@ function TasksPageContent() {
       : entitySearchResults;
   }, [selectedEntity, entitySearchResults]);
 
+  // ── Lazy loaders ───────────────────────────────────────────────────────────
   const handleLoadCategories = useCallback(() => {
     if (hasLoadedCategories.current) return;
     hasLoadedCategories.current = true;
@@ -276,8 +308,9 @@ function TasksPageContent() {
     dispatch(fetchUsers({ page: 1, limit: 100 }));
   }, [dispatch]);
 
-  const filterDropdowns = useMemo(() => {
-    return [
+  // ── Filter dropdowns config ────────────────────────────────────────────────
+  const filterDropdowns = useMemo(
+    () => [
       {
         filterKey: "entity_id",
         label: "Client",
@@ -327,7 +360,6 @@ function TasksPageContent() {
         lazyLoad: true,
         onLazyLoad: handleLoadUsers,
       },
-     
       {
         filterKey: "entity_missing",
         label: "Client",
@@ -338,23 +370,27 @@ function TasksPageContent() {
           { value: true, label: "Without Client" },
         ],
       },
-    ];
-  }, [
-    entityOptions,
-    categories,
-    users,
-    handleEntitySearch,
-    isSearchingEntities,
-    categoriesLoading,
-    usersLoading,
-    handleLoadCategories,
-    handleLoadUsers,
-  ]);
+    ],
+    [
+      entityOptions,
+      categories,
+      users,
+      handleEntitySearch,
+      isSearchingEntities,
+      categoriesLoading,
+      usersLoading,
+      handleLoadCategories,
+      handleLoadUsers,
+    ],
+  );
+
+  // ── Filter handlers ────────────────────────────────────────────────────────
+  // Note: setFilters in the slice already resets currentPage to 1,
+  // so we never need to dispatch setPage(1) here separately.
 
   const handleFilterChange = useCallback(
     (filterKey, value) => {
       dispatch(setFilters({ [filterKey]: value }));
-      dispatch(setPage(1));
       dispatch(fetchTasks(true));
     },
     [dispatch],
@@ -365,26 +401,53 @@ function TasksPageContent() {
       setFilters({
         entity_id: null,
         task_category_id: null,
+        unassigned_only: null,
         assigned_to: null,
+        is_magic_sort: null,
+        entity_missing: null,
         priority: null,
         search: null,
         is_billable: null,
+        due_date_from: null,
+        due_date_to: null,
+        created_date_from: null,
+        created_date_to: null,
+        // ✅ FIX: clear all SLA filters too
+        sla_status: null,
+        sla_due_date_from: null,
+        sla_due_date_to: null,
+        sla_paused_before: null,
       }),
     );
-    dispatch(setPage(1));
     dispatch(fetchTasks(true));
   }, [dispatch]);
 
-  const handleCreateTask = useCallback(() => {
-    dispatch(openCreateDialog());
-  }, [dispatch]);
+  const handleToggleUnassigned = useCallback(() => {
+    const isActive = currentFilters.unassigned_only === true;
+    dispatch(setFilters({ unassigned_only: isActive ? null : true }));
+    dispatch(fetchTasks(true));
+  }, [dispatch, currentFilters.unassigned_only]);
 
-  const handleToggleWorkload = useCallback(() => {
-    setShowWorkload((prev) => !prev);
-  }, []);
+  const handleToggleMagicSort = useCallback(() => {
+    const isActive = currentFilters.is_magic_sort === true;
+    dispatch(setFilters({ is_magic_sort: isActive ? null : true }));
+    dispatch(fetchTasks(true));
+  }, [dispatch, currentFilters.is_magic_sort]);
+
+  // ── Other handlers ─────────────────────────────────────────────────────────
+  const handleCreateTask = useCallback(
+    () => dispatch(openCreateDialog()),
+    [dispatch],
+  );
+
+  const handleToggleWorkload = useCallback(
+    () => setShowWorkload((prev) => !prev),
+    [],
+  );
 
   const handleRefresh = useCallback(() => {
     dispatch(fetchTasks(true));
+    dispatch(fetchUnassignedTasksCount());
   }, [dispatch]);
 
   const handlePageChange = useCallback(
@@ -396,12 +459,14 @@ function TasksPageContent() {
   );
 
   const handleTaskClick = useCallback(
-    (task) => {
-      dispatch(openManageDialog(task.id));
-    },
+    (task) => dispatch(openManageDialog(task.id)),
     [dispatch],
   );
 
+  const handleShowSLASummary = useCallback(() => setShowSLADialog(true), []);
+  const handleCloseSLADialog = useCallback(() => setShowSLADialog(false), []);
+
+  // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <ForceNotification>
       <div className={style.tasksPage}>
@@ -412,7 +477,7 @@ function TasksPageContent() {
             task_category_id: currentFilters.task_category_id,
             assigned_to: currentFilters.assigned_to,
             is_billable: currentFilters.is_billable,
-             entity_missing: currentFilters.entity_missing,  
+            entity_missing: currentFilters.entity_missing,
           }}
           onFilterChange={handleFilterChange}
           onClearAllFilters={handleClearAllFilters}
@@ -427,6 +492,16 @@ function TasksPageContent() {
           onPageChange={handlePageChange}
           isPaginationLoading={tasksLoading}
           isTaskLoading={tasksLoading}
+          unassignedCount={unassignedCount}
+          unassignedCountLoading={unassignedCountLoading}
+          onToggleUnassigned={handleToggleUnassigned}
+          isUnassignedFilterActive={currentFilters.unassigned_only === true}
+          onToggleMagicSort={handleToggleMagicSort}
+          isMagicSortActive={currentFilters.is_magic_sort === true}
+          onShowSLASummary={handleShowSLASummary}
+          hasSLACritical={hasSLACritical}
+          isSLADialogOpen={showSLADialog}
+          allActiveFilters={currentFilters}
         />
 
         <TaskStatusBoard statusCounts={statusCounts} loading={tasksLoading} />
@@ -449,6 +524,12 @@ function TasksPageContent() {
           isOpen={showCategoryDialog}
           onClose={() => setShowCategoryDialog(false)}
           mode="list"
+        />
+
+        <SLAAttentionDialog
+          isOpen={showSLADialog}
+          onClose={handleCloseSLADialog}
+          currentFilters={currentFilters}
         />
       </div>
     </ForceNotification>

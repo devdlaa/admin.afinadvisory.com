@@ -1,0 +1,138 @@
+// DocumentManagerDialog.module.scss
+
+// ===============================
+// Overlay / Backdrop
+// ===============================
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(1, 2, 4, 0.651);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: fadeIn 0.15s ease;
+}
+
+// ===============================
+// Dialog Box
+// ===============================
+.dialog {
+  width: 100%;
+  max-width: 920px;
+  // Fixed height so it never overflows the viewport
+  height: 82vh;
+  max-height: 820px;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow:
+    0 24px 48px rgba(0, 0, 0, 0.18),
+    0 8px 16px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: slideUp 0.18s ease;
+
+  @media (max-width: 768px) {
+    max-width: 100%;
+    height: 90vh;
+    border-radius: 12px;
+  }
+}
+
+// ===============================
+// Dialog Header
+// ===============================
+.dialogHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 22px;
+  border-bottom: 1px solid #e8eaed;
+  background: #f8f9fa;
+  flex-shrink: 0; // never shrink — always visible
+}
+
+.dialogTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dialogTitleIcon {
+  color: #2563eb;
+}
+
+.dialogTitle {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1a1a1a;
+  letter-spacing: -0.01em;
+}
+
+.closeButton {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.15s;
+  flex-shrink: 0;
+
+  &:hover {
+    background: #f3f4f6;
+    border-color: #e5e7eb;
+    color: #374151;
+  }
+
+  &:active {
+    background: #e5e7eb;
+  }
+}
+
+// ===============================
+// Dialog Body (scrollable)
+// ===============================
+.dialogBody {
+  flex: 1; // takes all remaining height
+  overflow-y: auto; // scrolls independently
+  min-height: 0; // required for flex children to shrink properly
+
+  // DocumentManager has its own outer border/radius — flatten it inside dialog
+  > * {
+    border-radius: 0 !important;
+    outline: none !important;
+    box-shadow: none !important;
+  }
+}
+
+// ===============================
+// Animations
+// ===============================
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}

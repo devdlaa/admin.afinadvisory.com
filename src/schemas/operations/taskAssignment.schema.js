@@ -28,6 +28,14 @@ export const TaskAssignmentSyncSchema = z.object({
     .array(z.string().uuid("Invalid user ID"))
     .max(5, "A maximum of 5 assignees is allowed")
     .optional(),
+
+  sla_days: z
+    .number()
+    .int("SLA days must be an integer")
+    .positive("SLA days must be greater than 0")
+    .max(30, "SLA days too large") 
+    .optional()
+    .nullable(),
 });
 
 /**
@@ -47,4 +55,3 @@ export const BulkAssignTaskSchema = z.object({
     .min(1, "At least one user must be provided")
     .max(5, "A maximum of 5 assignees is allowed"),
 });
-

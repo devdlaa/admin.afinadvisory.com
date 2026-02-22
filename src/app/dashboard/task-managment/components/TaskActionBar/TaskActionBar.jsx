@@ -7,11 +7,22 @@ import {
   ChevronRight,
   X,
   ListCheckIcon,
+  Sparkles,
+  ShieldAlert,
 } from "lucide-react";
 
 import FilterDropdown from "@/app/components/pages/FilterDropdown/FilterDropdown";
 import Button from "@/app/components/shared/Button/Button";
 import "./TaskActionBar.scss";
+
+// Keys that the SLA dialog can set as filters.
+// Adjust this list to match whatever keys your SLA dialog dispatches.
+const SLA_FILTER_KEYS = [
+  "sla_status",
+  "sla_overdue",
+  "deadline_status",
+  "paused",
+];
 
 const TaskActionBar = ({
   filterDropdowns = [],
@@ -29,59 +40,97 @@ const TaskActionBar = ({
   totalPages = 1,
   onPageChange,
   isPaginationLoading = false,
+  unassignedCount = 0,
+  unassignedCountLoading = false,
+  onToggleUnassigned,
+  isUnassignedFilterActive,
+  onToggleMagicSort,
+  isMagicSortActive = false,
+  onShowSLASummary,
+  hasSLACritical = false,
+  isSLADialogOpen = false,
+  // Full redux filter object so we can detect SLA-sourced filters
+  allActiveFilters = {},
 }) => {
-  // FIX: Properly check for active filters including boolean false
   const hasActiveFilters = Object.entries(activeFilters).some(
-    ([key, value]) => value !== null && value !== undefined && value !== ""
+    ([, value]) => value !== null && value !== undefined && value !== "",
   );
 
-  const handleRemoveFilter = (filterKey) => {
-    onFilterChange(filterKey, null);
-  };
+  // True when the user applied a filter by clicking "View" inside the SLA dialog
+  const hasSLAFilterActive = SLA_FILTER_KEYS.some(
+    (key) =>
+      allActiveFilters[key] !== null &&
+      allActiveFilters[key] !== undefined &&
+      allActiveFilters[key] !== "",
+  );
+
+  const handleRemoveFilter = (filterKey) => onFilterChange(filterKey, null);
 
   const handlePrevPage = () => {
-    if (currentPage > 1 && !isPaginationLoading) {
-      if (onPageChange) onPageChange(currentPage - 1);
-    }
+    if (currentPage > 1 && !isPaginationLoading && onPageChange)
+      onPageChange(currentPage - 1);
   };
 
   const handleNextPage = () => {
-    if (currentPage < totalPages && !isPaginationLoading) {
-      if (onPageChange) onPageChange(currentPage + 1);
-    }
+    if (currentPage < totalPages && !isPaginationLoading && onPageChange)
+      onPageChange(currentPage + 1);
   };
 
-  // FIX: Get active filter labels for display
   const getActiveFilterLabel = (filterKey, value) => {
     const dropdown = filterDropdowns.find((d) => d.filterKey === filterKey);
     if (!dropdown) return null;
-
     const option = dropdown.options.find((opt) => opt.value === value);
     return option ? option.label : null;
   };
 
-  // FIX: Get list of active filters with their labels
   const activeFiltersList = Object.entries(activeFilters)
     .filter(
-      ([key, value]) => value !== null && value !== undefined && value !== ""
+      ([, value]) => value !== null && value !== undefined && value !== "",
     )
     .map(([key, value]) => ({
       key,
       value,
       label: getActiveFilterLabel(key, value),
     }))
-    .filter((filter) => filter.label);
+    .filter((f) => f.label);
+
+  // SLA pill — four states in priority order:
+  //   --filter-active  filter applied (teal, highest visibility)
+  //   --active         dialog is open (blue)
+  //   --critical       critical items exist (pulsing red)
+  //   default          grey
+  const slaPillModifier = hasSLAFilterActive
+    ? "task-action-bar__sla-pill--filter-active"
+    : isSLADialogOpen
+      ? "task-action-bar__sla-pill--active"
+      : hasSLACritical
+        ? "task-action-bar__sla-pill--critical"
+        : "";
+
+  const slaPillClass = ["task-action-bar__sla-pill", slaPillModifier]
+    .filter(Boolean)
+    .join(" ");
+
+  const slaLabel = hasSLAFilterActive ? "SLA Filter Active" : "SLA Summary";
+
+  const slaTitle = hasSLAFilterActive
+    ? "SLA filter is applied — click to manage"
+    : isSLADialogOpen
+      ? "Close SLA summary"
+      : hasSLACritical
+        ? "SLA items need attention — click to review"
+        : "Show SLA attention summary";
 
   return (
     <div className="task-action-bar">
-      {/* Header Section */}
+      {/* Header */}
       <div className="task-action-bar__header">
         <div className="task-action-bar__title-section">
           <div className="task-action-bar__icon">
             <ListCheckIcon />
           </div>
           <div className="task-action-bar__title-content">
-            <h1 className="task-action-bar__title">Tasks Managment</h1>
+            <h1 className="task-action-bar__title">Tasks Management</h1>
             <p className="task-action-bar__subtitle">
               Manage and track all your tasks in one place
             </p>
@@ -99,7 +148,7 @@ const TaskActionBar = ({
         </div>
       </div>
 
-      {/* Filters and Actions Section */}
+      {/* Filters and Actions */}
       <div className="task-action-bar__controls">
         <div className="task-action-bar__filters">
           {filterDropdowns.map((dropdown) => (
@@ -162,7 +211,7 @@ const TaskActionBar = ({
         </div>
       </div>
 
-      {/* FIX: Active Filters Chips */}
+      {/* Active filter chips */}
       {activeFiltersList.length > 0 && (
         <div className="task-action-bar__active-filters">
           {activeFiltersList.map((filter) => (
@@ -182,7 +231,7 @@ const TaskActionBar = ({
         </div>
       )}
 
-      {/* Pagination and Meta Info Strip */}
+      {/* Pagination and meta strip */}
       <div className="task-action-bar__pagination-strip">
         <div className="task-action-bar__meta-info">
           <div className="task-action-bar__meta-counts">
@@ -202,6 +251,51 @@ const TaskActionBar = ({
                 </span>
               </>
             )}
+
+            {!unassignedCountLoading && unassignedCount > 0 && (
+              <button
+                className={`task-action-bar__unassigned-pill${
+                  isUnassignedFilterActive
+                    ? " task-action-bar__unassigned-pill--active"
+                    : ""
+                }`}
+                onClick={onToggleUnassigned}
+                title={
+                  isUnassignedFilterActive
+                    ? "Clear unassigned filter"
+                    : "Show only unassigned tasks"
+                }
+              >
+                <span className="task-action-bar__unassigned-dot" />
+                {unassignedCount} UNASSIGNED TASK
+              </button>
+            )}
+
+            <button
+              className={`task-action-bar__magic-sort-pill${
+                isMagicSortActive
+                  ? " task-action-bar__magic-sort-pill--active"
+                  : ""
+              }`}
+              onClick={onToggleMagicSort}
+              title={
+                isMagicSortActive
+                  ? "Disable Focus Assist"
+                  : "Enable Focus Assist"
+              }
+            >
+              <Sparkles size={14} />
+              Focus Assist
+            </button>
+
+            <button
+              className={slaPillClass}
+              onClick={onShowSLASummary}
+              title={slaTitle}
+            >
+              <ShieldAlert size={14} />
+              {slaLabel}
+            </button>
           </div>
         </div>
 

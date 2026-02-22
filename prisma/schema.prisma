@@ -231,17 +231,24 @@ model TaskAssignment {
   assigned_by       String    @db.Uuid
   assignment_source String?
   assigned_at       DateTime  @default(now())
+
+  sla_days Int?
+  due_date          DateTime?        
+  sla_status        SLAStatus @default(RUNNING)
+  sla_paused_at     DateTime?
+  sla_breached_at   DateTime?
+ 
+
   assignee          AdminUser @relation("assignee", fields: [admin_user_id], references: [id])
   assigner          AdminUser @relation("assigner", fields: [assigned_by], references: [id])
   task              Task      @relation(fields: [task_id], references: [id], onDelete: Cascade)
 
   @@index([task_id])
   @@index([admin_user_id])
-  @@index([assigned_by])
-  @@index([assigned_at])
-  @@index([admin_user_id, task_id])
+  @@index([admin_user_id, due_date])
+  @@index([sla_status, sla_paused_at])
+  @@index([sla_status, due_date])
 }
-
 model Task {
   id                      String              @id @default(uuid()) @db.Uuid
   entity_id               String?             @db.Uuid
@@ -265,6 +272,7 @@ model Task {
   last_commented_by       String?             @db.Uuid
   task_category_id        String?             @db.Uuid
   invoice_internal_number String?             @db.VarChar(50)
+
   invoiced_at             DateTime?
   is_locked               Boolean             @default(false)
   is_system               Boolean             @default(false)
@@ -444,6 +452,14 @@ enum AdminUserStatus {
   SUSPENDED
 }
 
+enum SLAStatus {
+  NONE
+  RUNNING
+  PAUSED
+  BREACHED
+  COMPLETED
+}
+
 enum ChargeType {
   EXTERNAL_CHARGE
   GOVERNMENT_FEE
@@ -547,3 +563,5 @@ enum EntityType {
   ASSOCIATION_OF_PERSON
   HUF
 }
+
+

@@ -15,18 +15,22 @@ import {
 } from "@/utils/server/apiResponse";
 
 import { requirePermission } from "@/utils/server/requirePermission";
+import { requireTotp } from "@/utils/server/requireTotp";
 
 const uuidSchema = z.string().uuid("Invalid task ID format");
 
 // -------------------- GET --------------------
 export async function GET(request, { params }) {
   try {
-    const [permissionError,session,admin_user] = await requirePermission(request, "tasks.access");
+    const [permissionError, session, admin_user] = await requirePermission(
+      request,
+      "tasks.access",
+    );
     if (permissionError) return permissionError;
 
     const task_id = uuidSchema.parse((await params).task_id);
 
-    const result = await getTaskById(task_id,admin_user);
+    const result = await getTaskById(task_id, admin_user);
 
     return createSuccessResponse("Task retrieved successfully", result);
   } catch (error) {
@@ -35,7 +39,7 @@ export async function GET(request, { params }) {
         "Invalid task ID",
         400,
         "VALIDATION_ERROR",
-        error.errors
+        error.errors,
       );
     }
 
@@ -46,9 +50,9 @@ export async function GET(request, { params }) {
 // -------------------- PATCH --------------------
 export async function PATCH(request, { params }) {
   try {
-    const [permissionError, session,admin_user] = await requirePermission(
+    const [permissionError, session, admin_user] = await requirePermission(
       request,
-      "tasks.manage"
+      "tasks.manage",
     );
     if (permissionError) return permissionError;
     const task_id = uuidSchema.parse((await params).task_id);
@@ -61,7 +65,7 @@ export async function PATCH(request, { params }) {
       return createErrorResponse(
         "At least one field must be provided for update",
         400,
-        "NO_FIELDS"
+        "NO_FIELDS",
       );
     }
 
@@ -69,8 +73,6 @@ export async function PATCH(request, { params }) {
 
     return createSuccessResponse("Task updated successfully", result);
   } catch (error) {
-    console.log(error);
-
     return handleApiError(error);
   }
 }
@@ -78,20 +80,21 @@ export async function PATCH(request, { params }) {
 // -------------------- DELETE (Soft delete) --------------------
 export async function DELETE(request, { params }) {
   try {
-    const [permissionError, session,admin_user] = await requirePermission(
-      request,
-     
-    );
+    const [permissionError, session, admin_user] =
+      await requirePermission(request);
     if (permissionError) return permissionError;
 
     const task_id = uuidSchema.parse((await params).task_id);
+
+    const body = await request.json();
+
+    await requireTotp(body.authorizer_id, body.totp_code);
 
     const result = await deleteTask(task_id, admin_user);
 
     return createSuccessResponse("Task deleted successfully", result);
   } catch (error) {
     console.log(error);
-
     return handleApiError(error);
   }
 }

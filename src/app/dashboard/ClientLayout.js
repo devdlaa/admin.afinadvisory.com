@@ -8,11 +8,11 @@ export default function ClientLayout({ children }) {
   return (
     <Providers>
       <div className="layout">
-        <LockDashboardButton />
         <Sidebar />
         <div className="main-content">
           <div className="content-area">{children}</div>
         </div>
+        <LockDashboardButton />
       </div>
     </Providers>
   );

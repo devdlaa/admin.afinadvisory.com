@@ -20,7 +20,7 @@ const CACHE_CONFIG = {
 const generateCacheKey = (filters, page, pageSize) => {
   const filterStr = Object.entries(filters)
     .filter(
-      ([_, value]) => value !== null && value !== "" && value !== undefined
+      ([_, value]) => value !== null && value !== "" && value !== undefined,
     )
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([key, value]) => `${key}:${value}`)
@@ -99,7 +99,7 @@ export const fetchTasks = createAsyncThunk(
       });
 
       const result = await apiFetch(
-        `/api/admin_ops/tasks?${params.toString()}`
+        `/api/admin_ops/tasks?${params.toString()}`,
       );
 
       return {
@@ -114,7 +114,7 @@ export const fetchTasks = createAsyncThunk(
         details: error.details,
       });
     }
-  }
+  },
 );
 
 /**
@@ -136,7 +136,7 @@ export const createTask = createAsyncThunk(
         details: error.details,
       });
     }
-  }
+  },
 );
 
 /**
@@ -158,7 +158,7 @@ export const updateTask = createAsyncThunk(
         details: error.details,
       });
     }
-  }
+  },
 );
 
 /**
@@ -166,10 +166,12 @@ export const updateTask = createAsyncThunk(
  */
 export const deleteTask = createAsyncThunk(
   "task/deleteTask",
-  async (taskId, { rejectWithValue }) => {
+  async ({ taskId, authorizer_id, totp_code }, { rejectWithValue }) => {
     try {
       const result = await apiFetch(`/api/admin_ops/tasks/${taskId}`, {
         method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ authorizer_id, totp_code }),
       });
       return { taskId, ...result.data };
     } catch (error) {
@@ -179,7 +181,7 @@ export const deleteTask = createAsyncThunk(
         details: error.details,
       });
     }
-  }
+  },
 );
 
 /**
@@ -201,7 +203,7 @@ export const bulkUpdateTaskStatus = createAsyncThunk(
         details: error.details,
       });
     }
-  }
+  },
 );
 
 /**
@@ -216,7 +218,7 @@ export const bulkUpdateTaskPriority = createAsyncThunk(
         {
           method: "POST",
           body: JSON.stringify({ task_ids, priority }),
-        }
+        },
       );
       return result.data;
     } catch (error) {
@@ -226,7 +228,7 @@ export const bulkUpdateTaskPriority = createAsyncThunk(
         details: error.details,
       });
     }
-  }
+  },
 );
 
 /**
@@ -248,7 +250,7 @@ export const bulkAssignTasks = createAsyncThunk(
         details: error.details,
       });
     }
-  }
+  },
 );
 
 /**
@@ -267,7 +269,45 @@ export const fetchAssignmentReport = createAsyncThunk(
         details: error.details,
       });
     }
-  }
+  },
+);
+
+/**
+ * Fetch unassigned tasks count
+ */
+export const fetchUnassignedTasksCount = createAsyncThunk(
+  "task/fetchUnassignedTasksCount",
+  async (_, { rejectWithValue }) => {
+    try {
+      const result = await apiFetch("/api/admin_ops/tasks/unassigned");
+      return result.data.count;
+    } catch (error) {
+      return rejectWithValue({
+        message: error.message || "Failed to fetch unassigned tasks count",
+        code: error.code,
+        details: error.details,
+      });
+    }
+  },
+);
+
+/**
+ * Fetch SLA summary
+ */
+export const fetchSLASummary = createAsyncThunk(
+  "task/fetchSLASummary",
+  async (_, { rejectWithValue }) => {
+    try {
+      const result = await apiFetch("/api/admin_ops/tasks/sla-summry");
+      return result.data.SLA_SUMMARY;
+    } catch (error) {
+      return rejectWithValue({
+        message: error.message || "Failed to fetch SLA summary",
+        code: error.code,
+        details: error.details,
+      });
+    }
+  },
 );
 
 // ============================================
@@ -309,18 +349,30 @@ const initialState = {
   // Filters
   filters: {
     entity_id: null,
-    status: "ALL", // null means "All"
-
-    priority: null, // null means "All"
+    status: "ALL",
+    is_magic_sort: null,
+    unassigned_only: null,
+    priority: null,
     task_category_id: null,
 
     created_by: null,
     assigned_to: null,
     due_date_from: null,
     due_date_to: null,
+    created_date_from: null,
+    created_date_to: null,
     search: null,
     is_billable: null,
     billed_from_firm: null,
+    entity_missing: null,
+
+    // ✅ FIX: SLA filter keys must live in the slice so they are
+    //    (a) included in the cache key, (b) sent to the API, and
+    //    (c) reset properly when filters are cleared.
+    sla_status: null,
+    sla_due_date_from: null,
+    sla_due_date_to: null,
+    sla_paused_before: null,
   },
 
   // Active filter count
@@ -338,6 +390,10 @@ const initialState = {
   // Assignment report (workload)
   assignmentReport: null,
   assignmentReportLoading: false,
+  unassignedTasksCount: null,
+  unassignedTasksCountLoading: false,
+  slaSummary: null,
+  slaSummaryLoading: false,
 
   // Loading states
   loading: {
@@ -371,7 +427,7 @@ const initialState = {
  */
 const countActiveFilters = (filters) => {
   return Object.values(filters).filter(
-    (value) => value !== null && value !== "" && value !== undefined
+    (value) => value !== null && value !== "" && value !== undefined,
   ).length;
 };
 
@@ -380,7 +436,7 @@ const countActiveFilters = (filters) => {
  */
 const updateTaskInList = (tasks, updatedTask) => {
   return tasks.map((task) =>
-    task.id === updatedTask.id ? { ...task, ...updatedTask } : task
+    task.id === updatedTask.id ? { ...task, ...updatedTask } : task,
   );
 };
 
@@ -406,7 +462,7 @@ const doesTaskMatchFilters = (task, filters) => {
  */
 const updateMultipleTasksInList = (tasks, taskIds, updates) => {
   return tasks.map((task) =>
-    taskIds.includes(task.id) ? { ...task, ...updates } : task
+    taskIds.includes(task.id) ? { ...task, ...updates } : task,
   );
 };
 
@@ -681,9 +737,9 @@ const taskSlice = createSlice({
 
         state.tasks = updateTaskInList(state.tasks, task);
 
-        // 🔥 remove if it no longer matches filters
+        //  remove if it no longer matches filters
         state.tasks = state.tasks.filter((t) =>
-          doesTaskMatchFilters(t, state.filters)
+          doesTaskMatchFilters(t, state.filters),
         );
 
         // Update global counts if status changed
@@ -712,7 +768,7 @@ const taskSlice = createSlice({
 
         state.tasks = removeTaskFromList(state.tasks, taskId);
         state.selectedTaskIds = state.selectedTaskIds.filter(
-          (id) => id !== taskId
+          (id) => id !== taskId,
         );
 
         // Update global counts
@@ -748,7 +804,7 @@ const taskSlice = createSlice({
 
         // Remove tasks that no longer match active filters
         state.tasks = state.tasks.filter((task) =>
-          doesTaskMatchFilters(task, state.filters)
+          doesTaskMatchFilters(task, state.filters),
         );
 
         // Update global counts
@@ -785,7 +841,7 @@ const taskSlice = createSlice({
 
         // Remove tasks that no longer match active filters
         state.tasks = state.tasks.filter((task) =>
-          doesTaskMatchFilters(task, state.filters)
+          doesTaskMatchFilters(task, state.filters),
         );
 
         state.selectedTaskIds = [];
@@ -839,6 +895,36 @@ const taskSlice = createSlice({
       .addCase(fetchAssignmentReport.rejected, (state) => {
         state.assignmentReportLoading = false;
       });
+
+    // ============================================
+    // FETCH UNASSIGNED TASKS COUNT
+    // ============================================
+    builder
+      .addCase(fetchUnassignedTasksCount.pending, (state) => {
+        state.unassignedTasksCountLoading = true;
+      })
+      .addCase(fetchUnassignedTasksCount.fulfilled, (state, action) => {
+        state.unassignedTasksCount = action.payload;
+        state.unassignedTasksCountLoading = false;
+      })
+      .addCase(fetchUnassignedTasksCount.rejected, (state) => {
+        state.unassignedTasksCountLoading = false;
+      });
+
+    // ============================================
+    // FETCH SLA SUMMARY
+    // ============================================
+    builder
+      .addCase(fetchSLASummary.pending, (state) => {
+        state.slaSummaryLoading = true;
+      })
+      .addCase(fetchSLASummary.fulfilled, (state, action) => {
+        state.slaSummary = action.payload;
+        state.slaSummaryLoading = false;
+      })
+      .addCase(fetchSLASummary.rejected, (state) => {
+        state.slaSummaryLoading = false;
+      });
   },
 });
 
@@ -869,7 +955,7 @@ const selectTaskState = (state) => state.task || initialState;
 
 export const selectTasks = createSelector(
   [selectTaskState],
-  (task) => task.tasks
+  (task) => task.tasks,
 );
 
 export const selectPagination = createSelector([selectTaskState], (task) => ({
@@ -881,52 +967,52 @@ export const selectPagination = createSelector([selectTaskState], (task) => ({
 
 export const selectFilters = createSelector(
   [selectTaskState],
-  (task) => task.filters
+  (task) => task.filters,
 );
 
 export const selectActiveFilterCount = createSelector(
   [selectTaskState],
-  (task) => task.activeFilterCount
+  (task) => task.activeFilterCount,
 );
 
 export const selectSelectedTaskIds = createSelector(
   [selectTaskState],
-  (task) => task.selectedTaskIds
+  (task) => task.selectedTaskIds,
 );
 
 export const selectSelectedTasksCount = createSelector(
   [selectTaskState],
-  (task) => task.selectedTaskIds.length
+  (task) => task.selectedTaskIds.length,
 );
 
 export const selectHasSelectedTasks = createSelector(
   [selectTaskState],
-  (task) => task.selectedTaskIds.length > 0
+  (task) => task.selectedTaskIds.length > 0,
 );
 
 export const selectCreateDialogOpen = createSelector(
   [selectTaskState],
-  (task) => task.createDialogOpen
+  (task) => task.createDialogOpen,
 );
 
 export const selectManageDialogOpen = createSelector(
   [selectTaskState],
-  (task) => task.manageDialogOpen
+  (task) => task.manageDialogOpen,
 );
 
 export const selectManageDialogTaskId = createSelector(
   [selectTaskState],
-  (task) => task.manageDialogTaskId
+  (task) => task.manageDialogTaskId,
 );
 
 export const selectAssignmentReport = createSelector(
   [selectTaskState],
-  (task) => task.assignmentReport
+  (task) => task.assignmentReport,
 );
 
 export const selectStatusCounts = createSelector(
   [selectTaskState],
-  (task) => task.statusCounts
+  (task) => task.statusCounts,
 );
 
 export const selectIsLoading =
@@ -939,18 +1025,38 @@ export const selectError = (state, type = "list") =>
 
 export const selectBulkActionInProgress = createSelector(
   [selectTaskState],
-  (task) => task.bulkActionInProgress
+  (task) => task.bulkActionInProgress,
 );
 
 export const selectAssignmentReportLoading = createSelector(
   [selectTaskState],
-  (task) => task.assignmentReportLoading
+  (task) => task.assignmentReportLoading,
 );
 
 export const selectHasAssignmentReportData = createSelector(
   [selectTaskState],
   (task) =>
-    Array.isArray(task.assignmentReport) && task.assignmentReport.length > 0
+    Array.isArray(task.assignmentReport) && task.assignmentReport.length > 0,
+);
+
+export const selectUnassignedTasksCount = createSelector(
+  [selectTaskState],
+  (task) => task.unassignedTasksCount,
+);
+
+export const selectUnassignedTasksCountLoading = createSelector(
+  [selectTaskState],
+  (task) => task.unassignedTasksCountLoading,
+);
+
+export const selectSLASummary = createSelector(
+  [selectTaskState],
+  (task) => task.slaSummary,
+);
+
+export const selectSLASummaryLoading = createSelector(
+  [selectTaskState],
+  (task) => task.slaSummaryLoading,
 );
 
 // ============================================

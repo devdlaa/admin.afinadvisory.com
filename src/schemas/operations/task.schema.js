@@ -49,12 +49,12 @@ export const createTaskSchema = z
       .trim(),
 
     description: z.string().max(2000).optional().nullable(),
+    apply_sla: z.boolean().optional().default(true),
 
     status: TaskStatusEnum.default("PENDING"),
 
     priority: TaskPriorityEnum,
 
-   
     end_date: z.coerce.date().optional().nullable(),
     due_date: z.coerce.date().optional().nullable(),
 
@@ -64,22 +64,14 @@ export const createTaskSchema = z
       .uuid("Invalid category ID format")
       .optional()
       .nullable(),
-
-    /**
-     * NEW BILLING FIELDS
-     */
-    is_billable: z.boolean().default(false),
   })
-  
+
   // due date not in past
   .refine((data) => !data.due_date || data.due_date >= new Date(), {
     message: "Due date cannot be in the past",
     path: ["due_date"],
   });
 
-/**
- * LIST / QUERY TASKS
- */
 export const listTasksSchema = z
   .object({
     page: z.coerce.number().int().positive().optional().default(1),
@@ -93,6 +85,7 @@ export const listTasksSchema = z
 
     entity_id: z.string().uuid("Invalid entity ID").optional(),
     entity_missing: z.boolean().optional(),
+    unassigned_only: z.boolean().optional(),
 
     status: TaskStatusEnum.optional().nullable(),
     priority: TaskPriorityEnumD.optional().nullable(),
@@ -102,7 +95,6 @@ export const listTasksSchema = z
     created_by: z.string().uuid("Invalid user ID").optional(),
     assigned_to: z.string().uuid("Invalid user ID").optional(),
 
-    // due date filters
     due_date_from: z.string().datetime().optional(),
     due_date_to: z.string().datetime().optional(),
 
@@ -115,10 +107,16 @@ export const listTasksSchema = z
 
     sort_by: z
       .enum(["due_date", "priority", "created_at"])
-      .default("created_at")
-      .optional(),
-
+      .default("created_at"),
     sort_order: z.enum(["asc", "desc"]).default("desc").optional(),
+    is_magic_sort: z.coerce.boolean().optional().default(false),
+
+    sla_status: z
+      .enum(["RUNNING", "PAUSED", "BREACHED", "COMPLETED"])
+      .optional(),
+    sla_due_date_from: z.string().datetime().optional(),
+    sla_due_date_to: z.string().datetime().optional(),
+    sla_paused_before: z.string().datetime().optional(),
   })
   .refine(
     (data) =>
@@ -133,6 +131,13 @@ export const listTasksSchema = z
       !data.created_date_to ||
       new Date(data.created_date_from) <= new Date(data.created_date_to),
     { message: "created_date_from must be before or equal to created_date_to" },
+  )
+  .refine(
+    (data) =>
+      !data.sla_due_date_from ||
+      !data.sla_due_date_to ||
+      new Date(data.sla_due_date_from) <= new Date(data.sla_due_date_to),
+    { message: "sla_due_date_from must be before or equal to sla_due_date_to" },
   );
 
 /**
@@ -151,8 +156,6 @@ export const TaskUpdateSchema = z
 
     task_category_id: z.string().uuid().optional().nullable(),
 
-
-
     due_date: z
       .union([z.coerce.date(), z.literal("")])
       .optional()
@@ -161,10 +164,28 @@ export const TaskUpdateSchema = z
     is_billable: z.boolean().optional(),
   })
 
-  .refine((data) => !data.due_date || data.due_date >= new Date(), {
-    message: "Due date cannot be in the past",
-    path: ["due_date"],
-  });
+  .refine(
+    (data) => {
+      if (!data.due_date) return true;
+
+      const timeZone = "Asia/Kolkata";
+
+      const today = new Date();
+      const due = new Date(data.due_date);
+
+      const todayIST = new Date(today.toLocaleString("en-US", { timeZone }));
+      const dueIST = new Date(due.toLocaleString("en-US", { timeZone }));
+
+      todayIST.setHours(0, 0, 0, 0);
+      dueIST.setHours(0, 0, 0, 0);
+
+      return dueIST >= todayIST;
+    },
+    {
+      message: "Due date cannot be in the past",
+      path: ["due_date"],
+    },
+  );
 
 /**
  * BULK STATUS UPDATE

@@ -54,7 +54,7 @@ const DocumentManager = ({ scope, scopeId }) => {
   const dispatch = useDispatch();
   const fileInputRef = useRef(null);
   const [isDragOver, setIsDragOver] = useState(false);
-  const [viewMode, setViewMode] = useState("grid"); // 'grid' or 'list'
+  const [viewMode, setViewMode] = useState("list"); 
 
   // Selectors
   const { items, pagination, loading } = useSelector((state) =>
@@ -87,7 +87,7 @@ const DocumentManager = ({ scope, scopeId }) => {
         page: 1,
         sort: sortConfig.sort,
         order: sortConfig.order,
-        forceRefresh: false, // Don't force refresh on mount
+        forceRefresh: false,
       }),
     );
     setCurrentPage(1);
@@ -549,7 +549,7 @@ const DocumentCard = React.memo(
 
         <div className={styles.cardBody}>
           <h4 className={styles.fileName} title={doc.original_name}>
-            {truncateText(doc.original_name,25)}
+            {truncateText(doc.original_name, 25)}
           </h4>
           <div className={styles.fileSize}>
             {formatFileSize(doc.size_bytes)}

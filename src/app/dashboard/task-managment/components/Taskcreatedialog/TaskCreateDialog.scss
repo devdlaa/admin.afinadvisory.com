@@ -1,19 +1,20 @@
-.task-create-dialog-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(2, 4, 8, 0.877);
-  backdrop-filter: blur(4px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1001;
-  padding: 20px;
-  animation: fadeIn 0.2s ease;
-}
+// ============================================================
+// TaskCreateDialog.scss
+// Sections:
+//   1. Animations
+//   2. Overlay
+//   3. Dialog shell
+//   4. Header
+//   5. Banners (error / success)
+//   6. Form & fields
+//   7. Inputs & textarea
+//   8. SLA toggle
+//   9. Row layout & actions
+//  10. Dropdown overrides
+//  11. Responsive
+// ============================================================
 
+// ── 1. Animations ────────────────────────────────────────────
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -34,6 +35,21 @@
   }
 }
 
+// ── 2. Overlay ───────────────────────────────────────────────
+.task-create-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 4, 8, 0.877);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1001;
+  padding: 20px;
+  animation: fadeIn 0.2s ease;
+}
+
+// ── 3. Dialog shell ──────────────────────────────────────────
 .task-create-dialog {
   background: #ffffff;
   border-radius: 16px;
@@ -46,7 +62,7 @@
   flex-direction: column;
   animation: slideUp 0.3s ease;
 
-  // Header
+  // ── 4. Header ──────────────────────────────────────────────
   &__header {
     display: flex;
     align-items: flex-start;
@@ -67,7 +83,7 @@
     height: 46px;
     background: linear-gradient(135deg, #10b981 0%, #059669 100%);
     border-radius: 12px;
-    display: none;
+    display: none; // hidden by design; keep for future use
     align-items: center;
     justify-content: center;
     color: #ffffff;
@@ -76,7 +92,7 @@
   }
 
   &__title {
-    margin: 0 0 6px 0;
+    margin: 0 0 6px;
     font-size: 19px;
     font-weight: 600;
     color: #283042;
@@ -113,57 +129,50 @@
       background: #f3f4f6;
       color: #111827;
     }
-
     &:active {
       background: #e5e7eb;
     }
   }
 
-  // Success Message
-  &__success {
+  // ── 5. Banners ─────────────────────────────────────────────
+  %banner-base {
     display: flex;
     align-items: center;
     gap: 12px;
     margin: 18px 24px;
     padding: 14px 16px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 500;
+
+    svg {
+      flex-shrink: 0;
+      width: 18px;
+      height: 18px;
+    }
+  }
+
+  &__success {
+    @extend %banner-base;
     background: #dcfce7;
     border: 1px solid #86efac;
-    border-radius: 10px;
     color: #166534;
-    font-size: 13px;
-    font-weight: 500;
-
     svg {
-      flex-shrink: 0;
       color: #16a34a;
-      width: 18px;
-      height: 18px;
     }
   }
 
-  // Error Banner
   &__error-banner {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin: 18px 24px;
-    padding: 14px 16px;
+    @extend %banner-base;
     background: #fee2e2;
     border: 1px solid #fca5a5;
-    border-radius: 10px;
     color: #991b1b;
-    font-size: 13px;
-    font-weight: 500;
-
     svg {
-      flex-shrink: 0;
       color: #dc2626;
-      width: 18px;
-      height: 18px;
     }
   }
 
-  // Form
+  // ── 6. Form & fields ───────────────────────────────────────
   &__form {
     padding: 22px 26px 26px;
     display: flex;
@@ -174,22 +183,18 @@
     &::-webkit-scrollbar {
       width: 6px;
     }
-
     &::-webkit-scrollbar-track {
       background: transparent;
     }
-
     &::-webkit-scrollbar-thumb {
       background: #cbd5e1;
       border-radius: 3px;
-
       &:hover {
         background: #94a3b8;
       }
     }
   }
 
-  // Field
   &__field {
     display: flex;
     flex-direction: column;
@@ -203,7 +208,6 @@
     font-size: 13px;
     font-weight: 600;
     color: #374151;
-
     svg {
       color: #6b7280;
       flex-shrink: 0;
@@ -218,7 +222,17 @@
     margin-left: 2px;
   }
 
-  // Inputs
+  &__error-text {
+    font-size: 12px;
+    color: #dc2626;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 2px;
+  }
+
+  // ── 7. Inputs & textarea ───────────────────────────────────
   &__input,
   &__textarea {
     width: 100%;
@@ -226,11 +240,11 @@
     border: 1px solid #e5e7eb;
     border-radius: 10px;
     font-size: 14px;
+    font-family: inherit;
+    font-weight: 500;
     color: #111827;
     background: #fafbfc;
     transition: all 0.2s ease;
-    font-family: inherit;
-    font-weight: 500;
 
     &::placeholder {
       color: #9ca3af;
@@ -241,14 +255,12 @@
       border-color: #d1d5db;
       background: #ffffff;
     }
-
     &:focus {
       outline: none;
       border-color: #10b981;
       background: #ffffff;
       box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
     }
-
     &:disabled {
       background: #f9fafb;
       color: #9ca3af;
@@ -259,7 +271,6 @@
     &--error {
       border-color: #ef4444;
       background: #fef2f2;
-
       &:focus {
         border-color: #ef4444;
         box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
@@ -268,11 +279,9 @@
 
     &--date {
       cursor: pointer;
-
       &::-webkit-calendar-picker-indicator {
         cursor: pointer;
         opacity: 0.6;
-
         &:hover {
           opacity: 1;
         }
@@ -286,24 +295,81 @@
     line-height: 1.6;
   }
 
-  &__error-text {
-    font-size: 12px;
-    color: #dc2626;
-    font-weight: 500;
+  // ── 8. SLA toggle ──────────────────────────────────────────
+  &__sla-toggle {
     display: flex;
     align-items: center;
-    gap: 4px;
-    margin-top: 2px;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 14px 16px;
+    background: #f8fafc;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
   }
 
-  // Row layouts
+  &__sla-toggle-text {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  &__sla-toggle-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #111827;
+  }
+
+  &__sla-toggle-sub {
+    font-size: 12px;
+    color: #6b7280;
+    line-height: 1.4;
+  }
+
+  &__toggle {
+    position: relative;
+    width: 44px;
+    height: 24px;
+    min-width: 44px;
+    border-radius: 999px;
+    background: #d1d5db;
+    border: none;
+    cursor: pointer;
+    flex-shrink: 0;
+    padding: 0;
+    transition: background 0.2s ease;
+
+    &--on {
+      background: #10b981;
+    }
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+
+  &__toggle-knob {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #ffffff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    transition: transform 0.2s ease;
+
+    .task-create-dialog__toggle--on & {
+      transform: translateX(20px);
+    }
+  }
+
+  // ── 9. Row layout & actions ────────────────────────────────
   &__row {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 16px;
   }
 
-  // Actions
   &__actions {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -311,7 +377,6 @@
     margin-top: 8px;
     padding-top: 22px;
     border-top: 1px solid #e5e7eb;
-
     button {
       min-width: 120px;
     }
@@ -323,14 +388,13 @@
     gap: 12px;
     padding: 22px 26px 26px;
     border-top: 1px solid #e5e7eb;
-
     button {
       min-width: 120px;
     }
   }
 }
 
-// Dropdown customization
+// ── 10. Dropdown & specific element overrides ─────────────────
 .task-create-dialog__dropdown {
   button {
     border: 1px solid #e5e7eb;
@@ -358,729 +422,236 @@
   }
 }
 
-// Title input specific styling
 #task_create_title {
   padding: 14px 16px;
   font-size: 15px;
   font-weight: 600;
-
   &:focus {
     outline: none;
   }
-
   &::placeholder {
     font-weight: 500;
   }
 }
 
-// Textarea specific styling
-.task-create-dialog__textarea {
-  background-color: #fafbfc;
-  border: 1px solid #e5e7eb;
+// ── 11. Responsive ────────────────────────────────────────────
+// Strategy: one mixin for the repeated property blocks, breakpoints
+// only override what actually changes at that viewport width.
 
-  &:hover {
-    background-color: #ffffff;
+// Shared helper — call inside each breakpoint with the values that change
+@mixin dialog-size(
+  $overlay-pad,
+  $max-width,
+  $radius,
+  $header-pad,
+  $title-size,
+  $subtitle-size,
+  $form-pad,
+  $form-gap,
+  $input-pad,
+  $input-size,
+  $textarea-min-h,
+  $action-gap,
+  $action-pad-top,
+  $btn-min-w,
+  $dropdown-pad,
+  $dropdown-text-size,
+  $dropdown-menu-h,
+  $title-input-pad,
+  $title-input-size
+) {
+  .task-create-dialog-overlay {
+    padding: $overlay-pad;
   }
 
-  &:focus {
-    background-color: #ffffff;
+  .task-create-dialog {
+    max-width: $max-width;
+    border-radius: $radius;
+
+    &__header {
+      padding: $header-pad;
+    }
+    &__title {
+      font-size: $title-size;
+    }
+    &__subtitle {
+      font-size: $subtitle-size;
+    }
+
+    &__form {
+      padding: $form-pad;
+      gap: $form-gap;
+    }
+
+    &__input,
+    &__textarea {
+      padding: $input-pad;
+      font-size: $input-size;
+    }
+    &__textarea {
+      min-height: $textarea-min-h;
+    }
+
+    &__actions {
+      gap: $action-gap;
+      padding-top: $action-pad-top;
+      button {
+        min-width: $btn-min-w;
+      }
+    }
+
+    &__success-actions {
+      gap: $action-gap;
+      button {
+        min-width: $btn-min-w;
+      }
+    }
+  }
+
+  .task-create-dialog__dropdown {
+    button {
+      padding: $dropdown-pad;
+      .filter-dropdown__text {
+        font-size: $dropdown-text-size;
+      }
+    }
+    .filter-dropdown__menu {
+      max-height: $dropdown-menu-h;
+    }
+  }
+
+  #task_create_title {
+    padding: $title-input-pad;
+    font-size: $title-input-size;
   }
 }
 
-// ============================================
-// RESPONSIVE STYLES FOR LAPTOPS/DESKTOPS
-// ============================================
-
-// Large desktops (1440px+)
+// 1440px+
 @media (min-width: 1440px) {
-  .task-create-dialog-overlay {
-    padding: 24px;
-  }
-
-  .task-create-dialog {
-    max-width: 580px;
-    border-radius: 18px;
-
-    &__header {
-      padding: 26px 28px 24px;
-    }
-
-    &__header-content {
-      gap: 16px;
-    }
-
-    &__icon {
-      width: 48px;
-      height: 48px;
-
-      svg {
-        width: 22px;
-        height: 22px;
-      }
-    }
-
-    &__title {
-      font-size: 20px;
-      margin-bottom: 7px;
-    }
-
-    &__subtitle {
-      font-size: 14px;
-    }
-
-    &__close {
-      width: 36px;
-      height: 36px;
-
-      svg {
-        width: 21px;
-        height: 21px;
-      }
-    }
-
-    &__success,
-    &__error-banner {
-      margin: 20px 26px;
-      padding: 15px 18px;
-      font-size: 14px;
-
-      svg {
-        width: 19px;
-        height: 19px;
-      }
-    }
-
-    &__form {
-      padding: 24px 28px 28px;
-      gap: 22px;
-    }
-
-    &__field {
-      gap: 9px;
-    }
-
-    &__label {
-      font-size: 14px;
-
-      svg {
-        width: 17px;
-        height: 17px;
-      }
-    }
-
-    &__input,
-    &__textarea {
-      padding: 14px 15px;
-      font-size: 15px;
-    }
-
-    &__textarea {
-      min-height: 90px;
-    }
-
-    &__error-text {
-      font-size: 13px;
-    }
-
-    &__row {
-      gap: 18px;
-    }
-
-    &__actions {
-      gap: 14px;
-      padding-top: 24px;
-
-      button {
-        min-width: 130px;
-      }
-    }
-
-    &__success-actions {
-      padding: 24px 28px 28px;
-      gap: 14px;
-
-      button {
-        min-width: 130px;
-      }
-    }
-  }
-
-  .task-create-dialog__dropdown {
-    button {
-      padding: 13px 15px;
-
-      .filter-dropdown__text {
-        font-size: 15px;
-      }
-    }
-
-    .filter-dropdown__menu {
-      max-height: 300px;
-    }
-  }
-
-  #task_create_title {
-    padding: 15px 17px;
-    font-size: 16px;
-  }
+  @include dialog-size(
+    $overlay-pad: 24px,
+    $max-width: 580px,
+    $radius: 18px,
+    $header-pad: 26px 28px 24px,
+    $title-size: 20px,
+    $subtitle-size: 14px,
+    $form-pad: 24px 28px 28px,
+    $form-gap: 22px,
+    $input-pad: 14px 15px,
+    $input-size: 15px,
+    $textarea-min-h: 90px,
+    $action-gap: 14px,
+    $action-pad-top: 24px,
+    $btn-min-w: 130px,
+    $dropdown-pad: 13px 15px,
+    $dropdown-text-size: 15px,
+    $dropdown-menu-h: 300px,
+    $title-input-pad: 15px 17px,
+    $title-input-size: 16px
+  );
 }
 
-// Medium laptops (1200px - 1366px)
+// 1201–1366px
 @media (max-width: 1366px) and (min-width: 1201px) {
-  .task-create-dialog-overlay {
-    padding: 22px;
-  }
-
-  .task-create-dialog {
-    max-width: 540px;
-
-    &__header {
-      padding: 22px 24px 20px;
-    }
-
-    &__header-content {
-      gap: 13px;
-    }
-
-    &__icon {
-      width: 44px;
-      height: 44px;
-
-      svg {
-        width: 20px;
-        height: 20px;
-      }
-    }
-
-    &__title {
-      font-size: 18px;
-      margin-bottom: 5px;
-    }
-
-    &__subtitle {
-      font-size: 12.5px;
-    }
-
-    &__close {
-      width: 33px;
-      height: 33px;
-
-      svg {
-        width: 19px;
-        height: 19px;
-      }
-    }
-
-    &__success,
-    &__error-banner {
-      margin: 17px 22px;
-      padding: 13px 15px;
-      font-size: 12.5px;
-
-      svg {
-        width: 17px;
-        height: 17px;
-      }
-    }
-
-    &__form {
-      padding: 21px 24px 25px;
-      gap: 19px;
-    }
-
-    &__field {
-      gap: 7px;
-    }
-
-    &__label {
-      font-size: 12.5px;
-
-      svg {
-        width: 15px;
-        height: 15px;
-      }
-    }
-
-    &__input,
-    &__textarea {
-      padding: 12px 13px;
-      font-size: 13.5px;
-    }
-
-    &__textarea {
-      min-height: 75px;
-    }
-
-    &__error-text {
-      font-size: 11.5px;
-    }
-
-    &__row {
-      gap: 15px;
-    }
-
-    &__actions {
-      gap: 11px;
-      padding-top: 21px;
-
-      button {
-        min-width: 115px;
-      }
-    }
-
-    &__success-actions {
-      padding: 21px 24px 25px;
-      gap: 11px;
-
-      button {
-        min-width: 115px;
-      }
-    }
-  }
-
-  .task-create-dialog__dropdown {
-    button {
-      padding: 11.5px 13.5px;
-
-      .filter-dropdown__text {
-        font-size: 13.5px;
-      }
-    }
-
-    .filter-dropdown__menu {
-      max-height: 270px;
-    }
-  }
-
-  #task_create_title {
-    padding: 13.5px 15.5px;
-    font-size: 14.5px;
-  }
+  @include dialog-size(
+    $overlay-pad: 22px,
+    $max-width: 540px,
+    $radius: 16px,
+    $header-pad: 22px 24px 20px,
+    $title-size: 18px,
+    $subtitle-size: 12.5px,
+    $form-pad: 21px 24px 25px,
+    $form-gap: 19px,
+    $input-pad: 12px 13px,
+    $input-size: 13.5px,
+    $textarea-min-h: 75px,
+    $action-gap: 11px,
+    $action-pad-top: 21px,
+    $btn-min-w: 115px,
+    $dropdown-pad: 11.5px 13.5px,
+    $dropdown-text-size: 13.5px,
+    $dropdown-menu-h: 270px,
+    $title-input-pad: 13.5px 15.5px,
+    $title-input-size: 14.5px
+  );
 }
 
-// Standard laptops (1024px - 1200px)
+// 1025–1200px
 @media (max-width: 1200px) and (min-width: 1025px) {
-  .task-create-dialog-overlay {
-    padding: 20px;
-  }
-
-  .task-create-dialog {
-    max-width: 510px;
-    border-radius: 14px;
-
-    &__header {
-      padding: 20px 22px 18px;
-    }
-
-    &__header-content {
-      gap: 12px;
-    }
-
-    &__icon {
-      width: 42px;
-      height: 42px;
-
-      svg {
-        width: 19px;
-        height: 19px;
-      }
-    }
-
-    &__title {
-      font-size: 17px;
-      margin-bottom: 5px;
-    }
-
-    &__subtitle {
-      font-size: 12px;
-    }
-
-    &__close {
-      width: 32px;
-      height: 32px;
-
-      svg {
-        width: 18px;
-        height: 18px;
-      }
-    }
-
-    &__success,
-    &__error-banner {
-      margin: 16px 20px;
-      padding: 12px 14px;
-      font-size: 12px;
-      border-radius: 9px;
-
-      svg {
-        width: 16px;
-        height: 16px;
-      }
-    }
-
-    &__form {
-      padding: 19px 22px 23px;
-      gap: 18px;
-    }
-
-    &__field {
-      gap: 7px;
-    }
-
-    &__label {
-      font-size: 12px;
-
-      svg {
-        width: 15px;
-        height: 15px;
-      }
-    }
-
-    &__input,
-    &__textarea {
-      padding: 11px 12px;
-      font-size: 13px;
-      border-radius: 9px;
-    }
-
-    &__textarea {
-      min-height: 72px;
-    }
-
-    &__error-text {
-      font-size: 11px;
-    }
-
-    &__row {
-      gap: 14px;
-    }
-
-    &__actions {
-      gap: 10px;
-      padding-top: 19px;
-
-      button {
-        min-width: 110px;
-      }
-    }
-
-    &__success-actions {
-      padding: 19px 22px 23px;
-      gap: 10px;
-
-      button {
-        min-width: 110px;
-      }
-    }
-  }
-
-  .task-create-dialog__dropdown {
-    button {
-      padding: 11px 13px;
-      border-radius: 9px;
-
-      .filter-dropdown__text {
-        font-size: 13px;
-      }
-    }
-
-    .filter-dropdown__menu {
-      max-height: 260px;
-      border-radius: 9px;
-    }
-  }
-
-  #task_create_title {
-    padding: 12px 14px;
-    font-size: 14px;
-    border-radius: 9px;
-  }
+  @include dialog-size(
+    $overlay-pad: 20px,
+    $max-width: 510px,
+    $radius: 14px,
+    $header-pad: 20px 22px 18px,
+    $title-size: 17px,
+    $subtitle-size: 12px,
+    $form-pad: 19px 22px 23px,
+    $form-gap: 18px,
+    $input-pad: 11px 12px,
+    $input-size: 13px,
+    $textarea-min-h: 72px,
+    $action-gap: 10px,
+    $action-pad-top: 19px,
+    $btn-min-w: 110px,
+    $dropdown-pad: 11px 13px,
+    $dropdown-text-size: 13px,
+    $dropdown-menu-h: 260px,
+    $title-input-pad: 12px 14px,
+    $title-input-size: 14px
+  );
 }
 
-// Small laptops (900px - 1024px)
+// 901–1024px
 @media (max-width: 1024px) and (min-width: 901px) {
-  .task-create-dialog-overlay {
-    padding: 18px;
-  }
-
-  .task-create-dialog {
-    max-width: 480px;
-    border-radius: 13px;
-
-    &__header {
-      padding: 18px 20px 16px;
-    }
-
-    &__header-content {
-      gap: 11px;
-    }
-
-    &__icon {
-      width: 40px;
-      height: 40px;
-      border-radius: 10px;
-
-      svg {
-        width: 18px;
-        height: 18px;
-      }
-    }
-
-    &__title {
-      font-size: 16px;
-      margin-bottom: 4px;
-    }
-
-    &__subtitle {
-      font-size: 11.5px;
-    }
-
-    &__close {
-      width: 31px;
-      height: 31px;
-      border-radius: 7px;
-
-      svg {
-        width: 17px;
-        height: 17px;
-      }
-    }
-
-    &__success,
-    &__error-banner {
-      margin: 15px 18px;
-      padding: 11px 13px;
-      font-size: 11.5px;
-      border-radius: 8px;
-
-      svg {
-        width: 15px;
-        height: 15px;
-      }
-    }
-
-    &__form {
-      padding: 17px 20px 21px;
-      gap: 17px;
-    }
-
-    &__field {
-      gap: 6px;
-    }
-
-    &__label {
-      font-size: 11.5px;
-
-      svg {
-        width: 14px;
-        height: 14px;
-      }
-    }
-
-    &__input,
-    &__textarea {
-      padding: 10px 11px;
-      font-size: 12.5px;
-      border-radius: 8px;
-    }
-
-    &__textarea {
-      min-height: 68px;
-    }
-
-    &__error-text {
-      font-size: 10.5px;
-    }
-
-    &__row {
-      gap: 13px;
-    }
-
-    &__actions {
-      gap: 9px;
-      padding-top: 17px;
-
-      button {
-        min-width: 100px;
-      }
-    }
-
-    &__success-actions {
-      padding: 17px 20px 21px;
-      gap: 9px;
-
-      button {
-        min-width: 100px;
-      }
-    }
-  }
-
-  .task-create-dialog__dropdown {
-    button {
-      padding: 10px 12px;
-      border-radius: 8px;
-
-      .filter-dropdown__text {
-        font-size: 12.5px;
-      }
-    }
-
-    .filter-dropdown__menu {
-      max-height: 250px;
-      border-radius: 8px;
-    }
-  }
-
-  #task_create_title {
-    padding: 11px 13px;
-    font-size: 13.5px;
-    border-radius: 8px;
-  }
+  @include dialog-size(
+    $overlay-pad: 18px,
+    $max-width: 480px,
+    $radius: 13px,
+    $header-pad: 18px 20px 16px,
+    $title-size: 16px,
+    $subtitle-size: 11.5px,
+    $form-pad: 17px 20px 21px,
+    $form-gap: 17px,
+    $input-pad: 10px 11px,
+    $input-size: 12.5px,
+    $textarea-min-h: 68px,
+    $action-gap: 9px,
+    $action-pad-top: 17px,
+    $btn-min-w: 100px,
+    $dropdown-pad: 10px 12px,
+    $dropdown-text-size: 12.5px,
+    $dropdown-menu-h: 250px,
+    $title-input-pad: 11px 13px,
+    $title-input-size: 13.5px
+  );
 }
 
-// Compact laptops (769px - 900px)
+// 769–900px
 @media (max-width: 900px) and (min-width: 769px) {
-  .task-create-dialog-overlay {
-    padding: 16px;
-  }
-
-  .task-create-dialog {
-    max-width: 460px;
-    border-radius: 12px;
-
-    &__header {
-      padding: 17px 18px 15px;
-    }
-
-    &__header-content {
-      gap: 10px;
-    }
-
-    &__icon {
-      width: 38px;
-      height: 38px;
-      border-radius: 9px;
-
-      svg {
-        width: 17px;
-        height: 17px;
-      }
-    }
-
-    &__title {
-      font-size: 15.5px;
-      margin-bottom: 4px;
-    }
-
-    &__subtitle {
-      font-size: 11px;
-    }
-
-    &__close {
-      width: 30px;
-      height: 30px;
-      border-radius: 7px;
-
-      svg {
-        width: 16px;
-        height: 16px;
-      }
-    }
-
-    &__success,
-    &__error-banner {
-      margin: 14px 16px;
-      padding: 10px 12px;
-      font-size: 11px;
-      border-radius: 8px;
-      gap: 10px;
-
-      svg {
-        width: 14px;
-        height: 14px;
-      }
-    }
-
-    &__form {
-      padding: 16px 18px 19px;
-      gap: 16px;
-    }
-
-    &__field {
-      gap: 6px;
-    }
-
-    &__label {
-      font-size: 11px;
-
-      svg {
-        width: 13px;
-        height: 13px;
-      }
-    }
-
-    &__input,
-    &__textarea {
-      padding: 9px 10px;
-      font-size: 12px;
-      border-radius: 8px;
-    }
-
-    &__textarea {
-      min-height: 64px;
-    }
-
-    &__error-text {
-      font-size: 10px;
-    }
-
-    &__row {
-      gap: 12px;
-    }
-
-    &__actions {
-      gap: 8px;
-      padding-top: 16px;
-
-      button {
-        min-width: 95px;
-      }
-    }
-
-    &__success-actions {
-      padding: 16px 18px 19px;
-      gap: 8px;
-
-      button {
-        min-width: 95px;
-      }
-    }
-  }
-
-  .task-create-dialog__dropdown {
-    button {
-      padding: 9px 11px;
-      border-radius: 8px;
-
-      .filter-dropdown__text {
-        font-size: 12px;
-      }
-    }
-
-    .filter-dropdown__menu {
-      max-height: 240px;
-      border-radius: 8px;
-    }
-  }
-
-  #task_create_title {
-    padding: 10px 12px;
-    font-size: 13px;
-    border-radius: 8px;
-  }
+  @include dialog-size(
+    $overlay-pad: 16px,
+    $max-width: 460px,
+    $radius: 12px,
+    $header-pad: 17px 18px 15px,
+    $title-size: 15.5px,
+    $subtitle-size: 11px,
+    $form-pad: 16px 18px 19px,
+    $form-gap: 16px,
+    $input-pad: 9px 10px,
+    $input-size: 12px,
+    $textarea-min-h: 64px,
+    $action-gap: 8px,
+    $action-pad-top: 16px,
+    $btn-min-w: 95px,
+    $dropdown-pad: 9px 11px,
+    $dropdown-text-size: 12px,
+    $dropdown-menu-h: 240px,
+    $title-input-pad: 10px 12px,
+    $title-input-size: 13px
+  );
 }
 
-// Tablet and mobile (original breakpoint)
+// ≤768px — mobile / tablet
 @media (max-width: 768px) {
   .task-create-dialog {
     max-width: 100%;
@@ -1090,34 +661,12 @@
     &__header {
       padding: 18px 20px 16px;
     }
-
-    &__icon {
-      width: 42px;
-      height: 42px;
-
-      svg {
-        width: 18px;
-        height: 18px;
-      }
-    }
-
     &__title {
       font-size: 17px;
       margin-bottom: 4px;
     }
-
     &__subtitle {
       font-size: 12px;
-    }
-
-    &__close {
-      width: 32px;
-      height: 32px;
-
-      svg {
-        width: 18px;
-        height: 18px;
-      }
     }
 
     &__success,
@@ -1131,20 +680,17 @@
       gap: 16px;
     }
 
-    &__label {
-      font-size: 12px;
-    }
-
     &__input,
     &__textarea {
       padding: 10px 12px;
       font-size: 13px;
     }
-
     &__textarea {
       min-height: 70px;
     }
-
+    &__label {
+      font-size: 12px;
+    }
     &__error-text {
       font-size: 11px;
     }
@@ -1156,10 +702,8 @@
 
     &__actions {
       grid-template-columns: 1fr;
-      flex-direction: column-reverse;
       padding-top: 18px;
       gap: 10px;
-
       button {
         width: 100%;
         min-width: unset;
@@ -1170,7 +714,6 @@
       padding: 18px 20px 22px;
       flex-direction: column-reverse;
       gap: 10px;
-
       button {
         width: 100%;
         min-width: unset;
@@ -1182,7 +725,6 @@
     button {
       padding: 10px 12px;
     }
-
     .filter-dropdown__menu {
       max-height: 240px;
     }

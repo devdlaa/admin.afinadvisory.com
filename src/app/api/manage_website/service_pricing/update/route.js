@@ -114,7 +114,7 @@ async function triggerClientRevalidation(slug, serviceId) {
   try {
     // Trigger Next.js revalidation
     if (CLIENT_REVALIDATE_SECRET) {
-      console.log("CLIENT_REVALIDATE_SECRET", CLIENT_REVALIDATE_SECRET);
+    
       const revalidateRes = await fetch(`${CLIENT_BASE_URL}/api/revalidate`, {
         method: "POST",
         headers: {

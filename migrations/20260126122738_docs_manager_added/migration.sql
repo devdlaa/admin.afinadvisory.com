@@ -1,2 +1,0 @@
--- placeholder migration to match applied state
--- original migration already applied in database

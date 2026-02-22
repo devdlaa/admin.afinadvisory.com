@@ -1,191 +1,158 @@
-.dashboardActions {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  z-index: 1000;
+// ─────────────────────────────────────────────
+// Dashboard Action Sidebar
+// Full-height fixed rail on the right edge.
+// Stays visible during session load via skeletons.
+// ─────────────────────────────────────────────
 
+.actionSidebar {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 20px 8px;
+  gap: 4px;
 
-  background: #dbdbdb;
-  padding: 7px;
-  border-radius: 60px;
-  outline: 1px solid #0000004f;
-  box-shadow:
-    rgba(0, 0, 0, 0.25) 0px 0.0625em 0.0625em,
-    rgba(0, 0, 0, 0.25) 0px 0.125em 0.5em,
-    rgba(255, 255, 255, 0.1) 0px 0px 0px 1px inset;
+  width: 54px;
 
+  background: #ffffff;
+  border-left: 1px solid #e3e3e3;
+
+  // ── Item wrapper ──────────────────────────────
+  &__item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 38px;
+    width: 38px;
+    flex-shrink: 0;
+  }
+
+  // ── Divider ───────────────────────────────────
+  &__divider {
+    width: 22px;
+    height: 1px;
+    background: #e5e7eb;
+    margin: 4px 0;
+    flex-shrink: 0;
+  }
+
+  // ── Skeleton placeholder ──────────────────────
+  &__skeleton {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.4s ease-in-out infinite;
+  }
+
+  // ── Action button ─────────────────────────────
   &__btn {
     display: flex;
     align-items: center;
     justify-content: center;
 
-    width: 38px;
-    height: 38px;
+    width: 34px;
+    height: 34px;
+    flex-shrink: 0;
 
-    background: white;
-    color: #64748b;
-    border: 1.5px solid #e2e8f0;
+    background: #f9fafb;
+    color: #6b7280;
+    border: 1.5px solid #e5e7eb;
     border-radius: 50%;
 
     cursor: pointer;
-    transition: all 0.2s ease;
-
-    box-shadow:
-      0 3px 5px -1px rgba(0, 0, 0, 0.1),
-      0 2px 3px -1px rgba(0, 0, 0, 0.06);
+    transition:
+      background 0.18s ease,
+      color 0.18s ease,
+      border-color 0.18s ease,
+      box-shadow 0.18s ease,
+      transform 0.12s ease;
 
     &:hover:not(:disabled) {
-      color: #0f172a;
-      border-color: #cbd5e1;
-      background: #f8fafc;
+      background: #f1f5f9;
+      color: #111827;
+      border-color: #d1d5db;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
     }
 
     &:active:not(:disabled) {
-      transform: scale(0.96);
+      transform: scale(0.93);
     }
 
     &:disabled {
       cursor: not-allowed;
-      opacity: 0.6;
-    }
-
-    &--muted {
-      background: #ef4444 !important;
-      color: white !important;
-      border-color: #dc2626 !important;
-      box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
-
-      &:hover:not(:disabled) {
-        background: #dc2626 !important;
-        border-color: #b91c1c !important;
-      }
-
-      svg {
-        animation: pulse 2s ease-in-out infinite;
-      }
-    }
-
-    &--success {
-      background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
-      color: white;
-      border: none;
-
-      &:hover:not(:disabled) {
-        background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
-      }
+      opacity: 0.55;
     }
 
     svg {
-      width: 16px;
-      height: 16px;
-      transition: transform 0.15s ease;
+      display: block;
     }
 
-    &:active svg {
-      transform: scale(0.9);
+    // Muted: red tint — sound OFF
+    &--muted {
+      background: #fef2f2 !important;
+      color: #dc2626 !important;
+      border-color: #fca5a5 !important;
+
+      &:hover:not(:disabled) {
+        background: #fee2e2 !important;
+        border-color: #f87171 !important;
+      }
+
+      svg {
+        animation: muted-pulse 2s ease-in-out infinite;
+      }
+    }
+
+    // Success: green after locking
+    &--success {
+      background: #dcfce7 !important;
+      color: #16a34a !important;
+      border-color: #bbf7d0 !important;
+      cursor: default;
     }
   }
 
   &__spinner {
-    animation: spin 1s linear infinite;
+    animation: spin 0.9s linear infinite;
   }
 
-  // Large desktops
-  @media (min-width: 1440px) {
-    bottom: 22px;
-    right: 22px;
-    gap: 9px;
-    padding: 8px;
-
-    &__btn {
-      width: 42px;
-      height: 42px;
-
-      svg {
-        width: 18px;
-        height: 18px;
-      }
-    }
-  }
-
-  // Laptops
-  @media (max-width: 1366px) {
-    bottom: 18px;
-    right: 18px;
-    gap: 8px;
-    padding: 7px;
-
-    &__btn {
-      width: 36px;
-      height: 36px;
-
-      svg {
-        width: 15px;
-        height: 15px;
-      }
-    }
-  }
-
-  // Tablets
+  // ── Responsive ────────────────────────────────
   @media (max-width: 768px) {
-    bottom: 16px;
-    right: 16px;
-    gap: 7px;
-    padding: 6px;
+    width: 48px;
+    padding: 16px 6px;
 
-    &__btn {
+    &__item {
+      min-height: 34px;
       width: 34px;
-      height: 34px;
+    }
 
-      svg {
-        width: 14px;
-        height: 14px;
-      }
+    &__btn,
+    &__skeleton {
+      width: 30px;
+      height: 30px;
     }
   }
 
-  // Small mobile
-  @media (max-width: 640px) {
-    bottom: 14px;
-    right: 14px;
-    gap: 6px;
-    padding: 5px;
+  @media (max-width: 480px) {
+    width: 44px;
+    padding: 12px 5px;
 
-    &__btn {
-      width: 32px;
-      height: 32px;
-
-      svg {
-        width: 13px;
-        height: 13px;
-      }
-    }
-  }
-
-  @media (prefers-color-scheme: dark) {
-    &__btn {
-      background: #1e293b;
-      color: #94a3b8;
-      border-color: #334155;
-
-      &:hover:not(:disabled) {
-        color: #f1f5f9;
-        border-color: #475569;
-        background: #0f172a;
-      }
+    &__item {
+      min-height: 30px;
+      width: 30px;
     }
 
-    &__btn--muted {
-      background: #ef4444 !important;
-      color: white !important;
-      border-color: #dc2626 !important;
+    &__btn,
+    &__skeleton {
+      width: 28px;
+      height: 28px;
     }
   }
 }
 
+// ── Keyframes ─────────────────────────────────────
 @keyframes spin {
   from {
     transform: rotate(0deg);
@@ -195,12 +162,21 @@
   }
 }
 
-@keyframes pulse {
+@keyframes muted-pulse {
   0%,
   100% {
     opacity: 1;
   }
   50% {
-    opacity: 0.6;
+    opacity: 0.55;
+  }
+}
+
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
   }
 }

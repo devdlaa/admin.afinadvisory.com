@@ -40,6 +40,8 @@ export async function POST(request, { params }) {
       validated.user_ids,
       validated.assigned_to_all,
       admin_user.id,
+      validated.sla_days 
+      
     );
 
     return createSuccessResponse(

@@ -1,6 +1,9 @@
 "use client";
 import { useState, useEffect } from "react";
-import { X, AlertTriangle, Loader2 } from "lucide-react";
+import { X, AlertTriangle, Loader2, ShieldCheck } from "lucide-react";
+import { useDispatch, useSelector } from "react-redux";
+
+import { fetchUsers } from "@/store/slices/userSlice";
 import "./ConfirmationDialog.scss";
 
 const ConfirmationDialog = ({
@@ -10,27 +13,50 @@ const ConfirmationDialog = ({
   actionInfo = "",
   confirmText = "Confirm",
   cancelText = "Cancel",
-  variant = "default", // default, danger, warning
+  variant = "default",
   isCritical = false,
-  criticalConfirmWord = "DELETE", // Word user must type to confirm
+  criticalConfirmWord = "DELETE",
+  requireTotp = false,
   onConfirm = () => {},
   onCancel = () => {},
 }) => {
+  const dispatch = useDispatch();
+
   const [loading, setLoading] = useState(false);
   const [confirmInput, setConfirmInput] = useState("");
 
-  // Reset state when dialog opens/closes
+  // TOTP state
+  const [selectedAuthorizerId, setSelectedAuthorizerId] = useState("");
+  const [totpCode, setTotpCode] = useState("");
+
+  // Users from redux
+  const users = useSelector((state) => state.user.users);
+  const usersLoading = useSelector((state) => state.user.loading);
+
+  // Filter only SUPER_ADMINs
+  const superAdmins = users.filter(
+    (u) => u.admin_role === "SUPER_ADMIN" && u.status === "ACTIVE",
+  );
+
+  // Fetch users only if requireTotp and no users loaded yet
+  useEffect(() => {
+    if (isOpen && requireTotp && users.length === 0) {
+      dispatch(fetchUsers({ status: "ACTIVE", limit: 100 }));
+    }
+  }, [isOpen, requireTotp, users.length, dispatch]);
+
+  // Reset all state when dialog opens/closes
   useEffect(() => {
     if (isOpen) {
       setLoading(false);
       setConfirmInput("");
+      setSelectedAuthorizerId("");
+      setTotpCode("");
     }
   }, [isOpen]);
 
   const handleClose = () => {
-    if (!loading) {
-      onClose();
-    }
+    if (!loading) onClose();
   };
 
   const handleCancel = () => {
@@ -42,9 +68,13 @@ const ConfirmationDialog = ({
 
   const handleConfirm = async () => {
     setLoading(true);
-
     try {
-      await onConfirm();
+      // Pass totp data up to onConfirm if requireTotp
+      await onConfirm(
+        requireTotp
+          ? { authorizer_id: selectedAuthorizerId, totp_code: totpCode }
+          : undefined,
+      );
     } catch (error) {
       console.error("Action failed:", error);
     } finally {
@@ -52,10 +82,11 @@ const ConfirmationDialog = ({
     }
   };
 
-  // Check if confirm button should be disabled
   const isConfirmDisabled = () => {
     if (loading) return true;
     if (isCritical && confirmInput !== criticalConfirmWord) return true;
+    if (requireTotp && (!selectedAuthorizerId || totpCode.length !== 6))
+      return true;
     return false;
   };
 
@@ -86,10 +117,12 @@ const ConfirmationDialog = ({
               {actionInfo && <p className="confirmation-info">{actionInfo}</p>}
             </div>
 
+            {/* isCritical — type word to confirm — independent */}
             {isCritical && (
               <div className="confirmation-critical">
                 <label className="confirmation-critical-label">
-                  Type <strong>{criticalConfirmWord}</strong> to confirm the action.
+                  Type <strong>{criticalConfirmWord}</strong> to confirm the
+                  action.
                 </label>
                 <input
                   type="text"
@@ -98,8 +131,62 @@ const ConfirmationDialog = ({
                   onChange={(e) => setConfirmInput(e.target.value)}
                   placeholder={criticalConfirmWord}
                   disabled={loading}
-                  autoFocus
+                  autoFocus={!requireTotp}
                 />
+              </div>
+            )}
+
+            {/* requireTotp — super admin selector + totp input — independent */}
+            {requireTotp && (
+              <div className="confirmation-totp">
+                <div className="confirmation-totp__header">
+                  <ShieldCheck size={16} />
+                  <span>Super Admin Authorization Required</span>
+                </div>
+
+                <div className="confirmation-totp__field">
+                  <label className="confirmation-totp__label">
+                    Select Authorizing Super Admin
+                  </label>
+                  {usersLoading ? (
+                    <div className="confirmation-totp__loading">
+                      <Loader2 size={14} className="spin" />
+                      <span>Loading admins...</span>
+                    </div>
+                  ) : (
+                    <select
+                      className="confirmation-totp__select"
+                      value={selectedAuthorizerId}
+                      onChange={(e) => setSelectedAuthorizerId(e.target.value)}
+                      disabled={loading}
+                    >
+                      <option value="">— Select Super Admin —</option>
+                      {superAdmins.map((admin) => (
+                        <option key={admin.id} value={admin.id}>
+                          {admin.name}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+
+                <div className="confirmation-totp__field">
+                  <label className="confirmation-totp__label">
+                    Enter their Authenticator Code
+                  </label>
+                  <input
+                    type="text"
+                    className="confirmation-totp__input"
+                    value={totpCode}
+                    onChange={(e) =>
+                      setTotpCode(e.target.value.replace(/\D/g, "").slice(0, 6))
+                    }
+                    placeholder="6-digit code"
+                    disabled={loading || !selectedAuthorizerId}
+                    maxLength={6}
+                    inputMode="numeric"
+                  />
+                </div>
               </div>
             )}
 

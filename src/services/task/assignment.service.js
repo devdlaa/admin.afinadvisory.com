@@ -3,13 +3,20 @@ import { NotFoundError, ValidationError } from "../../utils/server/errors.js";
 import { notify } from "../shared/notifications.service.js";
 import { addTaskActivityLog } from "./taskComment.service.js";
 import { buildActivityMessage } from "@/utils/server/activityBulder.js";
+const DEFAULT_SLA_DAYS = 7;
+
+
+
 export const syncTaskAssignments = async (
   task_id,
   user_ids,
   assigned_to_all,
   updated_by,
+  sla_days,
 ) => {
   const result = await prisma.$transaction(async (tx) => {
+    const now = new Date();
+
     const task = await tx.task.findUnique({
       where: { id: task_id },
       include: {
@@ -18,6 +25,8 @@ export const syncTaskAssignments = async (
     });
 
     if (!task) throw new NotFoundError("Task not found");
+
+   
 
     // ---------------- VALIDATIONS ----------------
 
@@ -54,7 +63,7 @@ export const syncTaskAssignments = async (
       data: {
         assigned_to_all: assigned_to_all === true,
         updated_by,
-        last_activity_at: new Date(),
+        last_activity_at: now,
         last_activity_by: updated_by,
       },
     });
@@ -81,7 +90,7 @@ export const syncTaskAssignments = async (
       };
     }
 
-    // ---------------- SPECIFIC ASSIGNMENTS ----------------
+    // ---------------- CURRENT ASSIGNMENTS ----------------
 
     const current = await tx.taskAssignment.findMany({
       where: { task_id },
@@ -98,23 +107,55 @@ export const syncTaskAssignments = async (
     const toAdd = [...newSet].filter((id) => !oldSet.has(id));
     const toRemove = [...oldSet].filter((id) => !newSet.has(id));
 
+    // ---------------- REMOVE ASSIGNEES ----------------
+
     if (toRemove.length) {
       await tx.taskAssignment.deleteMany({
         where: { task_id, admin_user_id: { in: toRemove } },
       });
     }
 
+    // ---------------- ADD ASSIGNEES ( SLA ENGINE) ----------------
+
     if (toAdd.length) {
-      await tx.taskAssignment.createMany({
-        data: toAdd.map((admin_user_id) => ({
+      const assignmentsData = toAdd.map((admin_user_id) => {
+        const effectiveSLADays =
+          sla_days && sla_days > 0 ? sla_days : DEFAULT_SLA_DAYS;
+
+        let slaDue = new Date(now);
+        slaDue.setDate(slaDue.getDate() + effectiveSLADays);
+
+        if (task.due_date) {
+          const complianceDue = new Date(task.due_date);
+
+          if (slaDue > complianceDue) {
+            slaDue = complianceDue;
+          }
+        }
+
+        return {
           task_id,
           admin_user_id,
           assigned_by: updated_by,
           assignment_source: "MANUAL",
-        })),
+
+          assigned_at: now,
+          due_date: slaDue,
+
+          sla_days: effectiveSLADays,
+          sla_status: "RUNNING",
+          sla_paused_at: null,
+          sla_breached_at: null,
+        };
+      });
+
+      await tx.taskAssignment.createMany({
+        data: assignmentsData,
         skipDuplicates: true,
       });
     }
+
+    // ---------------- FETCH UPDATED ASSIGNMENTS ----------------
 
     const assignments = await tx.taskAssignment.findMany({
       where: { task_id },
@@ -126,9 +167,11 @@ export const syncTaskAssignments = async (
       },
     });
 
-    // additions
+    // ---------------- CHANGE LOG ----------------
+
     for (const id of toAdd) {
       const user = assignments.find((a) => a.admin_user_id === id)?.assignee;
+
       changes.push({
         action: "ASSIGNEE_ADDED",
         from: null,
@@ -136,9 +179,9 @@ export const syncTaskAssignments = async (
       });
     }
 
-    // removals
     for (const id of toRemove) {
       const old = current.find((a) => a.admin_user_id === id);
+
       changes.push({
         action: "ASSIGNEE_REMOVED",
         from: old?.assignee
@@ -198,6 +241,10 @@ export const syncTaskAssignments = async (
       assigned_at: a.assigned_at,
       assigned_by: a.assigned_by,
       assignment_source: a.assignment_source,
+      due_date: a.due_date,
+      sla_days: a.sla_days,
+      sla_status: a.sla_status,
+      sla_breached_at: a.sla_breached_at,
       assignee: a.assignee,
     })),
   };

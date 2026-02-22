@@ -79,7 +79,7 @@ export async function SEND_EMAIL({
 
     const payload = {
       from: {
-        address: from || process.env.OFFICE_EMAIL_SECONDARY,
+        address: from || process.env.OFFICE_EMAIL,
         name: "AFINTHRIVE ADVISORY PVT LTD",
       },
 
