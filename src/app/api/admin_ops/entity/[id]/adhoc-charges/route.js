@@ -32,7 +32,7 @@ export async function POST(request, { params }) {
 
     return createSuccessResponse("Ad-hoc charge created successfully", result);
   } catch (error) {
-    console.log(error);
+   
     return handleApiError(error);
   }
 }

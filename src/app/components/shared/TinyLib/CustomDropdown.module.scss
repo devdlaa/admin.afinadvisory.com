@@ -38,12 +38,10 @@
 }
 
 .label {
-  font-size: clamp(12px, 2.5vw, 14px);
+  font-size: 12px;
   font-weight: 600;
   color: #8b8b8b;
   text-transform: capitalize;
-  font-size: 12px;
-
 }
 
 .displayArea {
@@ -72,7 +70,7 @@
 }
 
 .text {
-  font-size: clamp(13px, 2.5vw, 14px);
+  font-size: 14px;
   font-weight: 500;
   color: #6a7b95;
   flex: 1;
@@ -80,7 +78,36 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-    font-size: 14px;
+}
+
+// 🔹 NEW: wrapper for the right side (clear + chevron)
+.rightControls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+// 🔹 NEW: the X clear button
+.clearBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  color: #9ca3af;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background: #f3f4f6;
+    color: #6b7280;
+  }
+
+  svg {
+    flex-shrink: 0;
+  }
 }
 
 .chevron,
@@ -206,13 +233,12 @@
 }
 
 .optionLabel {
-  font-size: clamp(13px, 2.5vw, 14px);
+  font-size: 14px;
   font-weight: 500;
   color: #374151;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-    font-size: 14px;
 }
 
 .noResults {
@@ -292,7 +318,6 @@
 }
 
 .disabled {
-
   pointer-events: none;
 }
 
@@ -306,4 +331,3 @@
     max-height: 250px;
   }
 }
-

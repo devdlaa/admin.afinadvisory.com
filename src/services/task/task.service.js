@@ -378,7 +378,22 @@ const buildListWhere = (filters, visibilityWhere) => {
   if (filters.unassigned_only === true) {
     and.push({
       assigned_to_all: false,
-      assignments: { every: { assignment_source: "AUTO", sla_status: "NONE" } },
+      creator: {
+        admin_role: "SUPER_ADMIN",
+      },
+      assignments: {
+        some: {
+          assignee: {
+            admin_role: "SUPER_ADMIN",
+          },
+          sla_status: "NONE",
+        },
+        every: {
+          assignee: {
+            admin_role: "SUPER_ADMIN",
+          },
+        },
+      },
     });
   }
 
@@ -394,10 +409,7 @@ const buildListWhere = (filters, visibilityWhere) => {
   }
 
   // ── SLA assignment-level filters ─────────────────────────────────────────
-  // BUG FIX: These are built as a SINGLE `assignments: { some: { ... } }` clause.
-  // Previously this block was only entered when sla_status was present, which
-  // meant sla_due_date_* filters would silently not apply without sla_status.
-  // Now we enter the block whenever ANY sla filter is present.
+
   const hasSlaFilter =
     filters.sla_status ||
     filters.sla_due_date_from ||
@@ -408,11 +420,6 @@ const buildListWhere = (filters, visibilityWhere) => {
     const sla = {};
 
     if (filters.sla_status) {
-      // BUG FIX: The Zod schema accepts "BREACHED" but the DB SLAStatus enum
-      // does not have a BREACHED value — it uses RUNNING + overdue due_date.
-      // Map "BREACHED" → RUNNING so the query doesn't crash with invalid enum.
-      // The sla_due_date_to filter (which is `now`) then does the actual
-      // "overdue" narrowing.
       const dbSlaStatus =
         filters.sla_status === "BREACHED" ? "RUNNING" : filters.sla_status;
       sla.sla_status = dbSlaStatus;
@@ -1093,7 +1100,22 @@ export const getUnassignedTasksCount = async () =>
     where: {
       is_system: false,
       assigned_to_all: false,
-      assignments: { every: { assignment_source: "AUTO", sla_status: "NONE" } },
+      creator: {
+        admin_role: "SUPER_ADMIN",
+      },
+      assignments: {
+        some: {
+          assignee: {
+            admin_role: "SUPER_ADMIN",
+          },
+          sla_status: "NONE",
+        },
+        every: {
+          assignee: {
+            admin_role: "SUPER_ADMIN",
+          },
+        },
+      },
     },
   });
 
@@ -1467,5 +1489,132 @@ export const listTasks = async (filters = {}, currentUser) => {
     tasks: formattedTasks,
     is_magic_sort: isMagicSort,
     status_counts: { filtered: filteredCounts, global: globalCounts },
+  };
+};
+
+// Search Task Seprate Endpoint with GIN-Enabled and less table joins
+export const searchTasks = async (filters = {}, currentUser) => {
+  const {
+    search,
+    entity_id,
+    status,
+    priority,
+    task_category_id,
+    created_date_from,
+    created_date_to,
+    page = 1,
+    page_size = 10,
+  } = filters;
+
+  // ── Input validation ────────────────────────────────────────────────────────
+  if (!search || typeof search !== "string") {
+    throw new ValidationError("Search is required");
+  }
+
+  // Strip non-alphanumeric chars and filter empty tokens
+  const cleanedTokens = search
+    .split(/\s+/)
+    .map((w) => w.replace(/[^a-zA-Z0-9]/g, ""))
+    .filter(Boolean);
+
+  if (cleanedTokens.length === 0) {
+    throw new ValidationError("Search contains no valid characters");
+  }
+
+  const combinedSearch = cleanedTokens.join(" ");
+  if (combinedSearch.length < 2) {
+    throw new ValidationError("Search must be at least 2 characters");
+  }
+
+  const safePage = Math.max(1, parseInt(page, 10) || 1);
+  const safePageSize = Math.min(
+    100,
+    Math.max(1, parseInt(page_size, 10) || 10),
+  );
+  const offset = (safePage - 1) * safePageSize;
+
+  const visibilityClause =
+    currentUser.admin_role === "SUPER_ADMIN"
+      ? Prisma.sql`TRUE`
+      : Prisma.sql`
+          (
+            t.assigned_to_all = TRUE
+            OR EXISTS (
+              SELECT 1 FROM "TaskAssignment" ta
+              WHERE ta.task_id = t.id
+                AND ta.admin_user_id = ${currentUser.id}::uuid
+            )
+          )
+        `;
+
+  const dateFrom = created_date_from ? new Date(created_date_from) : null;
+  const dateTo = created_date_to
+    ? new Date(new Date(created_date_to).setHours(23, 59, 59, 999))
+    : null;
+
+  const rows = await prisma.$queryRaw`
+    SELECT
+      t.id,
+      t.title,
+      t.description,
+      t.status,
+      t.priority,
+      t.due_date,
+      t.created_at,
+      t.updated_at,
+      t.is_billable,
+      t.task_type,
+      e.id   AS entity_id,
+      e.name AS entity_name,
+      c.id   AS category_id,
+      c.name AS category_name
+    FROM "Task" t
+    LEFT JOIN "Entity"       e ON t.entity_id        = e.id
+    LEFT JOIN "TaskCategory" c ON t.task_category_id = c.id
+    WHERE
+      t.is_system = FALSE
+      AND ${visibilityClause}
+      ${
+        entity_id
+          ? Prisma.sql`AND t.entity_id = ${entity_id}::uuid`
+          : Prisma.empty
+      }
+      ${
+        status
+          ? Prisma.sql`AND t.status = ${status}::"TaskStatus"`
+          : Prisma.empty
+      }
+      ${
+        priority
+          ? Prisma.sql`AND t.priority = ${priority}::"TaskPriority"`
+          : Prisma.empty
+      }
+      ${
+        task_category_id
+          ? Prisma.sql`AND t.task_category_id = ${task_category_id}::uuid`
+          : Prisma.empty
+      }
+      ${dateFrom ? Prisma.sql`AND t.created_at >= ${dateFrom}` : Prisma.empty}
+      ${dateTo ? Prisma.sql`AND t.created_at <= ${dateTo}` : Prisma.empty}
+      AND t.search_vector @@ to_tsquery(
+        'english',
+        array_to_string(
+          ARRAY(
+            SELECT regexp_replace(w, '[^a-zA-Z0-9]+', '', 'g') || ':*'
+            FROM unnest(regexp_split_to_array(${combinedSearch}, '\s+')) AS w
+            WHERE regexp_replace(w, '[^a-zA-Z0-9]+', '', 'g') <> ''
+          ),
+          ' & '
+        )
+      )
+    ORDER BY t.created_at DESC
+    LIMIT  ${safePageSize}
+    OFFSET ${offset}
+  `;
+
+  return {
+    page: safePage,
+    page_size: safePageSize,
+    results: rows,
   };
 };

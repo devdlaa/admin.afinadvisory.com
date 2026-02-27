@@ -15,6 +15,7 @@ const TaskPrimaryInfo = ({
   onPrimaryInfoChange,
 }) => {
   const shouldHidePrimaryInfo = isActivityTab || isPaymentTab || isDocumentsTab;
+
   return (
     <section
       className={`task_primary_info_section ${
@@ -37,8 +38,7 @@ const TaskPrimaryInfo = ({
           <div className="overdue-badge">
             <Clock size={18} />
             <span>
-              Overdue by {overdueDays} day
-              {overdueDays !== 1 ? "s" : ""}
+              Overdue by {overdueDays} day{overdueDays !== 1 ? "s" : ""}
             </span>
           </div>
         )}
@@ -55,6 +55,7 @@ const TaskPrimaryInfo = ({
 
       {/* Task Details Grid */}
       <div className="task-drawer__details-grid">
+        {/* Priority — no clear (required field) */}
         <div className="task-drawer__detail-item">
           <CustomDropdown
             label="Priority"
@@ -65,6 +66,7 @@ const TaskPrimaryInfo = ({
           />
         </div>
 
+        {/* Category — clearable */}
         <div className="task-drawer__detail-item">
           <CustomDropdown
             label="Category"
@@ -77,10 +79,12 @@ const TaskPrimaryInfo = ({
             onSelect={(opt) =>
               onPrimaryInfoChange("task_category_id", opt.value)
             }
+            onClear={() => onPrimaryInfoChange("task_category_id", null)}
             enableSearch
           />
         </div>
 
+        {/* Status — no clear (required field) */}
         <div className="task-drawer__detail-item">
           <CustomDropdown
             label="Status"
@@ -91,24 +95,27 @@ const TaskPrimaryInfo = ({
           />
         </div>
 
+        {/* Start Date — read-only, no clear */}
         <div className="task-drawer__detail-item">
           <CustomDatePicker
             label="Start Date"
             selectedDate={primaryInfo.start_date}
             disabled
             readonly
-         
           />
         </div>
 
+        {/* Due Date — clearable */}
         <div className="task-drawer__detail-item">
           <CustomDatePicker
             label="Due Date"
             selectedDate={primaryInfo.due_date}
             onDateSelect={(date) => onPrimaryInfoChange("due_date", date)}
+            onClear={() => onPrimaryInfoChange("due_date", null)}
           />
         </div>
 
+        {/* Date of Completion — read-only, no clear */}
         {primaryInfo.end_date && (
           <div className="task-drawer__detail-item">
             <CustomDatePicker

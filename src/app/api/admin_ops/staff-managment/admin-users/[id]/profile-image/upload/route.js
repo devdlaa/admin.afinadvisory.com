@@ -72,7 +72,7 @@ export async function POST(req, { params }) {
       url: publicUrl,
     });
   } catch (err) {
-    console.error(err);
+   
 
     return createErrorResponse(
       "Failed to upload profile image",

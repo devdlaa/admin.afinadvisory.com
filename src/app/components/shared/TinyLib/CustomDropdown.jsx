@@ -1,6 +1,6 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
-import { ChevronDown, Search, Loader2, Plus } from "lucide-react";
+import { ChevronDown, Search, Loader2, Plus, X } from "lucide-react";
 import styles from "./CustomDropdown.module.scss";
 
 const CustomDropdown = ({
@@ -16,7 +16,8 @@ const CustomDropdown = ({
 
   // Handlers
   onSelect = () => {},
-  onAddNew = null, 
+  onClear = null,       // 🔹 NEW: if provided AND a value is selected, shows an X button
+  onAddNew = null,
 
   // Styling
   variant = "default",
@@ -26,11 +27,10 @@ const CustomDropdown = ({
   // Config
   disabled = false,
   enableSearch = false,
-  isLoading = false, // Loading state for options
-  isAddingNew = false, // Loading state for add new
-  addNewLabel = "Add New", // Label for add new button
+  isLoading = false,
+  isAddingNew = false,
+  addNewLabel = "Add New",
 
-  // 🔹 NEW: single parent override hook
   rootClassName = "",
 }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -39,6 +39,7 @@ const CustomDropdown = ({
   const searchInputRef = useRef(null);
 
   const shouldShowSearch = enableSearch || options.length > 10;
+  const canClear = !!onClear && selectedValue !== null && selectedValue !== undefined;
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -47,25 +48,20 @@ const CustomDropdown = ({
         setSearchQuery("");
       }
     };
-
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   useEffect(() => {
     if (isOpen && shouldShowSearch && searchInputRef.current) {
-      setTimeout(() => {
-        searchInputRef.current?.focus();
-      }, 100);
+      setTimeout(() => searchInputRef.current?.focus(), 100);
     }
   }, [isOpen, shouldShowSearch]);
 
   const handleToggle = () => {
     if (!disabled && !isLoading) {
       setIsOpen(!isOpen);
-      if (!isOpen) {
-        setSearchQuery("");
-      }
+      if (!isOpen) setSearchQuery("");
     }
   };
 
@@ -75,10 +71,14 @@ const CustomDropdown = ({
     setSearchQuery("");
   };
 
+  // Stops the click from bubbling up to the toggle button
+  const handleClear = (e) => {
+    e.stopPropagation();
+    onClear();
+  };
+
   const handleAddNew = () => {
-    if (onAddNew && !isAddingNew) {
-      onAddNew();
-    }
+    if (onAddNew && !isAddingNew) onAddNew();
   };
 
   const filteredOptions = options.filter((option) =>
@@ -122,29 +122,38 @@ const CustomDropdown = ({
       >
         <div className={styles.buttonContent}>
           {label && <span className={styles.label}>{label}</span>}
-
           <div className={styles.displayArea}>
             {selectedOption?.icon && (
               <span className={styles.icon} aria-hidden="true">
-                {selectedOption?.icon}
+                {selectedOption.icon}
               </span>
             )}
-            <span
-              style={{
-                color: selectedOption?.txtClr,
-              }}
-              className={styles.text}
-            >
+            <span style={{ color: selectedOption?.txtClr }} className={styles.text}>
               {displayText}
             </span>
           </div>
         </div>
 
-        {isLoading ? (
-          <Loader2 size={18} className={styles.loader} />
-        ) : (
-          showDropdownArrow && <ChevronDown size={18} className={styles.chevron} />
-        )}
+        {/* Right-side: clear X + chevron/loader */}
+        <div className={styles.rightControls}>
+          {canClear && (
+            <span
+              className={styles.clearBtn}
+              onClick={handleClear}
+              role="button"
+              aria-label="Clear selection"
+              tabIndex={0}
+              onKeyDown={(e) => e.key === "Enter" && handleClear(e)}
+            >
+              <X size={14} />
+            </span>
+          )}
+          {isLoading ? (
+            <Loader2 size={18} className={styles.loader} />
+          ) : (
+            showDropdownArrow && <ChevronDown size={18} className={styles.chevron} />
+          )}
+        </div>
       </button>
 
       {isOpen && !isLoading && (
@@ -169,7 +178,6 @@ const CustomDropdown = ({
             {filteredOptions.length > 0 ? (
               filteredOptions.map((option) => {
                 const isSelected = option.value === selectedValue;
-
                 const optionClasses = [
                   styles.dropdownOption,
                   isSelected ? styles.selected : "",
@@ -192,7 +200,7 @@ const CustomDropdown = ({
                   >
                     {option?.icon && (
                       <span className={styles.optionIcon} aria-hidden="true">
-                        {option?.icon}
+                        {option.icon}
                       </span>
                     )}
                     <span className={styles.optionLabel}>{option.label}</span>

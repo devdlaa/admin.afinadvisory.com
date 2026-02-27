@@ -66,7 +66,7 @@ export async function POST(req) {
       201,
     );
   } catch (e) {
-    console.log(e);
+
     return handleApiError(e);
   }
 }

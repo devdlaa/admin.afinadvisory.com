@@ -52,7 +52,7 @@ export async function POST(req) {
       email,
     });
   } catch (error) {
-    console.log(error);
+   
     return handleApiError(error);
   }
 }

@@ -1,5 +1,5 @@
 // ============================================================================
-// CustomDatePicker.module.scss - FIXED POSITIONING
+// CustomDatePicker.module.scss
 // ============================================================================
 
 @keyframes slideDown {
@@ -78,6 +78,29 @@
 
   &.placeholder {
     color: #9ca3af;
+  }
+}
+
+// 🔹 NEW: clear button inside the date input
+.clearBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  color: #9ca3af;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background: #e5e7eb;
+    color: #6b7280;
+  }
+
+  svg {
+    flex-shrink: 0;
   }
 }
 

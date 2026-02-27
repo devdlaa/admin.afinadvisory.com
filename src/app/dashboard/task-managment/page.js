@@ -26,6 +26,8 @@ import TaskWorkload from "./components/TaskWorkload/TaskWorkload.jsx";
 import TaskStatusBoard from "./components/TaskStatusBoard/TaskStatusBoard.jsx";
 import TaskCreateDialog from "./components/TaskCreateDialog/Taskcreatedialog.jsx";
 
+import TaskSearchDialog from "./components/Tasksearchdialog/Tasksearchdialog.jsx";
+
 import {
   openCreateDialog,
   openManageDialog,
@@ -44,6 +46,8 @@ import {
   fetchUnassignedTasksCount,
   fetchSLASummary,
 } from "@/store/slices/taskSlice";
+
+import { openSearchDialog } from "@/store/slices/taskSearchSlice";
 
 import { quickSearchEntities } from "@/store/slices/entitySlice";
 
@@ -81,10 +85,6 @@ const STANDARD_FILTER_KEYS = [
   ...SLA_FILTER_KEYS,
 ];
 
-// Keys whose Redux default should NOT be nulled-out when absent from URL.
-// is_magic_sort: we want Focus Assist ON on first visit (slice default = null,
-// but the UI treats null as "on"). If the user explicitly turns it off, the
-// URL will carry the value, so this branch only fires on a clean first load.
 const URL_ABSENT_PRESERVE_KEYS = new Set(["is_magic_sort"]);
 
 function TasksPageContent() {
@@ -154,10 +154,6 @@ function TasksPageContent() {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── URL → Redux filter sync ────────────────────────────────────────────────
-  // Rules:
-  //   • Most filter keys: if absent from URL → null out in Redux
-  //   • Keys in URL_ABSENT_PRESERVE_KEYS: if absent from URL → leave Redux
-  //     default intact (e.g. is_magic_sort stays ON on first visit)
   useEffect(() => {
     const urlFilters = {};
     const urlPage = searchParams.get("page");
@@ -168,7 +164,6 @@ function TasksPageContent() {
       const value = searchParams.get(key);
 
       if (value !== null) {
-        // Key is present in URL — parse and apply it
         let parsed;
         if (key === "is_billable" || key === "entity_missing") {
           parsed = value === "true";
@@ -180,9 +175,7 @@ function TasksPageContent() {
         urlFilters[key] = parsed;
         if (currentFilters[key] !== parsed) hasChanges = true;
       } else {
-        // Key is absent from URL
         if (URL_ABSENT_PRESERVE_KEYS.has(key)) {
-          // Don't null it out — preserve the slice default.
           return;
         }
         if (currentFilters[key] !== null) {
@@ -198,8 +191,6 @@ function TasksPageContent() {
     if (hasChanges || !isInitialized) {
       isUpdatingFromUrl.current = true;
       dispatch(setFilters(urlFilters));
-      // setFilters already resets currentPage to 1 in the slice,
-      // so only dispatch setPage when the URL specifically asks for another page.
       if (parsedPage !== 1) dispatch(setPage(parsedPage));
       dispatch(fetchTasks());
       setTimeout(() => {
@@ -385,9 +376,6 @@ function TasksPageContent() {
   );
 
   // ── Filter handlers ────────────────────────────────────────────────────────
-  // Note: setFilters in the slice already resets currentPage to 1,
-  // so we never need to dispatch setPage(1) here separately.
-
   const handleFilterChange = useCallback(
     (filterKey, value) => {
       dispatch(setFilters({ [filterKey]: value }));
@@ -412,7 +400,6 @@ function TasksPageContent() {
         due_date_to: null,
         created_date_from: null,
         created_date_to: null,
-        // ✅ FIX: clear all SLA filters too
         sla_status: null,
         sla_due_date_from: null,
         sla_due_date_to: null,
@@ -466,6 +453,12 @@ function TasksPageContent() {
   const handleShowSLASummary = useCallback(() => setShowSLADialog(true), []);
   const handleCloseSLADialog = useCallback(() => setShowSLADialog(false), []);
 
+  // ── Search handler ─────────────────────────────────────────────────────────
+  const handleOpenSearch = useCallback(
+    () => dispatch(openSearchDialog()),
+    [dispatch],
+  );
+
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <ForceNotification>
@@ -484,6 +477,7 @@ function TasksPageContent() {
           onCreateTask={handleCreateTask}
           onToggleWorkload={handleToggleWorkload}
           onRefresh={handleRefresh}
+          onOpenSearch={handleOpenSearch}
           showWorkload={showWorkload}
           totalCount={actualTotal}
           filteredCount={filteredCount}
@@ -531,6 +525,8 @@ function TasksPageContent() {
           onClose={handleCloseSLADialog}
           currentFilters={currentFilters}
         />
+
+        <TaskSearchDialog />
       </div>
     </ForceNotification>
   );

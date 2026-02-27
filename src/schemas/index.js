@@ -25,6 +25,7 @@ import {
   listTasksSchema,
   TaskBulkStatusUpdateSchema,
   TaskBulkPriorityUpdateSchema,
+  taskSearchQuerySchema,
 } from "./operations/task.schema.js";
 
 import {
@@ -129,6 +130,7 @@ export const schemas = Object.freeze({
     create: TaskCreateSchema,
     update: TaskUpdateSchema,
     query: listTasksSchema,
+    search : taskSearchQuerySchema,
     bulkStatus: TaskBulkStatusUpdateSchema,
     bulkPriority: TaskBulkPriorityUpdateSchema,
     enums: {

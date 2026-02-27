@@ -1,11 +1,12 @@
 import { useState, useRef, useEffect } from "react";
-import { Calendar, ChevronLeft, ChevronRight } from "lucide-react";
+import { Calendar, ChevronLeft, ChevronRight, X } from "lucide-react";
 import styles from "./CustomDatePicker.module.scss";
 
 const CustomDatePicker = ({
   label = "Date",
   selectedDate = null,
   onDateSelect = () => {},
+  onClear = null,        // 🔹 NEW: if provided AND a date is selected, shows an X button
   minDate = null,
   maxDate = null,
   disabled = false,
@@ -15,13 +16,14 @@ const CustomDatePicker = ({
   const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0 });
   const pickerRef = useRef(null);
 
+  const canClear = !!onClear && !!selectedDate && !disabled;
+
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (pickerRef.current && !pickerRef.current.contains(event.target)) {
         setIsOpen(false);
       }
     };
-
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
@@ -32,18 +34,11 @@ const CustomDatePicker = ({
       const viewportHeight = window.innerHeight;
       const spaceBelow = viewportHeight - rect.bottom;
       const spaceAbove = rect.top;
-      
-      // If not enough space below, position above
+
       if (spaceBelow < 400 && spaceAbove > spaceBelow) {
-        setPopupPosition({
-          top: rect.top - 380, // Calendar height + gap
-          left: rect.left,
-        });
+        setPopupPosition({ top: rect.top - 380, left: rect.left });
       } else {
-        setPopupPosition({
-          top: rect.bottom + 8,
-          left: rect.left,
-        });
+        setPopupPosition({ top: rect.bottom + 8, left: rect.left });
       }
     }
   }, [isOpen]);
@@ -64,25 +59,23 @@ const CustomDatePicker = ({
     const lastDay = new Date(year, month + 1, 0);
     const daysInMonth = lastDay.getDate();
     const startingDayOfWeek = firstDay.getDay();
-
     return { daysInMonth, startingDayOfWeek, year, month };
   };
 
-  const { daysInMonth, startingDayOfWeek, year, month } =
-    getDaysInMonth(currentMonth);
+  const { daysInMonth, startingDayOfWeek, year, month } = getDaysInMonth(currentMonth);
 
-  const handlePrevMonth = () => {
-    setCurrentMonth(new Date(year, month - 1, 1));
-  };
-
-  const handleNextMonth = () => {
-    setCurrentMonth(new Date(year, month + 1, 1));
-  };
+  const handlePrevMonth = () => setCurrentMonth(new Date(year, month - 1, 1));
+  const handleNextMonth = () => setCurrentMonth(new Date(year, month + 1, 1));
 
   const handleDateClick = (day) => {
     const selected = new Date(year, month, day);
     onDateSelect(selected);
     setIsOpen(false);
+  };
+
+  const handleClear = (e) => {
+    e.stopPropagation();
+    onClear();
   };
 
   const isDateSelected = (day) => {
@@ -120,21 +113,13 @@ const CustomDatePicker = ({
       .join(" ");
 
     calendarDays.push(
-      <button
-        key={day}
-        type="button"
-        className={dayClasses}
-        onClick={() => handleDateClick(day)}
-      >
+      <button key={day} type="button" className={dayClasses} onClick={() => handleDateClick(day)}>
         {day}
       </button>
     );
   }
 
-  const monthYear = currentMonth.toLocaleString("en-US", {
-    month: "long",
-    year: "numeric",
-  });
+  const monthYear = currentMonth.toLocaleString("en-US", { month: "long", year: "numeric" });
 
   return (
     <div className={styles.datePickerContainer} ref={pickerRef}>
@@ -149,39 +134,38 @@ const CustomDatePicker = ({
         </div>
         <div className={styles.dateContent}>
           <span className={styles.dateLabel}>{label}</span>
-          <span
-            className={`${styles.dateValue} ${
-              !selectedDate ? styles.placeholder : ""
-            }`}
-          >
+          <span className={`${styles.dateValue} ${!selectedDate ? styles.placeholder : ""}`}>
             {selectedDate ? formatDate(selectedDate) : "Select date"}
           </span>
         </div>
+
+        {/* 🔹 Clear button — only when clearable and date is set */}
+        {canClear && (
+          <span
+            className={styles.clearBtn}
+            onClick={handleClear}
+            role="button"
+            aria-label="Clear date"
+            tabIndex={0}
+            onKeyDown={(e) => e.key === "Enter" && handleClear(e)}
+          >
+            <X size={14} />
+          </span>
+        )}
       </button>
 
       {isOpen && (
-        <div 
+        <div
           className={styles.calendarPopup}
-          style={{
-            top: `${popupPosition.top}px`,
-            left: `${popupPosition.left}px`,
-          }}
+          style={{ top: `${popupPosition.top}px`, left: `${popupPosition.left}px` }}
         >
           <div className={styles.calendarHeader}>
             <span className={styles.calendarMonth}>{monthYear}</span>
             <div className={styles.calendarNav}>
-              <button
-                type="button"
-                className={styles.navButton}
-                onClick={handlePrevMonth}
-              >
+              <button type="button" className={styles.navButton} onClick={handlePrevMonth}>
                 <ChevronLeft size={18} />
               </button>
-              <button
-                type="button"
-                className={styles.navButton}
-                onClick={handleNextMonth}
-              >
+              <button type="button" className={styles.navButton} onClick={handleNextMonth}>
                 <ChevronRight size={18} />
               </button>
             </div>
@@ -189,9 +173,7 @@ const CustomDatePicker = ({
 
           <div className={styles.calendarWeekdays}>
             {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((day) => (
-              <div key={day} className={styles.weekday}>
-                {day}
-              </div>
+              <div key={day} className={styles.weekday}>{day}</div>
             ))}
           </div>
 

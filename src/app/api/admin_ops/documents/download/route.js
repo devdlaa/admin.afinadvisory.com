@@ -34,7 +34,7 @@ export async function GET(req) {
       },
     });
   } catch (error) {
-    console.error("Download error:", error);
+ 
     return handleApiError(error);
   }
 }

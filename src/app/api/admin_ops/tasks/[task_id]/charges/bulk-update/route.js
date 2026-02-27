@@ -31,7 +31,7 @@ export async function PATCH(request, { params }) {
 
     return createSuccessResponse("Charges updated successfully", result);
   } catch (error) {
-    console.log(error);
+    
     return handleApiError(error);
   }
 }

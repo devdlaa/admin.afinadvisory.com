@@ -275,21 +275,29 @@ export function useTaskManageDrawer() {
   };
 
   const handleSavePrimaryInfo = async () => {
+    const changedFields = Object.keys(primaryInfo).reduce((acc, key) => {
+      if (
+        JSON.stringify(primaryInfo[key]) !==
+        JSON.stringify(originalPrimaryInfo[key])
+      ) {
+        acc[key] = primaryInfo[key];
+      }
+      return acc;
+    }, {});
+
+    if ("start_date" in changedFields)
+      changedFields.start_date = changedFields.start_date || null;
+    if ("due_date" in changedFields)
+      changedFields.due_date = changedFields.due_date || null;
+
+    if (!Object.keys(changedFields).length) return;
+
     try {
       await dispatch(
-        updateTask({
-          taskId: task.id,
-          data: {
-            ...primaryInfo,
-            start_date: primaryInfo.start_date || null,
-            due_date: primaryInfo.due_date || null,
-          },
-        }),
+        updateTask({ taskId: task.id, data: changedFields }),
       ).unwrap();
       setOriginalPrimaryInfo({ ...primaryInfo });
-    } catch {
-      /* handled upstream */
-    }
+    } catch {}
   };
 
   // ─────────────────────────────────────────────

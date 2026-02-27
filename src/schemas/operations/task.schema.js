@@ -206,3 +206,29 @@ export const TaskBulkPriorityUpdateSchema = z.object({
     .min(1, "At least one task ID is required"),
   priority: TaskPriorityEnum,
 });
+
+export const taskSearchQuerySchema = z.object({
+  search: z.string().min(2, "Search must be at least 2 characters"),
+
+  entity_id: z.string().uuid().optional(),
+  status: z
+    .enum([
+      "PENDING",
+      "IN_PROGRESS",
+      "COMPLETED",
+      "CANCELLED",
+      "ON_HOLD",
+      "PENDING_CLIENT_INPUT",
+    ])
+    .optional(),
+
+  priority: z.enum(["LOW", "NORMAL", "HIGH"]).optional(),
+
+  task_category_id: z.string().uuid().optional(),
+
+  created_date_from: z.coerce.date().optional(),
+  created_date_to: z.coerce.date().optional(),
+
+  page: z.coerce.number().int().min(1).default(1),
+  page_size: z.coerce.number().int().min(1).max(50).default(10),
+});
