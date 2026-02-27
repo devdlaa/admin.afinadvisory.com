@@ -26,7 +26,7 @@ import outstandingReducer from "./slices/outstandingSlice";
 import TaskTimelineReducer from "./slices/taskTimelineSlice";
 import { forceLogoutMiddleware } from "@/lib/forceLogoutMiddleware";
 import chargesReducer from "./slices/chargesSlice";
-import taskSearchReducer from "./slices/tasksearchslice";
+import taskSearchReducer from "./slices/tasksSearchSlice";
 
 export const store = configureStore({
   reducer: {

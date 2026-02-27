@@ -48,7 +48,7 @@ import {
   selectSearchHasSearched,
   selectSearchPage,
   selectSearchPageSize,
-} from "@/store/slices/taskSearchSlice";
+} from "@/store/slices/tasksSearchSlice";
 
 import styles from "./TaskSearchDialog.module.scss";
 

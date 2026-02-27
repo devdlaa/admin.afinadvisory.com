@@ -47,7 +47,7 @@ import {
   fetchSLASummary,
 } from "@/store/slices/taskSlice";
 
-import { openSearchDialog } from "@/store/slices/taskSearchSlice";
+import { openSearchDialog } from "@/store/slices/tasksSearchSlice";
 
 import { quickSearchEntities } from "@/store/slices/entitySlice";
 
