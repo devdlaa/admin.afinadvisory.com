@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   Plus,
   Users,
@@ -10,20 +10,306 @@ import {
   Sparkles,
   ShieldAlert,
   Search,
+  Timer,
+  Building2,
+  CalendarRange,
+  ChevronDown,
+  CalendarHeart,
 } from "lucide-react";
 
 import FilterDropdown from "@/app/components/pages/FilterDropdown/FilterDropdown";
 import Button from "@/app/components/shared/Button/Button";
 import "./TaskActionBar.scss";
 
-// Keys that the SLA dialog can set as filters.
+// ── Filter key groups ──────────────────────────────────────────────────────
 const SLA_FILTER_KEYS = [
   "sla_status",
-  "sla_overdue",
-  "deadline_status",
-  "paused",
+  "sla_due_date_from",
+  "sla_due_date_to",
+  "sla_paused_before",
+  "due_date_from",
+  "due_date_to",
 ];
 
+// Aging uses ONLY created_date_from + created_date_to set by the AgingBoard,
+// identified by the presence of created_date_from (AgingBoard always sets both).
+// DateRangeFilter can also set created_date_from/to — we tell them apart by
+// a dedicated flag: when AgingBoard applies its filter it also sets
+// `aging_filter_active: true` in Redux. However, since we can't change the
+// backend shape right now, we use a simpler heuristic:
+//   • Aging filter  → created_date_to is set AND created_date_from is null
+//                     (AgingBoard only sets the "to" bound)
+//   • Date Range    → created_date_from and/or created_date_to both come
+//                     from user interaction in DateRangeFilter
+//
+// To make this unambiguous we introduce a lightweight sentinel key
+// `aging_active` that lives only in the Redux filter map (never sent to API).
+// AgingBoard sets it; DateRangeFilter clears it.
+const AGING_SENTINEL_KEY = "aging_active";
+
+// ── ISO datetime helpers ───────────────────────────────────────────────────
+/**
+ * Convert a plain date string "YYYY-MM-DD" from <input type="date"> to the
+ * ISO-8601 datetime the API requires: "YYYY-MM-DDT00:00:00Z" (from-date)
+ * or "YYYY-MM-DDT23:59:59Z" (to-date, inclusive).
+ */
+const toISOFrom = (dateStr) => {
+  if (!dateStr) return null;
+  return `${dateStr}T00:00:00Z`;
+};
+
+const toISOTo = (dateStr) => {
+  if (!dateStr) return null;
+  return `${dateStr}T23:59:59Z`;
+};
+
+/**
+ * Extract plain "YYYY-MM-DD" from an ISO datetime string so we can populate
+ * <input type="date"> correctly when re-opening the dropdown.
+ */
+const fromISO = (isoStr) => {
+  if (!isoStr) return "";
+  return isoStr.slice(0, 10); // "YYYY-MM-DD"
+};
+
+// ── DateRangeFilter — inline dropdown component ────────────────────────────
+const DATE_TYPE_OPTIONS = [
+  { value: "created", label: "Creation Date" },
+  { value: "due", label: "Due Date" },
+];
+
+function DateRangeFilter({ allActiveFilters, onFilterChange }) {
+  const [open, setOpen] = useState(false);
+  const [dateType, setDateType] = useState("created"); // "created" | "due"
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+  const ref = useRef(null);
+
+  // Derive active state — but EXCLUDE values that were set by AgingBoard
+  const agingIsActive = !!allActiveFilters[AGING_SENTINEL_KEY];
+
+  const hasCreatedRange =
+    !agingIsActive &&
+    (allActiveFilters.created_date_from || allActiveFilters.created_date_to);
+  const hasDueRange =
+    allActiveFilters.due_date_from || allActiveFilters.due_date_to;
+  const isActive = hasCreatedRange || hasDueRange;
+
+  // Sync local state when external filters change (e.g. clear all)
+  useEffect(() => {
+    if (!hasCreatedRange && !hasDueRange) {
+      setFromDate("");
+      setToDate("");
+    }
+  }, [hasCreatedRange, hasDueRange]);
+
+  // Close on outside click
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  const handleOpen = () => {
+    // Pre-populate fields from current filters when opening
+    if (dateType === "created") {
+      setFromDate(fromISO(allActiveFilters.created_date_from));
+      setToDate(fromISO(allActiveFilters.created_date_to));
+    } else {
+      setFromDate(fromISO(allActiveFilters.due_date_from));
+      setToDate(fromISO(allActiveFilters.due_date_to));
+    }
+    setOpen((v) => !v);
+  };
+
+  const handleDateTypeChange = (type) => {
+    setDateType(type);
+    if (type === "created") {
+      setFromDate(fromISO(allActiveFilters.created_date_from));
+      setToDate(fromISO(allActiveFilters.created_date_to));
+    } else {
+      setFromDate(fromISO(allActiveFilters.due_date_from));
+      setToDate(fromISO(allActiveFilters.due_date_to));
+    }
+  };
+
+  const handleApply = () => {
+    if (dateType === "created") {
+      onFilterChange("created_date_from", toISOFrom(fromDate));
+      onFilterChange("created_date_to", toISOTo(toDate));
+      // Clear the other type
+      onFilterChange("due_date_from", null);
+      onFilterChange("due_date_to", null);
+    } else {
+      onFilterChange("due_date_from", toISOFrom(fromDate));
+      onFilterChange("due_date_to", toISOTo(toDate));
+      // Clear the other type
+      onFilterChange("created_date_from", null);
+      onFilterChange("created_date_to", null);
+    }
+    // Clear the aging sentinel so aging pill deactivates
+    onFilterChange(AGING_SENTINEL_KEY, null);
+    setOpen(false);
+  };
+
+  const handleClear = () => {
+    setFromDate("");
+    setToDate("");
+    onFilterChange("created_date_from", null);
+    onFilterChange("created_date_to", null);
+    onFilterChange("due_date_from", null);
+    onFilterChange("due_date_to", null);
+    onFilterChange(AGING_SENTINEL_KEY, null);
+    setOpen(false);
+  };
+
+  // Build label for button
+  const activeType = hasCreatedRange ? "created" : hasDueRange ? "due" : null;
+  const activeLabel =
+    activeType === "created"
+      ? "Creation Date"
+      : activeType === "due"
+        ? "Due Date"
+        : "Date Range";
+
+  const fromVal =
+    activeType === "created"
+      ? allActiveFilters.created_date_from
+      : activeType === "due"
+        ? allActiveFilters.due_date_from
+        : null;
+  const toVal =
+    activeType === "created"
+      ? allActiveFilters.created_date_to
+      : activeType === "due"
+        ? allActiveFilters.due_date_to
+        : null;
+
+  const formatDate = (isoStr) => {
+    if (!isoStr) return null;
+    const dt = new Date(isoStr);
+    return dt.toLocaleDateString("en-IN", { day: "2-digit", month: "short" });
+  };
+
+  const rangeText =
+    fromVal || toVal
+      ? `${formatDate(fromVal) || "…"} → ${formatDate(toVal) || "…"}`
+      : null;
+
+  // Disabled when aging filter is active (they share created_date keys)
+  const isDisabledByAging = agingIsActive && !hasDueRange;
+
+  return (
+    <div className="task-action-bar__date-range-wrap" ref={ref}>
+      <button
+        className={`task-action-bar__date-range-btn${isActive ? " task-action-bar__date-range-btn--active" : ""}${isDisabledByAging ? " task-action-bar__date-range-btn--locked" : ""}`}
+        onClick={isDisabledByAging ? undefined : handleOpen}
+        title={
+          isDisabledByAging
+            ? "Clear Aging filter first to use Date Range on creation date"
+            : "Filter by date range"
+        }
+        disabled={isDisabledByAging}
+      >
+        <CalendarHeart size={14} />
+        <span className="task-action-bar__date-range-label">
+          {isActive ? (
+            <>
+              <span className="task-action-bar__date-range-type">
+                {activeLabel}:
+              </span>
+              <span className="task-action-bar__date-range-value">
+                {rangeText}
+              </span>
+            </>
+          ) : (
+            "Date Range"
+          )}
+        </span>
+        {isActive ? (
+          <span
+            className="task-action-bar__date-range-clear"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleClear();
+            }}
+            title="Clear date filter"
+          >
+            <X size={11} />
+          </span>
+        ) : (
+          <ChevronDown
+            size={12}
+            className="task-action-bar__date-range-chevron"
+          />
+        )}
+      </button>
+
+      {open && (
+        <div className="task-action-bar__date-dropdown">
+          {/* Date type selector */}
+          <div className="task-action-bar__date-type-row">
+            {DATE_TYPE_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                className={`task-action-bar__date-type-btn${dateType === opt.value ? " task-action-bar__date-type-btn--active" : ""}`}
+                onClick={() => handleDateTypeChange(opt.value)}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Date inputs */}
+          <div className="task-action-bar__date-fields">
+            <div className="task-action-bar__date-field">
+              <label className="task-action-bar__date-label">From</label>
+              <input
+                type="date"
+                className="task-action-bar__date-input"
+                value={fromDate}
+                onChange={(e) => setFromDate(e.target.value)}
+                max={toDate || undefined}
+              />
+            </div>
+            <div className="task-action-bar__date-field">
+              <label className="task-action-bar__date-label">To</label>
+              <input
+                type="date"
+                className="task-action-bar__date-input"
+                value={toDate}
+                onChange={(e) => setToDate(e.target.value)}
+                min={fromDate || undefined}
+              />
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="task-action-bar__date-actions">
+            <button
+              className="task-action-bar__date-clear-btn"
+              onClick={handleClear}
+            >
+              Clear
+            </button>
+            <button
+              className="task-action-bar__date-apply-btn"
+              onClick={handleApply}
+              disabled={!fromDate && !toDate}
+            >
+              Apply
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Main Component ─────────────────────────────────────────────────────────
 const TaskActionBar = ({
   filterDropdowns = [],
   activeFilters = {},
@@ -32,7 +318,7 @@ const TaskActionBar = ({
   onCreateTask,
   onToggleWorkload,
   onRefresh,
-  onOpenSearch, // ← NEW
+  onOpenSearch,
   showWorkload = false,
   totalCount = 0,
   filteredCount = 0,
@@ -47,14 +333,27 @@ const TaskActionBar = ({
   isUnassignedFilterActive,
   onToggleMagicSort,
   isMagicSortActive = false,
+  // Without-client pill
+  isWithoutClientActive = false,
+  onToggleWithoutClient,
+  // SLA props
   onShowSLASummary,
   hasSLACritical = false,
   isSLADialogOpen = false,
+  // Aging props
+  onShowAgingBoard,
+  isAgingDialogOpen = false,
+  // All filters for derived state
   allActiveFilters = {},
 }) => {
   const hasActiveFilters = Object.entries(activeFilters).some(
     ([, value]) => value !== null && value !== undefined && value !== "",
   );
+
+  // ── Conflict detection ────────────────────────────────────────────────────
+  // Aging is active when the sentinel key is set (set by AgingBoard, cleared
+  // by DateRangeFilter and handleClearAllFilters).
+  const agingIsActive = !!allActiveFilters[AGING_SENTINEL_KEY];
 
   const hasSLAFilterActive = SLA_FILTER_KEYS.some(
     (key) =>
@@ -62,6 +361,17 @@ const TaskActionBar = ({
       allActiveFilters[key] !== undefined &&
       allActiveFilters[key] !== "",
   );
+
+  // Date range is active when created or due date filters exist AND aging is NOT the source
+  const hasDateRangeCreated =
+    !agingIsActive &&
+    (allActiveFilters.created_date_from || allActiveFilters.created_date_to);
+  const hasDateRangeDue =
+    allActiveFilters.due_date_from || allActiveFilters.due_date_to;
+  const hasDateRangeFilterActive = !!(hasDateRangeCreated || hasDateRangeDue);
+
+  const slaLockedByAging = agingIsActive && !hasSLAFilterActive;
+  const agingLockedBySLA = hasSLAFilterActive && !agingIsActive;
 
   const handleRemoveFilter = (filterKey) => onFilterChange(filterKey, null);
 
@@ -83,9 +393,7 @@ const TaskActionBar = ({
   };
 
   const activeFiltersList = Object.entries(activeFilters)
-    .filter(
-      ([, value]) => value !== null && value !== undefined && value !== "",
-    )
+    .filter(([, value]) => value !== null && value !== undefined && value !== "")
     .map(([key, value]) => ({
       key,
       value,
@@ -93,13 +401,16 @@ const TaskActionBar = ({
     }))
     .filter((f) => f.label);
 
+  // ── SLA pill ──────────────────────────────────────────────────────────────
   const slaPillModifier = hasSLAFilterActive
     ? "task-action-bar__sla-pill--filter-active"
     : isSLADialogOpen
       ? "task-action-bar__sla-pill--active"
       : hasSLACritical
         ? "task-action-bar__sla-pill--critical"
-        : "";
+        : slaLockedByAging
+          ? "task-action-bar__sla-pill--locked"
+          : "";
 
   const slaPillClass = ["task-action-bar__sla-pill", slaPillModifier]
     .filter(Boolean)
@@ -107,13 +418,46 @@ const TaskActionBar = ({
 
   const slaLabel = hasSLAFilterActive ? "SLA Filter Active" : "SLA Summary";
 
-  const slaTitle = hasSLAFilterActive
-    ? "SLA filter is applied — click to manage"
-    : isSLADialogOpen
-      ? "Close SLA summary"
-      : hasSLACritical
-        ? "SLA items need attention — click to review"
-        : "Show SLA attention summary";
+  const slaTitle = slaLockedByAging
+    ? "Clear Aging filters first to use SLA filters"
+    : hasSLAFilterActive
+      ? "SLA filter is applied — click to manage"
+      : isSLADialogOpen
+        ? "Close SLA summary"
+        : hasSLACritical
+          ? "SLA items need attention — click to review"
+          : "Show SLA attention summary";
+
+  // ── Aging pill ────────────────────────────────────────────────────────────
+  const agingPillModifier = agingIsActive
+    ? "task-action-bar__aging-pill--filter-active"
+    : isAgingDialogOpen
+      ? "task-action-bar__aging-pill--active"
+      : agingLockedBySLA
+        ? "task-action-bar__aging-pill--locked"
+        : hasDateRangeFilterActive
+          ? "task-action-bar__aging-pill--locked"
+          : "";
+
+  const agingPillClass = ["task-action-bar__aging-pill", agingPillModifier]
+    .filter(Boolean)
+    .join(" ");
+
+  const agingLabel = agingIsActive ? "Aging Filter Active" : "Aging Tasks";
+
+  const agingLockedByDateRange = hasDateRangeCreated && !agingIsActive;
+
+  const agingTitle = agingLockedBySLA
+    ? "Clear SLA filters first to use Aging filters"
+    : agingLockedByDateRange
+      ? "Clear Date Range (Creation Date) filter first to use Aging"
+      : agingIsActive
+        ? "Aging filter is applied — click to manage"
+        : isAgingDialogOpen
+          ? "Close Aging board"
+          : "Show aging tasks by status & age";
+
+  const agingDisabled = agingLockedBySLA || agingLockedByDateRange;
 
   return (
     <div className="task-action-bar">
@@ -131,12 +475,7 @@ const TaskActionBar = ({
           </div>
         </div>
         <div className="task-action-bar__actions">
-          <Button
-            variant="primary"
-            size="md"
-            icon={Plus}
-            onClick={onCreateTask}
-          >
+          <Button variant="primary" size="md" icon={Plus} onClick={onCreateTask}>
             New Task
           </Button>
         </div>
@@ -145,30 +484,37 @@ const TaskActionBar = ({
       {/* Filters and Actions */}
       <div className="task-action-bar__controls">
         <div className="task-action-bar__filters">
-          {filterDropdowns.map((dropdown) => (
-            <FilterDropdown
-              key={dropdown.filterKey}
-              label={dropdown.label}
-              placeholder={dropdown.placeholder}
-              icon={dropdown.icon}
-              options={dropdown.options}
-              selectedValue={activeFilters[dropdown.filterKey]}
-              onSelect={(option) =>
-                onFilterChange(dropdown.filterKey, option.value)
-              }
-              onSearchChange={dropdown.onSearchChange}
-              onAddNew={dropdown.onAddNew}
-              addNewLabel={dropdown.addNewLabel}
-              isLoading={dropdown.isLoading}
-              isSearching={dropdown.isSearching}
-              emptyStateMessage={dropdown.emptyStateMessage}
-              hintMessage={dropdown.hintMessage}
-              enableLocalSearch={dropdown.enableLocalSearch}
-              lazyLoad={dropdown.lazyLoad}
-              onLazyLoad={dropdown.onLazyLoad}
-              className="task-action-bar__filter"
-            />
-          ))}
+          {filterDropdowns
+            .filter((d) => d.filterKey !== "entity_missing")
+            .map((dropdown) => (
+              <FilterDropdown
+                key={dropdown.filterKey}
+                label={dropdown.label}
+                placeholder={dropdown.placeholder}
+                icon={dropdown.icon}
+                options={dropdown.options}
+                selectedValue={activeFilters[dropdown.filterKey]}
+                onSelect={(option) =>
+                  onFilterChange(dropdown.filterKey, option.value)
+                }
+                onSearchChange={dropdown.onSearchChange}
+                onAddNew={dropdown.onAddNew}
+                addNewLabel={dropdown.addNewLabel}
+                isLoading={dropdown.isLoading}
+                isSearching={dropdown.isSearching}
+                emptyStateMessage={dropdown.emptyStateMessage}
+                hintMessage={dropdown.hintMessage}
+                enableLocalSearch={dropdown.enableLocalSearch}
+                lazyLoad={dropdown.lazyLoad}
+                onLazyLoad={dropdown.onLazyLoad}
+                className="task-action-bar__filter"
+              />
+            ))}
+
+          <DateRangeFilter
+            allActiveFilters={allActiveFilters}
+            onFilterChange={onFilterChange}
+          />
 
           {hasActiveFilters && (
             <Button
@@ -193,7 +539,6 @@ const TaskActionBar = ({
             {showWorkload ? "Hide Workload" : "Show Workload"}
           </Button>
 
-          {/* Search button — same style as Refresh */}
           <Button
             variant="outline"
             size="md"
@@ -256,6 +601,25 @@ const TaskActionBar = ({
               </>
             )}
 
+            {/* Without Client pill */}
+            <button
+              className={`task-action-bar__no-client-pill${
+                isWithoutClientActive
+                  ? " task-action-bar__no-client-pill--active"
+                  : ""
+              }`}
+              onClick={onToggleWithoutClient}
+              title={
+                isWithoutClientActive
+                  ? "Clear — show all tasks"
+                  : "Show tasks without a linked client"
+              }
+            >
+              <Building2 size={13} />
+              Without Client
+            </button>
+
+            {/* Unassigned pill */}
             {!unassignedCountLoading && unassignedCount > 0 && (
               <button
                 className={`task-action-bar__unassigned-pill${
@@ -271,10 +635,11 @@ const TaskActionBar = ({
                 }
               >
                 <span className="task-action-bar__unassigned-dot" />
-                {unassignedCount} UNASSIGNED TASK
+                {unassignedCount} UNASSIGNED
               </button>
             )}
 
+            {/* Focus Assist pill */}
             <button
               className={`task-action-bar__magic-sort-pill${
                 isMagicSortActive
@@ -283,22 +648,33 @@ const TaskActionBar = ({
               }`}
               onClick={onToggleMagicSort}
               title={
-                isMagicSortActive
-                  ? "Disable Focus Assist"
-                  : "Enable Focus Assist"
+                isMagicSortActive ? "Disable Focus Assist" : "Enable Focus Assist"
               }
             >
               <Sparkles size={14} />
               Focus Assist
             </button>
 
+            {/* SLA pill */}
             <button
               className={slaPillClass}
-              onClick={onShowSLASummary}
+              onClick={slaLockedByAging ? undefined : onShowSLASummary}
               title={slaTitle}
+              disabled={slaLockedByAging}
             >
               <ShieldAlert size={14} />
               {slaLabel}
+            </button>
+
+            {/* Aging pill */}
+            <button
+              className={agingPillClass}
+              onClick={agingDisabled ? undefined : onShowAgingBoard}
+              title={agingTitle}
+              disabled={agingDisabled}
+            >
+              <Timer size={14} />
+              {agingLabel}
             </button>
           </div>
         </div>

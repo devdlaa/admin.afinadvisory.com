@@ -21,11 +21,14 @@ import SLAAttentionDialog, {
   readCache,
 } from "./components/SLAAttentionDialog/SLAAttentionDialog.jsx";
 
+import AgingBoard, {
+  readAgingSuppress,
+} from "./components/AgingBoard/AgingBoard.jsx";
+
 import TaskCategoryBoard from "@/app/components/pages/TaskCategoryBoard/TaskCategoryBoard.jsx";
 import TaskWorkload from "./components/TaskWorkload/TaskWorkload.jsx";
 import TaskStatusBoard from "./components/TaskStatusBoard/TaskStatusBoard.jsx";
 import TaskCreateDialog from "./components/TaskCreateDialog/Taskcreatedialog.jsx";
-
 import TaskSearchDialog from "./components/Tasksearchdialog/Tasksearchdialog.jsx";
 
 import {
@@ -48,7 +51,6 @@ import {
 } from "@/store/slices/taskSlice";
 
 import { openSearchDialog } from "@/store/slices/tasksSearchSlice";
-
 import { quickSearchEntities } from "@/store/slices/entitySlice";
 
 import {
@@ -58,7 +60,6 @@ import {
 } from "@/store/slices/taskCategorySlice";
 
 import { fetchUsers } from "@/store/slices/userSlice";
-
 import style from "./page.module.scss";
 
 const SLA_FILTER_KEYS = [
@@ -82,6 +83,7 @@ const STANDARD_FILTER_KEYS = [
   "due_date_from",
   "due_date_to",
   "is_magic_sort",
+  "aging_active",
   ...SLA_FILTER_KEYS,
 ];
 
@@ -124,6 +126,9 @@ function TasksPageContent() {
   const [showCategoryDialog, setShowCategoryDialog] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
   const [showSLADialog, setShowSLADialog] = useState(false);
+  const [showAgingBoard, setShowAgingBoard] = useState(false);
+  // Track whether aging should auto-open after SLA is closed
+  const agingPendingAfterSLA = useRef(false);
 
   const hasLoadedCategories = useRef(false);
   const hasLoadedUsers = useRef(false);
@@ -137,37 +142,44 @@ function TasksPageContent() {
     return Object.values(slaSummary.critical).some((i) => i.count > 0);
   }, [slaSummary]);
 
-  // ── SLA init on mount ──────────────────────────────────────────────────────
+  // ── On mount: show SLA first, then aging sequentially ─────────────────────
   useEffect(() => {
-    if (readSuppress()) return;
+    const slaSupp = readSuppress();
+    const agingSupp = readAgingSuppress();
 
-    const cached = readCache();
-    if (cached) {
-      dispatch({ type: "task/fetchSLASummary/fulfilled", payload: cached });
-      setShowSLADialog(true);
-      return;
+    if (!slaSupp) {
+      if (!agingSupp) {
+        agingPendingAfterSLA.current = true;
+      }
+      const cached = readCache();
+      if (cached) {
+        dispatch({ type: "task/fetchSLASummary/fulfilled", payload: cached });
+        setShowSLADialog(true);
+      } else {
+        dispatch(fetchSLASummary()).then(() => {
+          setShowSLADialog(true);
+        });
+      }
+    } else if (!agingSupp) {
+      dispatch(fetchSLASummary()).then(() => {
+        setShowAgingBoard(true);
+      });
     }
-
-    dispatch(fetchSLASummary()).then(() => {
-      setShowSLADialog(true);
-    });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── URL → Redux filter sync ────────────────────────────────────────────────
   useEffect(() => {
     const urlFilters = {};
     const urlPage = searchParams.get("page");
-
     let hasChanges = false;
 
     STANDARD_FILTER_KEYS.forEach((key) => {
       const value = searchParams.get(key);
-
       if (value !== null) {
         let parsed;
         if (key === "is_billable" || key === "entity_missing") {
           parsed = value === "true";
-        } else if (key === "is_magic_sort") {
+        } else if (key === "is_magic_sort" || key === "aging_active") {
           parsed = value === "true";
         } else {
           parsed = value;
@@ -175,9 +187,7 @@ function TasksPageContent() {
         urlFilters[key] = parsed;
         if (currentFilters[key] !== parsed) hasChanges = true;
       } else {
-        if (URL_ABSENT_PRESERVE_KEYS.has(key)) {
-          return;
-        }
+        if (URL_ABSENT_PRESERVE_KEYS.has(key)) return;
         if (currentFilters[key] !== null) {
           urlFilters[key] = null;
           hasChanges = true;
@@ -300,6 +310,7 @@ function TasksPageContent() {
   }, [dispatch]);
 
   // ── Filter dropdowns config ────────────────────────────────────────────────
+  // NOTE: entity_missing removed — it's now a pill toggle in TaskActionBar
   const filterDropdowns = useMemo(
     () => [
       {
@@ -351,16 +362,7 @@ function TasksPageContent() {
         lazyLoad: true,
         onLazyLoad: handleLoadUsers,
       },
-      {
-        filterKey: "entity_missing",
-        label: "Client",
-        placeholder: "Client Linked",
-        icon: Building2,
-        options: [
-          { value: false, label: "With Client" },
-          { value: true, label: "Without Client" },
-        ],
-      },
+      // entity_missing intentionally removed — now a pill in the meta strip
     ],
     [
       entityOptions,
@@ -404,6 +406,7 @@ function TasksPageContent() {
         sla_due_date_from: null,
         sla_due_date_to: null,
         sla_paused_before: null,
+        aging_active: null,
       }),
     );
     dispatch(fetchTasks(true));
@@ -421,22 +424,26 @@ function TasksPageContent() {
     dispatch(fetchTasks(true));
   }, [dispatch, currentFilters.is_magic_sort]);
 
-  // ── Other handlers ─────────────────────────────────────────────────────────
+  // ── NEW: Without Client pill toggle ───────────────────────────────────────
+  const handleToggleWithoutClient = useCallback(() => {
+    const isActive = currentFilters.entity_missing === true;
+    dispatch(setFilters({ entity_missing: isActive ? null : true }));
+    dispatch(fetchTasks(true));
+  }, [dispatch, currentFilters.entity_missing]);
+
+  // ── Dialog handlers ────────────────────────────────────────────────────────
   const handleCreateTask = useCallback(
     () => dispatch(openCreateDialog()),
     [dispatch],
   );
-
   const handleToggleWorkload = useCallback(
     () => setShowWorkload((prev) => !prev),
     [],
   );
-
   const handleRefresh = useCallback(() => {
     dispatch(fetchTasks(true));
     dispatch(fetchUnassignedTasksCount());
   }, [dispatch]);
-
   const handlePageChange = useCallback(
     (page) => {
       dispatch(setPage(page));
@@ -444,20 +451,38 @@ function TasksPageContent() {
     },
     [dispatch],
   );
-
   const handleTaskClick = useCallback(
     (task) => dispatch(openManageDialog(task.id)),
     [dispatch],
   );
-
-  const handleShowSLASummary = useCallback(() => setShowSLADialog(true), []);
-  const handleCloseSLADialog = useCallback(() => setShowSLADialog(false), []);
-
-  // ── Search handler ─────────────────────────────────────────────────────────
   const handleOpenSearch = useCallback(
     () => dispatch(openSearchDialog()),
     [dispatch],
   );
+
+  // SLA
+  const handleShowSLASummary = useCallback(() => {
+    setShowAgingBoard(false);
+    setShowSLADialog(true);
+  }, []);
+
+  const handleCloseSLADialog = useCallback(() => {
+    setShowSLADialog(false);
+    if (agingPendingAfterSLA.current) {
+      agingPendingAfterSLA.current = false;
+      setShowAgingBoard(true);
+    }
+  }, []);
+
+  // Aging
+  const handleShowAgingBoard = useCallback(() => {
+    setShowSLADialog(false);
+    setShowAgingBoard(true);
+  }, []);
+
+  const handleCloseAgingBoard = useCallback(() => {
+    setShowAgingBoard(false);
+  }, []);
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
@@ -470,7 +495,7 @@ function TasksPageContent() {
             task_category_id: currentFilters.task_category_id,
             assigned_to: currentFilters.assigned_to,
             is_billable: currentFilters.is_billable,
-            entity_missing: currentFilters.entity_missing,
+            // entity_missing removed — handled by pill, not chip
           }}
           onFilterChange={handleFilterChange}
           onClearAllFilters={handleClearAllFilters}
@@ -492,9 +517,17 @@ function TasksPageContent() {
           isUnassignedFilterActive={currentFilters.unassigned_only === true}
           onToggleMagicSort={handleToggleMagicSort}
           isMagicSortActive={currentFilters.is_magic_sort === true}
+          // ── Without Client pill ──────────────────────────────────────────
+          isWithoutClientActive={currentFilters.entity_missing === true}
+          onToggleWithoutClient={handleToggleWithoutClient}
+          // ── SLA ──────────────────────────────────────────────────────────
           onShowSLASummary={handleShowSLASummary}
           hasSLACritical={hasSLACritical}
           isSLADialogOpen={showSLADialog}
+          // ── Aging ─────────────────────────────────────────────────────────
+          onShowAgingBoard={handleShowAgingBoard}
+          isAgingDialogOpen={showAgingBoard}
+          // allActiveFilters gives DateRangeFilter + pills access to all keys
           allActiveFilters={currentFilters}
         />
 
@@ -523,6 +556,14 @@ function TasksPageContent() {
         <SLAAttentionDialog
           isOpen={showSLADialog}
           onClose={handleCloseSLADialog}
+          currentFilters={currentFilters}
+        />
+
+        <AgingBoard
+          isOpen={showAgingBoard}
+          onClose={handleCloseAgingBoard}
+          agingData={slaSummary?.aging}
+          isLoading={false}
           currentFilters={currentFilters}
         />
 

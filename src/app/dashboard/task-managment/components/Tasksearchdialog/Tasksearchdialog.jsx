@@ -594,58 +594,66 @@ export default function TaskSearchDialog() {
               </div>
 
               {results.map((task) => (
-                <div
-                  key={task.id}
-                  className={styles.taskCard}
-                  onClick={() => handleTaskClick(task.id)}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) =>
-                    e.key === "Enter" && handleTaskClick(task.id)
-                  }
+                <a
+                className={styles.anchor}
+                  key={`task_${task?.id}`}
+                  href={`/dashboard/task-managment?taskId=${task.id}`}
+                  onClick={(e) => {
+                    if (!e.metaKey && !e.ctrlKey) {
+                      e.preventDefault();
+                      handleTaskClick(task.id);
+                    }
+                  }}
                 >
-                  <div className={styles.cardTop}>
-                    <p className={styles.cardTitle}>{task.title}</p>
-                    <div className={styles.cardBadges}>
-                      {task.status && <StatusBadge status={task.status} />}
-                      {task.priority && (
-                        <PriorityBadge priority={task.priority} />
+                  <div
+                    key={task.id}
+                    className={styles.taskCard}
+                    role="button"
+                    tabIndex={0}
+                  >
+                    <div className={styles.cardTop}>
+                      <p className={styles.cardTitle}>{task.title}</p>
+                      <div className={styles.cardBadges}>
+                        {task.status && <StatusBadge status={task.status} />}
+                        {task.priority && (
+                          <PriorityBadge priority={task.priority} />
+                        )}
+                      </div>
+                      <ArrowRight size={15} className={styles.arrowIcon} />
+                    </div>
+
+                    <div className={styles.cardMeta}>
+                      {task.entity_name && (
+                        <span className={styles.metaItem}>
+                          <Building2 size={18} />
+                          <span className={styles.entityName}>
+                            {task.entity_name}
+                          </span>
+                        </span>
+                      )}
+                      {task.category_name && (
+                        <span className={styles.metaItem}>
+                          <Tag size={18} />
+                          <span className={styles.categoryName}>
+                            {task.category_name}
+                          </span>
+                        </span>
+                      )}
+                      {task.due_date && (
+                        <span className={styles.metaItem}>
+                          <Clock size={18} />
+                          {fmtDate(task.due_date)}
+                        </span>
+                      )}
+                      {task.created_at && (
+                        <span className={styles.metaItem}>
+                          <Calendar size={18} />
+                          Created {fmtDate(task.created_at)}
+                        </span>
                       )}
                     </div>
-                    <ArrowRight size={15} className={styles.arrowIcon} />
                   </div>
-
-                  <div className={styles.cardMeta}>
-                    {task.entity_name && (
-                      <span className={styles.metaItem}>
-                        <Building2 size={18} />
-                        <span className={styles.entityName}>
-                          {task.entity_name}
-                        </span>
-                      </span>
-                    )}
-                    {task.category_name && (
-                      <span className={styles.metaItem}>
-                        <Tag size={18} />
-                        <span className={styles.categoryName}>
-                          {task.category_name}
-                        </span>
-                      </span>
-                    )}
-                    {task.due_date && (
-                      <span className={styles.metaItem}>
-                        <Clock size={18} />
-                        {fmtDate(task.due_date)}
-                      </span>
-                    )}
-                    {task.created_at && (
-                      <span className={styles.metaItem}>
-                        <Calendar size={18} />
-                        Created {fmtDate(task.created_at)}
-                      </span>
-                    )}
-                  </div>
-                </div>
+                </a>
               ))}
             </>
           )}

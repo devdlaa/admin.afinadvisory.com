@@ -1250,67 +1250,290 @@ export const bulkUpdateTaskPriority = async (
 // SLA SUMMARY DASHBOARD
 // =============================================================================
 
+// export const getSLASummary = async (currentUser) => {
+//   const now = new Date();
+//   const endOfToday = istToday(23, 59, 59, 999);
+//   const dueSoon = new Date(
+//     endOfToday.getTime() + ATTENTION_WINDOW_DAYS * 24 * 60 * 60 * 1000,
+//   );
+//   const longPausedThreshold = new Date(
+//     Date.now() - ATTENTION_WINDOW_DAYS * 24 * 60 * 60 * 1000,
+//   );
+
+//   const baseWhere =
+//     currentUser.admin_role === "SUPER_ADMIN"
+//       ? {}
+//       : { admin_user_id: currentUser.id };
+
+//   const activeTaskFilter = {
+//     task: { is_system: false, status: { notIn: ["COMPLETED", "CANCELLED"] } },
+//   };
+//   const nonSystemTaskFilter = { task: { is_system: false } };
+
+//   // Step 1: Task deadline buckets take priority — fetch these first as arrays
+//   const [taskOverdueAssignments, taskDueTodayAssignments, paused, longPaused] =
+//     await Promise.all([
+//       prisma.taskAssignment.findMany({
+//         where: {
+//           ...baseWhere,
+//           sla_status: { in: ["RUNNING", "PAUSED"] },
+//           task: {
+//             is_system: false,
+//             due_date: { lt: now },
+//             status: { notIn: ["COMPLETED", "CANCELLED"] },
+//           },
+//         },
+//         select: { task_id: true },
+//       }),
+//       prisma.taskAssignment.findMany({
+//         where: {
+//           ...baseWhere,
+//           sla_status: { in: ["RUNNING", "PAUSED"] },
+//           task: {
+//             is_system: false,
+//             due_date: { gte: now, lte: endOfToday },
+//             status: { notIn: ["COMPLETED", "CANCELLED"] },
+//           },
+//         },
+//         select: { task_id: true },
+//       }),
+//       prisma.taskAssignment.count({
+//         where: { ...baseWhere, sla_status: "PAUSED", ...nonSystemTaskFilter },
+//       }),
+//       prisma.taskAssignment.count({
+//         where: {
+//           ...baseWhere,
+//           sla_status: "PAUSED",
+//           sla_paused_at: { lt: longPausedThreshold },
+//           ...nonSystemTaskFilter,
+//         },
+//       }),
+//     ]);
+
+//   // Collect task_ids already claimed by task deadline buckets
+//   const taskDeadlineTaskIds = new Set([
+//     ...taskOverdueAssignments.map((a) => a.task_id),
+//     ...taskDueTodayAssignments.map((a) => a.task_id),
+//   ]);
+
+//   const excludeTaskDeadlineTasks =
+//     taskDeadlineTaskIds.size > 0
+//       ? { task_id: { notIn: [...taskDeadlineTaskIds] } }
+//       : {};
+
+//   // Step 2: SLA counts — exclude tasks already claimed by task deadline buckets
+//   const [overdue, dueToday, dueSoonCount] = await Promise.all([
+//     prisma.taskAssignment.count({
+//       where: {
+//         ...baseWhere,
+//         ...excludeTaskDeadlineTasks,
+//         sla_status: "RUNNING",
+//         due_date: { lt: now },
+//         ...activeTaskFilter,
+//       },
+//     }),
+//     prisma.taskAssignment.count({
+//       where: {
+//         ...baseWhere,
+//         ...excludeTaskDeadlineTasks,
+//         sla_status: "RUNNING",
+//         due_date: { gte: now, lte: endOfToday },
+//         ...activeTaskFilter,
+//       },
+//     }),
+//     prisma.taskAssignment.count({
+//       where: {
+//         ...baseWhere,
+//         ...excludeTaskDeadlineTasks,
+//         sla_status: "RUNNING",
+//         due_date: { gt: endOfToday, lte: dueSoon },
+//         ...activeTaskFilter,
+//       },
+//     }),
+//   ]);
+
+//   return {
+//     critical: {
+//       sla_overdue: {
+//         count: overdue,
+//         label: "SLA Breached",
+//         description: "Your deadline to complete this task has passed",
+//         filters: { sla_status: "RUNNING", sla_due_date_to: now.toISOString() },
+//       },
+//       task_deadline_overdue: {
+//         count: taskOverdueAssignments.length,
+//         label: "Due Date Passed",
+//         description: "The client task deadline has passed",
+//         filters: { due_date_to: now.toISOString() },
+//       },
+//     },
+//     attention: {
+//       sla_due_today: {
+//         count: dueToday,
+//         label: "SLA Due Today",
+//         filters: {
+//           sla_status: "RUNNING",
+//           sla_due_date_from: now.toISOString(),
+//           sla_due_date_to: endOfToday.toISOString(),
+//         },
+//       },
+//       task_deadline_today: {
+//         count: taskDueTodayAssignments.length,
+//         label: "Due Date Today",
+//         filters: {
+//           due_date_from: now.toISOString(),
+//           due_date_to: endOfToday.toISOString(),
+//         },
+//       },
+//       sla_due_soon: {
+//         count: dueSoonCount,
+//         label: `SLA Due in ${ATTENTION_WINDOW_DAYS} Days`,
+//         filters: {
+//           sla_status: "RUNNING",
+//           sla_due_date_from: endOfToday.toISOString(),
+//           sla_due_date_to: dueSoon.toISOString(),
+//         },
+//       },
+//     },
+//     informational: {
+//       paused: {
+//         count: paused,
+//         label: "On Hold / Awaiting Client",
+//         filters: { sla_status: "PAUSED" },
+//       },
+//       long_paused: {
+//         count: longPaused,
+//         label: `Paused Over ${ATTENTION_WINDOW_DAYS} Days`,
+//         description: "Tasks stuck waiting — may need follow-up",
+//         filters: {
+//           sla_status: "PAUSED",
+//           sla_paused_before: longPausedThreshold.toISOString(),
+//         },
+//       },
+//     },
+//   };
+// };
+
 export const getSLASummary = async (currentUser) => {
   const now = new Date();
   const endOfToday = istToday(23, 59, 59, 999);
+
+  const ATTENTION_WINDOW_DAYS = 3;
+
   const dueSoon = new Date(
     endOfToday.getTime() + ATTENTION_WINDOW_DAYS * 24 * 60 * 60 * 1000,
   );
+
   const longPausedThreshold = new Date(
     Date.now() - ATTENTION_WINDOW_DAYS * 24 * 60 * 60 * 1000,
   );
 
-  const baseWhere =
-    currentUser.admin_role === "SUPER_ADMIN"
-      ? {}
-      : { admin_user_id: currentUser.id };
+  const daysAgo = (d) => new Date(Date.now() - d * 24 * 60 * 60 * 1000);
+
+  const isSuperAdmin = currentUser.admin_role === "SUPER_ADMIN";
+
+  // ─────────────────────────────────────────────
+  // Scope
+  // ─────────────────────────────────────────────
+
+  const baseWhere = isSuperAdmin ? {} : { admin_user_id: currentUser.id };
 
   const activeTaskFilter = {
-    task: { is_system: false, status: { notIn: ["COMPLETED", "CANCELLED"] } },
+    task: {
+      is_system: false,
+      status: { notIn: ["COMPLETED", "CANCELLED"] },
+    },
   };
-  const nonSystemTaskFilter = { task: { is_system: false } };
 
-  // Step 1: Task deadline buckets take priority — fetch these first as arrays
-  const [taskOverdueAssignments, taskDueTodayAssignments, paused, longPaused] =
-    await Promise.all([
-      prisma.taskAssignment.findMany({
-        where: {
-          ...baseWhere,
-          sla_status: { in: ["RUNNING", "PAUSED"] },
-          task: {
-            is_system: false,
-            due_date: { lt: now },
-            status: { notIn: ["COMPLETED", "CANCELLED"] },
-          },
-        },
-        select: { task_id: true },
-      }),
-      prisma.taskAssignment.findMany({
-        where: {
-          ...baseWhere,
-          sla_status: { in: ["RUNNING", "PAUSED"] },
-          task: {
-            is_system: false,
-            due_date: { gte: now, lte: endOfToday },
-            status: { notIn: ["COMPLETED", "CANCELLED"] },
-          },
-        },
-        select: { task_id: true },
-      }),
-      prisma.taskAssignment.count({
-        where: { ...baseWhere, sla_status: "PAUSED", ...nonSystemTaskFilter },
-      }),
-      prisma.taskAssignment.count({
-        where: {
-          ...baseWhere,
-          sla_status: "PAUSED",
-          sla_paused_at: { lt: longPausedThreshold },
-          ...nonSystemTaskFilter,
-        },
-      }),
-    ]);
+  const nonSystemTaskFilter = {
+    task: { is_system: false },
+  };
 
-  // Collect task_ids already claimed by task deadline buckets
+  const agingFilter = isSuperAdmin
+    ? Prisma.empty
+    : Prisma.sql`AND EXISTS (
+        SELECT 1 FROM task_assignments ta
+        WHERE ta.task_id = t.id
+        AND ta.admin_user_id = ${currentUser.id}
+      )`;
+
+  // ─────────────────────────────────────────────
+  // Round-trip 1 — all parallel
+  // ─────────────────────────────────────────────
+
+  const [
+    taskOverdueAssignments,
+    taskDueTodayAssignments,
+    paused,
+    longPaused,
+    agingRaw,
+  ] = await Promise.all([
+    prisma.taskAssignment.findMany({
+      where: {
+        ...baseWhere,
+        sla_status: { in: ["RUNNING", "PAUSED"] },
+        task: {
+          is_system: false,
+          due_date: { lt: now },
+          status: { notIn: ["COMPLETED", "CANCELLED"] },
+        },
+      },
+      select: { task_id: true },
+    }),
+
+    prisma.taskAssignment.findMany({
+      where: {
+        ...baseWhere,
+        sla_status: { in: ["RUNNING", "PAUSED"] },
+        task: {
+          is_system: false,
+          due_date: { gte: now, lte: endOfToday },
+          status: { notIn: ["COMPLETED", "CANCELLED"] },
+        },
+      },
+      select: { task_id: true },
+    }),
+
+    prisma.taskAssignment.count({
+      where: {
+        ...baseWhere,
+        sla_status: "PAUSED",
+        ...nonSystemTaskFilter,
+      },
+    }),
+
+    prisma.taskAssignment.count({
+      where: {
+        ...baseWhere,
+        sla_status: "PAUSED",
+        sla_paused_at: { lt: longPausedThreshold },
+        ...nonSystemTaskFilter,
+      },
+    }),
+
+    prisma.$queryRaw`
+    SELECT
+      status,
+      COUNT(*) FILTER (WHERE created_at <= NOW() - INTERVAL '7 days')  AS older_than_7,
+      COUNT(*) FILTER (WHERE created_at <= NOW() - INTERVAL '10 days') AS older_than_10,
+      COUNT(*) FILTER (WHERE created_at <= NOW() - INTERVAL '15 days') AS older_than_15,
+      COUNT(*) FILTER (WHERE created_at <= NOW() - INTERVAL '20 days') AS older_than_20,
+      COUNT(*) FILTER (WHERE created_at <= NOW() - INTERVAL '30 days') AS older_than_30,
+      COUNT(*) FILTER (WHERE created_at <= NOW() - INTERVAL '40 days') AS older_than_40,
+      COUNT(*) FILTER (WHERE created_at <= NOW() - INTERVAL '45 days') AS older_than_45,
+      COUNT(*) FILTER (WHERE created_at <= NOW() - INTERVAL '60 days') AS older_than_60
+    FROM "Task" t
+    WHERE is_system = false
+      AND status::text IN ('PENDING', 'IN_PROGRESS', 'PENDING_CLIENT_INPUT', 'ON_HOLD')
+      ${agingFilter}
+    GROUP BY status
+    `,
+  ]);
+
+  // ─────────────────────────────────────────────
+  // Round-trip 2 — SLA counts excluding task deadline tasks
+  // ─────────────────────────────────────────────
+
   const taskDeadlineTaskIds = new Set([
     ...taskOverdueAssignments.map((a) => a.task_id),
     ...taskDueTodayAssignments.map((a) => a.task_id),
@@ -1321,8 +1544,7 @@ export const getSLASummary = async (currentUser) => {
       ? { task_id: { notIn: [...taskDeadlineTaskIds] } }
       : {};
 
-  // Step 2: SLA counts — exclude tasks already claimed by task deadline buckets
-  const [overdue, dueToday, dueSoonCount] = await Promise.all([
+  const [slaOverdue, slaDueToday, slaDueSoon] = await Promise.all([
     prisma.taskAssignment.count({
       where: {
         ...baseWhere,
@@ -1332,6 +1554,7 @@ export const getSLASummary = async (currentUser) => {
         ...activeTaskFilter,
       },
     }),
+
     prisma.taskAssignment.count({
       where: {
         ...baseWhere,
@@ -1341,6 +1564,7 @@ export const getSLASummary = async (currentUser) => {
         ...activeTaskFilter,
       },
     }),
+
     prisma.taskAssignment.count({
       where: {
         ...baseWhere,
@@ -1352,24 +1576,83 @@ export const getSLASummary = async (currentUser) => {
     }),
   ]);
 
+  // ─────────────────────────────────────────────
+  // Reshape aging with filters
+  // ─────────────────────────────────────────────
+
+  const agingWindowMap = {
+    PENDING: [7, 15, 30],
+    IN_PROGRESS: [10, 20, 40],
+    PENDING_CLIENT_INPUT: [15, 30, 60],
+    ON_HOLD: [15, 30, 45],
+  };
+
+  const aging = {};
+
+  for (const row of agingRaw) {
+    const windows = agingWindowMap[row.status];
+    if (!windows) continue;
+    aging[row.status] = {};
+    for (const w of windows) {
+      aging[row.status][`older_than_${w}`] = {
+        count: Number(row[`older_than_${w}`] ?? 0),
+        filters: {
+          status: row.status,
+          created_before: daysAgo(w).toISOString(),
+        },
+      };
+    }
+  }
+
+  // Fill in any status with zero rows
+  for (const [status, windows] of Object.entries(agingWindowMap)) {
+    if (!aging[status]) {
+      aging[status] = Object.fromEntries(
+        windows.map((w) => [
+          `older_than_${w}`,
+          {
+            count: 0,
+            filters: {
+              status,
+              created_before: daysAgo(w).toISOString(),
+            },
+          },
+        ]),
+      );
+    }
+  }
+
+  // ─────────────────────────────────────────────
+  // Final Response
+  // ─────────────────────────────────────────────
+
   return {
+    scope: isSuperAdmin ? "GLOBAL" : "SELF",
+    generated_at: new Date().toISOString(),
+
     critical: {
       sla_overdue: {
-        count: overdue,
+        count: slaOverdue,
         label: "SLA Breached",
         description: "Your deadline to complete this task has passed",
-        filters: { sla_status: "RUNNING", sla_due_date_to: now.toISOString() },
+        filters: {
+          sla_status: "RUNNING",
+          sla_due_date_to: now.toISOString(),
+        },
       },
       task_deadline_overdue: {
         count: taskOverdueAssignments.length,
         label: "Due Date Passed",
         description: "The client task deadline has passed",
-        filters: { due_date_to: now.toISOString() },
+        filters: {
+          due_date_to: now.toISOString(),
+        },
       },
     },
+
     attention: {
       sla_due_today: {
-        count: dueToday,
+        count: slaDueToday,
         label: "SLA Due Today",
         filters: {
           sla_status: "RUNNING",
@@ -1386,7 +1669,7 @@ export const getSLASummary = async (currentUser) => {
         },
       },
       sla_due_soon: {
-        count: dueSoonCount,
+        count: slaDueSoon,
         label: `SLA Due in ${ATTENTION_WINDOW_DAYS} Days`,
         filters: {
           sla_status: "RUNNING",
@@ -1395,6 +1678,7 @@ export const getSLASummary = async (currentUser) => {
         },
       },
     },
+
     informational: {
       paused: {
         count: paused,
@@ -1411,6 +1695,8 @@ export const getSLASummary = async (currentUser) => {
         },
       },
     },
+
+    aging,
   };
 };
 
@@ -1604,7 +1890,7 @@ export const searchTasks = async (filters = {}, currentUser) => {
             FROM unnest(regexp_split_to_array(${combinedSearch}, '\s+')) AS w
             WHERE regexp_replace(w, '[^a-zA-Z0-9]+', '', 'g') <> ''
           ),
-          ' & '
+          ' | '
         )
       )
     ORDER BY t.created_at DESC
