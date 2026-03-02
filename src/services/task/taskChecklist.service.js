@@ -37,7 +37,7 @@ async function ensureUserCanAccessTask(tx, task_id, user) {
 
 export const syncTaskChecklist = async (task_id, items, currentUser) => {
   return prisma.$transaction(async (tx) => {
-    // 🔐 Enforce task visibility
+    
     await ensureUserCanAccessTask(tx, task_id, currentUser);
 
     const existing = await tx.taskChecklistItem.findMany({
@@ -47,7 +47,7 @@ export const syncTaskChecklist = async (task_id, items, currentUser) => {
     const existingIds = new Set(existing.map((i) => i.id));
     const incomingIds = new Set(items.filter((i) => i.id).map((i) => i.id));
 
-    // hard delete removed items (allowed by your rules)
+
     const toDelete = [...existingIds].filter((id) => !incomingIds.has(id));
 
     if (toDelete.length > 0) {
@@ -59,7 +59,7 @@ export const syncTaskChecklist = async (task_id, items, currentUser) => {
       });
     }
 
-    // upsert incoming
+  
     for (const item of items) {
       if (item.id) {
         await tx.taskChecklistItem.update({

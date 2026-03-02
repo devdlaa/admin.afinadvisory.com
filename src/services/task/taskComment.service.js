@@ -125,12 +125,12 @@ export const createTaskComment = async (
     id: commentRef.id,
     task_id,
     type: "COMMENT",
-    message: cleanedMessage, // ✅ no mentions inside
+    message: cleanedMessage, 
     activity: null,
     user_id: user.id,
     user_name: user.name,
 
-    // ✅ only id + name
+
     mentions: Array.isArray(mentions)
       ? mentions.map((m) => ({ id: m.id, name: m.name }))
       : [],
@@ -416,7 +416,7 @@ export const deleteTaskComment = async (task_id, comment_id, user_id) => {
 
   const data = doc.data();
 
-  // ❌ Activity entries cannot be deleted
+
   if (data.type === "ACTIVITY") {
     throw new ForbiddenError("Activity entries cannot be deleted");
   }
@@ -442,7 +442,7 @@ export const deleteTaskComment = async (task_id, comment_id, user_id) => {
 
   await commentRef.update(safeForFirestore(deletePayload));
 
-  // keep comment_count non-negative
+
   await prisma.task.update({
     where: { id: task_id },
     data: {

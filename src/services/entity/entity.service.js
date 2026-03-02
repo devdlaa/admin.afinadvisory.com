@@ -699,50 +699,6 @@ const listEntities = async (filters = {}) => {
   }
 
   /* --------------------------------------------------
-      NORMAL SEARCH (2-step ID filtering)
-     
-     -------------------------------------------------- */
-  /*
-  if (hasSearch) {
-    const searchLimit = isCompact ? pageSize : 1000;
-
-    const searchResults = await prisma.$queryRaw`
-      SELECT id
-      FROM "Entity"
-      WHERE deleted_at IS NULL
-        AND (
-          to_tsvector(
-            'english',
-            name || ' ' ||
-            COALESCE(email, '') || ' ' ||
-            COALESCE(pan, '') || ' ' ||
-            COALESCE(primary_phone, '') || ' ' ||
-            COALESCE(contact_person, '')
-          ) @@ plainto_tsquery('english', ${searchTerm})
-        )
-      LIMIT ${searchLimit}
-    `;
-
-    const entityIds = searchResults.map((r) => r.id);
-
-    if (entityIds.length === 0) {
-      return {
-        data: [],
-        pagination: {
-          page,
-          page_size: pageSize,
-          total_items: 0,
-          total_pages: 0,
-          has_more: false,
-        },
-      };
-    }
-
-    where.id = { in: entityIds };
-  }
-  */
-
-  /* --------------------------------------------------
       NORMAL SEARCH (2-step ID filtering w/ prefix)
      -------------------------------------------------- */
   if (hasSearch) {
@@ -768,7 +724,7 @@ const listEntities = async (filters = {}) => {
                 FROM unnest(regexp_split_to_array(${searchTerm}, '\\s+')) AS w
                 WHERE w <> ''
               ),
-              ' & '
+              ' | '
             )
           )
         )

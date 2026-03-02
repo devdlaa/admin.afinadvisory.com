@@ -767,7 +767,7 @@ export async function bulkInvoiceAction(invoiceIds, action) {
         }
 
         // =====================
-        // 🔁 ROLLBACK CHARGES (PAID → NOT PAID)
+        // ROLLBACK CHARGES (PAID → NOT PAID)
         // =====================
         if (invoice.status === "PAID" && nextStatus !== "PAID") {
           await tx.taskCharge.updateMany({

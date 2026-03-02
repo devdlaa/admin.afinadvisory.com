@@ -16,11 +16,7 @@ import {
 
 // ==================== ULTIMATE CONSOLIDATED VALIDATOR ====================
 
-/**
- * ONE FUNCTION TO RULE THEM ALL
- * Handles: permissions, assignment, invoice locking, and not-found checks
- * Returns: task/charge data so you never need separate lookups
- */
+
 async function ensureBillingChargeEditable(input, user) {
   if (typeof input === "string") {
     const task = await prisma.task.findUnique({
@@ -316,7 +312,7 @@ export const updateEntityCharge = async (id, data, currentUser) => {
     throw new ForbiddenError("Not an ad-hoc charge");
   }
 
-  // ✅ Always validate via task
+
   await ensureBillingChargeEditable(previous.task.id, currentUser);
   await ensureUserCanManageEntityCharges(previous.task.entity_id, currentUser);
 

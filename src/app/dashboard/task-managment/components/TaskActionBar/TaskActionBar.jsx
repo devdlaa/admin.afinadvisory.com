@@ -31,28 +31,8 @@ const SLA_FILTER_KEYS = [
   "due_date_to",
 ];
 
-// Aging uses ONLY created_date_from + created_date_to set by the AgingBoard,
-// identified by the presence of created_date_from (AgingBoard always sets both).
-// DateRangeFilter can also set created_date_from/to — we tell them apart by
-// a dedicated flag: when AgingBoard applies its filter it also sets
-// `aging_filter_active: true` in Redux. However, since we can't change the
-// backend shape right now, we use a simpler heuristic:
-//   • Aging filter  → created_date_to is set AND created_date_from is null
-//                     (AgingBoard only sets the "to" bound)
-//   • Date Range    → created_date_from and/or created_date_to both come
-//                     from user interaction in DateRangeFilter
-//
-// To make this unambiguous we introduce a lightweight sentinel key
-// `aging_active` that lives only in the Redux filter map (never sent to API).
-// AgingBoard sets it; DateRangeFilter clears it.
 const AGING_SENTINEL_KEY = "aging_active";
 
-// ── ISO datetime helpers ───────────────────────────────────────────────────
-/**
- * Convert a plain date string "YYYY-MM-DD" from <input type="date"> to the
- * ISO-8601 datetime the API requires: "YYYY-MM-DDT00:00:00Z" (from-date)
- * or "YYYY-MM-DDT23:59:59Z" (to-date, inclusive).
- */
 const toISOFrom = (dateStr) => {
   if (!dateStr) return null;
   return `${dateStr}T00:00:00Z`;
@@ -63,16 +43,11 @@ const toISOTo = (dateStr) => {
   return `${dateStr}T23:59:59Z`;
 };
 
-/**
- * Extract plain "YYYY-MM-DD" from an ISO datetime string so we can populate
- * <input type="date"> correctly when re-opening the dropdown.
- */
 const fromISO = (isoStr) => {
   if (!isoStr) return "";
-  return isoStr.slice(0, 10); // "YYYY-MM-DD"
+  return isoStr.slice(0, 10);
 };
 
-// ── DateRangeFilter — inline dropdown component ────────────────────────────
 const DATE_TYPE_OPTIONS = [
   { value: "created", label: "Creation Date" },
   { value: "due", label: "Due Date" },
@@ -80,12 +55,11 @@ const DATE_TYPE_OPTIONS = [
 
 function DateRangeFilter({ allActiveFilters, onFilterChange }) {
   const [open, setOpen] = useState(false);
-  const [dateType, setDateType] = useState("created"); // "created" | "due"
+  const [dateType, setDateType] = useState("created");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const ref = useRef(null);
 
-  // Derive active state — but EXCLUDE values that were set by AgingBoard
   const agingIsActive = !!allActiveFilters[AGING_SENTINEL_KEY];
 
   const hasCreatedRange =
@@ -95,7 +69,6 @@ function DateRangeFilter({ allActiveFilters, onFilterChange }) {
     allActiveFilters.due_date_from || allActiveFilters.due_date_to;
   const isActive = hasCreatedRange || hasDueRange;
 
-  // Sync local state when external filters change (e.g. clear all)
   useEffect(() => {
     if (!hasCreatedRange && !hasDueRange) {
       setFromDate("");
@@ -103,7 +76,6 @@ function DateRangeFilter({ allActiveFilters, onFilterChange }) {
     }
   }, [hasCreatedRange, hasDueRange]);
 
-  // Close on outside click
   useEffect(() => {
     if (!open) return;
     const handler = (e) => {
@@ -114,7 +86,6 @@ function DateRangeFilter({ allActiveFilters, onFilterChange }) {
   }, [open]);
 
   const handleOpen = () => {
-    // Pre-populate fields from current filters when opening
     if (dateType === "created") {
       setFromDate(fromISO(allActiveFilters.created_date_from));
       setToDate(fromISO(allActiveFilters.created_date_to));
@@ -393,7 +364,9 @@ const TaskActionBar = ({
   };
 
   const activeFiltersList = Object.entries(activeFilters)
-    .filter(([, value]) => value !== null && value !== undefined && value !== "")
+    .filter(
+      ([, value]) => value !== null && value !== undefined && value !== "",
+    )
     .map(([key, value]) => ({
       key,
       value,
@@ -459,6 +432,46 @@ const TaskActionBar = ({
 
   const agingDisabled = agingLockedBySLA || agingLockedByDateRange;
 
+  const getPaginationRange = (currentPage, totalPages, siblingCount = 1) => {
+    const totalPageNumbers = siblingCount * 2 + 5;
+
+    if (totalPages <= totalPageNumbers) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+
+    const leftSiblingIndex = Math.max(currentPage - siblingCount, 1);
+    const rightSiblingIndex = Math.min(currentPage + siblingCount, totalPages);
+
+    const showLeftDots = leftSiblingIndex > 2;
+    const showRightDots = rightSiblingIndex < totalPages - 1;
+
+    const pages = [];
+
+    if (!showLeftDots && showRightDots) {
+      const leftRange = Array.from(
+        { length: 3 + 2 * siblingCount },
+        (_, i) => i + 1,
+      );
+      pages.push(...leftRange, "...", totalPages);
+    } else if (showLeftDots && !showRightDots) {
+      const rightRange = Array.from(
+        { length: 3 + 2 * siblingCount },
+        (_, i) => totalPages - (2 + 2 * siblingCount) + i,
+      );
+      pages.push(1, "...", ...rightRange);
+    } else if (showLeftDots && showRightDots) {
+      const middleRange = Array.from(
+        { length: rightSiblingIndex - leftSiblingIndex + 1 },
+        (_, i) => leftSiblingIndex + i,
+      );
+      pages.push(1, "...", ...middleRange, "...", totalPages);
+    }
+
+    return pages;
+  };
+
+  const paginationRange = getPaginationRange(currentPage, totalPages);
+
   return (
     <div className="task-action-bar">
       {/* Header */}
@@ -475,7 +488,12 @@ const TaskActionBar = ({
           </div>
         </div>
         <div className="task-action-bar__actions">
-          <Button variant="primary" size="md" icon={Plus} onClick={onCreateTask}>
+          <Button
+            variant="primary"
+            size="md"
+            icon={Plus}
+            onClick={onCreateTask}
+          >
             New Task
           </Button>
         </div>
@@ -648,7 +666,9 @@ const TaskActionBar = ({
               }`}
               onClick={onToggleMagicSort}
               title={
-                isMagicSortActive ? "Disable Focus Assist" : "Enable Focus Assist"
+                isMagicSortActive
+                  ? "Disable Focus Assist"
+                  : "Enable Focus Assist"
               }
             >
               <Sparkles size={14} />
@@ -692,14 +712,34 @@ const TaskActionBar = ({
             Prev
           </Button>
 
-          <div className="task-action-bar__pagination-info">
-            <span className="task-action-bar__pagination-current">
-              {currentPage}
-            </span>
-            <span className="task-action-bar__pagination-separator">/</span>
-            <span className="task-action-bar__pagination-total">
-              {totalPages}
-            </span>
+          <div className="task-action-bar__pagination-pages">
+            {paginationRange.map((page, index) => {
+              if (page === "...") {
+                return (
+                  <span
+                    key={`dots-${index}`}
+                    className="task-action-bar__pagination-dots"
+                  >
+                    ...
+                  </span>
+                );
+              }
+
+              return (
+                <button
+                  key={page}
+                  className={`task-action-bar__pagination-page${
+                    page === currentPage
+                      ? " task-action-bar__pagination-page--active"
+                      : ""
+                  }`}
+                  onClick={() => onPageChange(page)}
+                  disabled={isPaginationLoading}
+                >
+                  {page}
+                </button>
+              );
+            })}
           </div>
 
           <Button

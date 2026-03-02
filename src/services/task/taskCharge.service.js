@@ -11,17 +11,13 @@ import {
 
 // ==================== ULTIMATE CONSOLIDATED VALIDATOR ====================
 
-/**
- * ONE FUNCTION TO RULE THEM ALL
- * Handles: permissions, assignment, invoice locking, and not-found checks
- * Returns: task/charge data so you never need separate lookups
- */
+
 async function ensureChargeEditable(input, user) {
-  // Case 1: TaskId string - full validation (permission + assignment + invoice)
+
   if (typeof input === "string") {
     const taskId = input;
 
-    // Super admin bypass (but still check invoice lock)
+ 
     if (user.admin_role === "SUPER_ADMIN") {
       const task = await prisma.task.findUnique({
         where: { id: taskId },

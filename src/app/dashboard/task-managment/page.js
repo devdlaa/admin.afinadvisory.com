@@ -28,7 +28,8 @@ import AgingBoard, {
 import TaskCategoryBoard from "@/app/components/pages/TaskCategoryBoard/TaskCategoryBoard.jsx";
 import TaskWorkload from "./components/TaskWorkload/TaskWorkload.jsx";
 import TaskStatusBoard from "./components/TaskStatusBoard/TaskStatusBoard.jsx";
-import TaskCreateDialog from "./components/TaskCreateDialog/Taskcreatedialog.jsx";
+
+import TaskCreateDialog from "./components/TaskCreateDialog/TaskCreateDialog.jsx";
 import TaskSearchDialog from "./components/Tasksearchdialog/Tasksearchdialog.jsx";
 
 import {

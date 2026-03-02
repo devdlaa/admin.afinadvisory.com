@@ -11,7 +11,7 @@ import {
   closeCreateDialog,
   selectCreateDialogOpen,
 } from "@/store/slices/taskSlice";
-
+import ClientAddUpdateDialog from "../../clients/components/ClientAddUpdateDialog";
 import { quickSearchEntities } from "@/store/slices/entitySlice";
 import {
   fetchCategories,
@@ -24,7 +24,7 @@ import "./TaskCreateDialog.scss";
 const TaskCreateDialog = () => {
   const dispatch = useDispatch();
   const dialogRef = useRef(null);
-
+  const addClientDialogRef = useRef(null);
   const isOpen = useSelector(selectCreateDialogOpen);
   const categories = useSelector(selectAllCategories);
   const isCreating = useSelector((state) => state.task.loading.create);
@@ -197,9 +197,9 @@ const TaskCreateDialog = () => {
       };
 
       await dispatch(createTask(taskData)).unwrap();
-      // Dialog will auto-close via Redux on success
+
     } catch (error) {
-      console.error("Failed to create task:", error);
+      console("Failed to create task:");
     }
   };
 
@@ -331,6 +331,8 @@ const TaskCreateDialog = () => {
                   subtitle: entity.pan || entity.email,
                 }))}
                 selectedValue={formData.entity_id}
+                onAddNew={() => addClientDialogRef.current?.showModal()}
+                addNewLabel={"Create Client"}
                 onSelect={handleEntitySelect}
                 onSearchChange={handleEntitySearch}
                 isSearching={isSearchingEntities}
@@ -411,6 +413,18 @@ const TaskCreateDialog = () => {
           </div>
         </form>
       </div>
+      <ClientAddUpdateDialog
+        ref={addClientDialogRef}
+        mode="add"
+        onCreated={(newClient) => {
+          addClientDialogRef.current?.close();
+
+          if (newClient) {
+            setSelectedEntityData(newClient);
+            handleChange("entity_id", newClient.id);
+          }
+        }}
+      />
     </div>
   );
 };

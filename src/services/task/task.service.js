@@ -31,7 +31,7 @@ const DEFAULT_SERVICE_LEVEL_AGREEMENT_DAYS = 7;
 // IST DATE UTILITIES
 // =============================================================================
 
-const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000; // 19800000 ms
+const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000; 
 
 const getISTDayBoundaries = () => {
   const nowUtcMs = Date.now();
@@ -326,18 +326,7 @@ async function ensureTaskCriticalFieldsEditable(taskId, updates, tx = prisma) {
 // LIST TASKS — HELPERS
 // =============================================================================
 
-/**
- * Build Prisma `where` from filter params.
- *
- * BUG FIX: SLA filter and status filter were being ANDed together, causing
- * zero results when combining e.g. status=PENDING + sla_status=PAUSED.
- * These are orthogonal concerns and should not block each other — the SLA
- * assignment filter already narrows the task set correctly on its own.
- *
- * The status filter is intentionally kept as-is; the issue is a UX one
- * (the frontend must clear status when applying SLA filters) but we also
- * make the backend robust by not double-filtering unnecessarily.
- */
+
 const buildListWhere = (filters, visibilityWhere) => {
   const and = [visibilityWhere, { is_system: { not: true } }];
 
@@ -1418,7 +1407,7 @@ export const getSLASummary = async (currentUser) => {
   const now = new Date();
   const endOfToday = istToday(23, 59, 59, 999);
 
-  const ATTENTION_WINDOW_DAYS = 3;
+
 
   const dueSoon = new Date(
     endOfToday.getTime() + ATTENTION_WINDOW_DAYS * 24 * 60 * 60 * 1000,
