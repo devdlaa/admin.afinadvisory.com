@@ -20,7 +20,6 @@ export const requireTotp = async (authorizerId, totpCode) => {
     throw new ForbiddenError("Authorizer must be a Super Admin");
   }
 
-  // reuse the already working verifyTotpForUnlock
   const isValid = await verifyTotpForUnlock(authorizerId, totpCode);
 
   if (!isValid) {
