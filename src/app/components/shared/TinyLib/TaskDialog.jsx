@@ -203,21 +203,7 @@ const TaskDialog = ({ isOpen, onClose, taskData = null, mode = "view" }) => {
     website: "https://dlaa.com",
   };
 
-  // const clientInfo = {
-  //   type: "individual",
-
-  //   primaryContactName: "Ayush Khandelwal",
-  //   primaryContactEmail: "ayush.khandelwal@example.com",
-  //   primaryContactPhone: "+91 9876543210",
-  //   preferredLanguage: "Hindi or English",
-  //   ClientCode: "E1252",
-  //   residential_status: "NRI",
-
-  //   // Individual Specific
-  //   pan: "ABCDE1234F",
-  //   dob: "1996-09-15",
-  //   address: "502, Green Residency, Airoli, Navi Mumbai, Maharashtra - 400708",
-  // };
+ 
 
   return (
     <dialog ref={dialogRef} className={styles.dialog} onClose={handleClose}>

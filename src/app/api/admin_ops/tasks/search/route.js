@@ -18,6 +18,7 @@ export async function GET(request) {
     const params = {
       search: searchParams.get("search"),
       entity_id: searchParams.get("entity_id"),
+      search_scope: searchParams.get("search_scope"),
       status: searchParams.get("status"),
       priority: searchParams.get("priority"),
       task_category_id: searchParams.get("task_category_id"),

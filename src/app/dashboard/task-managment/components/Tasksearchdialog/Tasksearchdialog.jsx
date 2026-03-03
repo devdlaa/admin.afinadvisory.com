@@ -442,27 +442,52 @@ export default function TaskSearchDialog() {
           </div>
 
           {/* Search input */}
-          <div className={styles.searchInputWrap}>
-            <Search size={16} className={styles.searchIcon} />
-            <input
-              ref={inputRef}
-              type="text"
-              className={styles.searchInput}
-              placeholder="Search by task title or description…"
-              value={query}
-              onChange={handleQueryChange}
-              autoComplete="off"
-              spellCheck={false}
-            />
-            {query && (
+          <div className={styles.searchRow}>
+            <div className={styles.searchInputWrap}>
+              <Search size={16} className={styles.searchIcon} />
+              <input
+                ref={inputRef}
+                type="text"
+                className={styles.searchInput}
+                placeholder="Search by task title or description…"
+                value={query}
+                onChange={handleQueryChange}
+                autoComplete="off"
+                spellCheck={false}
+              />
+              {query && (
+                <button
+                  className={styles.clearInputBtn}
+                  onClick={handleClearQuery}
+                  aria-label="Clear search"
+                >
+                  <X size={12} />
+                </button>
+              )}
+            </div>
+
+            {/* Scope Toggle */}
+            <div className={styles.scopeToggle}>
               <button
-                className={styles.clearInputBtn}
-                onClick={handleClearQuery}
-                aria-label="Clear search"
+                type="button"
+                className={`${styles.scopeOption} ${
+                  filters.search_scope === "ALL" ? styles.active : ""
+                }`}
+                onClick={() => handleFilterChange("search_scope", "ALL")}
               >
-                <X size={12} />
+                Title & Description
               </button>
-            )}
+
+              <button
+                type="button"
+                className={`${styles.scopeOption} ${
+                  filters.search_scope === "TITLE" ? styles.active : ""
+                }`}
+                onClick={() => handleFilterChange("search_scope", "TITLE")}
+              >
+                Title Only
+              </button>
+            </div>
           </div>
 
           {/* Filter dropdowns — same .map() pattern as TaskActionBar */}
@@ -595,7 +620,7 @@ export default function TaskSearchDialog() {
 
               {results.map((task) => (
                 <a
-                className={styles.anchor}
+                  className={styles.anchor}
                   key={`task_${task?.id}`}
                   href={`/dashboard/task-managment?taskId=${task.id}`}
                   onClick={(e) => {

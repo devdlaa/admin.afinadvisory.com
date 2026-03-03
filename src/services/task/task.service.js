@@ -31,7 +31,7 @@ const DEFAULT_SERVICE_LEVEL_AGREEMENT_DAYS = 7;
 // IST DATE UTILITIES
 // =============================================================================
 
-const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000; 
+const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
 
 const getISTDayBoundaries = () => {
   const nowUtcMs = Date.now();
@@ -325,7 +325,6 @@ async function ensureTaskCriticalFieldsEditable(taskId, updates, tx = prisma) {
 // =============================================================================
 // LIST TASKS — HELPERS
 // =============================================================================
-
 
 const buildListWhere = (filters, visibilityWhere) => {
   const and = [visibilityWhere, { is_system: { not: true } }];
@@ -1407,8 +1406,6 @@ export const getSLASummary = async (currentUser) => {
   const now = new Date();
   const endOfToday = istToday(23, 59, 59, 999);
 
-
-
   const dueSoon = new Date(
     endOfToday.getTime() + ATTENTION_WINDOW_DAYS * 24 * 60 * 60 * 1000,
   );
@@ -1767,10 +1764,10 @@ export const listTasks = async (filters = {}, currentUser) => {
   };
 };
 
-// Search Task Seprate Endpoint with GIN-Enabled and less table joins
 export const searchTasks = async (filters = {}, currentUser) => {
   const {
     search,
+    search_scope = "ALL", // "ALL" | "TITLE"
     entity_id,
     status,
     priority,
@@ -1781,23 +1778,24 @@ export const searchTasks = async (filters = {}, currentUser) => {
     page_size = 10,
   } = filters;
 
-  // ── Input validation ────────────────────────────────────────────────────────
+  // ─────────────────────────────────────────────
+  // Input validation
+  // ─────────────────────────────────────────────
   if (!search || typeof search !== "string") {
     throw new ValidationError("Search is required");
   }
 
-  // Strip non-alphanumeric chars and filter empty tokens
   const cleanedTokens = search
     .split(/\s+/)
-    .map((w) => w.replace(/[^a-zA-Z0-9]/g, ""))
+    .map((w) => w.replace(/[^a-zA-Z0-9]/g, "").toLowerCase())
     .filter(Boolean);
 
   if (cleanedTokens.length === 0) {
     throw new ValidationError("Search contains no valid characters");
   }
 
-  const combinedSearch = cleanedTokens.join(" ");
-  if (combinedSearch.length < 2) {
+  const combinedLength = cleanedTokens.join(" ").length;
+  if (combinedLength < 2) {
     throw new ValidationError("Search must be at least 2 characters");
   }
 
@@ -1808,6 +1806,9 @@ export const searchTasks = async (filters = {}, currentUser) => {
   );
   const offset = (safePage - 1) * safePageSize;
 
+  // ─────────────────────────────────────────────
+  // Visibility logic
+  // ─────────────────────────────────────────────
   const visibilityClause =
     currentUser.admin_role === "SUPER_ADMIN"
       ? Prisma.sql`TRUE`
@@ -1828,6 +1829,23 @@ export const searchTasks = async (filters = {}, currentUser) => {
     : null;
 
   const rows = await prisma.$queryRaw`
+    WITH search_query AS (
+      SELECT to_tsquery(
+        'simple',
+        array_to_string(
+          ARRAY(
+            SELECT
+              CASE
+                WHEN length(w) >= 4 THEN w || ':*'
+                ELSE w
+              END
+            FROM unnest(${cleanedTokens}::text[]) AS w
+          ),
+          ' & '
+        )
+      ) AS query
+    )
+
     SELECT
       t.id,
       t.title,
@@ -1842,49 +1860,39 @@ export const searchTasks = async (filters = {}, currentUser) => {
       e.id   AS entity_id,
       e.name AS entity_name,
       c.id   AS category_id,
-      c.name AS category_name
+      c.name AS category_name,
+      ${
+        search_scope === "TITLE"
+          ? Prisma.sql`
+              ts_rank(t.title_vector, search_query.query) AS rank
+            `
+          : Prisma.sql`
+              ts_rank(t.search_vector, search_query.query) AS rank
+            `
+      }
     FROM "Task" t
+    CROSS JOIN search_query
     LEFT JOIN "Entity"       e ON t.entity_id        = e.id
     LEFT JOIN "TaskCategory" c ON t.task_category_id = c.id
     WHERE
       t.is_system = FALSE
       AND ${visibilityClause}
-      ${
-        entity_id
-          ? Prisma.sql`AND t.entity_id = ${entity_id}::uuid`
-          : Prisma.empty
-      }
-      ${
-        status
-          ? Prisma.sql`AND t.status = ${status}::"TaskStatus"`
-          : Prisma.empty
-      }
-      ${
-        priority
-          ? Prisma.sql`AND t.priority = ${priority}::"TaskPriority"`
-          : Prisma.empty
-      }
-      ${
-        task_category_id
-          ? Prisma.sql`AND t.task_category_id = ${task_category_id}::uuid`
-          : Prisma.empty
-      }
+      ${entity_id ? Prisma.sql`AND t.entity_id = ${entity_id}::uuid` : Prisma.empty}
+      ${status ? Prisma.sql`AND t.status = ${status}::"TaskStatus"` : Prisma.empty}
+      ${priority ? Prisma.sql`AND t.priority = ${priority}::"TaskPriority"` : Prisma.empty}
+      ${task_category_id ? Prisma.sql`AND t.task_category_id = ${task_category_id}::uuid` : Prisma.empty}
       ${dateFrom ? Prisma.sql`AND t.created_at >= ${dateFrom}` : Prisma.empty}
       ${dateTo ? Prisma.sql`AND t.created_at <= ${dateTo}` : Prisma.empty}
-      AND t.search_vector @@ to_tsquery(
-        'english',
-        array_to_string(
-          ARRAY(
-            SELECT regexp_replace(w, '[^a-zA-Z0-9]+', '', 'g') || ':*'
-            FROM unnest(regexp_split_to_array(${combinedSearch}, '\s+')) AS w
-            WHERE regexp_replace(w, '[^a-zA-Z0-9]+', '', 'g') <> ''
-          ),
-          ' | '
-        )
-      )
-    ORDER BY t.created_at DESC
-    LIMIT  ${safePageSize}
-    OFFSET ${offset}
+      AND ${
+        search_scope === "TITLE"
+          ? Prisma.sql` t.title_vector @@ search_query.query `
+          : Prisma.sql` t.search_vector @@ search_query.query `
+      }
+    ORDER BY
+      rank DESC,
+      t.created_at DESC
+    LIMIT ${safePageSize}
+    OFFSET ${offset};
   `;
 
   return {

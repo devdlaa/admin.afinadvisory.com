@@ -57,6 +57,7 @@ const initialState = {
     priority: null,
     created_date_from: null,
     created_date_to: null,
+    search_scope: "ALL",
   },
 
   // Results

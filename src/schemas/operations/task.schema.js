@@ -209,7 +209,7 @@ export const TaskBulkPriorityUpdateSchema = z.object({
 
 export const taskSearchQuerySchema = z.object({
   search: z.string().min(2, "Search must be at least 2 characters"),
-
+  search_scope: z.enum(["ALL", "TITLE"]).default("ALL"),
   entity_id: z.string().uuid().optional(),
   status: z
     .enum([
