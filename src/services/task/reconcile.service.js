@@ -82,6 +82,7 @@ export async function getUnreconciledTasks(filters) {
     is_billable: true,
     entity_id: { not: null },
     invoice_internal_number: null,
+    deleted_at: null,
   };
 
   if (filters.entity_id) taskWhere.entity_id = filters.entity_id;
@@ -156,6 +157,7 @@ export async function getNonBillableTasks(filters) {
     is_billable: false,
     task_type: "REGULAR",
     entity_id: { not: null },
+    deleted_at: null,
   };
 
   if (filters.entity_id) taskWhere.entity_id = filters.entity_id;
@@ -228,6 +230,7 @@ export async function markTasksNonBillable(taskIds, currentUser) {
           id: true,
           task_type: true,
           is_system: true,
+          deleted_at: true,
           invoice_internal_number: true,
           charges: {
             where: { deleted_at: null },
@@ -238,6 +241,11 @@ export async function markTasksNonBillable(taskIds, currentUser) {
 
       if (!task) {
         rejected.push({ id: taskId, reason: "NOT_FOUND" });
+        continue;
+      }
+
+      if (task.deleted_at) {
+        rejected.push({ id: taskId, reason: "TASK_DELETED" });
         continue;
       }
 
@@ -284,6 +292,7 @@ export async function restoreTasksBillable(taskIds, currentUser) {
           id: true,
           task_type: true,
           is_system: true,
+          deleted_at: true,
           invoice_internal_number: true,
         },
       });
@@ -293,6 +302,10 @@ export async function restoreTasksBillable(taskIds, currentUser) {
         continue;
       }
 
+      if (task.deleted_at) {
+        rejected.push({ id: taskId, reason: "TASK_DELETED" });
+        continue;
+      }
       if (task.task_type === "SYSTEM_ADHOC" || task.is_system) {
         rejected.push({ id: taskId, reason: "SYSTEM_TASK" });
         continue;
@@ -722,7 +735,6 @@ export const listOutstandingEntities = async (filters = {}) => {
     },
   };
 };
-
 
 export const getOutstandingGlobalStats = async () => {
   const result = await prisma.$queryRaw`

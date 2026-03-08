@@ -738,3 +738,117 @@
     transform: rotate(360deg);
   }
 }
+
+
+// ── Append these to your existing DocumentManager.module.scss ────
+
+// ===============================
+// Rename — inline edit row
+// ===============================
+
+.renameRow {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+}
+
+.renameInput {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #1f2937;
+  border: 1.5px solid #2563eb;
+  border-radius: 6px;
+  outline: none;
+  background: #fff;
+  font-family: inherit;
+  line-height: 1.4;
+  transition: box-shadow 0.15s;
+
+  &:focus {
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.renameExt {
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+  white-space: nowrap;
+  flex-shrink: 0;
+  padding: 0 2px;
+}
+
+.renameConfirm {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s;
+  font-family: inherit;
+
+  &:hover:not(:disabled) {
+    background: #1d4ed8;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.renameCancel {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: #f3f4f6;
+  color: #6b7280;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s;
+  font-family: inherit;
+
+  &:hover:not(:disabled) {
+    background: #e5e7eb;
+    color: #374151;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+// Grid card rename block (stacked layout)
+.renameBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.renameActions {
+  display: flex;
+  gap: 5px;
+}

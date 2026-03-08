@@ -13,6 +13,7 @@ const TaskPrimaryInfo = ({
   isPaymentTab,
   isDocumentsTab,
   onPrimaryInfoChange,
+  onStatusChange, // ← handles critical statuses (ON_HOLD, PENDING_CLIENT_INPUT, CANCELLED)
 }) => {
   const shouldHidePrimaryInfo = isActivityTab || isPaymentTab || isDocumentsTab;
 
@@ -33,7 +34,6 @@ const TaskPrimaryInfo = ({
           className="task-title-input"
         />
 
-        {/* Overdue Badge */}
         {overdueDays > 0 && (
           <div className="overdue-badge">
             <Clock size={18} />
@@ -44,7 +44,7 @@ const TaskPrimaryInfo = ({
         )}
       </div>
 
-      {/* Description Section */}
+      {/* Description */}
       <textarea
         value={primaryInfo.description}
         onChange={(e) => onPrimaryInfoChange("description", e.target.value)}
@@ -53,9 +53,9 @@ const TaskPrimaryInfo = ({
         rows={4}
       />
 
-      {/* Task Details Grid */}
+      {/* Details Grid */}
       <div className="task-drawer__details-grid">
-        {/* Priority — no clear (required field) */}
+        {/* Priority */}
         <div className="task-drawer__detail-item">
           <CustomDropdown
             label="Priority"
@@ -66,7 +66,7 @@ const TaskPrimaryInfo = ({
           />
         </div>
 
-        {/* Category — clearable */}
+        {/* Category */}
         <div className="task-drawer__detail-item">
           <CustomDropdown
             label="Category"
@@ -84,18 +84,18 @@ const TaskPrimaryInfo = ({
           />
         </div>
 
-        {/* Status — no clear (required field) */}
+        {/* Status — goes through onStatusChange so the reason dialog can intercept */}
         <div className="task-drawer__detail-item">
           <CustomDropdown
             label="Status"
             placeholder="Select Status"
             options={statusOptions}
             selectedValue={primaryInfo.status}
-            onSelect={(opt) => onPrimaryInfoChange("status", opt.value)}
+            onSelect={(opt) => onStatusChange(opt.value)}
           />
         </div>
 
-        {/* Start Date — read-only, no clear */}
+        {/* Start Date */}
         <div className="task-drawer__detail-item">
           <CustomDatePicker
             label="Start Date"
@@ -105,7 +105,7 @@ const TaskPrimaryInfo = ({
           />
         </div>
 
-        {/* Due Date — clearable */}
+        {/* Due Date */}
         <div className="task-drawer__detail-item">
           <CustomDatePicker
             label="Due Date"
@@ -115,7 +115,7 @@ const TaskPrimaryInfo = ({
           />
         </div>
 
-        {/* Date of Completion — read-only, no clear */}
+        {/* Date of Completion */}
         {primaryInfo.end_date && (
           <div className="task-drawer__detail-item">
             <CustomDatePicker

@@ -5,7 +5,7 @@ export const fetchNotifications = createAsyncThunk(
   async ({ cursor = null, unread = false } = {}, { rejectWithValue }) => {
     try {
       const params = new URLSearchParams({
-        limit: "20",
+        limit: "5",
         ...(cursor && { cursor }),
         ...(unread && { unread: "true" }),
       });
@@ -21,7 +21,7 @@ export const fetchNotifications = createAsyncThunk(
     } catch (error) {
       return rejectWithValue(error.message);
     }
-  }
+  },
 );
 export const markAsRead = createAsyncThunk(
   "notifications/markAsRead",
@@ -31,7 +31,7 @@ export const markAsRead = createAsyncThunk(
         `/api/admin_ops/notifications/${notificationId}`,
         {
           method: "PATCH",
-        }
+        },
       );
 
       if (!response.ok) {
@@ -43,7 +43,7 @@ export const markAsRead = createAsyncThunk(
     } catch (error) {
       return rejectWithValue(error.message);
     }
-  }
+  },
 );
 
 export const markAllAsRead = createAsyncThunk(
@@ -54,7 +54,7 @@ export const markAllAsRead = createAsyncThunk(
         "/api/admin_ops/notifications/mark-all-read",
         {
           method: "POST",
-        }
+        },
       );
 
       if (!response.ok) {
@@ -66,7 +66,7 @@ export const markAllAsRead = createAsyncThunk(
     } catch (error) {
       return rejectWithValue(error.message);
     }
-  }
+  },
 );
 
 const notificationSlice = createSlice({
@@ -93,17 +93,17 @@ const notificationSlice = createSlice({
       if (typeof window !== "undefined") {
         localStorage.setItem(
           "notification_sound_enabled",
-          String(action.payload)
+          String(action.payload),
         );
       }
     },
 
     toggleSound: (state) => {
-      state.soundEnabled = !state.soundEnabled; 
+      state.soundEnabled = !state.soundEnabled;
       if (typeof window !== "undefined") {
         localStorage.setItem(
           "notification_sound_enabled",
-          String(state.soundEnabled)
+          String(state.soundEnabled),
         );
       }
     },
@@ -200,7 +200,8 @@ const notificationSlice = createSlice({
 });
 
 export const {
-  setSoundEnabled,toggleSound,
+  setSoundEnabled,
+  toggleSound,
   togglePanel,
   closePanel,
   openPanel,

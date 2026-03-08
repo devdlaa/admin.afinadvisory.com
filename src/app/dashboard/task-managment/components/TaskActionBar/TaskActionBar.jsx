@@ -15,6 +15,7 @@ import {
   CalendarRange,
   ChevronDown,
   CalendarHeart,
+  Trash2,
 } from "lucide-react";
 
 import FilterDropdown from "@/app/components/pages/FilterDropdown/FilterDropdown";
@@ -307,6 +308,8 @@ const TaskActionBar = ({
   // Without-client pill
   isWithoutClientActive = false,
   onToggleWithoutClient,
+  isDeletedFilterActive = false,
+  onToggleDeleted,
   // SLA props
   onShowSLASummary,
   hasSLACritical = false,
@@ -635,6 +638,23 @@ const TaskActionBar = ({
             >
               <Building2 size={13} />
               Without Client
+            </button>
+            {/* Deleted Tasks pill */}
+            <button
+              className={`task-action-bar__deleted-pill${
+                isDeletedFilterActive
+                  ? " task-action-bar__deleted-pill--active"
+                  : ""
+              }`}
+              onClick={onToggleDeleted}
+              title={
+                isDeletedFilterActive
+                  ? "Clear deleted filter"
+                  : "Show deleted tasks"
+              }
+            >
+              <Trash2 size={13} />
+              Deleted Tasks
             </button>
 
             {/* Unassigned pill */}

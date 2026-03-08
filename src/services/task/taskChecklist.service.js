@@ -1,14 +1,19 @@
 import { prisma } from "@/utils/server/db";
 
-import { NotFoundError } from "@/utils/server/errors";
+import { NotFoundError,ForbiddenError } from "@/utils/server/errors";
 
 async function ensureUserCanAccessTask(tx, task_id, user) {
   if (user.admin_role === "SUPER_ADMIN") {
     const task = await tx.task.findUnique({
       where: { id: task_id },
-      select: { id: true },
+      select: { id: true, deleted_at: true },
     });
     if (!task) throw new NotFoundError("Task not found");
+    if (task.deleted_at) {
+      throw new ForbiddenError(
+        "Checklist cannot be modified because the task is deleted",
+      );
+    }
     return task;
   }
 
@@ -25,19 +30,22 @@ async function ensureUserCanAccessTask(tx, task_id, user) {
         },
       ],
     },
-    select: { id: true },
+    select: { id: true, deleted_at: true },
   });
 
   if (!task) {
     throw new ForbiddenError("You do not have access to this task");
   }
-
+  if (task.deleted_at) {
+    throw new ForbiddenError(
+      "Checklist cannot be modified because the task is deleted",
+    );
+  }
   return task;
 }
 
 export const syncTaskChecklist = async (task_id, items, currentUser) => {
   return prisma.$transaction(async (tx) => {
-    
     await ensureUserCanAccessTask(tx, task_id, currentUser);
 
     const existing = await tx.taskChecklistItem.findMany({
@@ -46,7 +54,6 @@ export const syncTaskChecklist = async (task_id, items, currentUser) => {
 
     const existingIds = new Set(existing.map((i) => i.id));
     const incomingIds = new Set(items.filter((i) => i.id).map((i) => i.id));
-
 
     const toDelete = [...existingIds].filter((id) => !incomingIds.has(id));
 
@@ -59,7 +66,6 @@ export const syncTaskChecklist = async (task_id, items, currentUser) => {
       });
     }
 
-  
     for (const item of items) {
       if (item.id) {
         await tx.taskChecklistItem.update({

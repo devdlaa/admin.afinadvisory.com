@@ -22,10 +22,7 @@ export async function POST(request, { params }) {
     );
     if (permissionError) return permissionError;
 
-    // validate task_id using central schema
-    const { task_id } = schemas.taskAssignment.taskId.parse({
-      task_id: params.task_id,
-    });
+    const { task_id } = await params;
 
     const body = await request.json();
 
@@ -40,8 +37,7 @@ export async function POST(request, { params }) {
       validated.user_ids,
       validated.assigned_to_all,
       admin_user.id,
-      validated.sla_days 
-      
+      validated.sla_days,
     );
 
     return createSuccessResponse(

@@ -17,7 +17,7 @@ export async function POST(request, { params }) {
     );
     if (permissionError) return permissionError;
 
-    const { task_id } = params;
+    const { task_id } = await params;
     const body = await request.json();
 
     const validatedData = schemas.taskComment.create.parse(body);

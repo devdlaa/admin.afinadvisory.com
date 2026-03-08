@@ -9,14 +9,15 @@ const db = admin.firestore();
 
 export async function PATCH(request, { params }) {
   try {
-    const [permissionError, session] = await requirePermission(request);
+    const [permissionError, session, admin_user] =
+      await requirePermission(request);
     if (permissionError) return permissionError;
 
-    const { id } = params;
+    const { id } = await params;
 
     const ref = db
       .collection("notifications")
-      .doc(session.user.id)
+      .doc(admin_user.id)
       .collection("items")
       .doc(id);
 

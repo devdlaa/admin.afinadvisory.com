@@ -226,10 +226,12 @@ export async function verifyTotpForUnlock(userId, code) {
       return false;
     }
 
-    return authenticator.verify({
+    let totpValid = authenticator.verify({
       token: code,
       secret: user.totp_secret,
     });
+
+    return totpValid;
   } catch (err) {
     console.error("Verify TOTP for unlock error:", err);
     return false;

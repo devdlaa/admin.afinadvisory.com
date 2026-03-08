@@ -94,6 +94,8 @@ export const listTasksSchema = z
 
     created_by: z.string().uuid("Invalid user ID").optional(),
     assigned_to: z.string().uuid("Invalid user ID").optional(),
+    include_deleted: z.boolean().optional(),
+    deleted_only: z.boolean().optional(),
 
     due_date_from: z.string().datetime().optional(),
     due_date_to: z.string().datetime().optional(),
@@ -148,6 +150,13 @@ export const TaskUpdateSchema = z
     title: z.string().min(1).max(500).trim().optional(),
 
     description: z.string().max(5000).optional().nullable(),
+    reason: z
+      .string()
+      .min(10, "Reason must be at least 10 characters")
+      .max(1000)
+      .trim()
+      .optional()
+      .nullable(),
 
     entity_id: z.string().uuid("Invalid entity ID").optional().nullable(),
 
@@ -210,6 +219,8 @@ export const TaskBulkPriorityUpdateSchema = z.object({
 export const taskSearchQuerySchema = z.object({
   search: z.string().min(2, "Search must be at least 2 characters"),
   search_scope: z.enum(["ALL", "TITLE"]).default("ALL"),
+  include_deleted: z.boolean().optional(),
+  deleted_only: z.boolean().optional(),
   entity_id: z.string().uuid().optional(),
   status: z
     .enum([

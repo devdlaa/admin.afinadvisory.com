@@ -23,7 +23,7 @@ export async function GET(request, { params }) {
 
     return createSuccessResponse(
       "Task category retrieved successfully",
-      category
+      category,
     );
   } catch (error) {
     return handleApiError(error);
@@ -32,9 +32,9 @@ export async function GET(request, { params }) {
 
 export async function PATCH(request, { params }) {
   try {
-    const [permissionError, session,admin_user] = await requirePermission(
+    const [permissionError, session, admin_user] = await requirePermission(
       request,
-      "tasks.manage"
+      "tasks.manage",
     );
     if (permissionError) return permissionError;
 
@@ -54,12 +54,16 @@ export async function PATCH(request, { params }) {
 
 export async function DELETE(request, { params }) {
   try {
-    const [permissionError,session,admin_user] = await requirePermission(request, "tasks.manage");
+    const [permissionError, session, admin_user] = await requirePermission(
+      request,
+      "tasks.manage",
+    );
     if (permissionError) return permissionError;
+    const { id } = await params;
 
-    const { id } = schemas.taskCategory.id.parse(params);
+    const { id: category_id } = schemas.taskCategory.id.parse({ id: id });
 
-    const result = await deleteTaskCategory(id,admin_user.id);
+    const result = await deleteTaskCategory(category_id, admin_user.id);
 
     return createSuccessResponse("Task category deleted successfully", result);
   } catch (error) {

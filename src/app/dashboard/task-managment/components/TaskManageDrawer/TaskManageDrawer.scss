@@ -373,7 +373,8 @@
 
   // Assignment Card
   &__assignment-card {
-    padding: 20px;
+    padding: 0px;
+
     border-bottom: 1px solid #e5e7eb;
   }
 
@@ -1313,7 +1314,6 @@
 }
 
 .task-danger-zone {
-  margin-top: 24px;
   padding-top: 16px;
   border-top: 1px dashed #e5e7eb;
 
@@ -1406,11 +1406,6 @@
       padding: 12px;
     }
 
-    &__creator-card,
-    &__assignment-card {
-      padding: 24px;
-    }
-
     &__creator-name {
       font-size: 19px;
     }
@@ -1466,6 +1461,7 @@
 
     &__left {
       padding: 28px 36px;
+      padding-bottom: 0;
     }
 
     &__right {
@@ -1560,6 +1556,7 @@
 
     &__left {
       padding: 24px 32px;
+      padding-bottom: 0;
     }
 
     &__right {
@@ -1823,6 +1820,7 @@
     &__left {
       width: 100%;
       padding: 22px 28px;
+      padding-bottom: 0;
     }
 
     &__right {
@@ -1972,6 +1970,7 @@
     &__left {
       width: 100%;
       padding: 20px 24px;
+      padding-bottom: 0;
     }
 
     &__right {
@@ -2250,7 +2249,9 @@
 
     &__left {
       width: 100%;
+
       padding: 20px 24px;
+      padding-bottom: 0;
     }
 
     &__right {
@@ -2503,4 +2504,80 @@
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.task-deleted-badge {
+  display: flex;
+  align-items: center;
+  padding: 10px 14px;
+
+  border-radius: 10px;
+  border-left: 4px solid #dc2626;
+  background: linear-gradient(
+    90deg,
+    rgba(220, 38, 38, 0.1),
+    rgba(220, 38, 38, 0.03)
+  );
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+
+  &__left {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    svg {
+      color: #dc2626;
+      flex-shrink: 0;
+    }
+  }
+
+  &__label {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #dc2626;
+  }
+
+  &__date {
+    font-size: 12px;
+    font-weight: 500;
+    color: #6b7280;
+    padding-left: 19px;
+  }
+}
+
+.task-danger-zone {
+  .task-restore-btn {
+    width: 100%;
+    padding: 10px 14px;
+    border-radius: 50px;
+    border: none;
+    background: linear-gradient(45deg, #ecfdf5, #ecfdf500);
+    color: #15803d;
+    font-size: 14px;
+    font-weight: 500;
+    outline: 1px solid #16a34a1a;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.15s ease;
+
+    &:hover:not(:disabled) {
+      background: #dcfce7;
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+  }
 }

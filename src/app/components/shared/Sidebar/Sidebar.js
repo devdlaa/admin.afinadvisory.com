@@ -16,14 +16,17 @@ import {
   ListChecks,
   FileText,
   Building,
+  PanelLeftOpen,
+  PanelLeftClose,
 } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
 import Avatar from "../newui/Avatar/Avatar";
 import { useRouter, usePathname } from "next/navigation";
 import styles from "./Sidebar.module.scss";
+import { getProfileUrl } from "@/utils/shared/shared_util";
 
 // ============================================================================
-// SIDEBAR CONFIG - Updated with nested structure
+// SIDEBAR CONFIG
 // ============================================================================
 const SIDEBAR_CONFIG = {
   sections: [
@@ -95,7 +98,6 @@ const SIDEBAR_CONFIG = {
         },
       ],
     },
-
     {
       id: "marketing",
       title: "Marketing",
@@ -137,12 +139,10 @@ const SIDEBAR_CONFIG = {
   ],
 };
 
-import { getProfileUrl } from "@/utils/shared/shared_util";
-
 // ============================================================================
 // SIDEBAR COMPONENT
 // ============================================================================
-const Sidebar = () => {
+const Sidebar = ({ isExpanded, setIsExpanded }) => {
   const [activeItem, setActiveItem] = useState("");
   const [loggingOut, setLoggingOut] = useState(false);
   const [expandedItems, setExpandedItems] = useState({});
@@ -160,32 +160,24 @@ const Sidebar = () => {
       (section) => section.items,
     );
 
-    // Flatten all items including children
     const flattenItems = (items) => {
       return items.reduce((acc, item) => {
         acc.push(item);
-        if (item.children) {
-          acc.push(...item.children);
-        }
+        if (item.children) acc.push(...item.children);
         return acc;
       }, []);
     };
 
     const allFlatItems = flattenItems(allItems);
-
-    // Sort by path length to match most specific path first
     const sortedItems = [...allFlatItems].sort(
       (a, b) => b.path.length - a.path.length,
     );
-
     const matchedItem = sortedItems.find(
       (item) => pathname === item.path || pathname.startsWith(item.path + "/"),
     );
 
     if (matchedItem) {
       setActiveItem(matchedItem.id);
-
-      // Auto-expand parent if this is a child item
       allItems.forEach((item) => {
         if (item.children?.some((child) => child.id === matchedItem.id)) {
           setExpandedItems((prev) => ({ ...prev, [item.id]: true }));
@@ -206,7 +198,13 @@ const Sidebar = () => {
 
   const handleNavigation = (item) => {
     if (item.children?.length) {
-      setExpandedItems((prev) => ({ ...prev, [item.id]: !prev[item.id] }));
+      // If collapsed, expand sidebar first then open dropdown
+      if (!isExpanded) {
+        setIsExpanded(true);
+        setExpandedItems((prev) => ({ ...prev, [item.id]: true }));
+      } else {
+        setExpandedItems((prev) => ({ ...prev, [item.id]: !prev[item.id] }));
+      }
     } else {
       setActiveItem(item.id);
       if (item.path.startsWith("http")) {
@@ -219,25 +217,28 @@ const Sidebar = () => {
 
   const isActive = (item) => {
     if (activeItem === item.id) return true;
-    if (item.children) {
+    if (item.children)
       return item.children.some((child) => activeItem === child.id);
-    }
     return false;
   };
 
   const renderMenuItem = (item, isChild = false) => {
     const Icon = item.icon;
     const hasChildren = item.children?.length > 0;
-    const isExpanded = expandedItems[item.id];
+    const isItemExpanded = expandedItems[item.id];
     const active = isActive(item);
+
+    // Don't render child items when sidebar is collapsed
+    if (isChild && !isExpanded) return null;
 
     return (
       <div key={item.id}>
         <div
           className={`${styles.menuItem} ${active ? styles.active : ""} ${
             isChild ? styles.menuItemChild : ""
-          }`}
+          } ${!isExpanded ? styles.collapsed : ""}`}
           onClick={() => handleNavigation(item)}
+          title={!isExpanded ? item.label : undefined}
         >
           <div className={styles.menuItemContent}>
             {Icon && (
@@ -250,17 +251,15 @@ const Sidebar = () => {
               <span className={styles.menuItemBadge}>{item.badge}</span>
             )}
           </div>
-          {hasChildren && (
+          {hasChildren && isExpanded && (
             <ChevronDown
               size={16}
-              className={`${styles.chevronIcon} ${
-                isExpanded ? styles.expanded : ""
-              }`}
+              className={`${styles.chevronIcon} ${isItemExpanded ? styles.expanded : ""}`}
             />
           )}
         </div>
 
-        {hasChildren && isExpanded && (
+        {hasChildren && isItemExpanded && isExpanded && (
           <div className={styles.childrenContainer}>
             {item.children.map((child) => renderMenuItem(child, true))}
           </div>
@@ -270,17 +269,20 @@ const Sidebar = () => {
   };
 
   return (
-    <div className={styles.sidebarContainer}>
-      {/* User Profile with Skeleton Loading */}
+    <div
+      className={`${styles.sidebarContainer} ${isExpanded ? styles.sidebarExpanded : styles.sidebarCollapsed}`}
+    >
+      {/* User Profile */}
       <div className={styles.userProfile}>
         {isSessionLoading ? (
           <>
             <div className={styles.userAvatarSkeleton} />
-            <div className={styles.userInfo}>
-              <div className={styles.userNameSkeleton} />
-              <div className={styles.userEmailSkeleton} />
-            </div>
-            <div className={styles.chevronSkeleton} />
+            {isExpanded && (
+              <div className={styles.userInfo}>
+                <div className={styles.userNameSkeleton} />
+                <div className={styles.userEmailSkeleton} />
+              </div>
+            )}
           </>
         ) : user ? (
           <>
@@ -290,11 +292,12 @@ const Sidebar = () => {
               size={32}
               fallbackText={user.name}
             />
-
-            <div className={styles.userInfo}>
-              <div className={styles.userName}>{user.name || "User"}</div>
-              <div className={styles.userEmail}>{user.email || ""}</div>
-            </div>
+            {isExpanded && (
+              <div className={styles.userInfo}>
+                <div className={styles.userName}>{user.name || "User"}</div>
+                <div className={styles.userEmail}>{user.email || ""}</div>
+              </div>
+            )}
           </>
         ) : null}
       </div>
@@ -303,25 +306,44 @@ const Sidebar = () => {
       <div className={styles.sidebarNavigation}>
         {SIDEBAR_CONFIG.sections.map((section) => (
           <div key={section.id} className={styles.navSection}>
-            <h4 className={styles.navSectionTitle}>{section.title}</h4>
+            {isExpanded && (
+              <h4 className={styles.navSectionTitle}>{section.title}</h4>
+            )}
+            {!isExpanded && <div className={styles.navSectionDivider} />}
             {section.items.map((item) => renderMenuItem(item))}
           </div>
         ))}
       </div>
 
-      {/* Logout Button */}
+      {/* Footer: Toggle + Logout */}
       <div className={styles.sidebarFooter}>
+        <button
+          className={styles.toggleButton}
+          onClick={() => setIsExpanded((prev) => !prev)}
+          title={isExpanded ? "Collapse sidebar" : "Expand sidebar"}
+        >
+          {isExpanded ? (
+            <PanelLeftClose size={18} />
+          ) : (
+            <PanelLeftOpen size={18} />
+          )}
+          {isExpanded && <span>Collapse</span>}
+        </button>
+
         <button
           className={styles.logoutButton}
           onClick={handleSignOut}
           disabled={loggingOut}
+          title={!isExpanded ? "Sign Out" : undefined}
         >
           {loggingOut ? (
             <div className={styles.logoutSpinner} />
           ) : (
             <LogOut size={18} />
           )}
-          <span>{loggingOut ? "Signing out..." : "Sign Out"}</span>
+          {isExpanded && (
+            <span>{loggingOut ? "Signing out..." : "Sign Out"}</span>
+          )}
         </button>
       </div>
     </div>

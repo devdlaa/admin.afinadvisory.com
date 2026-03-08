@@ -1,4 +1,8 @@
-import { createSlice, createAsyncThunk,createSelector  } from "@reduxjs/toolkit";
+import {
+  createSlice,
+  createAsyncThunk,
+  createSelector,
+} from "@reduxjs/toolkit";
 
 // ============================================
 // HELPER - API FETCH WRAPPER
@@ -42,7 +46,7 @@ const searchInCache = (categories, searchTerm, limit = 20) => {
     .filter(
       (category) =>
         category.name?.toLowerCase().includes(term) ||
-        category.description?.toLowerCase().includes(term)
+        category.description?.toLowerCase().includes(term),
     )
     .slice(0, limit);
 };
@@ -73,9 +77,10 @@ export const fetchCategories = createAsyncThunk(
       if (filters.search) params.append("search", filters.search);
       if (filters.page) params.append("page", filters.page);
       if (filters.page_size) params.append("page_size", filters.page_size);
+   
 
       const result = await apiFetch(
-        `/api/admin_ops/tasks/category?${params.toString()}`
+        `/api/admin_ops/tasks/category?${params.toString()}`,
       );
 
       return result.data;
@@ -91,12 +96,11 @@ export const fetchCategories = createAsyncThunk(
     condition: (filters, { getState }) => {
       const { taskCategory } = getState();
 
-      // already have data and not forcing refresh
       if (taskCategory.list.length > 0 && !filters?.force) {
-        return false; // ⛔ stop thunk
+        return false;
       }
     },
-  }
+  },
 );
 
 /**
@@ -107,7 +111,7 @@ export const quickSearchCategories = createAsyncThunk(
   "taskCategory/quickSearchCategories",
   async (
     { search, forceRefresh = false, limit = 20 },
-    { getState, rejectWithValue }
+    { getState, rejectWithValue },
   ) => {
     try {
       // If not forcing refresh, check cache first
@@ -132,7 +136,7 @@ export const quickSearchCategories = createAsyncThunk(
       });
 
       const result = await apiFetch(
-        `/api/admin_ops/tasks/category?${params.toString()}`
+        `/api/admin_ops/tasks/category?${params.toString()}`,
       );
 
       return {
@@ -147,7 +151,7 @@ export const quickSearchCategories = createAsyncThunk(
         details: error.details,
       });
     }
-  }
+  },
 );
 
 /**
@@ -158,7 +162,7 @@ export const fetchCategoryById = createAsyncThunk(
   async (categoryId, { rejectWithValue }) => {
     try {
       const result = await apiFetch(
-        `/api/admin_ops/tasks/category/${categoryId}`
+        `/api/admin_ops/tasks/category/${categoryId}`,
       );
       return result.data;
     } catch (error) {
@@ -168,7 +172,7 @@ export const fetchCategoryById = createAsyncThunk(
         details: error.details,
       });
     }
-  }
+  },
 );
 
 /**
@@ -190,7 +194,7 @@ export const createCategory = createAsyncThunk(
         details: error.details,
       });
     }
-  }
+  },
 );
 
 /**
@@ -212,7 +216,7 @@ export const updateCategory = createAsyncThunk(
         details: error.details,
       });
     }
-  }
+  },
 );
 
 /**
@@ -226,7 +230,7 @@ export const deleteCategory = createAsyncThunk(
         `/api/admin_ops/tasks/category/${categoryId}`,
         {
           method: "DELETE",
-        }
+        },
       );
       return { id: categoryId, ...result.data };
     } catch (error) {
@@ -236,7 +240,7 @@ export const deleteCategory = createAsyncThunk(
         details: error.details,
       });
     }
-  }
+  },
 );
 
 // ============================================
@@ -544,7 +548,7 @@ export const {
 const selectTaskCategoryState = (state) => state.taskCategory || initialState;
 export const selectAllCategories = createSelector(
   [selectTaskCategoryState],
-  (s) => Object.values(s.categories)
+  (s) => Object.values(s.categories),
 );
 
 export const selectCategoryById = (state, categoryId) =>
@@ -552,32 +556,32 @@ export const selectCategoryById = (state, categoryId) =>
 
 export const selectListCategories = createSelector(
   [selectTaskCategoryState],
-  (s) => s.list.ids.map((id) => s.categories[id]).filter(Boolean)
+  (s) => s.list.ids.map((id) => s.categories[id]).filter(Boolean),
 );
 
 export const selectPagination = createSelector(
   [selectTaskCategoryState],
-  (s) => s.list.pagination
+  (s) => s.list.pagination,
 );
 
 export const selectFilters = createSelector(
   [selectTaskCategoryState],
-  (s) => s.list.filters
+  (s) => s.list.filters,
 );
 
 export const selectSelectedCategory = createSelector(
   [selectTaskCategoryState],
-  (s) => s.selectedCategory
+  (s) => s.selectedCategory,
 );
 
 export const selectQuickSearchResults = createSelector(
   [selectTaskCategoryState],
-  (s) => s.quickSearch.results
+  (s) => s.quickSearch.results,
 );
 
 export const selectIsCached = createSelector(
   [selectTaskCategoryState],
-  (s) => s.cache.isCached
+  (s) => s.cache.isCached,
 );
 
 export const selectIsLoading = (state, type = "list") =>
@@ -591,9 +595,8 @@ export const selectIsCategoryCached = (state, categoryId) =>
 
 export const selectCachedCategoriesCount = createSelector(
   [selectTaskCategoryState],
-  (s) => Object.keys(s.categories).length
+  (s) => Object.keys(s.categories).length,
 );
-
 
 // ============================================
 // EXPORT REDUCER

@@ -75,6 +75,7 @@ import {
   documentListQuerySchema,
   DocumentScopeEnum,
   documentUploadSchema,
+  renameDocumentSchema,
 } from "./operations/document.schema.js";
 import {
   bulkInvoiceActionSchema,
@@ -99,6 +100,28 @@ import {
   PermissionDeleteSchema,
   PermissionListSchema,
 } from "./core/permission.schema.js";
+import {
+  createReminderTagSchema,
+  updateReminderTagSchema,
+  deleteReminderTagSchema,
+  reminderTagIdSchema,
+} from "./core/reminderTag.schema.js";
+
+import {
+  createReminderListSchema,
+  updateReminderListSchema,
+  deleteReminderListSchema,
+  listReminderListsQuerySchema,
+  reminderListIdSchema,
+} from "./core/reminderList.schema.js";
+import {
+  createReminderSchema,
+  updateReminderSchema,
+  reminderLifecycleSchema,
+  listReminderWeekBoardsSchema,
+  checkAliveSchema,
+  getMyDaySchema,
+} from "./core/reminder.schema.js";
 
 // ============================================================================
 // Structured Export Object
@@ -130,7 +153,7 @@ export const schemas = Object.freeze({
     create: TaskCreateSchema,
     update: TaskUpdateSchema,
     query: listTasksSchema,
-    search : taskSearchQuerySchema,
+    search: taskSearchQuerySchema,
     bulkStatus: TaskBulkStatusUpdateSchema,
     bulkPriority: TaskBulkPriorityUpdateSchema,
     enums: {
@@ -188,6 +211,7 @@ export const schemas = Object.freeze({
     upload: documentUploadSchema,
     query: documentListQuerySchema,
     delete: documentDeleteSchema,
+    rename: renameDocumentSchema,
     enums: {
       scope: DocumentScopeEnum,
     },
@@ -213,6 +237,27 @@ export const schemas = Object.freeze({
     bulkUpdate: PermissionBulkUpdateSchema,
     delete: PermissionDeleteSchema,
     list: PermissionListSchema,
+  },
+  reminder: {
+    create: createReminderSchema,
+    update: updateReminderSchema,
+    lifecycle: reminderLifecycleSchema,
+    weekBoards: listReminderWeekBoardsSchema,
+    myDay: getMyDaySchema,
+    checkAlive: checkAliveSchema,
+  },
+  reminderTag: {
+    create: createReminderTagSchema,
+    update: updateReminderTagSchema,
+    delete: deleteReminderTagSchema,
+    id: reminderTagIdSchema,
+  },
+  reminderList: {
+    create: createReminderListSchema,
+    update: updateReminderListSchema,
+    delete: deleteReminderListSchema,
+    query: listReminderListsQuerySchema,
+    id: reminderListIdSchema,
   },
 });
 

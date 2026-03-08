@@ -6,7 +6,10 @@ import {
   ValidationError,
   ForbiddenError,
 } from "../../utils/server/errors.js";
-import { addTaskActivityLog } from "./taskComment.service.js";
+import {
+  addTaskActivityLog,
+  getTaskStatusTimeline,
+} from "./taskComment.service.js";
 import { buildActivityMessage } from "@/utils/server/activityBulder.js";
 
 import {
@@ -23,6 +26,12 @@ const PAUSE_STATUSES = new Set(["ON_HOLD", "PENDING_CLIENT_INPUT"]);
 const RUNNING_STATUSES = new Set(["PENDING", "IN_PROGRESS"]);
 const COMPLETION_STATUSES = new Set(["COMPLETED", "CANCELLED"]);
 const WORKING_STATUSES = new Set(["IN_PROGRESS"]);
+// Block critical status changes without a reason
+const REASON_REQUIRED_STATUSES = new Set([
+  "ON_HOLD",
+  "CANCELLED",
+  "PENDING_CLIENT_INPUT",
+]);
 
 const ATTENTION_WINDOW_DAYS = 3;
 const DEFAULT_SERVICE_LEVEL_AGREEMENT_DAYS = 7;
@@ -91,6 +100,7 @@ const LIST_TASK_SELECT = {
   due_date: true,
   created_at: true,
   assigned_to_all: true,
+  deleted_at: true,
   entity: { select: { id: true, name: true } },
   category: { select: { id: true, name: true } },
   creator: {
@@ -194,6 +204,7 @@ const formatTask = (task, overrides = {}) => ({
   assigned_to_all: task.assigned_to_all,
   entity: task.entity ?? null,
   category: task.category ?? null,
+  deleted_at: task.deleted_at ?? null,
   creator: task.creator ?? null,
   is_billable: (task._count?.charges ?? 0) > 0,
   document_count: task.document_count ?? 0,
@@ -221,14 +232,32 @@ const formatTask = (task, overrides = {}) => ({
 // ACCESS / VISIBILITY HELPERS
 // =============================================================================
 
-export function buildTaskVisibilityWhere(user) {
-  if (user.admin_role === "SUPER_ADMIN") return {};
-  return {
-    OR: [
-      { assigned_to_all: true },
-      { assignments: { some: { admin_user_id: user.id } } },
-    ],
-  };
+export function buildTaskVisibilityWhere(user, options = {}) {
+  const { includeDeleted = false, deletedOnly = false } = options;
+
+  const visibility =
+    user.admin_role === "SUPER_ADMIN"
+      ? {}
+      : {
+          OR: [
+            { assigned_to_all: true },
+            { assignments: { some: { admin_user_id: user.id } } },
+          ],
+        };
+
+  if (deletedOnly) {
+    return {
+      AND: [visibility, { deleted_at: { not: null } }],
+    };
+  }
+
+  if (!includeDeleted) {
+    return {
+      AND: [visibility, { deleted_at: null }],
+    };
+  }
+
+  return visibility;
 }
 
 // =============================================================================
@@ -247,7 +276,9 @@ const getStatusCounts = async (where = {}, db = prisma) => {
 
   const grouped = await db.task.groupBy({
     by: ["status"],
-    where: { AND: [where, { is_system: { not: true } }] },
+    where: {
+      AND: [where, { is_system: { not: true } }, { deleted_at: null }],
+    },
     _count: { status: true },
   });
 
@@ -444,7 +475,7 @@ const fetchDocumentCounts = async (taskIds) => {
 /**
  * Raw SQL magic-sort query.
  *
- * BUG FIX: Same BREACHED→RUNNING mapping applied here for the sla_status
+ *
  * EXISTS subquery so magic-sort and normal sort behave identically.
  */
 const magicSortQuery = (filters, currentUser, pageSize, page) => {
@@ -546,6 +577,7 @@ const magicSortQuery = (filters, currentUser, pageSize, page) => {
       ) AS urgency_score
     FROM "Task" t
     WHERE t.is_system = FALSE
+      AND t.deleted_at IS NULL
       AND ${visibilityClause}
       ${Prisma.join(clauses, " ")}
     ORDER BY urgency_score DESC
@@ -590,9 +622,10 @@ export const createTask = async (data, currentUser) => {
         : null,
     ]);
 
-    if (data.entity_id && !entity) throw new NotFoundError("Entity not found");
+    if (data.entity_id && !entity)
+      throw new ValidationError("Entity not found");
     if (data.task_category_id && !category)
-      throw new NotFoundError("Task category not found or inactive");
+      throw new ValidationError("Task category not found or inactive");
 
     const task = await tx.task.create({
       data: {
@@ -648,7 +681,11 @@ export const createTask = async (data, currentUser) => {
 
     return task;
   });
-
+  await addTaskActivityLog(result.id, currentUser.id, {
+    action: "TASK_CREATED",
+    message: "created this task",
+    meta: {},
+  }).catch((err) => console.error("Failed to log task creation:", err));
   const [freshTask, globalCounts] = await Promise.all([
     prisma.task.findUnique({
       where: { id: result.id },
@@ -659,7 +696,19 @@ export const createTask = async (data, currentUser) => {
         priority: true,
         due_date: true,
         created_at: true,
+        deleted_at: true,
         assigned_to_all: true,
+        entity: { select: { id: true, name: true } },
+        category: { select: { id: true, name: true } },
+        creator: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            admin_role: true,
+            status: true,
+          },
+        },
         assignments: {
           select: ASSIGNMENT_SELECT,
           orderBy: { assigned_at: "asc" },
@@ -672,27 +721,7 @@ export const createTask = async (data, currentUser) => {
   ]);
 
   return {
-    task: {
-      ...freshTask,
-      is_billable: freshTask._count.charges > 0,
-      sla_summary: buildSlaSummary(freshTask.assignments),
-      assignments: freshTask.assignments.map((a) => ({
-        id: a.id,
-        task_id: a.task_id,
-        admin_user_id: a.admin_user_id,
-        assigned_at: a.assigned_at,
-        assigned_by: a.assigned_by,
-        assignment_source: a.assignment_source,
-        sla_status: a.sla_status,
-        sla_due_date: a.due_date,
-        sla_paused_at: a.sla_paused_at,
-        assignee: a.assignee,
-      })),
-      remaining_assignee_count:
-        freshTask._count.assignments > freshTask.assignments.length
-          ? freshTask._count.assignments - freshTask.assignments.length
-          : 0,
-    },
+    task: freshTask,
     status_counts: { global: globalCounts, filtered: null },
   };
 };
@@ -718,7 +747,9 @@ export const updateTask = async (task_id, data, currentUser) => {
   let statusChanged = false;
 
   const updatedTask = await prisma.$transaction(async (tx) => {
-    const visibilityWhere = buildTaskVisibilityWhere(currentUser);
+    const visibilityWhere = buildTaskVisibilityWhere(currentUser, {
+      includeDeleted: true,
+    });
 
     await ensureTaskCriticalFieldsEditable(task_id, data, tx);
 
@@ -731,6 +762,7 @@ export const updateTask = async (task_id, data, currentUser) => {
         status: true,
         priority: true,
         due_date: true,
+        deleted_at: true,
         end_date: true,
         entity_id: true,
         task_category_id: true,
@@ -740,7 +772,22 @@ export const updateTask = async (task_id, data, currentUser) => {
     });
 
     if (!existing) throw new NotFoundError("Task not found");
+    if (existing.deleted_at) {
+      throw new ValidationError(
+        "Deleted tasks cannot be modified. Restore first.",
+      );
+    }
 
+    if (
+      data.status &&
+      data.status !== existing.status &&
+      REASON_REQUIRED_STATUSES.has(data.status) &&
+      !data.reason?.trim()
+    ) {
+      throw new ValidationError(
+        `A reason is required when setting status to ${data.status}`,
+      );
+    }
     const categoryPromise =
       data.task_category_id !== undefined &&
       data.task_category_id !== existing.task_category_id
@@ -862,6 +909,7 @@ export const updateTask = async (task_id, data, currentUser) => {
         status: true,
         priority: true,
         due_date: true,
+        deleted_at: true,
         entity_id: true,
         entity: { include: { custom_fields: { orderBy: { name: "asc" } } } },
         category: { select: { id: true, name: true } },
@@ -869,7 +917,14 @@ export const updateTask = async (task_id, data, currentUser) => {
           select: {
             id: true,
             name: true,
-            email: true,
+            admin_role: true,
+            status: true,
+          },
+        },
+        updater: {
+          select: {
+            id: true,
+            name: true,
             admin_role: true,
             status: true,
           },
@@ -930,11 +985,16 @@ export const updateTask = async (task_id, data, currentUser) => {
   });
 
   if (changes.length > 0) {
-    await addTaskActivityLog(task_id, currentUser.id, {
-      action: "TASK_UPDATED",
-      message: buildActivityMessage(changes),
-      meta: { changes },
-    }).catch((err) => console.error("Failed to log activity:", err));
+    if (changes.length > 0) {
+      await addTaskActivityLog(task_id, currentUser.id, {
+        action: "TASK_UPDATED",
+        message: buildActivityMessage(changes),
+        meta: {
+          changes,
+          ...(data.reason?.trim() ? { reason: data.reason.trim() } : {}),
+        },
+      }).catch((err) => console.error("Failed to log activity:", err));
+    }
   }
 
   let response = { task: updatedTask };
@@ -984,14 +1044,33 @@ export const deleteTask = async (task_id, currentUser) => {
       );
     }
 
+    await tx.task.update({
+      where: { id: task_id },
+      data: {
+        deleted_at: new Date(),
+        deleted_by: currentUser.id,
+      },
+    });
+    await tx.taskAssignment.updateMany({
+      where: {
+        task_id,
+        sla_status: "RUNNING",
+      },
+      data: {
+        sla_status: "PAUSED",
+        sla_paused_at: new Date(),
+      },
+    });
     await applyTaskDelete(task, tx);
-    await Promise.all([
-      tx.task.delete({ where: { id: task_id } }),
-      tx.taskAssignment.deleteMany({ where: { task_id } }),
-    ]);
 
     return task;
   });
+
+  await addTaskActivityLog(result.id, currentUser.id, {
+    action: "TASK_DELETED",
+    message: "deleted this task",
+    meta: {},
+  }).catch((err) => console.error("Failed to log task deletion:", err));
 
   const globalCounts =
     currentUser.admin_role === "SUPER_ADMIN"
@@ -1005,79 +1084,138 @@ export const deleteTask = async (task_id, currentUser) => {
   };
 };
 
+export const restoreTask = async (task_id, currentUser) => {
+  const result = await prisma.$transaction(async (tx) => {
+    const task = await tx.task.findFirst({
+      where: {
+        id: task_id,
+        deleted_at: { not: null },
+      },
+      select: {
+        id: true,
+        title: true,
+        status: true,
+      },
+    });
+
+    if (!task) throw new NotFoundError("Deleted task not found");
+
+    const restored = await tx.task.update({
+      where: { id: task_id },
+      data: {
+        deleted_at: null,
+        deleted_by: null,
+      },
+    });
+
+    // Resume paused SLAs
+    await tx.taskAssignment.updateMany({
+      where: {
+        task_id,
+        sla_status: "PAUSED",
+      },
+      data: {
+        sla_status: "RUNNING",
+        sla_paused_at: null,
+      },
+    });
+
+    return restored;
+  });
+  await addTaskActivityLog(result.id, currentUser.id, {
+    action: "TASK_RESTORED",
+    message: "restored this task",
+    meta: {},
+  }).catch((err) => console.error("Failed to log task restore:", err));
+  return {
+    restored: true,
+    task: {
+      id: result.id,
+      title: result.title,
+      status: result.status,
+    },
+  };
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const getTaskById = async (task_id, currentUser) => {
-  const visibilityWhere = buildTaskVisibilityWhere(currentUser);
-
-  const task = await prisma.task.findFirst({
-    where: { AND: [{ id: task_id }, visibilityWhere] },
-    include: {
-      entity: { include: { custom_fields: { orderBy: { name: "asc" } } } },
-      category: true,
-      assignments: {
-        include: {
-          assignee: { select: { id: true, name: true, email: true } },
-        },
-      },
-      charges: {
-        where: { deleted_at: null },
-        orderBy: { created_at: "asc" },
-        include: {
-          creator: { select: { id: true, name: true, email: true } },
-          updater: { select: { id: true, name: true, email: true } },
-          deleter: { select: { id: true, name: true, email: true } },
-          restorer: { select: { id: true, name: true, email: true } },
-        },
-      },
-      checklist_items: true,
-      last_activity_admin: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          admin_role: true,
-          status: true,
-        },
-      },
-      creator: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          admin_role: true,
-          status: true,
-        },
-      },
-      updater: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          admin_role: true,
-          status: true,
-        },
-      },
-      invoice: {
-        select: {
-          id: true,
-          internal_number: true,
-          external_number: true,
-          status: true,
-          invoice_date: true,
-          issued_at: true,
-          paid_at: true,
-          created_at: true,
-        },
-      },
-    },
+  const visibilityWhere = buildTaskVisibilityWhere(currentUser, {
+    includeDeleted: true,
   });
+
+  const [task, { timeline }] = await Promise.all([
+    prisma.task.findFirst({
+      where: { AND: [{ id: task_id }, visibilityWhere] },
+      include: {
+        entity: { include: { custom_fields: { orderBy: { name: "asc" } } } },
+        category: true,
+        assignments: {
+          include: {
+            assignee: { select: { id: true, name: true, email: true } },
+          },
+        },
+        charges: {
+          where: { deleted_at: null },
+          orderBy: { created_at: "asc" },
+          include: {
+            creator: { select: { id: true, name: true, email: true } },
+            updater: { select: { id: true, name: true, email: true } },
+            deleter: { select: { id: true, name: true, email: true } },
+            restorer: { select: { id: true, name: true, email: true } },
+          },
+        },
+        checklist_items: true,
+        last_activity_admin: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            admin_role: true,
+            status: true,
+          },
+        },
+        creator: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            admin_role: true,
+            status: true,
+          },
+        },
+        updater: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            admin_role: true,
+            status: true,
+          },
+        },
+        invoice: {
+          select: {
+            id: true,
+            internal_number: true,
+            external_number: true,
+            status: true,
+            invoice_date: true,
+            issued_at: true,
+            paid_at: true,
+            created_at: true,
+          },
+        },
+      },
+    }),
+    getTaskStatusTimeline(task_id, currentUser),
+  ]);
 
   if (!task) throw new NotFoundError("Task not found");
 
   return {
     ...task,
     sla_summary: buildSlaSummary(task.assignments),
+    status_timeline: timeline,
   };
 };
 
@@ -1087,6 +1225,7 @@ export const getUnassignedTasksCount = async () =>
   prisma.task.count({
     where: {
       is_system: false,
+      deleted_at: null,
       assigned_to_all: false,
       creator: {
         admin_role: "SUPER_ADMIN",
@@ -1120,33 +1259,47 @@ export const bulkUpdateTaskStatus = async (task_ids, status, currentUser) => {
       select: {
         id: true,
         status: true,
+        deleted_at: true,
         entity_id: true,
         invoice_internal_number: true,
         invoice: { select: { id: true, status: true, internal_number: true } },
       },
     });
 
-    const lockedTasks = existing.filter(
+    const deletedTasks = existing.filter((t) => t.deleted_at !== null);
+
+    const invoiceLockedTasks = existing.filter(
       (t) =>
+        !t.deleted_at &&
         t.invoice_internal_number &&
         t.invoice &&
         (t.invoice.status === "ISSUED" || t.invoice.status === "PAID") &&
         t.status !== status,
     );
-    const validTasks = existing.filter(
-      (t) => !lockedTasks.find((lt) => lt.id === t.id),
-    );
+
+    const invalidIds = new Set([
+      ...deletedTasks.map((t) => t.id),
+      ...invoiceLockedTasks.map((t) => t.id),
+    ]);
+
+    const validTasks = existing.filter((t) => !invalidIds.has(t.id));
     const validIds = validTasks.map((t) => t.id);
 
     if (validIds.length === 0) {
       return {
         validIds: [],
         count: 0,
-        skippedIds: task_ids.filter((id) => !validIds.includes(id)),
-        lockedTasks: lockedTasks.map((t) => ({
-          id: t.id,
-          reason: `Task in ${t.invoice.status} invoice (${t.invoice.internal_number})`,
-        })),
+        skippedIds: task_ids,
+        skippedTasks: [
+          ...deletedTasks.map((t) => ({
+            id: t.id,
+            reason: "Task is deleted",
+          })),
+          ...invoiceLockedTasks.map((t) => ({
+            id: t.id,
+            reason: `Task in ${t.invoice.status} invoice (${t.invoice.internal_number})`,
+          })),
+        ],
       };
     }
 
@@ -1173,10 +1326,16 @@ export const bulkUpdateTaskStatus = async (task_ids, status, currentUser) => {
       validIds,
       count: updateResult.count,
       skippedIds: task_ids.filter((id) => !validIds.includes(id)),
-      lockedTasks: lockedTasks.map((t) => ({
-        id: t.id,
-        reason: `Task in ${t.invoice.status} invoice (${t.invoice.internal_number})`,
-      })),
+      skippedTasks: [
+        ...deletedTasks.map((t) => ({
+          id: t.id,
+          reason: "Task is deleted",
+        })),
+        ...invoiceLockedTasks.map((t) => ({
+          id: t.id,
+          reason: `Task in ${t.invoice.status} invoice (${t.invoice.internal_number})`,
+        })),
+      ],
     };
   });
 
@@ -1188,7 +1347,7 @@ export const bulkUpdateTaskStatus = async (task_ids, status, currentUser) => {
   return {
     updated_task_ids: result.validIds,
     skipped_task_ids: result.skippedIds,
-    locked_tasks: result.lockedTasks,
+    skipped_tasks: result.skippedTasks,
     updated_count: result.count,
     new_status: status,
     status_counts: { global: globalCounts },
@@ -1207,200 +1366,59 @@ export const bulkUpdateTaskPriority = async (
   const result = await prisma.$transaction(async (tx) => {
     const existing = await tx.task.findMany({
       where: { AND: [{ id: { in: task_ids } }, visibilityWhere] },
-      select: { id: true },
+      select: {
+        id: true,
+        deleted_at: true,
+      },
     });
 
-    const validIds = existing.map((t) => t.id);
-    if (validIds.length === 0)
-      return { validIds: [], count: 0, skippedIds: task_ids };
+    const deletedTasks = existing.filter((t) => t.deleted_at !== null);
+
+    const invalidIds = new Set(deletedTasks.map((t) => t.id));
+
+    const validTasks = existing.filter((t) => !invalidIds.has(t.id));
+    const validIds = validTasks.map((t) => t.id);
+
+    if (validIds.length === 0) {
+      return {
+        validIds: [],
+        count: 0,
+        skippedIds: task_ids,
+        skippedTasks: deletedTasks.map((t) => ({
+          id: t.id,
+          reason: "Task is deleted",
+        })),
+      };
+    }
 
     const updateResult = await tx.task.updateMany({
       where: { id: { in: validIds } },
-      data: { priority, updated_by: currentUser.id },
+      data: {
+        priority,
+        updated_by: currentUser.id,
+        last_activity_at: new Date(),
+      },
     });
 
     return {
       validIds,
       count: updateResult.count,
       skippedIds: task_ids.filter((id) => !validIds.includes(id)),
+      skippedTasks: deletedTasks.map((t) => ({
+        id: t.id,
+        reason: "Task is deleted",
+      })),
     };
   });
 
   return {
     updated_task_ids: result.validIds,
     skipped_task_ids: result.skippedIds,
+    skipped_tasks: result.skippedTasks,
     updated_count: result.count,
     new_priority: priority,
   };
 };
-
-// =============================================================================
-// SLA SUMMARY DASHBOARD
-// =============================================================================
-
-// export const getSLASummary = async (currentUser) => {
-//   const now = new Date();
-//   const endOfToday = istToday(23, 59, 59, 999);
-//   const dueSoon = new Date(
-//     endOfToday.getTime() + ATTENTION_WINDOW_DAYS * 24 * 60 * 60 * 1000,
-//   );
-//   const longPausedThreshold = new Date(
-//     Date.now() - ATTENTION_WINDOW_DAYS * 24 * 60 * 60 * 1000,
-//   );
-
-//   const baseWhere =
-//     currentUser.admin_role === "SUPER_ADMIN"
-//       ? {}
-//       : { admin_user_id: currentUser.id };
-
-//   const activeTaskFilter = {
-//     task: { is_system: false, status: { notIn: ["COMPLETED", "CANCELLED"] } },
-//   };
-//   const nonSystemTaskFilter = { task: { is_system: false } };
-
-//   // Step 1: Task deadline buckets take priority — fetch these first as arrays
-//   const [taskOverdueAssignments, taskDueTodayAssignments, paused, longPaused] =
-//     await Promise.all([
-//       prisma.taskAssignment.findMany({
-//         where: {
-//           ...baseWhere,
-//           sla_status: { in: ["RUNNING", "PAUSED"] },
-//           task: {
-//             is_system: false,
-//             due_date: { lt: now },
-//             status: { notIn: ["COMPLETED", "CANCELLED"] },
-//           },
-//         },
-//         select: { task_id: true },
-//       }),
-//       prisma.taskAssignment.findMany({
-//         where: {
-//           ...baseWhere,
-//           sla_status: { in: ["RUNNING", "PAUSED"] },
-//           task: {
-//             is_system: false,
-//             due_date: { gte: now, lte: endOfToday },
-//             status: { notIn: ["COMPLETED", "CANCELLED"] },
-//           },
-//         },
-//         select: { task_id: true },
-//       }),
-//       prisma.taskAssignment.count({
-//         where: { ...baseWhere, sla_status: "PAUSED", ...nonSystemTaskFilter },
-//       }),
-//       prisma.taskAssignment.count({
-//         where: {
-//           ...baseWhere,
-//           sla_status: "PAUSED",
-//           sla_paused_at: { lt: longPausedThreshold },
-//           ...nonSystemTaskFilter,
-//         },
-//       }),
-//     ]);
-
-//   // Collect task_ids already claimed by task deadline buckets
-//   const taskDeadlineTaskIds = new Set([
-//     ...taskOverdueAssignments.map((a) => a.task_id),
-//     ...taskDueTodayAssignments.map((a) => a.task_id),
-//   ]);
-
-//   const excludeTaskDeadlineTasks =
-//     taskDeadlineTaskIds.size > 0
-//       ? { task_id: { notIn: [...taskDeadlineTaskIds] } }
-//       : {};
-
-//   // Step 2: SLA counts — exclude tasks already claimed by task deadline buckets
-//   const [overdue, dueToday, dueSoonCount] = await Promise.all([
-//     prisma.taskAssignment.count({
-//       where: {
-//         ...baseWhere,
-//         ...excludeTaskDeadlineTasks,
-//         sla_status: "RUNNING",
-//         due_date: { lt: now },
-//         ...activeTaskFilter,
-//       },
-//     }),
-//     prisma.taskAssignment.count({
-//       where: {
-//         ...baseWhere,
-//         ...excludeTaskDeadlineTasks,
-//         sla_status: "RUNNING",
-//         due_date: { gte: now, lte: endOfToday },
-//         ...activeTaskFilter,
-//       },
-//     }),
-//     prisma.taskAssignment.count({
-//       where: {
-//         ...baseWhere,
-//         ...excludeTaskDeadlineTasks,
-//         sla_status: "RUNNING",
-//         due_date: { gt: endOfToday, lte: dueSoon },
-//         ...activeTaskFilter,
-//       },
-//     }),
-//   ]);
-
-//   return {
-//     critical: {
-//       sla_overdue: {
-//         count: overdue,
-//         label: "SLA Breached",
-//         description: "Your deadline to complete this task has passed",
-//         filters: { sla_status: "RUNNING", sla_due_date_to: now.toISOString() },
-//       },
-//       task_deadline_overdue: {
-//         count: taskOverdueAssignments.length,
-//         label: "Due Date Passed",
-//         description: "The client task deadline has passed",
-//         filters: { due_date_to: now.toISOString() },
-//       },
-//     },
-//     attention: {
-//       sla_due_today: {
-//         count: dueToday,
-//         label: "SLA Due Today",
-//         filters: {
-//           sla_status: "RUNNING",
-//           sla_due_date_from: now.toISOString(),
-//           sla_due_date_to: endOfToday.toISOString(),
-//         },
-//       },
-//       task_deadline_today: {
-//         count: taskDueTodayAssignments.length,
-//         label: "Due Date Today",
-//         filters: {
-//           due_date_from: now.toISOString(),
-//           due_date_to: endOfToday.toISOString(),
-//         },
-//       },
-//       sla_due_soon: {
-//         count: dueSoonCount,
-//         label: `SLA Due in ${ATTENTION_WINDOW_DAYS} Days`,
-//         filters: {
-//           sla_status: "RUNNING",
-//           sla_due_date_from: endOfToday.toISOString(),
-//           sla_due_date_to: dueSoon.toISOString(),
-//         },
-//       },
-//     },
-//     informational: {
-//       paused: {
-//         count: paused,
-//         label: "On Hold / Awaiting Client",
-//         filters: { sla_status: "PAUSED" },
-//       },
-//       long_paused: {
-//         count: longPaused,
-//         label: `Paused Over ${ATTENTION_WINDOW_DAYS} Days`,
-//         description: "Tasks stuck waiting — may need follow-up",
-//         filters: {
-//           sla_status: "PAUSED",
-//           sla_paused_before: longPausedThreshold.toISOString(),
-//         },
-//       },
-//     },
-//   };
-// };
 
 export const getSLASummary = async (currentUser) => {
   const now = new Date();
@@ -1427,12 +1445,16 @@ export const getSLASummary = async (currentUser) => {
   const activeTaskFilter = {
     task: {
       is_system: false,
+      deleted_at: null,
       status: { notIn: ["COMPLETED", "CANCELLED"] },
     },
   };
 
   const nonSystemTaskFilter = {
-    task: { is_system: false },
+    task: {
+      is_system: false,
+      deleted_at: null,
+    },
   };
 
   const agingFilter = isSuperAdmin
@@ -1510,6 +1532,7 @@ export const getSLASummary = async (currentUser) => {
       COUNT(*) FILTER (WHERE created_at <= NOW() - INTERVAL '60 days') AS older_than_60
     FROM "Task" t
     WHERE is_system = false
+      AND deleted_at IS NULL
       AND status::text IN ('PENDING', 'IN_PROGRESS', 'PENDING_CLIENT_INPUT', 'ON_HOLD')
       ${agingFilter}
     GROUP BY status
@@ -1694,7 +1717,10 @@ export const listTasks = async (filters = {}, currentUser) => {
   const page = Number(filters.page) || 1;
   const pageSize = Number(filters.page_size) || 20;
 
-  const visibilityWhere = buildTaskVisibilityWhere(currentUser);
+  const visibilityWhere = buildTaskVisibilityWhere(currentUser, {
+    deletedOnly: filters.deleted_only === true,
+    includeDeleted: filters.include_deleted === true,
+  });
   const where = buildListWhere(filters, visibilityWhere);
   const isMagicSort = filters.is_magic_sort === true;
   const trueGlobalWhere =
@@ -1774,6 +1800,8 @@ export const searchTasks = async (filters = {}, currentUser) => {
     task_category_id,
     created_date_from,
     created_date_to,
+    deleted_only = false,
+    include_deleted = false,
     page = 1,
     page_size = 10,
   } = filters;
@@ -1805,6 +1833,12 @@ export const searchTasks = async (filters = {}, currentUser) => {
     Math.max(1, parseInt(page_size, 10) || 10),
   );
   const offset = (safePage - 1) * safePageSize;
+
+  const deletedClause = deleted_only
+    ? Prisma.sql`AND t.deleted_at IS NOT NULL`
+    : include_deleted
+      ? Prisma.empty
+      : Prisma.sql`AND t.deleted_at IS NULL`;
 
   // ─────────────────────────────────────────────
   // Visibility logic
@@ -1876,6 +1910,7 @@ export const searchTasks = async (filters = {}, currentUser) => {
     LEFT JOIN "TaskCategory" c ON t.task_category_id = c.id
     WHERE
       t.is_system = FALSE
+      ${deletedClause}
       AND ${visibilityClause}
       ${entity_id ? Prisma.sql`AND t.entity_id = ${entity_id}::uuid` : Prisma.empty}
       ${status ? Prisma.sql`AND t.status = ${status}::"TaskStatus"` : Prisma.empty}

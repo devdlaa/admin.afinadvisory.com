@@ -4,6 +4,8 @@ import Avatar from "@/app/components/shared/newui/Avatar/Avatar";
 import { getProfileUrl } from "@/utils/shared/shared_util";
 
 const AssignmentInfoCard = ({ task, onOpenAssignmentDialog }) => {
+  const assignments = task.assignments || [];
+
   return (
     <div className="task-drawer__assignment-card">
       <div className="task-drawer__assignment-header">
@@ -13,10 +15,10 @@ const AssignmentInfoCard = ({ task, onOpenAssignmentDialog }) => {
           <span className="task-drawer__assignment-pill all">
             <CircleCheckBig size={14} /> Assigned to Everyone
           </span>
-        ) : task.assignments?.length > 0 ? (
+        ) : assignments.length > 0 ? (
           <span className="task-drawer__assignment-pill">
-            <Users2Icon size={14} /> {task.assignments.length} Member
-            {task.assignments.length !== 1 ? "s" : ""}
+            <Users2Icon size={14} /> {assignments.length} Member
+            {assignments.length !== 1 ? "s" : ""}
           </span>
         ) : (
           <span className="task-drawer__assignment-pill unassigned">
@@ -25,40 +27,30 @@ const AssignmentInfoCard = ({ task, onOpenAssignmentDialog }) => {
         )}
       </div>
 
-      {/* Assignee List */}
-      <div className="task-drawer__assignee-list">
+      {/* Compact avatar stack row */}
+      <div className="task-drawer__avatar-row" style={{ marginTop: 14 }}>
         {!task.assigned_to_all &&
-          task.assignments?.map((assignment) => (
-            <div key={assignment.id} className="task-drawer__assignee-row">
+          assignments.map((assignment) => (
+            <div
+              key={assignment.id}
+              title={`${assignment.assignee.name}\n${assignment.assignee.email}`}
+            >
               <Avatar
                 src={getProfileUrl(assignment.assignee.id)}
                 alt={assignment.assignee.name}
-                size={36}
+                size={44}
                 fallbackText={assignment.assignee.name}
               />
-              <div className="task-drawer__assignee-info">
-                <span className="task-drawer__assignee-name">
-                  {assignment.assignee.name}
-                </span>
-                <span className="task-drawer__assignee-email">
-                  {assignment.assignee.email}
-                </span>
-              </div>
             </div>
           ))}
 
-        {/* Add / Manage button */}
+        {/* + button */}
         <button
-          className="task-drawer__assignee-add"
+          className="task-drawer__add-avatar"
           onClick={onOpenAssignmentDialog}
-          title="Manage assignments"
+          title={assignments.length > 0 ? "Manage assignees" : "Assign someone"}
         >
-          <span className="task-drawer__assignee-add-icon">
-            <Plus size={16} />
-          </span>
-          <span className="task-drawer__assignee-add-label">
-            {task.assignments?.length > 0 ? "Manage assignees" : "Assign someone"}
-          </span>
+          <Plus size={18} />
         </button>
       </div>
     </div>

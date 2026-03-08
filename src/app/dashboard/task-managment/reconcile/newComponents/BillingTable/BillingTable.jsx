@@ -10,14 +10,14 @@ import {
   User,
   IndianRupee,
   Maximize,
-  ListChebronsDownUp,
+  Minimize,
 } from "lucide-react";
 
 const ICON_MAP = {
   plus: Plus,
   unlink: Link2Off,
   expand: Maximize,
-  collapse: ListChebronsDownUp,
+  collapse: Minimize,
 };
 
 const BillingTable = ({

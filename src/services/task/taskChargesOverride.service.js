@@ -16,7 +16,6 @@ import {
 
 // ==================== ULTIMATE CONSOLIDATED VALIDATOR ====================
 
-
 async function ensureBillingChargeEditable(input, user) {
   if (typeof input === "string") {
     const task = await prisma.task.findUnique({
@@ -24,13 +23,18 @@ async function ensureBillingChargeEditable(input, user) {
       select: {
         id: true,
         entity_id: true,
+        deleted_at: true,
         invoice_internal_number: true,
         invoice: { select: { status: true } },
       },
     });
 
     if (!task) throw new NotFoundError("Task not found");
-
+    if (task.deleted_at) {
+      throw new ForbiddenError(
+        "Charges cannot be modified because the task is deleted",
+      );
+    }
     if (
       task.invoice_internal_number &&
       task.invoice &&
@@ -173,7 +177,7 @@ export const bulkUpdateChargesByChargeIds = async (
         deleted_at: null,
       },
       include: {
-        task: { select: { id: true, entity_id: true } },
+        task: { select: { id: true, entity_id: true, deleted_at: true } },
       },
     });
 
@@ -181,7 +185,9 @@ export const bulkUpdateChargesByChargeIds = async (
       return;
     }
 
-    const toUpdate = charges.filter((c) => c.status !== newStatus);
+    const toUpdate = charges.filter(
+      (c) => c.status !== newStatus && !c.task?.deleted_at,
+    );
 
     if (toUpdate.length === 0) {
       return;
@@ -311,7 +317,6 @@ export const updateEntityCharge = async (id, data, currentUser) => {
   ) {
     throw new ForbiddenError("Not an ad-hoc charge");
   }
-
 
   await ensureBillingChargeEditable(previous.task.id, currentUser);
   await ensureUserCanManageEntityCharges(previous.task.entity_id, currentUser);

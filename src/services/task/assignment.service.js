@@ -5,8 +5,6 @@ import { addTaskActivityLog } from "./taskComment.service.js";
 import { buildActivityMessage } from "@/utils/server/activityBulder.js";
 const DEFAULT_SLA_DAYS = 7;
 
-
-
 export const syncTaskAssignments = async (
   task_id,
   user_ids,
@@ -26,7 +24,11 @@ export const syncTaskAssignments = async (
 
     if (!task) throw new NotFoundError("Task not found");
 
-   
+    if (task.deleted_at) {
+      throw new ValidationError(
+        "Assignments cannot be modified because the task is deleted",
+      );
+    }
 
     // ---------------- VALIDATIONS ----------------
 
@@ -223,7 +225,7 @@ export const syncTaskAssignments = async (
 
   if (result.changes.length > 0) {
     await addTaskActivityLog(task_id, updated_by, {
-      action: "TASK_UPDATED",
+      action: "TASK_ASSIGNMENT_UPDATED",
       message: buildActivityMessage(result.changes),
       meta: { changes: result.changes },
     });
@@ -380,86 +382,50 @@ export const getAssignmentsByTaskId = async (task_id) => {
  * Reporting - Get assignment counts per user with status breakdown
  */
 export const getAssignmentCountsPerUser = async () => {
-  // Get all assignments with task status
-  const assignments = await prisma.taskAssignment.findMany({
-    select: {
-      admin_user_id: true,
-      task: {
-        select: {
-          status: true,
-        },
-      },
-    },
-  });
+  const rows = await prisma.$queryRaw`
+    SELECT
+      u.id                                                          AS admin_user_id,
+      u.name,
+      u.email,
 
-  // Group by user and count statuses
-  const userStatsMap = new Map();
+      COUNT(DISTINCT ta.task_id)                                    AS total,
 
-  assignments.forEach((assignment) => {
-    const userId = assignment.admin_user_id;
-    const status = assignment.task.status;
+      COUNT(DISTINCT CASE WHEN t.status = 'PENDING'              THEN ta.task_id END) AS pending,
+      COUNT(DISTINCT CASE WHEN t.status = 'IN_PROGRESS'          THEN ta.task_id END) AS in_progress,
+      COUNT(DISTINCT CASE WHEN t.status = 'COMPLETED'            THEN ta.task_id END) AS completed,
+      COUNT(DISTINCT CASE WHEN t.status = 'ON_HOLD'              THEN ta.task_id END) AS on_hold,
+      COUNT(DISTINCT CASE WHEN t.status = 'PENDING_CLIENT_INPUT' THEN ta.task_id END) AS pending_client_input,
+      COUNT(DISTINCT CASE WHEN t.status = 'CANCELLED'            THEN ta.task_id END) AS cancelled
 
-    if (!userStatsMap.has(userId)) {
-      userStatsMap.set(userId, {
-        admin_user_id: userId,
-        total: 0,
-        pending: 0,
-        in_progress: 0,
-        completed: 0,
-        on_hold: 0,
-        pending_client_input: 0,
-        cancelled: 0,
-      });
-    }
+    FROM "TaskAssignment" ta
+    JOIN "Task"      t ON t.id = ta.task_id
+    JOIN "AdminUser" u ON u.id = ta.admin_user_id
 
-    const stats = userStatsMap.get(userId);
-    stats.total++;
+    WHERE
+      t.deleted_at IS NULL
+      AND t.invoice_internal_number IS NULL
+      AND (
+        u.admin_role != 'SUPER_ADMIN'
+        OR (
+          SELECT COUNT(*) FROM "TaskAssignment" ta2
+          WHERE ta2.task_id = ta.task_id
+        ) = 1
+      )
 
-    // Count by status
-    switch (status) {
-      case "PENDING":
-        stats.pending++;
-        break;
-      case "IN_PROGRESS":
-        stats.in_progress++;
-        break;
-      case "COMPLETED":
-        stats.completed++;
-        break;
-      case "ON_HOLD":
-        stats.on_hold++;
-        break;
+    GROUP BY u.id, u.name, u.email
+    ORDER BY total DESC
+  `;
 
-      case "PENDING_CLIENT_INPUT":
-        stats.pending_client_input++;
-        break;
-      case "CANCELLED":
-        stats.cancelled++;
-        break;
-    }
-  });
-
-  // Get user details
-  const userIds = Array.from(userStatsMap.keys());
-
-  const users = await prisma.adminUser.findMany({
-    where: { id: { in: userIds } },
-    select: { id: true, name: true, email: true },
-  });
-
-  const userMap = new Map(users.map((u) => [u.id, u]));
-
-  // Combine stats with user details
-  return Array.from(userStatsMap.values()).map((stats) => ({
-    admin_user_id: stats.admin_user_id,
-    name: userMap.get(stats.admin_user_id)?.name ?? "Unknown",
-    email: userMap.get(stats.admin_user_id)?.email ?? null,
-    total: stats.total,
-    pending: stats.pending,
-    in_progress: stats.in_progress,
-    completed: stats.completed,
-    pending_client_input: stats.pending_client_input,
-    on_hold: stats.on_hold,
-    cancelled: stats.cancelled,
+  return rows.map((row) => ({
+    admin_user_id: row.admin_user_id,
+    name: row.name,
+    email: row.email,
+    total: Number(row.total),
+    pending: Number(row.pending),
+    in_progress: Number(row.in_progress),
+    completed: Number(row.completed),
+    on_hold: Number(row.on_hold),
+    pending_client_input: Number(row.pending_client_input),
+    cancelled: Number(row.cancelled),
   }));
 };

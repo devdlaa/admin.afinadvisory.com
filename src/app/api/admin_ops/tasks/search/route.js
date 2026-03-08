@@ -26,7 +26,15 @@ export async function GET(request) {
       created_date_to: searchParams.get("created_date_to"),
       page: searchParams.get("page"),
       page_size: searchParams.get("page_size"),
+      include_deleted: searchParams.get("include_deleted"),
+      deleted_only: searchParams.get("deleted_only"),
     };
+
+    if (params.include_deleted === "true") params.include_deleted = true;
+    else delete params.include_deleted;
+
+    if (params.deleted_only === "true") params.deleted_only = true;
+    else delete params.deleted_only;
 
     // Strip null values
     Object.keys(params).forEach(

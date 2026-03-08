@@ -15,6 +15,7 @@ import {
   closePanel,
   fetchNotifications,
   markAllAsRead,
+  markAsRead,
 } from "@/store/slices/notificationSlice";
 import { formatDistanceToNow } from "date-fns";
 import styles from "./NotificationPanel.module.scss";
@@ -36,16 +37,21 @@ const NOTIFICATION_COLORS = {
 };
 
 function NotificationItem({ notification, onClose }) {
+  const dispatch = useDispatch();
   const router = useRouter();
 
   const Icon = NOTIFICATION_ICONS[notification.type] || Bell;
   const colorClass = NOTIFICATION_COLORS[notification.type] || "";
 
   const handleClick = () => {
+    // Fire-and-forget — deferred so it never blocks navigation or re-render
+    if (notification.unread) {
+      setTimeout(() => dispatch(markAsRead(notification.id)), 0);
+    }
+
     if (!notification.link) return;
 
     const targetUrl = new URL(notification.link, window.location.origin);
-
     const currentParams = new URLSearchParams(window.location.search);
 
     for (const [key, value] of currentParams.entries()) {
@@ -101,14 +107,10 @@ export default function NotificationPanel() {
     isMarkingAllRead,
   } = useSelector((state) => state.notifications);
 
-  const handleClose = () => {
-    dispatch(closePanel());
-  };
+  const handleClose = () => dispatch(closePanel());
 
   const handleMarkAllAsRead = () => {
-    if (unreadCount > 0) {
-      dispatch(markAllAsRead());
-    }
+    if (unreadCount > 0) dispatch(markAllAsRead());
   };
 
   const handleLoadMore = () => {

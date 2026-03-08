@@ -1,6 +1,8 @@
 import { schemas } from "@/schemas";
-
-import { deleteDocumentService } from "@/services/shared/storage.service";
+import {
+  deleteDocumentService,
+  renameDocumentService,
+} from "@/services/shared/storage.service";
 import {
   createSuccessResponse,
   handleApiError,
@@ -20,6 +22,26 @@ export async function DELETE(req, { params }) {
     });
 
     return createSuccessResponse("Document deleted successfully", result);
+  } catch (e) {
+    return handleApiError(e);
+  }
+}
+
+export async function PATCH(req, { params }) {
+  try {
+    const [permissionError, session, admin_user] = await requirePermission(req);
+    if (permissionError) return permissionError;
+    const { id } = await params;
+    const body = await req.json();
+    const parsed = schemas.document.rename.parse({ id, ...body });
+
+    const result = await renameDocumentService({
+      documentId: parsed.id,
+      newName: parsed.name,
+      currentUserId: admin_user.id,
+    });
+
+    return createSuccessResponse("Document renamed successfully", result);
   } catch (e) {
     return handleApiError(e);
   }

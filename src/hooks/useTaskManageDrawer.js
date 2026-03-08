@@ -11,6 +11,7 @@ import {
   selectManageDialogTaskId,
   updateTaskAssignmentsInList,
   deleteTask,
+  restoreTask,
 } from "@/store/slices/taskSlice";
 
 // Redux — task details slice
@@ -70,6 +71,7 @@ export function useTaskManageDrawer() {
   const isLoading = useSelector((state) => state.taskDetail.loading.task);
   const isUpdating = useSelector((state) => state.task.loading.update);
   const isDeleting = useSelector((state) => state.task.loading.delete);
+  const isRestoring = useSelector((state) => state.task.loading.restoring);
   const taskError = useSelector((state) => state.taskDetail.error.task);
   const isSyncingChecklist = useSelector(
     (state) => state.taskDetail.loading.checklist,
@@ -93,14 +95,19 @@ export function useTaskManageDrawer() {
   const addClientDialogRef = useRef(null);
 
   // ── UI state ───────────────────────────────
-  const [activeTab, setActiveTab] = useState("checklist");
+  const [activeTab, setActiveTab] = useState("status-timeline");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showRestoreConfirm, setShowRestoreConfirm] = useState(false);
   const [showConfirmClose, setShowConfirmClose] = useState(false);
 
-  // ── Status-reason state ────────────────────
-  const [needsReason, setNeedsReason] = useState(false);
-  const [reasonContext, setReasonContext] = useState(null);
-  const [showStatusReasonDialog, setShowStatusReasonDialog] = useState(false);
+  // ── Status-reason dialog state ─────────────
+  // Holds the status that triggered the dialog.
+  // When open, the dialog is un-skippable — user MUST submit a reason
+  // (or clear the status change by pressing Cancel which reverts status).
+  const [reasonDialog, setReasonDialog] = useState({
+    open: false,
+    status: null,
+  });
 
   // ── Primary info state ─────────────────────
   const [primaryInfo, setPrimaryInfo] = useState(EMPTY_PRIMARY_INFO);
@@ -150,18 +157,6 @@ export function useTaskManageDrawer() {
     setOriginalPrimaryInfo(taskData);
     setSelectedEntityData(task.entity ?? null);
   }, [task]);
-
-  // Flag when status changes to a critical value
-  useEffect(() => {
-    if (!originalPrimaryInfo) return;
-    if (
-      primaryInfo.status !== originalPrimaryInfo.status &&
-      CRITICAL_STATUS.includes(primaryInfo.status)
-    ) {
-      setNeedsReason(true);
-      setReasonContext(primaryInfo.status);
-    }
-  }, [primaryInfo.status, originalPrimaryInfo]);
 
   // Sync active tab from URL
   useEffect(() => {
@@ -230,10 +225,8 @@ export function useTaskManageDrawer() {
 
     const isForced = force === true;
 
-    if (!isForced && needsReason) {
-      setShowStatusReasonDialog(true);
-      return;
-    }
+    // If reason dialog is open, don't allow closing the drawer at all
+    if (reasonDialog.open) return;
 
     if (!isForced && hasPrimaryInfoChanges()) {
       setShowConfirmClose(true);
@@ -245,10 +238,9 @@ export function useTaskManageDrawer() {
     window.__closingTaskDrawer = true;
 
     // Reset local state
-    setActiveTab("checklist");
+    setActiveTab("status-timeline");
     setSelectedEntityData(null);
-    setNeedsReason(false);
-    setReasonContext(null);
+    setReasonDialog({ open: false, status: null });
 
     // Clean URL
     const params = new URLSearchParams(window.location.search);
@@ -262,7 +254,8 @@ export function useTaskManageDrawer() {
 
   const handleOverlayClick = (e) => {
     e.stopPropagation();
-    if (isClosingRef.current || isDeleting) return;
+    // Block overlay close if reason dialog is blocking
+    if (isClosingRef.current || isDeleting || reasonDialog.open) return;
     handleClose();
   };
 
@@ -274,11 +267,61 @@ export function useTaskManageDrawer() {
     setPrimaryInfo((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleSavePrimaryInfo = async () => {
+  /**
+   * Called by the status dropdown/selector.
+   * For critical statuses, opens the reason dialog instead of saving immediately.
+   * For all other statuses, saves directly.
+   */
+  const handleStatusChange = (newStatus) => {
+    // Always update local state so the dropdown reflects the change immediately
+    setPrimaryInfo((prev) => ({ ...prev, status: newStatus }));
+
+    if (CRITICAL_STATUS.includes(newStatus)) {
+      // Open un-skippable reason dialog — save is deferred until reason is submitted
+      setReasonDialog({ open: true, status: newStatus });
+    }
+    // For normal statuses just update local state — user saves via the save bar like every other field
+  };
+
+  /**
+   * Called when the user submits the reason dialog.
+   * Saves the task with the current primaryInfo (which already has the new status)
+   * plus the reason string.
+   *
+   * @param {string} reason - The reason text entered by the user
+   */
+  const handleReasonSubmit = async (reason) => {
+    setReasonDialog({ open: false, status: null });
+    await handleSavePrimaryInfo({ reason });
+  };
+
+  /**
+   * Called when the user presses "Cancel" inside the reason dialog.
+   * Reverts the status back to what it was before the change so nothing is saved.
+   */
+  const handleReasonCancel = () => {
+    // Revert status to the last saved value
+    setPrimaryInfo((prev) => ({
+      ...prev,
+      status: originalPrimaryInfo?.status ?? "PENDING",
+    }));
+    setReasonDialog({ open: false, status: null });
+  };
+
+  /**
+   * Core save function.
+   *
+   * @param {Object} opts
+   * @param {string} [opts.reason]         - Optional reason to attach (for critical statuses)
+   * @param {string} [opts.statusOverride] - Pass a status directly when state may not have flushed yet
+   */
+  const handleSavePrimaryInfo = async (opts = {}) => {
+    const { reason } = opts;
+
     const changedFields = Object.keys(primaryInfo).reduce((acc, key) => {
       if (
         JSON.stringify(primaryInfo[key]) !==
-        JSON.stringify(originalPrimaryInfo[key])
+        JSON.stringify(originalPrimaryInfo?.[key])
       ) {
         acc[key] = primaryInfo[key];
       }
@@ -289,6 +332,11 @@ export function useTaskManageDrawer() {
       changedFields.start_date = changedFields.start_date || null;
     if ("due_date" in changedFields)
       changedFields.due_date = changedFields.due_date || null;
+
+    // Attach reason if provided (only for critical status changes)
+    if (reason?.trim()) {
+      changedFields.reason = reason.trim();
+    }
 
     if (!Object.keys(changedFields).length) return;
 
@@ -452,6 +500,16 @@ export function useTaskManageDrawer() {
     }
   };
 
+  const handleRestoreTask = async (totpData) => {
+    try {
+      await dispatch(restoreTask({ taskId: task.id, ...totpData })).unwrap();
+      setShowRestoreConfirm(false);
+      handleClose(true);
+    } catch {
+      /* handled upstream */
+    }
+  };
+
   // ─────────────────────────────────────────────
   // Derived values
   // ─────────────────────────────────────────────
@@ -476,6 +534,7 @@ export function useTaskManageDrawer() {
     isLoading,
     isUpdating,
     isDeleting,
+    isRestoring,
     taskError,
     isSyncingChecklist,
     isLoadingCharges,
@@ -491,20 +550,23 @@ export function useTaskManageDrawer() {
     activeTab,
     setTab,
     showDeleteConfirm,
+    showRestoreConfirm,
+    setShowRestoreConfirm,
+    handleRestoreTask,
     setShowDeleteConfirm,
     showConfirmClose,
     setShowConfirmClose,
 
-    // Status-reason
-    needsReason,
-    reasonContext,
-    showStatusReasonDialog,
-    setShowStatusReasonDialog,
+    // Reason dialog
+    reasonDialog,
+    handleReasonSubmit,
+    handleReasonCancel,
 
     // Primary info
     primaryInfo,
     hasPrimaryInfoChanges,
     handlePrimaryInfoChange,
+    handleStatusChange,
     handleSavePrimaryInfo,
 
     // Entity / client

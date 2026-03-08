@@ -1,14 +1,13 @@
 "use client";
 import React, { useEffect, useRef, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
-import { createComment } from "@/store/slices/taskTimelineSlice";
-import { Loader2, X } from "lucide-react";
+import { useSelector } from "react-redux";
+import { Loader2 } from "lucide-react";
 import styles from "./TaskStatusReasonDialog.module.scss";
 
 const STATUS_COPY = {
   ON_HOLD: {
     title: "Task marked as On Hold",
-    subtitle: "Would you like to add a reason?",
+    subtitle: "Why is this task on hold?",
     placeholder: "e.g. Client is out of station, will resume next month",
   },
   PENDING_CLIENT_INPUT: {
@@ -18,84 +17,68 @@ const STATUS_COPY = {
   },
   CANCELLED: {
     title: "Task cancelled",
-    subtitle: "Please share why this task was cancelled",
+    subtitle: "Why is this task being cancelled?",
     placeholder: "e.g. Task no longer required by client",
   },
 };
 
-const TaskStatusReasonDialog = ({ isOpen, taskId, status, onSkip, onDone }) => {
-  const dispatch = useDispatch();
+/**
+ * Un-skippable reason dialog.
+ *
+ * Props:
+ *   isOpen   {boolean}          - Whether the dialog is visible
+ *   status   {string}           - The critical status that triggered it
+ *   onDone   {(reason) => void} - Called with the reason string when user confirms
+ *   onCancel {() => void}       - Called when user wants to revert the status change
+ *
+ * Note: There is no "skip" path. The user must either:
+ *   1. Submit a reason → onDone(reason) is called → parent saves with reason
+ *   2. Cancel          → onCancel() is called     → parent reverts the status
+ */
+const TaskStatusReasonDialog = ({ isOpen, status, onDone, onCancel }) => {
   const textareaRef = useRef(null);
-
-  const isCreating = useSelector((state) => state.taskTimeline.loading.create);
-
   const [reason, setReason] = useState("");
 
-  // Auto-focus textarea on open
+  const isUpdating = useSelector((state) => state.task.loading.update);
+
+  // Auto-focus and reset on open
   useEffect(() => {
     if (isOpen) {
       setReason("");
-      setTimeout(() => textareaRef.current?.focus(), 0);
+      setTimeout(() => textareaRef.current?.focus(), 50);
     }
   }, [isOpen]);
 
-  // Handle escape key
-  useEffect(() => {
-    const handleEscape = (e) => {
-      if (e.key === "Escape" && isOpen && !isCreating) {
-        onSkip();
-      }
-    };
+  // No escape-key dismiss — dialog is intentionally blocking
 
-    document.addEventListener("keydown", handleEscape);
-    return () => document.removeEventListener("keydown", handleEscape);
-  }, [isOpen, isCreating, onSkip]);
-
-  const handleSubmit = async () => {
-    if (reason.trim()) {
-      await dispatch(
-        createComment({
-          taskId,
-          message: reason.trim(),
-          mentions: [],
-        }),
-      ).unwrap();
-    }
-
-    onDone();
+  const handleSubmit = () => {
+    if (!reason.trim() || isUpdating) return;
+    onDone(reason.trim());
   };
 
-  const handleOverlayClick = (e) => {
-    if (e.target === e.currentTarget && !isCreating) {
-      onSkip();
+  const handleKeyDown = (e) => {
+    // Cmd/Ctrl + Enter submits
+    if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+      e.preventDefault();
+      handleSubmit();
     }
   };
 
   if (!isOpen || !status) return null;
 
   const cfg = STATUS_COPY[status];
+  if (!cfg) return null;
 
   return (
-    <div
-      className={styles.taskStatusReason__overlay}
-      onClick={handleOverlayClick}
-    >
+    // No onClick on overlay — clicking outside does nothing
+    <div className={styles.taskStatusReason__overlay}>
       <div className={styles.taskStatusReason__dialog}>
-        {/* Header */}
+        {/* Header — no close button */}
         <div className={styles.taskStatusReason__header}>
           <div className={styles.taskStatusReason__headerText}>
-            <h3> {cfg.subtitle}</h3>
+            <h3>{cfg.subtitle}</h3>
             <p className={styles.taskStatusReason__subtitle}>{cfg.title}</p>
           </div>
-
-          <button
-            className={styles.taskStatusReason__close}
-            onClick={onSkip}
-            disabled={isCreating}
-            aria-label="Close dialog"
-          >
-            <X size={20} />
-          </button>
         </div>
 
         {/* Body */}
@@ -105,34 +88,41 @@ const TaskStatusReasonDialog = ({ isOpen, taskId, status, onSkip, onDone }) => {
             rows={4}
             value={reason}
             onChange={(e) => setReason(e.target.value)}
+            onKeyDown={handleKeyDown}
             placeholder={cfg.placeholder}
-            disabled={isCreating}
+            disabled={isUpdating}
             className={styles.taskStatusReason__textarea}
           />
+          <p className={styles.taskStatusReason__hint}>
+            Please add a meaningful reason — this helps the others understand the
+            context. Vague entries like <em>"ok"</em>, <em>"done"</em> or{" "}
+            <em>"n/a"</em> won't be helpful later.
+          </p>
         </div>
 
         {/* Actions */}
         <div className={styles.taskStatusReason__actions}>
+          {/* Cancel reverts the status change */}
           <button
             className={styles.btnSecondary}
-            onClick={onSkip}
-            disabled={isCreating}
+            onClick={onCancel}
+            disabled={isUpdating}
           >
-            Skip & Close
+            Cancel Status Change
           </button>
 
           <button
             className={styles.btnPrimary}
             onClick={handleSubmit}
-            disabled={isCreating || !reason.trim()}
+            disabled={isUpdating || !reason.trim()}
           >
-            {isCreating ? (
+            {isUpdating ? (
               <>
-                <Loader2 size={16} className={styles.spin} />
-                Adding...
+                <Loader2 size={15} className={styles.spin} />
+                Saving...
               </>
             ) : (
-              "Add & Close"
+              "Confirm & Save"
             )}
           </button>
         </div>

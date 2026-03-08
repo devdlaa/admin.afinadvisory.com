@@ -135,3 +135,51 @@ export async function deleteDocumentService({ documentId, currentUserId }) {
 
   return { id: doc.id };
 }
+
+export async function renameDocumentService({
+  documentId,
+  newName,
+  currentUserId,
+}) {
+  if (!documentId || !newName?.trim() || !currentUserId) {
+    throw new Error("Missing required parameters");
+  }
+
+  const doc = await prisma.document.findFirst({
+    where: {
+      id: documentId,
+      deleted_at: null,
+    },
+  });
+
+  if (!doc) {
+    throw new NotFoundError("Document not found");
+  }
+
+  const originalExt = doc.original_name.includes(".")
+    ? "." + doc.original_name.split(".").pop()
+    : "";
+
+  const newNameHasExt =
+    originalExt &&
+    newName.trim().toLowerCase().endsWith(originalExt.toLowerCase());
+
+  const finalName = newNameHasExt
+    ? newName.trim()
+    : newName.trim() + originalExt;
+
+  const updated = await prisma.document.update({
+    where: { id: doc.id },
+    data: {
+      original_name: finalName,
+      updated_at: new Date(),
+    },
+    include: {
+      creator: {
+        select: { id: true, name: true, email: true },
+      },
+    },
+  });
+
+  return updated;
+}

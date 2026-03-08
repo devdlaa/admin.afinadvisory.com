@@ -172,6 +172,25 @@ export const deleteTask = createAsyncThunk(
   },
 );
 
+export const restoreTask = createAsyncThunk(
+  "task/restoreTask",
+  async ({ taskId, authorizer_id, totp_code }, { rejectWithValue }) => {
+    try {
+      const result = await apiFetch(`/api/admin_ops/tasks/${taskId}/restore`, {
+        method: "PATCH",
+        body: JSON.stringify({ authorizer_id, totp_code }),
+      });
+      return { taskId, ...result.data };
+    } catch (error) {
+      return rejectWithValue({
+        message: error.message || "Failed to restore task",
+        code: error.code,
+        details: error.details,
+      });
+    }
+  },
+);
+
 export const bulkUpdateTaskStatus = createAsyncThunk(
   "task/bulkUpdateTaskStatus",
   async ({ task_ids, status }, { rejectWithValue }) => {
@@ -368,6 +387,7 @@ const initialState = {
     bulkStatus: false,
     bulkPriority: false,
     bulkAssign: false,
+    restore: false,
   },
 
   error: {
@@ -375,6 +395,7 @@ const initialState = {
     create: null,
     update: null,
     delete: null,
+    restore: null,
     bulkStatus: null,
     bulkPriority: null,
     bulkAssign: null,
@@ -679,6 +700,27 @@ const taskSlice = createSlice({
       .addCase(deleteTask.rejected, (state, action) => {
         state.loading.delete = false;
         state.error.delete = action.payload?.message || "Failed to delete task";
+      });
+
+    builder
+      .addCase(restoreTask.pending, (state) => {
+        state.loading.restore = true;
+        state.error.restore = null;
+      })
+      .addCase(restoreTask.fulfilled, (state, action) => {
+        const { task } = action.payload;
+        if (task) {
+          state.tasks = state.tasks.map((t) =>
+            t.id === task.id ? { ...t, ...task, deleted_at: null } : t,
+          );
+        }
+        state.loading.restore = false;
+        invalidateCache(state);
+      })
+      .addCase(restoreTask.rejected, (state, action) => {
+        state.loading.restore = false;
+        state.error.restore =
+          action.payload?.message || "Failed to restore task";
       });
 
     builder

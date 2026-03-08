@@ -10,6 +10,8 @@ import {
   AlertCircle,
   ArchiveRestore,
   Link,
+  RotateCcw,
+  History,
 } from "lucide-react";
 
 // Components
@@ -28,6 +30,7 @@ import CopyButton from "@/app/components/shared/newui/CopyButton/CopyButton";
 import ConfirmationDialog from "@/app/components/shared/ConfirmationDialog/ConfirmationDialog";
 import DocumentManager from "@/app/components/shared/DocumentManager/DocumentManager";
 import TaskDrawerSkeleton from "../TaskDrawerSkeleton/TaskDrawerSkeleton";
+import TaskStatusTimeline from "../TaskStatusTimeline/TaskStatusTimeline";
 
 import { useTaskManageDrawer } from "@/hooks/useTaskManageDrawer";
 
@@ -78,6 +81,25 @@ const LinkedInvoiceBadge = ({ invoice }) => (
   </div>
 );
 
+const DeletedTaskBadge = ({ deletedAt }) => (
+  <div className="task-deleted-badge">
+    <div className="task-deleted-badge__left">
+      <div className="task-deleted-badge__header">
+        <Trash2 size={13} />
+        <span className="task-deleted-badge__label">Task Deleted</span>
+      </div>
+      <span className="task-deleted-badge__date">
+        Deleted on{" "}
+        {new Date(deletedAt).toLocaleDateString("en-IN", {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+        })}
+      </span>
+    </div>
+  </div>
+);
+
 // ─────────────────────────────────────────────
 // Main component
 // ─────────────────────────────────────────────
@@ -94,6 +116,7 @@ const TaskManageDrawer = () => {
     isLoading,
     isUpdating,
     isDeleting,
+    isRestoring,
     taskError,
     isSyncingChecklist,
     isLoadingCharges,
@@ -110,18 +133,22 @@ const TaskManageDrawer = () => {
     setTab,
     showDeleteConfirm,
     setShowDeleteConfirm,
+    showRestoreConfirm,
+    setShowRestoreConfirm,
+    handleRestoreTask,
     showConfirmClose,
     setShowConfirmClose,
 
-    // Status-reason
-    reasonContext,
-    showStatusReasonDialog,
-    setShowStatusReasonDialog,
+    // Reason dialog — replaces the old showStatusReasonDialog / reasonContext
+    reasonDialog,
+    handleReasonSubmit,
+    handleReasonCancel,
 
     // Primary info
     primaryInfo,
     hasPrimaryInfoChanges,
     handlePrimaryInfoChange,
+    handleStatusChange, // ← use this for status dropdown, not handlePrimaryInfoChange
     handleSavePrimaryInfo,
 
     // Entity / client
@@ -214,6 +241,9 @@ const TaskManageDrawer = () => {
           <div className="task-drawer__body">
             {/* ── Left Panel ── */}
             <div
+              style={{
+                paddingBottom: "0px",
+              }}
               className={`task-drawer__left ${leftPanelScrollable ? "scrollable" : ""}`}
             >
               <TaskPrimaryInfo
@@ -224,16 +254,17 @@ const TaskManageDrawer = () => {
                 isPaymentTab={isPaymentTab}
                 isDocumentsTab={isDocumentsTab}
                 onPrimaryInfoChange={handlePrimaryInfoChange}
+                onStatusChange={handleStatusChange}
               />
 
               {/* Tabs */}
               <div className="task-drawer__tabs">
                 <button
-                  className={`task-drawer__tab ${activeTab === "checklist" ? "active" : ""}`}
-                  onClick={() => setTab("checklist")}
+                  className={`task-drawer__tab ${activeTab === "status-timeline" ? "active" : ""}`}
+                  onClick={() => setTab("status-timeline")}
                 >
-                  <ListTodo size={16} />
-                  <span>Checklist / Sub Tasks</span>
+                  <History size={16} />
+                  <span>Status Timeline</span>
                 </button>
 
                 <button
@@ -241,15 +272,7 @@ const TaskManageDrawer = () => {
                   onClick={() => setTab("payment")}
                 >
                   <IndianRupee size={16} />
-                  <span>Payment & Summary</span>
-                </button>
-
-                <button
-                  className={`task-drawer__tab ${activeTab === "task-activity" ? "active" : ""}`}
-                  onClick={() => setTab("task-activity")}
-                >
-                  <Rocket size={16} />
-                  <span>Task Activity</span>
+                  <span>Task Charges</span>
                 </button>
 
                 <button
@@ -259,12 +282,31 @@ const TaskManageDrawer = () => {
                   <ArchiveRestore size={16} />
                   <span>Documents</span>
                 </button>
+
+                <button
+                  className={`task-drawer__tab ${activeTab === "checklist" ? "active" : ""}`}
+                  onClick={() => setTab("checklist")}
+                >
+                  <ListTodo size={16} />
+                  <span>Checklist</span>
+                </button>
+                <button
+                  className={`task-drawer__tab ${activeTab === "task-activity" ? "active" : ""}`}
+                  onClick={() => setTab("task-activity")}
+                >
+                  <Rocket size={16} />
+                  <span>Task Activity</span>
+                </button>
               </div>
 
               {/* Tab Content */}
               <div
                 className={`task-drawer__tab-content ${leftPanelScrollable ? "scrollable" : ""}`}
               >
+                {activeTab === "status-timeline" && (
+                  <TaskStatusTimeline timeline={task?.status_timeline ?? []} />
+                )}
+
                 {activeTab === "checklist" && (
                   <Checklist
                     initialItems={
@@ -309,7 +351,11 @@ const TaskManageDrawer = () => {
 
             {/* ── Right Panel ── */}
             <div className="task-drawer__right">
-              {task?.invoice && <LinkedInvoiceBadge invoice={task.invoice} />}
+              {task?.deleted_at ? (
+                <DeletedTaskBadge deletedAt={task.deleted_at} />
+              ) : (
+                task?.invoice && <LinkedInvoiceBadge invoice={task.invoice} />
+              )}
 
               <CreatorInfoCard task={task} />
 
@@ -325,27 +371,47 @@ const TaskManageDrawer = () => {
 
               {/* Danger zone */}
               <div className="task-danger-zone">
-                <button
-                  className="task-delete-btn"
-                  disabled={isDeleting}
-                  onClick={() => setShowDeleteConfirm(true)}
-                >
-                  {isDeleting ? (
-                    <>
-                      <Loader2 size={16} className="spin" />
-                      Deleting...
-                    </>
-                  ) : (
-                    <>
-                      <Trash2 size={16} />
-                      Delete Task
-                    </>
-                  )}
-                </button>
+                {task?.deleted_at ? (
+                  <button
+                    className="task-restore-btn"
+                    disabled={isRestoring}
+                    onClick={() => setShowRestoreConfirm(true)}
+                  >
+                    {isRestoring ? (
+                      <>
+                        <Loader2 size={16} className="spin" />
+                        Restoring...
+                      </>
+                    ) : (
+                      <>
+                        <RotateCcw size={16} />
+                        Restore Task
+                      </>
+                    )}
+                  </button>
+                ) : (
+                  <button
+                    className="task-delete-btn"
+                    disabled={isDeleting}
+                    onClick={() => setShowDeleteConfirm(true)}
+                  >
+                    {isDeleting ? (
+                      <>
+                        <Loader2 size={16} className="spin" />
+                        Deleting...
+                      </>
+                    ) : (
+                      <>
+                        <Trash2 size={16} />
+                        Delete Task
+                      </>
+                    )}
+                  </button>
+                )}
               </div>
 
-              {/* Save bar — only visible when there are unsaved changes */}
-              {hasPrimaryInfoChanges() && (
+              {/* Save bar — only when there are unsaved changes and reason dialog is not blocking */}
+              {hasPrimaryInfoChanges() && !reasonDialog.open && (
                 <div className="task-save-bar">
                   <button
                     className="task-save-bar__btn"
@@ -373,6 +439,14 @@ const TaskManageDrawer = () => {
 
       {/* ── Dialogs ── */}
 
+      {/* Un-skippable reason dialog — shown when status changes to ON_HOLD / PENDING_CLIENT_INPUT / CANCELLED */}
+      <TaskStatusReasonDialog
+        isOpen={reasonDialog.open}
+        status={reasonDialog.status}
+        onDone={handleReasonSubmit}
+        onCancel={handleReasonCancel}
+      />
+
       <ConfirmationDialog
         isOpen={showDeleteConfirm}
         onClose={() => setShowDeleteConfirm(false)}
@@ -387,18 +461,19 @@ const TaskManageDrawer = () => {
         onCancel={() => setShowDeleteConfirm(false)}
       />
 
-      <TaskStatusReasonDialog
-        isOpen={showStatusReasonDialog}
-        taskId={task?.id}
-        status={reasonContext}
-        onSkip={() => {
-          setShowStatusReasonDialog(false);
-          handleClose(true);
-        }}
-        onDone={() => {
-          setShowStatusReasonDialog(false);
-          handleClose(true);
-        }}
+      <ConfirmationDialog
+        isOpen={showRestoreConfirm}
+        onClose={() => setShowRestoreConfirm(false)}
+        actionName="Restore this task?"
+        actionInfo="This will restore the task and make it active again."
+        confirmText="Restore Task"
+        criticalConfirmWord="RESTORE"
+        isCritical={true}
+        requireTotp={true}
+        cancelText="Cancel"
+        variant="warning"
+        onConfirm={handleRestoreTask}
+        onCancel={() => setShowRestoreConfirm(false)}
       />
 
       <ClientSelectionDialog

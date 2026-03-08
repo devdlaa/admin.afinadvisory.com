@@ -30,3 +30,17 @@ export const documentListQuerySchema = z.object({
 export const documentDeleteSchema = z.object({
   id: z.string().uuid(),
 });
+
+
+export const renameDocumentSchema = z.object({
+  id: z.string().uuid("Invalid document ID"),
+  name: z
+    .string()
+    .min(1, "File name cannot be empty")
+    .max(255, "File name too long")
+    .trim()
+    // Strip any path traversal attempts
+    .refine((v) => !v.includes("/") && !v.includes("\\"), {
+      message: "File name cannot contain slashes",
+    }),
+});

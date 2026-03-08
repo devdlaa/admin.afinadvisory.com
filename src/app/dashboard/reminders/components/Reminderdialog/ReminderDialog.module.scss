@@ -1,0 +1,900 @@
+/* ReminderDialog.module.scss */
+
+/* ─── Overlay ─────────────────────────────── */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1400;
+  background: rgba(3, 4, 5, 0.82);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.18s ease;
+}
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ─── Wrapper ─────────────────────────────── */
+.wrapper {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  animation: dialogIn 0.22s cubic-bezier(0.34, 1.2, 0.64, 1);
+}
+@keyframes dialogIn {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ─── LEFT CARD ───────────────────────────── */
+.card {
+  width: 640px;
+  max-width: calc(100vw - 32px);
+  height: 80vh;
+  max-height: 80vh;
+  background: #ffffff;
+  border-radius: 22px;
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.04),
+    0 12px 40px rgba(0, 0, 0, 0.16),
+    0 32px 64px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+  z-index: 1;
+  transition: border-radius 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.wrapperExpanded .card {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+/* ─── Header ──────────────────────────────── */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 22px 14px;
+  flex-shrink: 0;
+  gap: 12px;
+}
+.headerTags {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+.statusTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 12px;
+  font-size: 12px;
+  border-radius: 20px;
+
+  font-weight: 600;
+  white-space: nowrap;
+}
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.headerActions {
+  display: flex;
+  align-items: center;
+  flex-direction: row-reverse;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.iconBtn {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    background 0.15s,
+    color 0.15s,
+    transform 0.12s;
+  background: #f1f5f9;
+  color: #334155;
+
+  &:hover {
+    transform: scale(1.08);
+  }
+  &:active {
+    transform: scale(0.95);
+  }
+}
+.iconBtnActive {
+  background: #fef9c3 !important;
+  color: #92400e !important;
+  box-shadow: 0 0 0 1.5px #fde68a;
+}
+.iconBtnDisabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ─── Title ───────────────────────────────── */
+.titleInput {
+  border: none;
+  outline: none;
+  padding: 4px 22px 16px;
+  font-size: 22px;
+  font-weight: 600;
+  color: #0f172a;
+  background: transparent;
+  font-family: inherit;
+  flex-shrink: 0;
+  letter-spacing: -0.025em;
+  line-height: 1.25;
+  width: 100%;
+  &::placeholder {
+    color: #cbd5e1;
+    font-weight: 400;
+  }
+}
+
+/* ─── Description ─────────────────────────── */
+.descArea {
+  margin: 0 18px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1.5px solid #f1f5f9;
+  background: #f8fafc;
+  font-size: 16px;
+  color: #5a6677;
+  resize: none;
+  outline: none;
+  font-family: inherit;
+  line-height: 1.65;
+  min-height: 80px;
+  font-weight: 480;
+  flex-shrink: 0;
+  transition:
+    border-color 0.18s,
+    background 0.18s;
+  &::placeholder {
+    color: #c8c8c8;
+    font-weight: 500;
+  }
+  &:focus {
+    border-color: #cbd5e1;
+    background: #fff;
+  }
+}
+
+/* ─── Tags row ────────────────────────────── */
+.tagsRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 22px 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  flex-shrink: 0;
+  cursor: grab;
+  user-select: none;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+/* ── Tag chip — × button hidden by default, shown on hover ── */
+.tagChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px 4px 12px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  letter-spacing: -0.01em;
+  position: relative;
+  transition: padding-right 0.15s;
+
+  /* Remove button — hidden until chip hover */
+  .tagRemove {
+    display: flex;
+    position: absolute;
+    left: 0;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    opacity: 0;
+    transform: scale(0.6);
+    transition:
+      opacity,
+      position 0.15s,
+      transform 0.15s,
+      background 0.12s;
+    padding: 0;
+    color: inherit;
+    flex-shrink: 0;
+  }
+
+  &:hover .tagRemove {
+    position: relative;
+    opacity: 1;
+    transform: scale(1);
+  }
+  &:hover .tagRemove:hover {
+    background: rgba(0, 0, 0, 0.12);
+  }
+}
+
+/* ── + add button ── */
+.tagAdd {
+
+  height: 30px;
+  padding: 5px 10px;
+  gap: 5px;
+  border-radius: 20px;
+  border: 1.5px dashed #cbd5e1;
+  background: transparent;
+  color: #6f7a89;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    border-color 0.15s,
+    color 0.15s,
+    background 0.15s,
+    transform 0.12s;
+  &:hover {
+    border-color: #94a3b8;
+    color: #475569;
+    background: #f8fafc;
+   
+  }
+}
+
+/* ─── Pills row ───────────────────────────── */
+.pillsRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 20px 22px 21px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 14px;
+  border-radius: 200px;
+  border: none;
+  outline: 1px solid rgba(0, 0, 0, 0.097);
+  background: #fff;
+  color: #334155;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.14s,
+    box-shadow 0.14s,
+    transform 0.1s;
+  white-space: nowrap;
+  letter-spacing: -0.01em;
+  &:hover {
+    background: #f8fafc;
+    box-shadow:
+      rgba(9, 30, 66, 0.25) 0px 1px 1px,
+      rgba(9, 30, 66, 0.13) 0px 0px 1px 1px;
+  }
+  &:active {
+    transform: scale(0.98);
+  }
+}
+.pillRemind {
+  background: #fff7ed;
+  border-color: #fed7aa;
+  color: #c2410c;
+  &:hover {
+    background: #ffedd5;
+  }
+}
+.pillIcon {
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+.pillIconBubble {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  outline: 1px solid rgba(0, 0, 0, 0.07);
+}
+
+/* ─── Divider ─────────────────────────────── */
+.divider {
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    transparent,
+    #e2e8f0 20%,
+    #e2e8f0 80%,
+    transparent
+  );
+  margin: 0 18px;
+  flex-shrink: 0;
+}
+
+/* ─── Checklist header ────────────────────── */
+.checklistHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 22px 22px 15px;
+  flex-shrink: 0;
+}
+.checklistLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #64748b;
+  letter-spacing: -0.01em;
+}
+.checklistLabelIcon {
+  color: #64748b;
+}
+.checklistBadge {
+  background: #1e293b;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 12px;
+  border-radius: 20px;
+  letter-spacing: 0.02em;
+}
+
+/* ─── Checklist body ──────────────────────── */
+.checklistBody {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: #e2e8f0;
+    border-radius: 4px;
+  }
+}
+
+/* ─── Checklist item ──────────────────────── */
+.checkItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 12px 11px 14px;
+  border-radius: 12px;
+  border: 1.5px solid #f1f5f9;
+  background: #fafafa;
+  cursor: grab;
+  transition:
+    border-color 0.15s,
+    background 0.15s,
+    box-shadow 0.15s,
+    transform 0.15s;
+
+  /* Show grip + delete on row hover */
+  &:hover {
+    border-color: #e2e8f0;
+    background: #fff;
+
+    .checkGrip {
+      opacity: 1;
+    }
+    .checkDelete {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+  &:active {
+    cursor: grabbing;
+  }
+}
+.checkItemOver {
+  border-color: #93c5fd !important;
+  background: #eff6ff !important;
+  box-shadow: 0 0 0 3px rgba(147, 197, 253, 0.3) !important;
+  transform: scale(1.01);
+}
+
+.checkGrip {
+  color: #cbd5e1;
+  opacity: 0;
+  transition: opacity 0.15s;
+  flex-shrink: 0;
+  line-height: 0;
+}
+
+.checkCircle {
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  border-radius: 50%;
+  border: 2px solid #d1d5db;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition:
+    background 0.18s,
+    border-color 0.18s,
+    transform 0.12s;
+  color: #fff;
+  &:hover {
+    border-color: #6b7280;
+    transform: scale(1.1);
+  }
+}
+.checkCircleDone {
+  background: #1e293b;
+  border-color: #1e293b;
+}
+
+.checkInput {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 15px;
+  font-weight: 450;
+  color: #1e2837;
+  background: transparent;
+  font-family: inherit;
+  min-width: 0;
+  line-height: 1.4;
+  &::placeholder {
+    color: #cbd5e1;
+  }
+}
+.checkInputDone {
+  text-decoration: line-through;
+  color: #94a3b8;
+}
+
+/* Delete button — hidden by default, revealed by .checkItem:hover above */
+.checkDelete {
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  opacity: 0;
+  transform: scale(0.7);
+  transition:
+    opacity 0.15s,
+    transform 0.15s,
+    background 0.12s,
+    color 0.12s;
+  &:hover {
+    background: #fee2e2;
+    color: #ef4444;
+  }
+}
+
+/* ─── Add row ─────────────────────────────── */
+.checkAddRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 12px 11px 14px;
+  border-radius: 12px;
+  border: 1.5px dashed #e2e8f0;
+  background: #fafafa;
+  cursor: text;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+  &:focus-within {
+    border-color: #94a3b8;
+    background: #fff;
+  }
+}
+.checkAddRowDisabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+.checkAddCircle {
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  border-radius: 50%;
+  border: 2px dashed #d1d5db;
+  flex-shrink: 0;
+}
+.checkAddInput {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 14px;
+  color: #475569;
+  background: transparent;
+  font-family: inherit;
+  &::placeholder {
+    color: #cbd5e1;
+  }
+  &:disabled {
+    cursor: not-allowed;
+  }
+}
+
+/* ─── RIGHT PANEL ─────────────────────────── */
+.panel {
+  width: 0;
+  overflow: hidden;
+  background: #f8fafc;
+  border-top-right-radius: 22px;
+  border-bottom-right-radius: 22px;
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.12),
+    0 32px 64px rgba(0, 0, 0, 0.06);
+
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+
+  will-change: width;
+  transition: width 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.panelVisible {
+  width: 400px;
+}
+
+.panelTabBar {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  padding: 16px 14px 12px;
+  gap: 4px;
+  border-bottom: 1px solid #e2e8f0;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.panelTab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: center;
+  padding: 7px 14px;
+  border-radius: 50px;
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background 0.14s,
+    color 0.14s;
+  white-space: nowrap;
+  &:hover {
+    background: #eef2ff;
+    color: #475569;
+  }
+}
+.panelTabActive {
+  background: #fff;
+  color: #1e293b;
+  outline: 1px solid rgba(0, 0, 0, 0.099);
+}
+
+.panelBody {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 16px;
+  min-width: 290px;
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: #e2e8f0;
+    border-radius: 4px;
+  }
+}
+.panelEmpty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 100%;
+  min-height: 200px;
+  color: #94a3b8;
+  text-align: center;
+  p {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 500;
+    color: #64748b;
+  }
+  span {
+    font-size: 12.5px;
+    color: #94a3b8;
+    max-width: 180px;
+    line-height: 1.5;
+  }
+}
+
+
+/* ─────────────────────────────────────────────────────────────
+   Append these to the bottom of ReminderDialog.module.scss
+───────────────────────────────────────────────────────────── */
+
+/* ─── Required pill state ─────────────────── */
+.pillRequired {
+  outline: 1.5px dashed #FC8181 !important;
+  background: #FFF5F5 !important;
+  color: #C53030 !important;
+}
+
+/* ─── Pill clear × button ─────────────────── */
+.pillClear {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  margin-left: 2px;
+  cursor: pointer;
+  opacity: 0.55;
+  transition: opacity 0.14s, background 0.14s;
+  flex-shrink: 0;
+
+  &:hover {
+    opacity: 1;
+    background: rgba(0, 0, 0, 0.1);
+  }
+}
+
+/* ─── Form error ──────────────────────────── */
+.formError {
+  margin: 0 22px 4px;
+  padding: 9px 14px;
+  background: #FEF2F2;
+  border: 1.5px solid #FECACA;
+  border-radius: 10px;
+  font-size: 13px;
+  color: #B91C1C;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+/* ─── Footer bar ──────────────────────────── */
+.footerBar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 22px 18px;
+  border-top: 1px solid #F1F5F9;
+  flex-shrink: 0;
+  margin-top: auto;
+}
+
+.footerDiscard {
+  height: 38px;
+  padding: 0 18px;
+  border-radius: 10px;
+  border: 1.5px solid #E2E8F0;
+  background: transparent;
+  color: #64748B;
+  font-size: 13.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.14s, border-color 0.14s;
+  font-family: inherit;
+
+  &:hover {
+    background: #F8FAFC;
+    border-color: #CBD5E1;
+  }
+}
+
+.footerSave {
+  flex: 1;
+  height: 38px;
+  padding: 0 18px;
+  border-radius: 10px;
+  border: none;
+  background: #0F172A;
+  color: #FFFFFF;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.14s, transform 0.1s;
+  font-family: inherit;
+
+  &:hover { background: #1E293B; }
+  &:active { transform: scale(0.98); }
+}
+
+/* ─── Assignee pill popover ───────────────── */
+.assigneeWrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.assigneeDropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 200;
+  width: 260px;
+  background: #fff;
+  border-radius: 14px;
+  border: 1.5px solid #E2E8F0;
+  box-shadow:
+    0 4px 6px rgba(0, 0, 0, 0.04),
+    0 10px 30px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  animation: dropIn 0.16s cubic-bezier(0.34, 1.2, 0.64, 1);
+}
+
+@keyframes dropIn {
+  from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)    scale(1);    }
+}
+
+.assigneeSearch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-bottom: 1px solid #F1F5F9;
+}
+
+.assigneeSearchIcon {
+  color: #94A3B8;
+  flex-shrink: 0;
+}
+
+.assigneeSearchInput {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 13.5px;
+  color: #1E293B;
+  background: transparent;
+  font-family: inherit;
+
+  &::placeholder { color: #CBD5E1; }
+}
+
+.assigneeList {
+  max-height: 220px;
+  overflow-y: auto;
+  padding: 6px;
+
+  &::-webkit-scrollbar { width: 4px; }
+  &::-webkit-scrollbar-thumb { background: #E2E8F0; border-radius: 4px; }
+}
+
+.assigneeEmpty {
+  padding: 16px;
+  text-align: center;
+  font-size: 13px;
+  color: #94A3B8;
+}
+
+.assigneeOption {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 9px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s;
+  font-family: inherit;
+
+  &:hover { background: #F8FAFC; }
+}
+
+.assigneeOptionActive {
+  background: #F0FDF4 !important;
+}
+
+.assigneeAvatar {
+  width: 30px;
+  height: 30px;
+  min-width: 30px;
+  border-radius: 50%;
+  background: #E2E8F0;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.assigneeInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.assigneeName {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #1E293B;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.assigneeEmail {
+  font-size: 11.5px;
+  color: #94A3B8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.assigneeCheck {
+  color: #22C55E;
+  flex-shrink: 0;
+}

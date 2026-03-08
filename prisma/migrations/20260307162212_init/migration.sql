@@ -5,10 +5,13 @@ CREATE TYPE "AdminUserAppRole" AS ENUM ('SUPER_ADMIN', 'ADMIN', 'MANAGER', 'EMPL
 CREATE TYPE "EntityStatus" AS ENUM ('ACTIVE', 'INACTIVE', 'SUSPENDED');
 
 -- CreateEnum
-CREATE TYPE "DocumentScope" AS ENUM ('TASK', 'INVOICE', 'ENTITY', 'COMPANY_PROFILE', 'OTHER');
+CREATE TYPE "DocumentScope" AS ENUM ('TASK', 'INVOICE', 'ENTITY', 'COMPANY_PROFILE', 'OTHER', 'REMINDER');
 
 -- CreateEnum
 CREATE TYPE "AdminUserStatus" AS ENUM ('ACTIVE', 'INACTIVE', 'SUSPENDED');
+
+-- CreateEnum
+CREATE TYPE "SLAStatus" AS ENUM ('NONE', 'RUNNING', 'PAUSED', 'BREACHED', 'COMPLETED');
 
 -- CreateEnum
 CREATE TYPE "ChargeType" AS ENUM ('EXTERNAL_CHARGE', 'GOVERNMENT_FEE', 'SERVICE_FEE', 'OTHER_CHARGES');
@@ -36,6 +39,18 @@ CREATE TYPE "IndianState" AS ENUM ('ANDHRA_PRADESH', 'ARUNACHAL_PRADESH', 'ASSAM
 
 -- CreateEnum
 CREATE TYPE "EntityType" AS ENUM ('INDIVIDUAL', 'UN_REGISTRED', 'PRIVATE_LIMITED_COMPANY', 'PUBLIC_LIMITED_COMPANY', 'ONE_PERSON_COMPANY', 'SECTION_8_COMPANY', 'PRODUCER_COMPANY', 'SOLE_PROPRIETORSHIP', 'PARTNERSHIP_FIRM', 'LIMITED_LIABILITY_PARTNERSHIP', 'TRUST', 'SOCIETY', 'COOPERATIVE_SOCIETY', 'FOREIGN_COMPANY', 'GOVERNMENT_COMPANY', 'ASSOCIATION_OF_PERSON', 'HUF');
+
+-- CreateEnum
+CREATE TYPE "ReminderStatus" AS ENUM ('PENDING', 'COMPLETED', 'CANCELLED');
+
+-- CreateEnum
+CREATE TYPE "NotificationChannel" AS ENUM ('IN_APP', 'WHATSAPP', 'EMAIL');
+
+-- CreateEnum
+CREATE TYPE "NotificationStatus" AS ENUM ('PENDING', 'SENT', 'FAILED');
+
+-- CreateEnum
+CREATE TYPE "RecurrenceType" AS ENUM ('DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY');
 
 -- CreateTable
 CREATE TABLE "Entity" (
@@ -206,6 +221,11 @@ CREATE TABLE "TaskAssignment" (
     "assigned_by" UUID NOT NULL,
     "assignment_source" TEXT,
     "assigned_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "sla_days" INTEGER,
+    "due_date" TIMESTAMP(3),
+    "sla_status" "SLAStatus" NOT NULL DEFAULT 'RUNNING',
+    "sla_paused_at" TIMESTAMP(3),
+    "sla_breached_at" TIMESTAMP(3),
 
     CONSTRAINT "TaskAssignment_pkey" PRIMARY KEY ("id")
 );
@@ -234,6 +254,8 @@ CREATE TABLE "Task" (
     "last_commented_by" UUID,
     "task_category_id" UUID,
     "invoice_internal_number" VARCHAR(50),
+    "deleted_at" TIMESTAMP(3),
+    "deleted_by" UUID,
     "invoiced_at" TIMESTAMP(3),
     "is_locked" BOOLEAN NOT NULL DEFAULT false,
     "is_system" BOOLEAN NOT NULL DEFAULT false,
@@ -354,6 +376,118 @@ CREATE TABLE "Document" (
     CONSTRAINT "Document_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE "Reminder" (
+    "id" UUID NOT NULL,
+    "title" VARCHAR(255) NOT NULL,
+    "description" TEXT,
+    "created_by" UUID NOT NULL,
+    "assigned_to" UUID NOT NULL,
+    "task_id" UUID,
+    "due_at" TIMESTAMP(3) NOT NULL,
+    "is_time_sensitive" BOOLEAN NOT NULL DEFAULT false,
+    "snoozed_until" TIMESTAMP(3),
+    "completed_at" TIMESTAMP(3),
+    "is_recurring" BOOLEAN NOT NULL DEFAULT false,
+    "recurrence_type" "RecurrenceType",
+    "recurrence_every" INTEGER,
+    "recurrence_end" TIMESTAMP(3),
+    "recurrence_ends_after" INTEGER,
+    "week_days" INTEGER[],
+    "repeat_by" TEXT,
+    "parent_id" UUID,
+    "bucket_id" UUID,
+    "google_event_id" TEXT,
+    "google_synced_at" TIMESTAMP(3),
+    "status" "ReminderStatus" NOT NULL DEFAULT 'PENDING',
+    "deleted_at" TIMESTAMP(3),
+    "deleted_by" UUID,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+    "updated_by" UUID NOT NULL,
+
+    CONSTRAINT "Reminder_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ReminderBucket" (
+    "id" UUID NOT NULL,
+    "user_id" UUID NOT NULL,
+    "name" TEXT NOT NULL,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "normalized_name" TEXT NOT NULL,
+    "icon" TEXT NOT NULL DEFAULT 'HASH',
+
+    CONSTRAINT "ReminderBucket_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ReminderTag" (
+    "id" UUID NOT NULL,
+    "user_id" UUID NOT NULL,
+    "name" TEXT NOT NULL,
+    "color" VARCHAR(20) NOT NULL,
+    "normalized_name" TEXT NOT NULL,
+
+    CONSTRAINT "ReminderTag_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ReminderTagMap" (
+    "reminder_id" UUID NOT NULL,
+    "tag_id" UUID NOT NULL,
+
+    CONSTRAINT "ReminderTagMap_pkey" PRIMARY KEY ("reminder_id","tag_id")
+);
+
+-- CreateTable
+CREATE TABLE "ReminderChecklistItem" (
+    "id" UUID NOT NULL,
+    "reminder_id" UUID NOT NULL,
+    "title" TEXT NOT NULL,
+    "is_done" BOOLEAN NOT NULL DEFAULT false,
+    "order" INTEGER NOT NULL DEFAULT 0,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+    "created_by" UUID NOT NULL,
+    "updated_by" UUID NOT NULL,
+
+    CONSTRAINT "ReminderChecklistItem_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ReminderNotification" (
+    "id" UUID NOT NULL,
+    "reminder_id" UUID NOT NULL,
+    "user_id" UUID NOT NULL,
+    "channel" "NotificationChannel" NOT NULL,
+    "status" "NotificationStatus" NOT NULL DEFAULT 'PENDING',
+    "attempt_count" INTEGER NOT NULL DEFAULT 0,
+    "last_attempt" TIMESTAMP(3),
+    "next_retry_at" TIMESTAMP(3),
+    "error_message" TEXT,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "ReminderNotification_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "UserNotificationPreference" (
+    "user_id" UUID NOT NULL,
+    "whatsapp_enabled" BOOLEAN NOT NULL DEFAULT false,
+    "whatsapp_opted_in_at" TIMESTAMP(3),
+    "whatsapp_last_verified_at" TIMESTAMP(3),
+    "whatsapp_opt_out_at" TIMESTAMP(3),
+    "email_enabled" BOOLEAN NOT NULL DEFAULT true,
+    "in_app_enabled" BOOLEAN NOT NULL DEFAULT true,
+    "daily_summary_enabled" BOOLEAN NOT NULL DEFAULT true,
+    "summary_send_time" TIMESTAMP(3),
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "UserNotificationPreference_pkey" PRIMARY KEY ("user_id")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "Entity_pan_key" ON "Entity"("pan");
 
@@ -460,13 +594,13 @@ CREATE INDEX "TaskAssignment_task_id_idx" ON "TaskAssignment"("task_id");
 CREATE INDEX "TaskAssignment_admin_user_id_idx" ON "TaskAssignment"("admin_user_id");
 
 -- CreateIndex
-CREATE INDEX "TaskAssignment_admin_user_id_task_id_idx" ON "TaskAssignment"("admin_user_id", "task_id");
+CREATE INDEX "TaskAssignment_admin_user_id_due_date_idx" ON "TaskAssignment"("admin_user_id", "due_date");
 
 -- CreateIndex
-CREATE INDEX "TaskAssignment_assigned_at_idx" ON "TaskAssignment"("assigned_at");
+CREATE INDEX "TaskAssignment_sla_status_sla_paused_at_idx" ON "TaskAssignment"("sla_status", "sla_paused_at");
 
 -- CreateIndex
-CREATE INDEX "TaskAssignment_assigned_by_idx" ON "TaskAssignment"("assigned_by");
+CREATE INDEX "TaskAssignment_sla_status_due_date_idx" ON "TaskAssignment"("sla_status", "due_date");
 
 -- CreateIndex
 CREATE INDEX "Task_entity_id_is_system_created_at_idx" ON "Task"("entity_id", "is_system", "created_at");
@@ -503,6 +637,9 @@ CREATE INDEX "Task_due_date_idx" ON "Task"("due_date");
 
 -- CreateIndex
 CREATE INDEX "Task_created_at_idx" ON "Task"("created_at");
+
+-- CreateIndex
+CREATE INDEX "Task_deleted_at_idx" ON "Task"("deleted_at");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "UserPushToken_token_key" ON "UserPushToken"("token");
@@ -552,6 +689,102 @@ CREATE INDEX "Document_scope_scope_id_idx" ON "Document"("scope", "scope_id");
 -- CreateIndex
 CREATE INDEX "Document_created_at_idx" ON "Document"("created_at");
 
+-- CreateIndex
+CREATE INDEX "Reminder_assigned_to_status_due_at_idx" ON "Reminder"("assigned_to", "status", "due_at");
+
+-- CreateIndex
+CREATE INDEX "Reminder_due_at_idx" ON "Reminder"("due_at");
+
+-- CreateIndex
+CREATE INDEX "Reminder_status_idx" ON "Reminder"("status");
+
+-- CreateIndex
+CREATE INDEX "Reminder_task_id_idx" ON "Reminder"("task_id");
+
+-- CreateIndex
+CREATE INDEX "Reminder_bucket_id_idx" ON "Reminder"("bucket_id");
+
+-- CreateIndex
+CREATE INDEX "Reminder_deleted_at_idx" ON "Reminder"("deleted_at");
+
+-- CreateIndex
+CREATE INDEX "Reminder_created_by_status_due_at_idx" ON "Reminder"("created_by", "status", "due_at");
+
+-- CreateIndex
+CREATE INDEX "Reminder_assigned_to_due_at_deleted_at_idx" ON "Reminder"("assigned_to", "due_at", "deleted_at");
+
+-- CreateIndex
+CREATE INDEX "Reminder_assigned_to_status_deleted_at_idx" ON "Reminder"("assigned_to", "status", "deleted_at");
+
+-- CreateIndex
+CREATE INDEX "Reminder_parent_id_idx" ON "Reminder"("parent_id");
+
+-- CreateIndex
+CREATE INDEX "Reminder_status_due_at_idx" ON "Reminder"("status", "due_at");
+
+-- CreateIndex
+CREATE INDEX "Reminder_is_recurring_recurrence_end_idx" ON "Reminder"("is_recurring", "recurrence_end");
+
+-- CreateIndex
+CREATE INDEX "Reminder_task_id_status_idx" ON "Reminder"("task_id", "status");
+
+-- CreateIndex
+CREATE INDEX "Reminder_snoozed_until_idx" ON "Reminder"("snoozed_until");
+
+-- CreateIndex
+CREATE INDEX "Reminder_google_event_id_idx" ON "Reminder"("google_event_id");
+
+-- CreateIndex
+CREATE INDEX "Reminder_created_at_idx" ON "Reminder"("created_at");
+
+-- CreateIndex
+CREATE INDEX "ReminderBucket_user_id_idx" ON "ReminderBucket"("user_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ReminderBucket_user_id_name_key" ON "ReminderBucket"("user_id", "name");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ReminderBucket_user_id_normalized_name_key" ON "ReminderBucket"("user_id", "normalized_name");
+
+-- CreateIndex
+CREATE INDEX "ReminderTag_user_id_idx" ON "ReminderTag"("user_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ReminderTag_user_id_name_key" ON "ReminderTag"("user_id", "name");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ReminderTag_user_id_normalized_name_key" ON "ReminderTag"("user_id", "normalized_name");
+
+-- CreateIndex
+CREATE INDEX "ReminderTagMap_tag_id_idx" ON "ReminderTagMap"("tag_id");
+
+-- CreateIndex
+CREATE INDEX "ReminderTagMap_reminder_id_idx" ON "ReminderTagMap"("reminder_id");
+
+-- CreateIndex
+CREATE INDEX "ReminderChecklistItem_reminder_id_idx" ON "ReminderChecklistItem"("reminder_id");
+
+-- CreateIndex
+CREATE INDEX "ReminderNotification_reminder_id_idx" ON "ReminderNotification"("reminder_id");
+
+-- CreateIndex
+CREATE INDEX "ReminderNotification_user_id_idx" ON "ReminderNotification"("user_id");
+
+-- CreateIndex
+CREATE INDEX "ReminderNotification_status_idx" ON "ReminderNotification"("status");
+
+-- CreateIndex
+CREATE INDEX "ReminderNotification_channel_idx" ON "ReminderNotification"("channel");
+
+-- CreateIndex
+CREATE INDEX "UserNotificationPreference_whatsapp_enabled_idx" ON "UserNotificationPreference"("whatsapp_enabled");
+
+-- CreateIndex
+CREATE INDEX "UserNotificationPreference_email_enabled_idx" ON "UserNotificationPreference"("email_enabled");
+
+-- CreateIndex
+CREATE INDEX "UserNotificationPreference_daily_summary_enabled_summary_se_idx" ON "UserNotificationPreference"("daily_summary_enabled", "summary_send_time");
+
 -- AddForeignKey
 ALTER TABLE "Entity" ADD CONSTRAINT "Entity_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "AdminUser"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
@@ -586,9 +819,6 @@ ALTER TABLE "TaskCharge" ADD CONSTRAINT "TaskCharge_created_by_fkey" FOREIGN KEY
 ALTER TABLE "TaskCharge" ADD CONSTRAINT "TaskCharge_deleted_by_fkey" FOREIGN KEY ("deleted_by") REFERENCES "AdminUser"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "TaskCharge" ADD CONSTRAINT "TaskCharge_paid_via_invoice_id_fkey" FOREIGN KEY ("paid_via_invoice_id") REFERENCES "Invoice"("id") ON DELETE SET NULL ON UPDATE NO ACTION;
-
--- AddForeignKey
 ALTER TABLE "TaskCharge" ADD CONSTRAINT "TaskCharge_restored_by_fkey" FOREIGN KEY ("restored_by") REFERENCES "AdminUser"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -596,6 +826,9 @@ ALTER TABLE "TaskCharge" ADD CONSTRAINT "TaskCharge_task_id_fkey" FOREIGN KEY ("
 
 -- AddForeignKey
 ALTER TABLE "TaskCharge" ADD CONSTRAINT "TaskCharge_updated_by_fkey" FOREIGN KEY ("updated_by") REFERENCES "AdminUser"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "TaskCharge" ADD CONSTRAINT "TaskCharge_paid_via_invoice_id_fkey" FOREIGN KEY ("paid_via_invoice_id") REFERENCES "Invoice"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "TaskChecklistItem" ADD CONSTRAINT "TaskChecklistItem_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "AdminUser"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -653,3 +886,51 @@ ALTER TABLE "Invoice" ADD CONSTRAINT "Invoice_entity_id_fkey" FOREIGN KEY ("enti
 
 -- AddForeignKey
 ALTER TABLE "Document" ADD CONSTRAINT "Document_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "AdminUser"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Reminder" ADD CONSTRAINT "Reminder_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "AdminUser"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Reminder" ADD CONSTRAINT "Reminder_assigned_to_fkey" FOREIGN KEY ("assigned_to") REFERENCES "AdminUser"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Reminder" ADD CONSTRAINT "Reminder_updated_by_fkey" FOREIGN KEY ("updated_by") REFERENCES "AdminUser"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Reminder" ADD CONSTRAINT "Reminder_task_id_fkey" FOREIGN KEY ("task_id") REFERENCES "Task"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Reminder" ADD CONSTRAINT "Reminder_parent_id_fkey" FOREIGN KEY ("parent_id") REFERENCES "Reminder"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Reminder" ADD CONSTRAINT "Reminder_bucket_id_fkey" FOREIGN KEY ("bucket_id") REFERENCES "ReminderBucket"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ReminderBucket" ADD CONSTRAINT "ReminderBucket_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "AdminUser"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ReminderTag" ADD CONSTRAINT "ReminderTag_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "AdminUser"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ReminderTagMap" ADD CONSTRAINT "ReminderTagMap_reminder_id_fkey" FOREIGN KEY ("reminder_id") REFERENCES "Reminder"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ReminderTagMap" ADD CONSTRAINT "ReminderTagMap_tag_id_fkey" FOREIGN KEY ("tag_id") REFERENCES "ReminderTag"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ReminderChecklistItem" ADD CONSTRAINT "ReminderChecklistItem_reminder_id_fkey" FOREIGN KEY ("reminder_id") REFERENCES "Reminder"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ReminderChecklistItem" ADD CONSTRAINT "ReminderChecklistItem_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "AdminUser"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ReminderChecklistItem" ADD CONSTRAINT "ReminderChecklistItem_updated_by_fkey" FOREIGN KEY ("updated_by") REFERENCES "AdminUser"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ReminderNotification" ADD CONSTRAINT "ReminderNotification_reminder_id_fkey" FOREIGN KEY ("reminder_id") REFERENCES "Reminder"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ReminderNotification" ADD CONSTRAINT "ReminderNotification_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "AdminUser"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "UserNotificationPreference" ADD CONSTRAINT "UserNotificationPreference_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "AdminUser"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

@@ -24,6 +24,8 @@ import {
   RefreshCw,
   Grid3x3,
   List,
+  Pencil,
+  Check,
 } from "lucide-react";
 
 import {
@@ -31,6 +33,7 @@ import {
   uploadDocument,
   deleteDocument,
   downloadDocument,
+  renameDocument,
   setSearchQuery,
   setSortConfig,
   selectDocumentsForScope,
@@ -39,6 +42,7 @@ import {
   selectIsUploading,
   selectIsDownloading,
   selectIsDeleting,
+  selectIsRenaming,
   clearError,
 } from "@/store/slices/documentSlice";
 
@@ -54,9 +58,8 @@ const DocumentManager = ({ scope, scopeId }) => {
   const dispatch = useDispatch();
   const fileInputRef = useRef(null);
   const [isDragOver, setIsDragOver] = useState(false);
-  const [viewMode, setViewMode] = useState("list"); 
+  const [viewMode, setViewMode] = useState("list");
 
-  // Selectors
   const { items, pagination, loading } = useSelector((state) =>
     selectDocumentsForScope(state, scope, scopeId),
   );
@@ -71,7 +74,6 @@ const DocumentManager = ({ scope, scopeId }) => {
   );
   const error = useSelector((state) => state.documents.error);
 
-  // Local state
   const [currentPage, setCurrentPage] = useState(1);
   const [deleteDialog, setDeleteDialog] = useState({
     isOpen: false,
@@ -93,10 +95,8 @@ const DocumentManager = ({ scope, scopeId }) => {
     setCurrentPage(1);
   }, [dispatch, scope, scopeId]);
 
-  // Filtered items based on search
   const filteredItems = useMemo(() => {
     if (!searchQuery.trim()) return items;
-
     const query = searchQuery.toLowerCase();
     return items.filter(
       (doc) =>
@@ -105,7 +105,6 @@ const DocumentManager = ({ scope, scopeId }) => {
     );
   }, [items, searchQuery]);
 
-  // Drag and Drop Handlers
   const handleDragEnter = useCallback((e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -115,9 +114,7 @@ const DocumentManager = ({ scope, scopeId }) => {
   const handleDragLeave = useCallback((e) => {
     e.preventDefault();
     e.stopPropagation();
-    if (e.currentTarget === e.target) {
-      setIsDragOver(false);
-    }
+    if (e.currentTarget === e.target) setIsDragOver(false);
   }, []);
 
   const handleDragOver = useCallback((e) => {
@@ -130,7 +127,6 @@ const DocumentManager = ({ scope, scopeId }) => {
       e.preventDefault();
       e.stopPropagation();
       setIsDragOver(false);
-
       const files = e.dataTransfer.files;
       if (files && files[0]) {
         dispatch(uploadDocument({ file: files[0], scope, scopeId }));
@@ -139,19 +135,10 @@ const DocumentManager = ({ scope, scopeId }) => {
     [dispatch, scope, scopeId],
   );
 
-  // File Handlers
   const handleFileSelect = (e) => {
     const file = e.target.files?.[0];
-    if (file) {
-      dispatch(uploadDocument({ file, scope, scopeId }));
-    }
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-  };
-
-  const handleAddNewClick = () => {
-    fileInputRef.current?.click();
+    if (file) dispatch(uploadDocument({ file, scope, scopeId }));
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const handleSearch = (e) => {
@@ -173,7 +160,6 @@ const DocumentManager = ({ scope, scopeId }) => {
         order: newOrder,
       }),
     );
-    // Force refresh when sorting changes
     dispatch(
       fetchDocuments({
         scope,
@@ -238,6 +224,10 @@ const DocumentManager = ({ scope, scopeId }) => {
     );
   };
 
+  const handleRename = (documentId, name) => {
+    dispatch(renameDocument({ documentId, name }));
+  };
+
   const SortIcon = ({ field }) => {
     if (sortConfig.sort !== field) return null;
     return sortConfig.order === "desc" ? (
@@ -255,7 +245,6 @@ const DocumentManager = ({ scope, scopeId }) => {
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
-      {/* Drag Overlay */}
       {isDragOver && (
         <div className={styles.dragOverlay}>
           <div className={styles.dragContent}>
@@ -278,7 +267,6 @@ const DocumentManager = ({ scope, scopeId }) => {
           </div>
 
           <div className={styles.headerRight}>
-            {/* View Toggle */}
             <div className={styles.viewToggle}>
               <button
                 className={`${styles.viewButton} ${viewMode === "grid" ? styles.active : ""}`}
@@ -296,7 +284,6 @@ const DocumentManager = ({ scope, scopeId }) => {
               </button>
             </div>
 
-            {/* Refresh Button */}
             <button
               className={styles.refreshButton}
               onClick={handleRefresh}
@@ -306,10 +293,9 @@ const DocumentManager = ({ scope, scopeId }) => {
               <RefreshCw size={18} className={loading ? styles.spinning : ""} />
             </button>
 
-            {/* Upload Button */}
             <button
               className={styles.uploadButton}
-              onClick={handleAddNewClick}
+              onClick={() => fileInputRef.current?.click()}
               disabled={!!uploadingFile}
             >
               <Plus size={18} />
@@ -324,41 +310,30 @@ const DocumentManager = ({ scope, scopeId }) => {
           </div>
         </div>
 
-        {/* Sort Controls */}
         <div className={styles.sortControls}>
           <button
-            className={`${styles.sortButton} ${
-              sortConfig.sort === "original_name" ? styles.active : ""
-            }`}
+            className={`${styles.sortButton} ${sortConfig.sort === "original_name" ? styles.active : ""}`}
             onClick={() => handleSort("original_name")}
           >
-            Name
-            <SortIcon field="original_name" />
+            Name <SortIcon field="original_name" />
           </button>
           <button
-            className={`${styles.sortButton} ${
-              sortConfig.sort === "created_at" ? styles.active : ""
-            }`}
+            className={`${styles.sortButton} ${sortConfig.sort === "created_at" ? styles.active : ""}`}
             onClick={() => handleSort("created_at")}
           >
-            Date
-            <SortIcon field="created_at" />
+            Date <SortIcon field="created_at" />
           </button>
           <button
-            className={`${styles.sortButton} ${
-              sortConfig.sort === "mime_type" ? styles.active : ""
-            }`}
+            className={`${styles.sortButton} ${sortConfig.sort === "mime_type" ? styles.active : ""}`}
             onClick={() => handleSort("mime_type")}
           >
-            Type
-            <SortIcon field="mime_type" />
+            Type <SortIcon field="mime_type" />
           </button>
         </div>
       </div>
 
-      {/* Error/Upload Status */}
+      {/* Status */}
       <div className={styles.statusContainer}>
-        {/* Error Message */}
         {error && (
           <div className={styles.errorBanner}>
             <span>{error}</span>
@@ -367,8 +342,6 @@ const DocumentManager = ({ scope, scopeId }) => {
             </button>
           </div>
         )}
-
-        {/* Uploading State */}
         {uploadingFile && (
           <div className={styles.uploadingCard}>
             <div className={styles.uploadingIcon}>
@@ -387,7 +360,7 @@ const DocumentManager = ({ scope, scopeId }) => {
         )}
       </div>
 
-      {/* Documents List */}
+      {/* Content */}
       {loading && currentPage === 1 ? (
         <div className={styles.loadingState}>
           <Loader2 className={styles.spinner} size={40} />
@@ -405,7 +378,6 @@ const DocumentManager = ({ scope, scopeId }) => {
         </div>
       ) : (
         <>
-          {/* Documents Grid/List */}
           <div
             className={
               viewMode === "grid" ? styles.documentsGrid : styles.documentsList
@@ -418,13 +390,13 @@ const DocumentManager = ({ scope, scopeId }) => {
                 viewMode={viewMode}
                 onDownload={handleDownload}
                 onDelete={handleDeleteClick}
+                onRename={handleRename}
                 formatFileSize={formatFileSize}
                 formatDate={formatDate}
               />
             ))}
           </div>
 
-          {/* Load More Button */}
           {pagination?.has_more && (
             <div className={styles.loadMoreWrapper}>
               <button
@@ -439,8 +411,7 @@ const DocumentManager = ({ scope, scopeId }) => {
                   </>
                 ) : (
                   <>
-                    Load More
-                    <ChevronDown size={18} />
+                    Load More <ChevronDown size={18} />
                   </>
                 )}
               </button>
@@ -449,7 +420,6 @@ const DocumentManager = ({ scope, scopeId }) => {
         </>
       )}
 
-      {/* Delete Confirmation Dialog */}
       <ConfirmationDialog
         isOpen={deleteDialog.isOpen}
         onClose={() =>
@@ -469,18 +439,79 @@ const DocumentManager = ({ scope, scopeId }) => {
   );
 };
 
-// Document Card Component
+// ── DocumentCard ──────────────────────────────────────────────────
+
 const DocumentCard = React.memo(
-  ({ doc, viewMode, onDownload, onDelete, formatFileSize, formatDate }) => {
+  ({
+    doc,
+    viewMode,
+    onDownload,
+    onDelete,
+    onRename,
+    formatFileSize,
+    formatDate,
+  }) => {
     const downloading = useSelector((state) =>
       selectIsDownloading(state, doc.object_key),
     );
     const deleting = useSelector((state) => selectIsDeleting(state, doc.id));
+    const renaming = useSelector((state) => selectIsRenaming(state, doc.id));
+
+    const [editMode, setEditMode] = useState(false);
+    const [draftName, setDraftName] = useState("");
+    const inputRef = useRef(null);
+    const wasRenamingRef = useRef(false);
+
+    // When renaming flips from true → false, close edit mode
+    useEffect(() => {
+      if (wasRenamingRef.current && !renaming) {
+        setEditMode(false);
+        setDraftName("");
+      }
+      wasRenamingRef.current = renaming;
+    }, [renaming]);
+
+    // Strip extension for display in the input — we preserve it on the backend
+    const getBaseName = (filename) => {
+      const lastDot = filename.lastIndexOf(".");
+      return lastDot > 0 ? filename.slice(0, lastDot) : filename;
+    };
 
     const getFileExtension = (filename) => {
       const ext = filename.split(".").pop().toUpperCase();
       return ext.length > 4 ? "FILE" : ext;
     };
+
+    const startEdit = () => {
+      setDraftName(getBaseName(doc.original_name));
+      setEditMode(true);
+      setTimeout(() => {
+        inputRef.current?.focus();
+        inputRef.current?.select();
+      }, 50);
+    };
+
+    const cancelEdit = () => {
+      setEditMode(false);
+      setDraftName("");
+    };
+
+    const commitEdit = () => {
+      const trimmed = draftName.trim();
+      if (!trimmed || trimmed === getBaseName(doc.original_name)) {
+        cancelEdit();
+        return;
+      }
+      onRename(doc.id, trimmed);
+      setEditMode(false);
+    };
+
+    const handleKeyDown = (e) => {
+      if (e.key === "Enter") commitEdit();
+      if (e.key === "Escape") cancelEdit();
+    };
+
+    const busy = downloading || deleting || renaming;
 
     if (viewMode === "list") {
       return (
@@ -490,9 +521,26 @@ const DocumentCard = React.memo(
               <FileText size={20} />
             </div>
             <div className={styles.rowInfo}>
-              <div className={styles.rowName}>
-                {truncateText(doc.original_name, 25)}
-              </div>
+              {editMode ? (
+                <div className={styles.renameRow}>
+                  <input
+                    ref={inputRef}
+                    className={styles.renameInput}
+                    value={draftName}
+                    onChange={(e) => setDraftName(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    disabled={renaming}
+                    maxLength={240}
+                  />
+                  <span className={styles.renameExt}>
+                    .{doc.original_name.split(".").pop()}
+                  </span>
+                </div>
+              ) : (
+                <div className={styles.rowName}>
+                  {truncateText(doc.original_name, 30)}
+                </div>
+              )}
               <div className={styles.rowMeta}>
                 <span className={styles.metaChip}>
                   {getFileExtension(doc.original_name)}
@@ -506,36 +554,72 @@ const DocumentCard = React.memo(
               </div>
             </div>
           </div>
+
           <div className={styles.rowActions}>
-            <button
-              className={styles.iconButton}
-              onClick={() => onDownload(doc)}
-              disabled={downloading || deleting}
-              title="Download"
-            >
-              {downloading ? (
-                <Loader2 className={styles.spinner} size={16} />
-              ) : (
-                <Download size={16} />
-              )}
-            </button>
-            <button
-              className={`${styles.iconButton} ${styles.deleteIcon}`}
-              onClick={() => onDelete(doc)}
-              disabled={downloading || deleting}
-              title="Delete"
-            >
-              {deleting ? (
-                <Loader2 className={styles.spinner} size={16} />
-              ) : (
-                <Trash2 size={16} />
-              )}
-            </button>
+            {editMode ? ( // In edit mode: only show confirm + cancel inline in the renameRow,
+              // hide download & delete entirely so the row stays clean
+              <>
+                <button
+                  className={`${styles.renameConfirm} ${styles.iconButton}`}
+                  onClick={commitEdit}
+                  disabled={renaming || !draftName.trim()}
+                >
+                  {renaming ? (
+                    <Loader2 size={14} className={styles.spinner} />
+                  ) : (
+                    <Check size={14} />
+                  )}
+                </button>
+                <button
+                  className={`${styles.renameCancel} ${styles.iconButton}`}
+                  onClick={cancelEdit}
+                  disabled={renaming}
+                >
+                  <X size={14} />
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  className={styles.iconButton}
+                  onClick={startEdit}
+                  disabled={busy}
+                  title="Rename"
+                >
+                  <Pencil size={15} />
+                </button>
+                <button
+                  className={styles.iconButton}
+                  onClick={() => onDownload(doc)}
+                  disabled={busy}
+                  title="Download"
+                >
+                  {downloading ? (
+                    <Loader2 className={styles.spinner} size={16} />
+                  ) : (
+                    <Download size={16} />
+                  )}
+                </button>
+                <button
+                  className={`${styles.iconButton} ${styles.deleteIcon}`}
+                  onClick={() => onDelete(doc)}
+                  disabled={busy}
+                  title="Delete"
+                >
+                  {deleting ? (
+                    <Loader2 className={styles.spinner} size={16} />
+                  ) : (
+                    <Trash2 size={16} />
+                  )}
+                </button>
+              </>
+            )}
           </div>
         </div>
       );
     }
 
+    // Grid card
     return (
       <div className={styles.documentCard}>
         <div className={styles.cardHeader}>
@@ -548,9 +632,50 @@ const DocumentCard = React.memo(
         </div>
 
         <div className={styles.cardBody}>
-          <h4 className={styles.fileName} title={doc.original_name}>
-            {truncateText(doc.original_name, 25)}
-          </h4>
+          {editMode ? (
+            <div className={styles.renameBlock}>
+              <div className={styles.renameRow}>
+                <input
+                  ref={inputRef}
+                  className={styles.renameInput}
+                  value={draftName}
+                  onChange={(e) => setDraftName(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  disabled={renaming}
+                  maxLength={240}
+                />
+                <span className={styles.renameExt}>
+                  .{doc.original_name.split(".").pop()}
+                </span>
+              </div>
+              <div className={styles.renameActions}>
+                <button
+                  className={styles.renameConfirm}
+                  onClick={commitEdit}
+                  disabled={renaming || !draftName.trim()}
+                >
+                  {renaming ? (
+                    <Loader2 size={13} className={styles.spinner} />
+                  ) : (
+                    <Check size={13} />
+                  )}
+                  Save
+                </button>
+                <button
+                  className={styles.renameCancel}
+                  onClick={cancelEdit}
+                  disabled={renaming}
+                >
+                  <X size={13} />
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <h4 className={styles.fileName} title={doc.original_name}>
+              {truncateText(doc.original_name, 25)}
+            </h4>
+          )}
           <div className={styles.fileSize}>
             {formatFileSize(doc.size_bytes)}
           </div>
@@ -568,10 +693,20 @@ const DocumentCard = React.memo(
             </div>
           </div>
           <div className={styles.cardActions}>
+            {!editMode && (
+              <button
+                className={styles.iconButton}
+                onClick={startEdit}
+                disabled={busy}
+                title="Rename"
+              >
+                <Pencil size={15} />
+              </button>
+            )}
             <button
               className={styles.iconButton}
               onClick={() => onDownload(doc)}
-              disabled={downloading || deleting}
+              disabled={busy}
               title="Download"
             >
               {downloading ? (
@@ -583,7 +718,7 @@ const DocumentCard = React.memo(
             <button
               className={`${styles.iconButton} ${styles.deleteIcon}`}
               onClick={() => onDelete(doc)}
-              disabled={downloading || deleting}
+              disabled={busy}
               title="Delete"
             >
               {deleting ? (

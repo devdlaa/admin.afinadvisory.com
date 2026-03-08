@@ -64,7 +64,7 @@ function addSecurityHeaders(res) {
   res.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
   res.headers.set(
     "Permissions-Policy",
-    "camera=(), microphone=(), geolocation=()"
+    "camera=(), microphone=(), geolocation=()",
   );
   return res;
 }
@@ -76,11 +76,11 @@ function addCorsHeaders(req, res) {
     res.headers.set("Access-Control-Allow-Origin", origin);
     res.headers.set(
       "Access-Control-Allow-Methods",
-      "GET, POST, PUT, DELETE, OPTIONS"
+      "GET, POST, PUT, DELETE, OPTIONS",
     );
     res.headers.set(
       "Access-Control-Allow-Headers",
-      "Content-Type, Authorization"
+      "Content-Type, Authorization",
     );
     res.headers.set("Access-Control-Allow-Credentials", "true");
   }
@@ -93,7 +93,7 @@ function createPermissionError(pathname, isApi, req) {
         error: "Insufficient permissions",
         code: "PERMISSION_DENIED",
       }),
-      { status: 403, headers: { "Content-Type": "application/json" } }
+      { status: 403, headers: { "Content-Type": "application/json" } },
     );
   }
 
@@ -102,7 +102,7 @@ function createPermissionError(pathname, isApi, req) {
   return NextResponse.redirect(url);
 }
 
-export async function middleware(req) {
+export async function proxy(req) {
   const { pathname, search } = req.nextUrl;
   const url = req.nextUrl.clone();
 
@@ -143,7 +143,7 @@ export async function middleware(req) {
       token?.isDashboardLocked &&
       !pathname.startsWith("/dashboard/locked") &&
       !pathname.startsWith(
-        "/api/admin_ops/staff-managment/admin-users/unlock-dashboard"
+        "/api/admin_ops/staff-managment/admin-users/unlock-dashboard",
       )
     ) {
       return NextResponse.redirect(new URL("/dashboard/locked", req.url));
@@ -155,7 +155,7 @@ export async function middleware(req) {
       pathname.startsWith("/dashboard/locked")
     ) {
       return NextResponse.redirect(
-        new URL(CONFIG.DEFAULT_AUTH_REDIRECT, req.url)
+        new URL(CONFIG.DEFAULT_AUTH_REDIRECT, req.url),
       );
     }
 
@@ -194,7 +194,7 @@ export async function middleware(req) {
       if (!token) {
         return new NextResponse(
           JSON.stringify({ error: "Authentication required" }),
-          { status: 401, headers: { "Content-Type": "application/json" } }
+          { status: 401, headers: { "Content-Type": "application/json" } },
         );
       }
 

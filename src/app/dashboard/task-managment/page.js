@@ -85,6 +85,7 @@ const STANDARD_FILTER_KEYS = [
   "due_date_to",
   "is_magic_sort",
   "aging_active",
+  "deleted_only",
   ...SLA_FILTER_KEYS,
 ];
 
@@ -180,7 +181,11 @@ function TasksPageContent() {
         let parsed;
         if (key === "is_billable" || key === "entity_missing") {
           parsed = value === "true";
-        } else if (key === "is_magic_sort" || key === "aging_active") {
+        } else if (
+          key === "is_magic_sort" ||
+          key === "aging_active" ||
+          key === "deleted_only"
+        ) {
           parsed = value === "true";
         } else {
           parsed = value;
@@ -300,6 +305,7 @@ function TasksPageContent() {
   // ── Lazy loaders ───────────────────────────────────────────────────────────
   const handleLoadCategories = useCallback(() => {
     if (hasLoadedCategories.current) return;
+
     hasLoadedCategories.current = true;
     dispatch(fetchCategories({ page: 1, page_size: 100 }));
   }, [dispatch]);
@@ -311,7 +317,7 @@ function TasksPageContent() {
   }, [dispatch]);
 
   // ── Filter dropdowns config ────────────────────────────────────────────────
-  // NOTE: entity_missing removed — it's now a pill toggle in TaskActionBar
+
   const filterDropdowns = useMemo(
     () => [
       {
@@ -403,6 +409,7 @@ function TasksPageContent() {
         due_date_to: null,
         created_date_from: null,
         created_date_to: null,
+        deleted_only: null,
         sla_status: null,
         sla_due_date_from: null,
         sla_due_date_to: null,
@@ -424,6 +431,14 @@ function TasksPageContent() {
     dispatch(setFilters({ is_magic_sort: isActive ? null : true }));
     dispatch(fetchTasks(true));
   }, [dispatch, currentFilters.is_magic_sort]);
+
+  const handleToggleDeleted = useCallback(() => {
+    const isActive = currentFilters.deleted_only === true;
+    const newValue = isActive ? null : true;
+
+    dispatch(setFilters({ deleted_only: newValue }));
+    dispatch(fetchTasks(true));
+  }, [dispatch, currentFilters.deleted_only]);
 
   // ── NEW: Without Client pill toggle ───────────────────────────────────────
   const handleToggleWithoutClient = useCallback(() => {
@@ -496,7 +511,6 @@ function TasksPageContent() {
             task_category_id: currentFilters.task_category_id,
             assigned_to: currentFilters.assigned_to,
             is_billable: currentFilters.is_billable,
-            // entity_missing removed — handled by pill, not chip
           }}
           onFilterChange={handleFilterChange}
           onClearAllFilters={handleClearAllFilters}
@@ -518,6 +532,8 @@ function TasksPageContent() {
           isUnassignedFilterActive={currentFilters.unassigned_only === true}
           onToggleMagicSort={handleToggleMagicSort}
           isMagicSortActive={currentFilters.is_magic_sort === true}
+          isDeletedFilterActive={currentFilters.deleted_only === true}
+          onToggleDeleted={handleToggleDeleted}
           // ── Without Client pill ──────────────────────────────────────────
           isWithoutClientActive={currentFilters.entity_missing === true}
           onToggleWithoutClient={handleToggleWithoutClient}

@@ -46,10 +46,10 @@ const TaskCategoryBoard = ({
   const categories = useSelector(selectAllCategories);
   const isLoading = useSelector((state) => selectIsLoading(state, "list"));
   const createLoading = useSelector((state) =>
-    selectIsLoading(state, "create")
+    selectIsLoading(state, "create"),
   );
   const updateLoading = useSelector((state) =>
-    selectIsLoading(state, "update")
+    selectIsLoading(state, "update"),
   );
 
   const error = useSelector((state) => selectError(state, "list"));
@@ -106,7 +106,7 @@ const TaskCategoryBoard = ({
       (cat) =>
         cat.name?.toLowerCase().includes(term) ||
         cat.code?.toLowerCase().includes(term) ||
-        cat.description?.toLowerCase().includes(term)
+        cat.description?.toLowerCase().includes(term),
     );
   }, [categories, searchTerm]);
 
@@ -150,7 +150,7 @@ const TaskCategoryBoard = ({
     if (!editingCategory?.id) return;
 
     const result = dispatch(
-      updateCategory({ id: editingCategory.id, data: formData })
+      updateCategory({ id: editingCategory.id, data: formData }),
     );
 
     if (!result.error) {
@@ -199,15 +199,15 @@ const TaskCategoryBoard = ({
                     ? "Create Category"
                     : "Edit Category"
                   : isSelectMode
-                  ? "Select Category"
-                  : "Manage Categories"}
+                    ? "Select Category"
+                    : "Manage Categories"}
               </h2>
               <p className={style.subtitle}>
                 {isFormMode
                   ? "Fill in the details below"
                   : isSelectMode
-                  ? "Choose a category for your task"
-                  : "Create and manage task categories"}
+                    ? "Choose a category for your task"
+                    : "Create and manage task categories"}
               </p>
             </div>
           </div>
@@ -339,15 +339,6 @@ const TaskCategoryBoard = ({
                         ? "Try a different search term"
                         : "Create your first category to get started"}
                     </p>
-                    {!searchTerm && !isSelectMode && (
-                      <button
-                        className={style.emptyCreateBtn}
-                        onClick={() => setViewMode("create")}
-                      >
-                        <Plus size={16} />
-                        Create Category
-                      </button>
-                    )}
                   </div>
                 ) : (
                   filteredCategories.map((category) => (

@@ -530,55 +530,6 @@ const TaskTable = ({
                   {selectedTasks.length} selected
                 </span>
                 <div className="bulk-buttons">
-                  <div className="bulk-actions-menu" ref={bulkActionsRef}>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      icon={MoreHorizontal}
-                      onClick={() => setBulkActionsOpen(!bulkActionsOpen)}
-                    >
-                      Actions
-                    </Button>
-                    {bulkActionsOpen && (
-                      <div className="bulk-dropdown">
-                        <div className="dropdown-section">
-                          <div className="dropdown-label">Update Status</div>
-                          {statusOptions
-                            .filter((o) => o.value)
-                            .map((option) => (
-                              <button
-                                key={option.value}
-                                className="dropdown-item"
-                                onClick={() =>
-                                  handleBulkStatusUpdate(option.value)
-                                }
-                              >
-                                {option.icon}
-                                <span>{option.label}</span>
-                              </button>
-                            ))}
-                        </div>
-                        <div className="dropdown-divider" />
-                        <div className="dropdown-section">
-                          <div className="dropdown-label">Update Priority</div>
-                          {priorityOptions
-                            .filter((o) => o.value)
-                            .map((option) => (
-                              <button
-                                key={option.value}
-                                className="dropdown-item"
-                                onClick={() =>
-                                  handleBulkPriorityUpdate(option.value)
-                                }
-                              >
-                                {option?.icon}
-                                <span>{option.label}</span>
-                              </button>
-                            ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -646,11 +597,17 @@ const TaskTable = ({
                           <span
                             className="badge status-badge"
                             style={{
-                              backgroundColor: `${getStatusColor(task.status)}15`,
-                              color: getStatusColor(task.status),
+                              backgroundColor: task.deleted_at
+                                ? "#ffeaea"
+                                : `${getStatusColor(task.status)}15`,
+                              color: task.deleted_at
+                                ? "#db0d0d" // red text
+                                : getStatusColor(task.status),
                             }}
                           >
-                            {getStatusLabel(task.status)}
+                            {task.deleted_at
+                              ? "Deleted"
+                              : getStatusLabel(task.status)}
                           </span>
                           <span
                             className="badge priority-badge"
@@ -703,7 +660,7 @@ const TaskTable = ({
                       </div>
 
                       {/* ── SLA bar — only when SLA exists ── */}
-                      {hasSla && (
+                      {hasSla && !task.deleted_at && (
                         <SlaSummaryBar sla_summary={task.sla_summary} />
                       )}
 

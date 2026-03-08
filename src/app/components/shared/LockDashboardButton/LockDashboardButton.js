@@ -9,7 +9,7 @@ import { toggleSound } from "@/store/slices/notificationSlice";
 import styles from "./DashboardActions.module.scss";
 
 export default function LockDashboardButton() {
-  const { data: session, status } = useSession();
+  const { data: session, status, update } = useSession();
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const dispatch = useDispatch();
@@ -23,10 +23,10 @@ export default function LockDashboardButton() {
       setLoading(false);
       setTimeout(() => {
         window.location.href = "/dashboard/locked";
-      }, 800);
+      }, 0);
     } catch (err) {
       console.error("Failed to lock dashboard:", err);
-      alert("Something went wrong while locking the dashboard.");
+
       setLoading(false);
       setSuccess(false);
     }
@@ -40,7 +40,9 @@ export default function LockDashboardButton() {
       {/* Notification bell — always shown, handles its own auth */}
       <div className={styles.actionSidebar__item}>
         {isLoading ? (
-          <div className={`${styles.actionSidebar__skeleton} ${styles["actionSidebar__skeleton--bell"]}`} />
+          <div
+            className={`${styles.actionSidebar__skeleton} ${styles["actionSidebar__skeleton--bell"]}`}
+          />
         ) : (
           <NotificationBell />
         )}
@@ -58,7 +60,11 @@ export default function LockDashboardButton() {
             className={`${styles.actionSidebar__btn} ${
               !soundEnabled ? styles["actionSidebar__btn--muted"] : ""
             }`}
-            title={soundEnabled ? "Disable notification sound" : "Enable notification sound"}
+            title={
+              soundEnabled
+                ? "Disable notification sound"
+                : "Enable notification sound"
+            }
           >
             {soundEnabled ? <Volume2 size={18} /> : <VolumeX size={18} />}
           </button>

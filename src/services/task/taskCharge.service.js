@@ -11,24 +11,27 @@ import {
 
 // ==================== ULTIMATE CONSOLIDATED VALIDATOR ====================
 
-
 async function ensureChargeEditable(input, user) {
-
   if (typeof input === "string") {
     const taskId = input;
 
- 
     if (user.admin_role === "SUPER_ADMIN") {
       const task = await prisma.task.findUnique({
         where: { id: taskId },
         select: {
           id: true,
           entity_id: true,
+          deleted_at: true,
           invoice_internal_number: true,
         },
       });
 
       if (!task) throw new NotFoundError("Task not found");
+      if (task.deleted_at) {
+        throw new ForbiddenError(
+          "Charges cannot be modified for a deleted task",
+        );
+      }
 
       if (task.invoice_internal_number) {
         throw new ForbiddenError(
@@ -55,6 +58,7 @@ async function ensureChargeEditable(input, user) {
       },
       select: {
         id: true,
+        deleted_at: true,
         entity_id: true,
         invoice_internal_number: true,
       },
@@ -62,6 +66,9 @@ async function ensureChargeEditable(input, user) {
 
     if (!task) {
       throw new ForbiddenError("You are not assigned to this task");
+    }
+    if (task.deleted_at) {
+      throw new ForbiddenError("Charges cannot be modified for a deleted task");
     }
 
     if (task.invoice_internal_number) {

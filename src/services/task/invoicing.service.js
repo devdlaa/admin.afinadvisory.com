@@ -269,7 +269,10 @@ export async function createOrAppendInvoice({
     ===================================================== */
 
     const tasks = await tx.task.findMany({
-      where: { id: { in: task_ids } },
+      where: {
+        id: { in: task_ids },
+        deleted_at: null,
+      },
       include: {
         charges: {
           where: { deleted_at: null },
@@ -285,6 +288,10 @@ export async function createOrAppendInvoice({
     const errors = [];
 
     for (const task of tasks) {
+      if (task.deleted_at) {
+        errors.push(`Task ${task.id}: task is deleted`);
+        continue;
+      }
       if (task.entity_id !== entity_id) {
         errors.push(`Task ${task.id}: belongs to different entity`);
         continue;
@@ -321,7 +328,8 @@ export async function createOrAppendInvoice({
     const { count } = await tx.task.updateMany({
       where: {
         id: { in: task_ids },
-        invoice_internal_number: null, // ✅ guard against race
+        deleted_at: null,
+        invoice_internal_number: null,
       },
       data: {
         invoice_internal_number: invoice.internal_number,
@@ -783,7 +791,6 @@ export async function bulkInvoiceAction(invoiceIds, action) {
         }
 
         // =====================
-        // 🔥 MARK CHARGES AS PAID
         // =====================
         if (nextStatus === "PAID") {
           await tx.taskCharge.updateMany({

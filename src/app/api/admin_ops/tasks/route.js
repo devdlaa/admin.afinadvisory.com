@@ -55,6 +55,8 @@ export async function GET(request) {
 
       due_date_from: searchParams.get("due_date_from"),
       due_date_to: searchParams.get("due_date_to"),
+      include_deleted: searchParams.get("include_deleted"),
+      deleted_only: searchParams.get("deleted_only"),
 
       search: searchParams.get("search"),
       entity_missing: searchParams.get("entity_missing"),
@@ -87,7 +89,12 @@ export async function GET(request) {
     else if (params.entity_missing === "false") params.entity_missing = false;
     else delete params.entity_missing;
 
-    // ── BUG FIX: "ALL" status means "no status filter" — strip it before
+    if (params.include_deleted === "true") params.include_deleted = true;
+    else delete params.include_deleted;
+
+    if (params.deleted_only === "true") params.deleted_only = true;
+    else delete params.deleted_only;
+
     //    Zod validation so the schema never sees "ALL" (not in the enum).
     if (params.status === "ALL" || params.status === null) {
       delete params.status;

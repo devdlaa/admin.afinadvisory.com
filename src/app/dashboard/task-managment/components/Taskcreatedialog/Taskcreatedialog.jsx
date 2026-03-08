@@ -12,6 +12,7 @@ import {
   selectCreateDialogOpen,
 } from "@/store/slices/taskSlice";
 import ClientAddUpdateDialog from "../../clients/components/ClientAddUpdateDialog";
+import TaskCategoryBoard from "@/app/components/pages/TaskCategoryBoard/TaskCategoryBoard";
 import { quickSearchEntities } from "@/store/slices/entitySlice";
 import {
   fetchCategories,
@@ -48,6 +49,7 @@ const TaskCreateDialog = () => {
   const [entitySearchResults, setEntitySearchResults] = useState([]);
   const [isSearchingEntities, setIsSearchingEntities] = useState(false);
   const [selectedEntityData, setSelectedEntityData] = useState(null);
+  const [showCategoryDialog, setShowCategoryDialog] = useState(false);
 
   // Load categories on mount
   useEffect(() => {
@@ -197,9 +199,8 @@ const TaskCreateDialog = () => {
       };
 
       await dispatch(createTask(taskData)).unwrap();
-
     } catch (error) {
-      console("Failed to create task:");
+      console.log("Failed to create task:");
     }
   };
 
@@ -357,6 +358,8 @@ const TaskCreateDialog = () => {
                 onSelect={(option) =>
                   handleChange("task_category_id", option.value)
                 }
+                onAddNew={() => setShowCategoryDialog(true)}
+                addNewLabel={"New Category"}
                 enableLocalSearch={true}
                 className="task-create-dialog__dropdown"
                 disabled={isCreating}
@@ -413,6 +416,11 @@ const TaskCreateDialog = () => {
           </div>
         </form>
       </div>
+      <TaskCategoryBoard
+        isOpen={showCategoryDialog}
+        onClose={() => setShowCategoryDialog(false)}
+        mode="list"
+      />
       <ClientAddUpdateDialog
         ref={addClientDialogRef}
         mode="add"

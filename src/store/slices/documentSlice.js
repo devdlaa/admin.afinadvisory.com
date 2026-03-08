@@ -12,16 +12,28 @@ import {
 export const fetchDocuments = createAsyncThunk(
   "documents/fetchDocuments",
   async (
-    { scope, scopeId, page = 1, sort = "created_at", order = "desc", forceRefresh = false },
+    {
+      scope,
+      scopeId,
+      page = 1,
+      sort = "created_at",
+      order = "desc",
+      forceRefresh = false,
+    },
     { rejectWithValue, getState },
   ) => {
     try {
       const scopeKey = `${scope}_${scopeId}`;
       const state = getState();
       const existingData = state.documents.data[scopeKey];
-      
+
       // Skip fetch if data exists and not forcing refresh and on page 1
-      if (existingData && existingData.items.length > 0 && !forceRefresh && page === 1) {
+      if (
+        existingData &&
+        existingData.items.length > 0 &&
+        !forceRefresh &&
+        page === 1
+      ) {
         return {
           items: existingData.items,
           pagination: existingData.pagination,
@@ -79,6 +91,29 @@ export const uploadDocument = createAsyncThunk(
       }
 
       return result.data;
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  },
+);
+
+export const renameDocument = createAsyncThunk(
+  "documents/renameDocument",
+  async ({ documentId, name }, { rejectWithValue }) => {
+    try {
+      const response = await fetch(`/api/admin_ops/documents/${documentId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+
+      const result = await response.json();
+
+      if (!result.success) {
+        return rejectWithValue(result.error.message);
+      }
+
+      return result.data; // full updated document object
     } catch (error) {
       return rejectWithValue(error.message);
     }
@@ -333,6 +368,35 @@ const documentSlice = createSlice({
         );
         state.error = action.payload;
       });
+
+    builder
+      .addCase(renameDocument.pending, (state, action) => {
+        const { documentId } = action.meta.arg;
+        if (!state.renamingIds) state.renamingIds = [];
+        state.renamingIds.push(documentId);
+        state.error = null;
+      })
+      .addCase(renameDocument.fulfilled, (state, action) => {
+        const updatedDoc = action.payload;
+        state.renamingIds = state.renamingIds.filter(
+          (id) => id !== updatedDoc.id,
+        );
+
+        // Update the document in all scopes
+        Object.keys(state.data).forEach((scopeKey) => {
+          const idx = state.data[scopeKey].items.findIndex(
+            (d) => d.id === updatedDoc.id,
+          );
+          if (idx !== -1) {
+            state.data[scopeKey].items[idx] = updatedDoc;
+          }
+        });
+      })
+      .addCase(renameDocument.rejected, (state, action) => {
+        const { documentId } = action.meta.arg;
+        state.renamingIds = state.renamingIds.filter((id) => id !== documentId);
+        state.error = action.payload;
+      });
   },
 });
 
@@ -406,6 +470,13 @@ export const selectIsDeleting = createSelector(
 export const selectError = createSelector(
   [selectDocumentsState],
   (documentsState) => documentsState.error,
+);
+
+export const selectIsRenaming = createSelector(
+  [selectDocumentsState, (_, documentId) => documentId],
+  (documentsState, documentId) => {
+    return documentsState.renamingIds?.includes(documentId) ?? false;
+  },
 );
 
 export default documentSlice.reducer;

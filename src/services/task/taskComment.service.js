@@ -21,7 +21,56 @@ const EDIT_WINDOW_HOURS = 48;
 // ------------------------------------------------------------------
 
 async function ensureUserCanAccessTask(task_id, user) {
-  if (user.admin_role === "SUPER_ADMIN") return true;
+  const where =
+    user.admin_role === "SUPER_ADMIN"
+      ? { id: task_id }
+      : {
+          id: task_id,
+          OR: [
+            { created_by: user.id },
+            { assigned_to_all: true },
+            {
+              assignments: {
+                some: { admin_user_id: user.id },
+              },
+            },
+          ],
+        };
+
+  const task = await prisma.task.findFirst({
+    where,
+    select: {
+      id: true,
+      title: true,
+      created_by: true,
+      assigned_to_all: true,
+      deleted_at: true,
+    },
+  });
+
+  if (!task) {
+    throw new ForbiddenError("You do not have access to this task");
+  }
+
+  if (task.deleted_at) {
+    throw new ForbiddenError(
+      "Comments cannot be modified because the task is deleted",
+    );
+  }
+
+  return task;
+}
+
+async function ensureUserCanViewTask(task_id, user) {
+  if (user.admin_role === "SUPER_ADMIN") {
+    const task = await prisma.task.findUnique({
+      where: { id: task_id },
+      select: { id: true },
+    });
+
+    if (!task) throw new NotFoundError("Task not found");
+    return task;
+  }
 
   const task = await prisma.task.findFirst({
     where: {
@@ -36,12 +85,7 @@ async function ensureUserCanAccessTask(task_id, user) {
         },
       ],
     },
-    select: {
-      id: true,
-      title: true,
-      created_by: true,
-      assigned_to_all: true,
-    },
+    select: { id: true },
   });
 
   if (!task) {
@@ -51,10 +95,10 @@ async function ensureUserCanAccessTask(task_id, user) {
   return task;
 }
 
-async function getValidAdminUser(user_id) {
+async function getValidAdminUser(userin) {
   const user = await prisma.adminUser.findFirst({
     where: {
-      id: user_id,
+      id: userin.id,
       status: "ACTIVE",
     },
     select: {
@@ -94,12 +138,12 @@ function stripMentionsFromMessage(message, mentions) {
 
 export const createTaskComment = async (
   task_id,
-  user_id,
+  userin,
   rawMessage,
   mentions = [],
 ) => {
-  const user = await getValidAdminUser(user_id);
-  const task = await ensureUserCanAccessTask(task_id, user);
+  const user = await getValidAdminUser(userin);
+  const task = await ensureUserCanAccessTask(task_id, userin);
 
   const cleanedMessage = stripMentionsFromMessage(
     (rawMessage || "").trim(),
@@ -125,11 +169,10 @@ export const createTaskComment = async (
     id: commentRef.id,
     task_id,
     type: "COMMENT",
-    message: cleanedMessage, 
+    message: cleanedMessage,
     activity: null,
     user_id: user.id,
     user_name: user.name,
-
 
     mentions: Array.isArray(mentions)
       ? mentions.map((m) => ({ id: m.id, name: m.name }))
@@ -210,14 +253,25 @@ export const addTaskActivityLog = async (task_id, actor_id, activity) => {
     .collection(COMMENTS_SUBCOLLECTION)
     .doc();
 
+  const HAS_STATUS_TIMELINE_UPDATED =
+    [
+      "TASK_CREATED",
+      "TASK_DELETED",
+      "TASK_RESTORED",
+      "TASK_ASSIGNMENT_UPDATED",
+    ].includes(activity.action) ||
+    (activity.meta?.changes ?? []).some((c) => c.from?.status || c.to?.status);
+
   const now = new Date();
 
   const payload = {
     id: docRef.id,
     task_id,
     type: "ACTIVITY",
+    timeline_type: HAS_STATUS_TIMELINE_UPDATED ? "STATUS_TIMELINE" : null,
     user_id: user.id,
     user_name: user.name,
+    user_email: user.email,
     message: activity.message,
     activity: {
       action: activity.action,
@@ -246,14 +300,10 @@ export const addTaskActivityLog = async (task_id, actor_id, activity) => {
 
 export const listTaskTimeline = async (
   task_id,
-  {
-    limit = 20,
-    cursor = null,
-    type = "ALL", 
-  } = {},
+  { limit = 20, cursor = null, type = "ALL" } = {},
   currentUser,
 ) => {
-  await ensureUserCanAccessTask(task_id, currentUser);
+  await ensureUserCanViewTask(task_id, currentUser);
 
   if (limit <= 0 || limit > 100) {
     throw new ValidationError("Invalid pagination limit");
@@ -295,7 +345,6 @@ export const listTaskTimeline = async (
   snapshot.forEach((doc) => {
     const data = doc.data();
 
-    // ✅ normalize mentions (old + new format safe)
     if (Array.isArray(data.mentions)) {
       data.mentions = data.mentions.map((m) => {
         if (typeof m === "string") {
@@ -416,7 +465,6 @@ export const deleteTaskComment = async (task_id, comment_id, user_id) => {
 
   const data = doc.data();
 
-
   if (data.type === "ACTIVITY") {
     throw new ForbiddenError("Activity entries cannot be deleted");
   }
@@ -442,7 +490,6 @@ export const deleteTaskComment = async (task_id, comment_id, user_id) => {
 
   await commentRef.update(safeForFirestore(deletePayload));
 
-
   await prisma.task.update({
     where: { id: task_id },
     data: {
@@ -459,4 +506,132 @@ export const deleteTaskComment = async (task_id, comment_id, user_id) => {
   });
 
   return true;
+};
+
+// TAKS STATUS BASED TIMELINE
+const STATUS_META = {
+  PENDING: { label: "Pending" },
+  IN_PROGRESS: { label: "In Progress" },
+  ON_HOLD: { label: "On Hold" },
+  PENDING_CLIENT_INPUT: { label: "Pending Client Input" },
+  COMPLETED: { label: "Completed" },
+  CANCELLED: { label: "Cancelled" },
+};
+
+const ACTION_META = {
+  TASK_CREATED: { label: "Task Created", description: "Task was created" },
+  TASK_DELETED: { label: "Task Deleted", description: "Task was deleted" },
+  TASK_RESTORED: { label: "Task Restored", description: "Task was restored" },
+};
+
+export const getTaskStatusTimeline = async (task_id, currentUser) => {
+  await ensureUserCanViewTask(task_id, currentUser);
+
+  const snapshot = await db
+    .collection(COMMENTS_COLLECTION)
+    .doc(task_id)
+    .collection(COMMENTS_SUBCOLLECTION)
+    .where("deleted", "==", false)
+    .where("timeline_type", "==", "STATUS_TIMELINE")
+    .orderBy("created_at", "asc")
+    .get();
+
+  const timeline = [];
+
+  snapshot.forEach((doc) => {
+    const data = doc.data();
+    const action = data.activity?.action;
+    const changes = data.activity?.meta?.changes ?? [];
+    const reason = data.activity?.meta?.reason ?? null;
+
+    // ── Lifecycle events ──────────────────────────────────────────
+    if (["TASK_CREATED", "TASK_DELETED", "TASK_RESTORED"].includes(action)) {
+      const meta = ACTION_META[action];
+      timeline.push({
+        id: data.id,
+        type: action,
+        label: meta.label,
+        description: meta.description,
+        by: { id: data.user_id, name: data.user_name },
+        at: data.created_at,
+        reason: null,
+        status: null,
+        previous_status: null,
+      });
+      return;
+    }
+
+    // ── Status change ─────────────────────────────────────────────
+    if (action === "TASK_UPDATED") {
+      const statusChange = changes.find((c) => c.from?.status || c.to?.status);
+      if (!statusChange) return;
+
+      const toStatus = statusChange.to?.status ?? null;
+      const fromStatus = statusChange.from?.status ?? null;
+      const toMeta = STATUS_META[toStatus] ?? { label: toStatus };
+      const fromMeta = STATUS_META[fromStatus] ?? { label: fromStatus };
+
+      timeline.push({
+        id: data.id,
+        type: "STATUS_CHANGED",
+        label: toMeta.label,
+        description: `Changed from ${fromMeta.label} to ${toMeta.label}`,
+        by: { id: data.user_id, name: data.user_name },
+        at: data.created_at,
+        reason,
+        status: { value: toStatus, label: toMeta.label },
+        previous_status: { value: fromStatus, label: fromMeta.label },
+      });
+      return;
+    }
+
+    // ── Assignment events ─────────────────────────────────────────
+    if (action === "TASK_ASSIGNMENT_UPDATED") {
+      if (!changes.length) return;
+
+      const assignedToAll = changes.find((c) => c.action === "ASSIGNED_TO_ALL");
+
+      if (assignedToAll) {
+        timeline.push({
+          id: data.id,
+          type: "ASSIGNED_TO_ALL",
+          label: "Assigned to all members",
+          description: "Task was assigned to all team members",
+          by: { id: data.user_id, name: data.user_name },
+          at: data.created_at,
+          reason: null,
+          status: null,
+          previous_status: null,
+          assignmentChanges: changes,
+        });
+        return;
+      }
+
+      // Individual add/remove changes — group them into one entry per activity log
+      const added = changes
+        .filter((c) => c.action === "ASSIGNEE_ADDED")
+        .map((c) => c.to)
+        .filter(Boolean);
+
+      const removed = changes
+        .filter((c) => c.action === "ASSIGNEE_REMOVED")
+        .map((c) => c.from)
+        .filter(Boolean);
+
+      timeline.push({
+        id: data.id,
+        type: "ASSIGNMENT_CHANGED",
+        label: "Assignments updated",
+        description: data.activity?.message ?? "Assignments updated",
+        by: { id: data.user_id, name: data.user_name },
+        at: data.created_at,
+        reason: null,
+        status: null,
+        previous_status: null,
+        assignmentChanges: { added, removed },
+      });
+    }
+  });
+
+  return { timeline };
 };

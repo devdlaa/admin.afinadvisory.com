@@ -33,7 +33,7 @@ export const useNotificationSetup = () => {
 
           // Listen for foreground messages
           onMessage(messaging, (payload) => {
-            console.log("Foreground message received:", payload);
+       
 
             // ============================================
             // HANDLE CHAT NOTIFICATIONS
@@ -92,7 +92,7 @@ export const useNotificationSetup = () => {
           });
         }
       } catch (error) {
-        console.error("Notification setup failed:", error);
+       
       }
     };
 
@@ -104,7 +104,6 @@ export const useNotificationSetup = () => {
         if (event.data?.type === "NEW_NOTIFICATION") {
           const payload = event.data.payload;
 
-          console.log("Message from SW to client:", payload);
 
           // Chat notifications don't go to Redux
           if (payload.data?.type === "NEW_MESSAGE") {

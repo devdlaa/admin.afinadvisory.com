@@ -402,6 +402,45 @@
   // PILLS
   // ─────────────────────────────────────────────────────────────────────────
 
+  &__deleted-pill {
+    @extend %pill-base;
+
+    &:not(.task-action-bar__deleted-pill--active) {
+      background: #ffffff;
+      border-color: #e2e8f0;
+      color: #475569;
+
+      svg {
+        color: #94a3b8;
+      }
+
+      &:hover:not(:disabled) {
+        background: #fef2f2;
+        border-color: #fecaca;
+        color: #991b1b;
+
+        svg {
+          color: #dc2626;
+        }
+      }
+    }
+
+    &--active {
+      background: #dc2626;
+      border-color: #dc2626;
+      color: #ffffff;
+
+      svg {
+        color: #ffffff;
+      }
+
+      &:hover:not(:disabled) {
+        background: #b91c1c;
+        border-color: #b91c1c;
+      }
+    }
+  }
+
   // ── Without Client pill ───────────────────────────
   &__no-client-pill {
     @extend %pill-base;

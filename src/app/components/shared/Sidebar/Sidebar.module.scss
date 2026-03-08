@@ -3,61 +3,44 @@
 // ============================================================================
 .sidebarContainer {
   height: 100vh;
-  width: 280px;
   background: linear-gradient(145deg, #ffffff 0%, #fafbff 100%);
-  border-right: 1px solid rgba(0, 0, 0, 0.08);
+  border-right: 1px solid #e3e3e3;
   display: flex;
   flex-direction: column;
-  transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 100;
   overflow: hidden;
-  border-right: 1px solid #e3e3e3;
+  transition: width 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebarExpanded {
+  width: var(--sidebar-width, 280px);
+}
+
+.sidebarCollapsed {
+  width: var(--sidebar-closed-width, 80px);
 }
 
 // ============================================================================
-// USER PROFILE (Replaces Logo)
+// USER PROFILE
 // ============================================================================
 .userProfile {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 16px 20px;
+  padding: 16px;
   background: rgba(255, 255, 255, 0.9);
   border-bottom: 1px solid #e3e3e3;
-  cursor: pointer;
   transition: all 0.3s ease;
-  position: relative;
-
-  &:hover {
-    background: rgba(248, 250, 253, 0.8);
-  }
-}
-
-.userAvatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
   overflow: hidden;
-  flex-shrink: 0;
-  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 2px solid rgba(255, 255, 255, 0.8);
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
+  min-height: 68px;
 
-  img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
+  .sidebarCollapsed & {
+    justify-content: center;
+    padding: 16px 0;
   }
-}
-
-.avatarInitials {
-  color: white;
-  font-size: 14px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
 }
 
 .userInfo {
@@ -66,6 +49,14 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
+  opacity: 1;
+  transition: opacity 200ms ease;
+
+  .sidebarCollapsed & {
+    opacity: 0;
+    width: 0;
+    overflow: hidden;
+  }
 }
 
 .userName {
@@ -86,40 +77,27 @@
   text-overflow: ellipsis;
 }
 
-.userProfileChevron {
-  color: #94a3b8;
-  flex-shrink: 0;
-  transition: transform 0.3s ease;
-
-  .userProfile:hover & {
-    transform: translateY(2px);
-  }
-}
-
 // ============================================================================
 // NAVIGATION
 // ============================================================================
 .sidebarNavigation {
   flex: 1;
-  padding: 16px 0;
+  padding: 12px 0;
   overflow-y: auto;
+  overflow-x: hidden;
 
-  // Scrollbar
   scrollbar-width: thin;
   scrollbar-color: rgba(59, 130, 246, 0.2) transparent;
 
   &::-webkit-scrollbar {
-    width: 6px;
+    width: 4px;
   }
-
   &::-webkit-scrollbar-track {
     background: transparent;
   }
-
   &::-webkit-scrollbar-thumb {
     background: rgba(59, 130, 246, 0.2);
     border-radius: 3px;
-
     &:hover {
       background: rgba(59, 130, 246, 0.4);
     }
@@ -127,7 +105,7 @@
 }
 
 .navSection {
-  margin-bottom: 24px;
+  margin-bottom: 8px;
 
   &:last-child {
     margin-bottom: 0;
@@ -140,11 +118,13 @@
   color: #64748b;
   text-transform: uppercase;
   letter-spacing: 1.2px;
-  padding: 0 20px 12px 20px;
+  padding: 8px 20px 8px 20px;
   margin: 0;
   display: flex;
   align-items: center;
   gap: 8px;
+  white-space: nowrap;
+  overflow: hidden;
 
   &::before {
     content: "";
@@ -152,7 +132,14 @@
     height: 4px;
     background: linear-gradient(135deg, #3b82f6, #8b5cf6);
     border-radius: 50%;
+    flex-shrink: 0;
   }
+}
+
+.navSectionDivider {
+  height: 1px;
+  background: #e3e3e3;
+  margin: 8px 12px;
 }
 
 // ============================================================================
@@ -161,17 +148,19 @@
 .menuItem {
   display: flex;
   align-items: center;
-  padding: 12px 18px;
-  margin: 0 16px 4px 16px;
-  border-radius: 12px;
+  padding: 11px 16px;
+  margin: 0 10px 3px 10px;
+  border-radius: 10px;
   cursor: pointer;
   font-size: 14px;
   font-weight: 500;
   color: #64748b;
   background: transparent;
   border: 1px solid transparent;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
+  white-space: nowrap;
+  overflow: hidden;
 
   &::after {
     content: "";
@@ -188,12 +177,12 @@
 
   &.active {
     color: #1e293b;
-    background: rgba(248, 250, 253, 0.8);
-    border-color: rgba(59, 131, 246, 0.1);
+    background: rgba(248, 250, 253, 0.9);
+    border-color: rgba(59, 131, 246, 0.12);
     font-weight: 600;
 
     &::after {
-      height: 24px;
+      height: 22px;
     }
 
     .menuItemIcon {
@@ -202,20 +191,42 @@
   }
 
   &:hover:not(.active) {
-    background: rgba(248, 250, 253, 0.6);
+    background: rgba(248, 250, 253, 0.7);
     border-color: rgba(59, 130, 246, 0.08);
     color: #374151;
-    transform: translateY(-1px);
   }
 
   &:active {
-    transform: translateY(0) scale(0.98);
+    transform: scale(0.98);
+  }
+
+  // Collapsed state: center the icon
+  &.collapsed {
+    justify-content: center;
+    
+    margin: 0 10px 3px 10px;
+    .menuItemIcon{
+      width: 24px;
+      height: 24px;
+    }
+    &::after {
+      display: none;
+    }
+
+    &.active {
+      &::after {
+        display: none;
+      }
+      .menuItemIcon {
+        color: #3b82f6;
+      }
+    }
   }
 }
 
 .menuItemChild {
-  padding: 10px 16px;
-  margin: 0 16px 2px 32px;
+  padding: 9px 14px;
+  margin: 0 10px 2px 28px;
   font-size: 13px;
 
   &::after {
@@ -236,15 +247,24 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-right: 12px;
   flex-shrink: 0;
+
+  // When expanded: add right margin
+  .sidebarExpanded & {
+    margin-right: 11px;
+  }
+
+  // When collapsed: no margin, centered
+  .sidebarCollapsed & {
+    margin-right: 0;
+  }
 }
 
 .menuItemIcon {
-  width: 24px;
-  height: 24px;
+  width: 18px;
+  height: 18px;
   color: inherit;
-  transition: all 0.25s ease;
+  transition: color 0.2s ease;
 }
 
 .menuItemLabel {
@@ -254,6 +274,13 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  transition: opacity 200ms ease;
+
+  .sidebarCollapsed & {
+    opacity: 0;
+    width: 0;
+    overflow: hidden;
+  }
 }
 
 .menuItemBadge {
@@ -261,9 +288,9 @@
   color: #64748b;
   font-size: 10px;
   font-weight: 600;
-  padding: 4px 8px;
+  padding: 3px 7px;
   border-radius: 8px;
-  margin-left: 12px;
+  margin-left: 10px;
 
   .menuItem.active & {
     background: linear-gradient(135deg, #3b82f6, #2563eb);
@@ -274,7 +301,7 @@
 .chevronIcon {
   color: #94a3b8;
   transition: all 0.25s ease;
-  margin-left: 12px;
+  margin-left: 10px;
   flex-shrink: 0;
 
   &.expanded {
@@ -284,10 +311,9 @@
 }
 
 .childrenContainer {
-  margin-top: 4px;
+  margin-top: 2px;
   display: flex;
   flex-direction: column;
-  gap: 2px;
 }
 
 // ============================================================================
@@ -295,17 +321,58 @@
 // ============================================================================
 .sidebarFooter {
   border-top: 1px solid #e3e3e3;
-  padding: 20px 16px;
+  padding: 14px 10px;
   background: rgba(255, 255, 255, 0.6);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
+// Toggle button
+.toggleButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  color: #64748b;
+  background: transparent;
+  border: 1px solid #e3e3e3;
+  width: 100%;
+  font-family: inherit;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  overflow: hidden;
+
+  &:hover {
+    color: #3b82f6;
+    background: #eff6ff;
+    border-color: rgba(59, 130, 246, 0.25);
+  }
+
+  span {
+    transition: opacity 200ms ease;
+
+    .sidebarCollapsed & {
+      opacity: 0;
+      width: 0;
+      overflow: hidden;
+    }
+  }
+}
+
+// Logout button
 .logoutButton {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  padding: 14px 18px;
-  border-radius: 12px;
+  gap: 10px;
+  padding: 11px 14px;
+  border-radius: 10px;
   cursor: pointer;
   font-size: 14px;
   border: 1px solid rgba(220, 38, 38, 0.2);
@@ -317,8 +384,10 @@
     rgba(254, 242, 242, 0.8) 0%,
     rgba(255, 255, 255, 0.6) 100%
   );
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   font-family: inherit;
+  white-space: nowrap;
+  overflow: hidden;
 
   &:hover:not(:disabled) {
     color: #ffffff;
@@ -331,8 +400,14 @@
     cursor: not-allowed;
   }
 
-  &:active:not(:disabled) {
-    transform: translateY(-1px) scale(0.98);
+  span {
+    transition: opacity 200ms ease;
+
+    .sidebarCollapsed & {
+      opacity: 0;
+      width: 0;
+      overflow: hidden;
+    }
   }
 }
 
@@ -343,6 +418,7 @@
   border-top: 2px solid #dc2626;
   border-radius: 50%;
   animation: spin 1s linear infinite;
+  flex-shrink: 0;
 }
 
 @keyframes spin {
@@ -353,7 +429,10 @@
     transform: rotate(360deg);
   }
 }
-// Skeleton Animation
+
+// ============================================================================
+// SKELETON
+// ============================================================================
 @keyframes skeleton-loading {
   0% {
     background-position: -200px 0;
@@ -375,16 +454,14 @@
   border-radius: 8px;
 }
 
-// Avatar Skeleton
 .userAvatarSkeleton {
   @include skeleton-base;
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   flex-shrink: 0;
 }
 
-// User Name Skeleton
 .userNameSkeleton {
   @include skeleton-base;
   width: 120px;
@@ -392,34 +469,8 @@
   margin-bottom: 6px;
 }
 
-// User Email Skeleton
 .userEmailSkeleton {
   @include skeleton-base;
   width: 90px;
   height: 11px;
-}
-
-// Chevron Skeleton
-.chevronSkeleton {
-  @include skeleton-base;
-  width: 16px;
-  height: 16px;
-  border-radius: 4px;
-  flex-shrink: 0;
-}
-
-// Smooth transition for user profile when loading completes
-.userProfile {
-  // ... existing styles ...
-
-  transition: all 0.3s ease;
-
-  // Ensure proper layout during skeleton state
-  &:has(.userAvatarSkeleton) {
-    pointer-events: none;
-
-    &:hover {
-      background: rgba(255, 255, 255, 0.9);
-    }
-  }
 }

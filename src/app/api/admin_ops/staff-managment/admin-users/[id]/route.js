@@ -21,7 +21,7 @@ export async function GET(req, { params }) {
 
     const [permissionError] = await requirePermission(
       req,
-      "admin_users.access"
+      "admin_users.access",
     );
     if (permissionError) return permissionError;
 
@@ -35,15 +35,14 @@ export async function GET(req, { params }) {
 
 export async function PUT(req, { params }) {
   try {
-   const p = await params;
+    const p = await params;
     const admin_user_id = uuidSchema.parse(p.id);
     const [permissionError, session] = await requirePermission(
       req,
-      "admin_users.manage"
+      "admin_users.manage",
     );
     if (permissionError) return permissionError;
 
- 
     const body = schemas.adminUser.update.parse(await req.json());
 
     const updated = await updateAdminUser(admin_user_id, body, session.user.id);
@@ -56,17 +55,16 @@ export async function PUT(req, { params }) {
 
 export async function DELETE(req, { params }) {
   try {
-    const admin_user_id = uuidSchema.parse(params.id);
+    const { id } = await params;
+    const admin_user_id = uuidSchema.parse(id);
 
-    const [permissionError, session] = await requirePermission(
+    const [permissionError, session, admin_user] = await requirePermission(
       req,
-      "admin_users.manage"
+      "admin_users.manage",
     );
     if (permissionError) return permissionError;
 
- 
-
-    const deleted = await deleteAdminUser(admin_user_id, session.user.id);
+    const deleted = await deleteAdminUser(admin_user_id, admin_user.id);
 
     return createSuccessResponse("Admin user deleted successfully", deleted);
   } catch (error) {

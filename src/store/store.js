@@ -27,6 +27,8 @@ import TaskTimelineReducer from "./slices/taskTimelineSlice";
 import { forceLogoutMiddleware } from "@/lib/forceLogoutMiddleware";
 import chargesReducer from "./slices/chargesSlice";
 import taskSearchReducer from "./slices/tasksSearchSlice";
+import reminderMetaReducer from "./slices/reminderMetaSlice";
+import remindersReducer from "./slices/remindersSlice";
 
 export const store = configureStore({
   reducer: {
@@ -54,6 +56,8 @@ export const store = configureStore({
     companyProfile: companyProfileReducer,
     permissions: permissionsReducer,
     taskSearch: taskSearchReducer,
+    reminderMeta: reminderMetaReducer,
+    remindersSlice: remindersReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware()
