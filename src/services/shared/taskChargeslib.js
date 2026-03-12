@@ -121,7 +121,7 @@ export const createTaskChargeLib = async (
   ];
 
   await addTaskActivityLog(taskId, currentUser.id, {
-    action: "TASK_UPDATED",
+    action: "TASK_CHARGE_UPDATED",
     message: buildActivityMessage(changes),
     meta: { changes },
   }).catch((err) => console.error("Activity log failed:", err));
@@ -200,7 +200,7 @@ export const updateTaskChargeLib = async (
     ];
 
     await addTaskActivityLog(previous.task_id, currentUser.id, {
-      action: "TASK_UPDATED",
+      action: "TASK_CHARGE_UPDATED",
       message: buildActivityMessage(changes),
       meta: { changes },
     }).catch((err) => console.error("Activity log failed:", err));
@@ -254,7 +254,7 @@ export const deleteTaskChargeLib = async (
   ];
 
   await addTaskActivityLog(charge.task_id, currentUser.id, {
-    action: "TASK_UPDATED",
+    action: "TASK_CHARGE_UPDATED",
     message: buildActivityMessage(changes),
     meta: { changes },
   }).catch((err) => console.error("Activity log failed:", err));
@@ -328,7 +328,7 @@ export const restoreTaskChargeLib = async (
   ];
 
   await addTaskActivityLog(charge.task_id, user.id, {
-    action: "TASK_UPDATED",
+    action: "TASK_CHARGE_UPDATED",
     message: buildActivityMessage(changes),
     meta: { changes },
   }).catch((err) => console.error("Activity log failed:", err));
@@ -396,7 +396,7 @@ export const hardDeleteTaskChargeLib = async (
   ];
 
   await addTaskActivityLog(charge.task_id, user.id, {
-    action: "TASK_UPDATED",
+    action: "TASK_CHARGE_UPDATED",
     message: buildActivityMessage(changes),
     meta: { changes },
   }).catch((err) => console.error("Activity log failed:", err));
