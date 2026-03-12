@@ -581,3 +581,219 @@ enum EntityType {
   ASSOCIATION_OF_PERSON
   HUF
 }
+
+
+
+
+// Reminders MANAGER
+enum ReminderStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+}
+
+enum NotificationChannel {
+  IN_APP
+  WHATSAPP
+  EMAIL
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
+enum RecurrenceType {
+  DAILY
+  WEEKLY
+  MONTHLY
+  YEARLY
+}
+
+model Reminder {
+  id String @id @default(uuid()) @db.Uuid
+
+  title       String  @db.VarChar(255)
+  description String?
+
+  created_by  String @db.Uuid
+  assigned_to String @db.Uuid
+
+  task_id String? @db.Uuid
+
+  due_at            DateTime
+  is_time_sensitive Boolean   @default(false)
+  snoozed_until     DateTime?
+  completed_at      DateTime?
+
+  is_recurring     Boolean         @default(false)
+  recurrence_type  RecurrenceType?
+  recurrence_every Int?
+
+  recurrence_end        DateTime?
+  recurrence_ends_after Int?
+
+  week_days Int[]
+
+  repeat_by String?
+
+  parent_id String? @db.Uuid
+
+  bucket_id String? @db.Uuid
+
+  google_event_id  String?
+  google_synced_at DateTime?
+
+  status ReminderStatus @default(PENDING)
+
+  deleted_at DateTime?
+  deleted_by String?   @db.Uuid
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  updated_by String   @db.Uuid
+
+  creator  AdminUser @relation("reminder_creator", fields: [created_by], references: [id])
+  assignee AdminUser @relation("reminder_assignee", fields: [assigned_to], references: [id])
+  updater  AdminUser @relation("reminder_updater", fields: [updated_by], references: [id])
+
+  task     Task?      @relation(fields: [task_id], references: [id])
+  parent   Reminder?  @relation("recurrence_parent", fields: [parent_id], references: [id])
+  children Reminder[] @relation("recurrence_parent")
+
+  bucket ReminderBucket? @relation(fields: [bucket_id], references: [id])
+
+  tags            ReminderTagMap[]
+  checklist_items ReminderChecklistItem[]
+  notifications   ReminderNotification[]
+
+  @@index([assigned_to, status, due_at])
+  @@index([due_at])
+  @@index([status])
+  @@index([task_id])
+  @@index([bucket_id])
+  @@index([deleted_at])
+  @@index([created_by, status, due_at])
+  @@index([assigned_to, due_at, deleted_at])
+  @@index([assigned_to, status, deleted_at])
+  @@index([parent_id])
+  @@index([status, due_at])
+  @@index([is_recurring, recurrence_end])
+  @@index([task_id, status])
+  @@index([snoozed_until])
+  @@index([google_event_id])
+  @@index([created_at])
+}
+
+model ReminderBucket {
+  id              String     @id @default(uuid()) @db.Uuid
+  user_id         String     @db.Uuid
+  name            String
+  created_at      DateTime   @default(now())
+  normalized_name String
+  user            AdminUser  @relation(fields: [user_id], references: [id])
+  reminders       Reminder[]
+  icon            String     @default("HASH")
+
+  @@unique([user_id, name])
+  @@unique([user_id, normalized_name])
+  @@index([user_id])
+}
+
+model ReminderTag {
+  id              String           @id @default(uuid()) @db.Uuid
+  user_id         String           @db.Uuid
+  name            String
+  color           String           @db.VarChar(20)
+  normalized_name String
+  user            AdminUser        @relation(fields: [user_id], references: [id])
+  reminders       ReminderTagMap[]
+
+  @@unique([user_id, name])
+  @@unique([user_id, normalized_name])
+  @@index([user_id])
+}
+
+model ReminderTagMap {
+  reminder_id String @db.Uuid
+  tag_id      String @db.Uuid
+
+  reminder Reminder    @relation(fields: [reminder_id], references: [id], onDelete: Cascade)
+  tag      ReminderTag @relation(fields: [tag_id], references: [id], onDelete: Cascade)
+
+  @@id([reminder_id, tag_id])
+  @@index([tag_id])
+  @@index([reminder_id])
+}
+
+model ReminderChecklistItem {
+  id          String @id @default(uuid()) @db.Uuid
+  reminder_id String @db.Uuid
+
+  title   String
+  is_done Boolean @default(false)
+  order   Int     @default(0)
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  created_by String @db.Uuid
+  updated_by String @db.Uuid
+
+  reminder Reminder @relation(fields: [reminder_id], references: [id], onDelete: Cascade)
+
+  creator AdminUser @relation("reminder_checklist_creator", fields: [created_by], references: [id])
+  updater AdminUser @relation("reminder_checklist_updater", fields: [updated_by], references: [id])
+
+  @@index([reminder_id])
+}
+
+model ReminderNotification {
+  id          String @id @default(uuid()) @db.Uuid
+  reminder_id String @db.Uuid
+  user_id     String @db.Uuid
+
+  channel NotificationChannel
+  status  NotificationStatus  @default(PENDING)
+
+  attempt_count Int       @default(0)
+  last_attempt  DateTime?
+  next_retry_at DateTime?
+  error_message String?
+
+  created_at DateTime @default(now())
+
+  reminder Reminder  @relation(fields: [reminder_id], references: [id], onDelete: Cascade)
+  user     AdminUser @relation(fields: [user_id], references: [id])
+
+  @@index([reminder_id])
+  @@index([user_id])
+  @@index([status])
+  @@index([channel])
+}
+
+model UserNotificationPreference {
+  user_id String @id @db.Uuid
+
+  whatsapp_enabled          Boolean   @default(false)
+  whatsapp_opted_in_at      DateTime?
+  whatsapp_last_verified_at DateTime?
+  whatsapp_opt_out_at       DateTime?
+
+  email_enabled Boolean @default(true)
+
+  in_app_enabled Boolean @default(true)
+
+  daily_summary_enabled Boolean   @default(true)
+  summary_send_time     DateTime?
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  user AdminUser @relation(fields: [user_id], references: [id])
+
+  @@index([whatsapp_enabled])
+  @@index([email_enabled])
+  @@index([daily_summary_enabled, summary_send_time])
+}

@@ -95,21 +95,19 @@ async function ensureUserCanViewTask(task_id, user) {
   return task;
 }
 
-async function getValidAdminUser(userin) {
-  const user = await prisma.adminUser.findFirst({
-    where: {
-      id: userin.id,
-      status: "ACTIVE",
-    },
+async function getValidAdminUser(userId) {
+  const user = await prisma.adminUser.findUnique({
+    where: { id: userId },
     select: {
       id: true,
       name: true,
       email: true,
       admin_role: true,
+      status: true,
     },
   });
 
-  if (!user) {
+  if (!user || user.status !== "ACTIVE") {
     throw new ForbiddenError("User inactive or not found");
   }
 

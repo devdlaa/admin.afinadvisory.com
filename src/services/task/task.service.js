@@ -686,6 +686,7 @@ export const createTask = async (data, currentUser) => {
     message: "created this task",
     meta: {},
   }).catch((err) => console.error("Failed to log task creation:", err));
+  
   const [freshTask, globalCounts] = await Promise.all([
     prisma.task.findUnique({
       where: { id: result.id },

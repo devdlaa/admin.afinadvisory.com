@@ -103,8 +103,7 @@ export async function applyTaskDelete(task, tx = prisma) {
 export async function applyTaskUpdate(oldTask, newTask, tx = prisma) {
   const before = computeTaskContribution(oldTask);
   const after = computeTaskContribution(newTask);
-  console.log(before)
-  console.log(after)
+
   // same entity
   if (oldTask.entity_id === newTask.entity_id) {
     const delta = diffTaskDelta(before, after);

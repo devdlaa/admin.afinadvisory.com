@@ -436,7 +436,7 @@ const TaskActionBar = ({
   const agingDisabled = agingLockedBySLA || agingLockedByDateRange;
 
   const getPaginationRange = (currentPage, totalPages, siblingCount = 1) => {
-    const totalPageNumbers = siblingCount * 2 + 5;
+    const totalPageNumbers = siblingCount * 2 + 3;
 
     if (totalPages <= totalPageNumbers) {
       return Array.from({ length: totalPages }, (_, i) => i + 1);
