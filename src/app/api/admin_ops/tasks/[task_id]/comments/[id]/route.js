@@ -1,7 +1,7 @@
 import {
-  updateTaskComment,
-  deleteTaskComment,
-} from "@/services/task/taskComment.service";
+  updateComment,
+  deleteComment,
+} from "@/services/shared/comments.service";
 import { requirePermission } from "@/utils/server/requirePermission";
 import { schemas } from "@/schemas";
 import {
@@ -17,12 +17,13 @@ export async function PATCH(request, { params }) {
     );
     if (permissionError) return permissionError;
 
-    const { task_id, id: comment_id } = await params;
+    const { task_id, id: comment_id } = params;
     const body = await request.json();
 
-    const validatedData = schemas.taskComment.update.parse(body);
+    const validatedData = schemas.comments.update.parse(body);
 
-    const updatedComment = await updateTaskComment(
+    const updatedComment = await updateComment(
+      "TASK",
       task_id,
       comment_id,
       admin_user.id,
@@ -49,7 +50,7 @@ export async function DELETE(request, { params }) {
 
     const { task_id, id: comment_id } = params;
 
-    await deleteTaskComment(task_id, comment_id, admin_user.id);
+    await deleteComment("TASK", task_id, comment_id, admin_user.id);
 
     return createSuccessResponse("Comment deleted successfully", {
       deleted: true,

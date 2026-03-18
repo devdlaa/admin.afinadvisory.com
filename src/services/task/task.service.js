@@ -9,7 +9,7 @@ import {
 import {
   addTaskActivityLog,
   getTaskStatusTimeline,
-} from "./taskComment.service.js";
+} from "../shared/comments.service.js";
 import { buildActivityMessage } from "@/utils/server/activityBulder.js";
 
 import {

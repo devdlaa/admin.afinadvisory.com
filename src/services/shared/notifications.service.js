@@ -53,7 +53,7 @@ export async function notify(userIds, payload) {
           read_at: null,
         });
 
-        // ✅ INCREMENT unread_count in parent document
+        // INCREMENT unread_count in parent document
         const userRef = db.collection(NOTIF_COLLECTION).doc(userId);
         batch.set(
           userRef,
@@ -61,7 +61,7 @@ export async function notify(userIds, payload) {
             unread_count: admin.firestore.FieldValue.increment(1),
             updated_at: admin.firestore.FieldValue.serverTimestamp(),
           },
-          { merge: true }
+          { merge: true },
         );
       }
 
@@ -185,7 +185,7 @@ export async function markAllAsRead(userId) {
       unread_count: 0,
       updated_at: admin.firestore.FieldValue.serverTimestamp(),
     },
-    { merge: true }
+    { merge: true },
   );
 
   await batch.commit();

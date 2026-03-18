@@ -1,7 +1,7 @@
 import { prisma } from "@/utils/server/db.js";
 import { NotFoundError, ValidationError } from "../../utils/server/errors.js";
 import { notify } from "../shared/notifications.service.js";
-import { addTaskActivityLog } from "./taskComment.service.js";
+import { addTaskActivityLog } from "../shared/comments.service.js";
 import { buildActivityMessage } from "@/utils/server/activityBulder.js";
 const DEFAULT_SLA_DAYS = 7;
 

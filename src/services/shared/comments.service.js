@@ -7,7 +7,7 @@ import {
 } from "@/utils/server/errors";
 import { safeForFirestore } from "@/utils/server/utils";
 
-import { notify } from "../shared/notifications.service";
+import { notify } from "./notifications.service";
 
 const db = admin.firestore();
 
@@ -95,6 +95,55 @@ async function ensureUserCanViewTask(task_id, user) {
   return task;
 }
 
+export async function ensureUserCanAccessLead(lead_id, user) {
+  // SUPER ADMIN → full access
+  if (user.admin_role === "SUPER_ADMIN") {
+    const lead = await prisma.lead.findUnique({
+      where: { id: lead_id },
+      select: {
+        id: true,
+        title: true,
+        deleted_at: true,
+      },
+    });
+
+    if (!lead) {
+      throw new NotFoundError("Lead not found");
+    }
+
+    if (lead.deleted_at) {
+      throw new ForbiddenError(
+        "Comments cannot be modified because the lead is deleted",
+      );
+    }
+
+    return lead;
+  }
+
+  // ONLY assigned users
+  const lead = await prisma.lead.findFirst({
+    where: {
+      id: lead_id,
+      deleted_at: null,
+      assignments: {
+        some: {
+          admin_user_id: user.id,
+        },
+      },
+    },
+    select: {
+      id: true,
+      title: true,
+    },
+  });
+
+  if (!lead) {
+    throw new ForbiddenError("You do not have access to this lead");
+  }
+
+  return lead;
+}
+
 async function getValidAdminUser(userId) {
   const user = await prisma.adminUser.findUnique({
     where: { id: userId },
@@ -130,18 +179,138 @@ function stripMentionsFromMessage(message, mentions) {
   return clean.replace(/\s+/g, " ").trim();
 }
 
+// SCOPES FOR MODULER USE
+export const COMMENT_SCOPES = {
+  TASK: {
+    collection: "task_comments",
+
+    ensureAccess: ensureUserCanAccessTask,
+
+    async onCreate({ scope_id, user, now }) {
+      await prisma.task.update({
+        where: { id: scope_id },
+        data: {
+          last_comment_at: now,
+          last_commented_by: user.id,
+          comment_count: { increment: 1 },
+        },
+      });
+    },
+
+    onDelete: async ({ scope_id }) => {
+      await prisma.task.update({
+        where: { id: scope_id },
+        data: {
+          comment_count: { decrement: 1 },
+        },
+      });
+
+      await prisma.task.updateMany({
+        where: {
+          id: scope_id,
+          comment_count: { lt: 0 },
+        },
+        data: { comment_count: 0 },
+      });
+    },
+
+    async getNotificationUsers({ scope_id, user, mentions, entity }) {
+      if (entity.assigned_to_all) return [];
+
+      const mentionIds = mentions
+        .map((m) => m.id)
+        .filter((id) => id !== user.id);
+
+      if (mentionIds.length > 0) return mentionIds;
+
+      const assignees = await prisma.taskAssignment.findMany({
+        where: { task_id: scope_id },
+        select: { admin_user_id: true },
+      });
+
+      return assignees
+        .map((a) => a.admin_user_id)
+        .filter((id) => id !== user.id);
+    },
+
+    buildNotification({ entity, message, scope_id, comment_id, user }) {
+      return {
+        type: "TASK_COMMENT",
+        title: `New comment on ${entity.title}`,
+        body:
+          message.length > 100 ? `${message.substring(0, 100)}...` : message,
+        task_id: scope_id,
+        comment_id,
+        actor_id: user.id,
+        actor_name: user.name,
+        link: `/dashboard/task-managment?taskId=${scope_id}&tab=task-activity`,
+      };
+    },
+  },
+
+  LEAD: {
+    collection: "lead_comments",
+
+    ensureAccess: ensureUserCanAccessLead,
+
+    async onCreate() {
+      // no-op for now
+    },
+
+    async getNotificationUsers({ scope_id, user, mentions }) {
+      const mentionIds = mentions
+        .map((m) => m.id)
+        .filter((id) => id !== user.id);
+
+      if (mentionIds.length > 0) return mentionIds;
+
+      const assignees = await prisma.leadAssignment.findMany({
+        where: { lead_id: scope_id },
+        select: { admin_user_id: true },
+      });
+
+      return assignees
+        .map((a) => a.admin_user_id)
+        .filter((id) => id !== user.id);
+    },
+
+    buildNotification({ entity, message, scope_id, comment_id, user }) {
+      return {
+        type: "LEAD_COMMENT",
+        title: `New comment on ${entity.title}`,
+        body:
+          message.length > 100 ? `${message.substring(0, 100)}...` : message,
+        lead_id: scope_id,
+        comment_id,
+        actor_id: user.id,
+        actor_name: user.name,
+        link: `/dashboard/leads?leadId=${scope_id}`,
+      };
+    },
+  },
+};
+
 // ------------------------------------------------------------------
 // CREATE COMMENT
 // ------------------------------------------------------------------
 
-export const createTaskComment = async (
-  task_id,
-  userin,
+export const createComment = async (
+  scope,
+  scope_id,
+  userId,
   rawMessage,
   mentions = [],
+  isPrivate = false,
 ) => {
-  const user = await getValidAdminUser(userin);
-  const task = await ensureUserCanAccessTask(task_id, userin);
+  const config = COMMENT_SCOPES[scope];
+
+  if (!config) {
+    throw new ValidationError("Invalid comment scope");
+  }
+
+  const user = await getValidAdminUser(userId);
+
+  const entity = await config.ensureAccess(scope_id, user);
 
   const cleanedMessage = stripMentionsFromMessage(
     (rawMessage || "").trim(),
@@ -153,9 +322,9 @@ export const createTaskComment = async (
   }
 
   const commentRef = db
-    .collection(COMMENTS_COLLECTION)
-    .doc(task_id)
-    .collection(COMMENTS_SUBCOLLECTION)
+    .collection(config.collection)
+    .doc(scope_id)
+    .collection("comments")
     .doc();
 
   const now = new Date();
@@ -165,12 +334,14 @@ export const createTaskComment = async (
 
   const payload = {
     id: commentRef.id,
-    task_id,
+    scope,
+    scope_id,
     type: "COMMENT",
     message: cleanedMessage,
     activity: null,
     user_id: user.id,
     user_name: user.name,
+    is_private: Boolean(isPrivate),
 
     mentions: Array.isArray(mentions)
       ? mentions.map((m) => ({ id: m.id, name: m.name }))
@@ -184,55 +355,32 @@ export const createTaskComment = async (
 
   await commentRef.set(safeForFirestore(payload));
 
-  // sync task metadata
-  await prisma.task.update({
-    where: { id: task_id },
-    data: {
-      last_comment_at: now,
-      last_commented_by: user.id,
-      comment_count: { increment: 1 },
-    },
-  });
-
-  // -------------------------------------------------
-  // NOTIFICATIONS
-  // -------------------------------------------------
-
-  if (task.assigned_to_all) return payload;
-
-  const cleanMentionIds = payload.mentions
-    .map((m) => m.id)
-    .filter((id) => id !== user.id);
-
-  let notifyUserIds = [];
-
-  if (cleanMentionIds.length > 0) {
-    notifyUserIds = cleanMentionIds;
-  } else {
-    const assignees = await prisma.taskAssignment.findMany({
-      where: { task_id },
-      select: { admin_user_id: true },
-    });
-
-    notifyUserIds = assignees
-      .map((a) => a.admin_user_id)
-      .filter((id) => id !== user.id);
+  // scope-specific DB updates
+  if (config.onCreate) {
+    await config.onCreate({ scope_id, user, now });
   }
 
-  if (notifyUserIds.length > 0) {
-    await notify(notifyUserIds, {
-      type: "TASK_COMMENT",
-      title: `New comment on ${task.title}`,
-      body:
-        cleanedMessage.length > 100
-          ? `${cleanedMessage.substring(0, 100)}...`
-          : cleanedMessage,
-      task_id,
-      comment_id: payload.id,
-      actor_id: user.id,
-      actor_name: user.name,
-      link: `/dashboard/task-managment?taskId=${task_id}&tab=task-activity`,
+  // skip notifications if private
+  if (!isPrivate && config.getNotificationUsers) {
+    const notifyUserIds = await config.getNotificationUsers({
+      scope_id,
+      user,
+      mentions: payload.mentions,
+      entity,
     });
+
+    if (notifyUserIds.length > 0 && config.buildNotification) {
+      await notify(
+        notifyUserIds,
+        config.buildNotification({
+          entity,
+          message: cleanedMessage,
+          scope_id,
+          comment_id: payload.id,
+          user,
+        }),
+      );
+    }
   }
 
   return payload;
@@ -242,47 +390,45 @@ export const createTaskComment = async (
 // CREATE ACTIVITY ENTRY (backend/internal only) do not touch this
 // ------------------------------------------------------------------
 
-export const addTaskActivityLog = async (task_id, actor_id, activity) => {
+export const addLeadActivityLog = async (lead_id, actor_id, activity) => {
   const user = await getValidAdminUser(actor_id);
 
+  const config = COMMENT_SCOPES.LEAD;
+
   const docRef = db
-    .collection(COMMENTS_COLLECTION)
-    .doc(task_id)
+    .collection(config.collection)
+    .doc(lead_id)
     .collection(COMMENTS_SUBCOLLECTION)
     .doc();
-
-  const HAS_STATUS_TIMELINE_UPDATED =
-    [
-      "TASK_CREATED",
-      "TASK_DELETED",
-      "TASK_RESTORED",
-      "TASK_ASSIGNMENT_UPDATED",
-    ].includes(activity.action) ||
-    (activity.meta?.changes ?? []).some((c) => c.from?.status || c.to?.status);
 
   const now = new Date();
 
   const payload = {
     id: docRef.id,
-    task_id,
+    lead_id,
+    scope: "LEAD",
+
     type: "ACTIVITY",
-    timeline_type: HAS_STATUS_TIMELINE_UPDATED ? "STATUS_TIMELINE" : null,
+
     user_id: user.id,
     user_name: user.name,
     user_email: user.email,
+
     message: activity.message,
+
     activity: {
       action: activity.action,
       meta: activity.meta ?? null,
     },
+
     created_at: now.toISOString(),
     deleted: false,
   };
 
   await docRef.set(safeForFirestore(payload));
 
-  await prisma.task.update({
-    where: { id: task_id },
+  await prisma.lead.update({
+    where: { id: lead_id },
     data: {
       last_activity_at: now,
       last_activity_by: user.id,
@@ -296,38 +442,47 @@ export const addTaskActivityLog = async (task_id, actor_id, activity) => {
 // LIST COMMENTS
 // ------------------------------------------------------------------
 
-export const listTaskTimeline = async (
-  task_id,
-  { limit = 20, cursor = null, type = "ALL" } = {},
+export const listTimeline = async (
+  scope,
+  scope_id,
+  { limit = 20, cursor = null, type = "ALL", user_id = null } = {},
   currentUser,
 ) => {
-  await ensureUserCanViewTask(task_id, currentUser);
+  const config = COMMENT_SCOPES[scope];
+
+  if (!config) {
+    throw new ValidationError("Invalid comment scope");
+  }
+
+  await config.ensureAccess(scope_id, currentUser);
 
   if (limit <= 0 || limit > 100) {
     throw new ValidationError("Invalid pagination limit");
   }
 
   let ref = db
-    .collection(COMMENTS_COLLECTION)
-    .doc(task_id)
-    .collection(COMMENTS_SUBCOLLECTION)
-    .where("deleted", "==", false)
-    .orderBy("created_at", "desc")
-    .limit(limit);
+    .collection(config.collection)
+    .doc(scope_id)
+    .collection("comments")
+    .where("deleted", "==", false);
 
-  // filter by entry type if requested
+  if (user_id) {
+    ref = ref.where("user_id", "==", user_id);
+  }
+
   if (type === "COMMENT") {
     ref = ref.where("type", "==", "COMMENT");
   } else if (type === "ACTIVITY") {
     ref = ref.where("type", "==", "ACTIVITY");
   }
 
-  // cursor pagination
+  ref = ref.orderBy("created_at", "desc").limit(limit);
+
   if (cursor) {
     const cursorDoc = await db
-      .collection(COMMENTS_COLLECTION)
-      .doc(task_id)
-      .collection(COMMENTS_SUBCOLLECTION)
+      .collection(config.collection)
+      .doc(scope_id)
+      .collection("comments")
       .doc(cursor)
       .get();
 
@@ -343,10 +498,19 @@ export const listTaskTimeline = async (
   snapshot.forEach((doc) => {
     const data = doc.data();
 
+    if (
+      scope === "LEAD" &&
+      data.is_private === true &&
+      data.user_id !== currentUser.id
+    ) {
+      return;
+    }
+
+    // normalize mentions
     if (Array.isArray(data.mentions)) {
       data.mentions = data.mentions.map((m) => {
         if (typeof m === "string") {
-          return { id: m, name: "Unknown" }; // backward compatibility
+          return { id: m, name: "Unknown" };
         }
         return {
           id: m.id,
@@ -372,21 +536,29 @@ export const listTaskTimeline = async (
 // UPDATE COMMENT
 // ------------------------------------------------------------------
 
-export const updateTaskComment = async (
-  task_id,
+export const updateComment = async (
+  scope, // "TASK" | "LEAD"
+  scope_id,
   comment_id,
   user_id,
   rawMessage,
   mentions = [],
+  isPrivate, // optional toggle
 ) => {
+  const config = COMMENT_SCOPES[scope];
+
+  if (!config) {
+    throw new ValidationError("Invalid comment scope");
+  }
+
   const user = await getValidAdminUser(user_id);
 
-  await ensureUserCanAccessTask(task_id, user);
+  await config.ensureAccess(scope_id, user);
 
   const commentRef = db
-    .collection(COMMENTS_COLLECTION)
-    .doc(task_id)
-    .collection(COMMENTS_SUBCOLLECTION)
+    .collection(config.collection)
+    .doc(scope_id)
+    .collection("comments")
     .doc(comment_id);
 
   const doc = await commentRef.get();
@@ -402,6 +574,7 @@ export const updateTaskComment = async (
     throw new ForbiddenError("You may only edit your own comments");
   }
 
+  // keep for future activity logs
   if (data.type === "ACTIVITY") {
     throw new ForbiddenError("Activity entries cannot be edited");
   }
@@ -434,6 +607,10 @@ export const updateTaskComment = async (
     updated_at: now.toISOString(),
   };
 
+  if (scope === "LEAD" && typeof isPrivate === "boolean") {
+    updatePayload.is_private = isPrivate;
+  }
+
   await commentRef.update(safeForFirestore(updatePayload));
 
   return {
@@ -446,15 +623,26 @@ export const updateTaskComment = async (
 // DELETE COMMENT (soft delete)
 // ------------------------------------------------------------------
 
-export const deleteTaskComment = async (task_id, comment_id, user_id) => {
+export const deleteComment = async (
+  scope, // "TASK" | "LEAD"
+  scope_id,
+  comment_id,
+  user_id,
+) => {
+  const config = COMMENT_SCOPES[scope];
+
+  if (!config) {
+    throw new ValidationError("Invalid comment scope");
+  }
+
   const user = await getValidAdminUser(user_id);
 
-  await ensureUserCanAccessTask(task_id, user);
+  await config.ensureAccess(scope_id, user);
 
   const commentRef = db
-    .collection(COMMENTS_COLLECTION)
-    .doc(task_id)
-    .collection(COMMENTS_SUBCOLLECTION)
+    .collection(config.collection)
+    .doc(scope_id)
+    .collection("comments")
     .doc(comment_id);
 
   const doc = await commentRef.get();
@@ -463,6 +651,7 @@ export const deleteTaskComment = async (task_id, comment_id, user_id) => {
 
   const data = doc.data();
 
+  // prevent deleting activity logs
   if (data.type === "ACTIVITY") {
     throw new ForbiddenError("Activity entries cannot be deleted");
   }
@@ -474,12 +663,12 @@ export const deleteTaskComment = async (task_id, comment_id, user_id) => {
     throw new ForbiddenError("You cannot delete this comment");
   }
 
-  const now = new Date();
-
-  // already deleted → idempotent success
+  // already deleted → idempotent
   if (data.deleted === true) {
     return true;
   }
+
+  const now = new Date();
 
   const deletePayload = {
     deleted: true,
@@ -488,20 +677,9 @@ export const deleteTaskComment = async (task_id, comment_id, user_id) => {
 
   await commentRef.update(safeForFirestore(deletePayload));
 
-  await prisma.task.update({
-    where: { id: task_id },
-    data: {
-      comment_count: { decrement: 1 },
-    },
-  });
-
-  await prisma.task.updateMany({
-    where: {
-      id: task_id,
-      comment_count: { lt: 0 },
-    },
-    data: { comment_count: 0 },
-  });
+  if (config.onDelete) {
+    await config.onDelete({ scope_id });
+  }
 
   return true;
 };

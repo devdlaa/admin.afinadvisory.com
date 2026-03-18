@@ -8,33 +8,36 @@ datasource db {
 }
 
 model Entity {
-  id              String                 @id @default(uuid()) @db.Uuid
-  entity_type     EntityType
-  name            String                 @db.VarChar(120)
-  pan             String?                @unique
-  email           String
-  primary_phone   String
-  secondary_phone String?
-  address_line1   String?                @db.VarChar(200)
-  address_line2   String?                @db.VarChar(200)
-  city            String?                @db.VarChar(50)
-  state           String?                @db.VarChar(50)
-  pincode         String?                @db.Char(6)
-  status          EntityStatus           @default(INACTIVE)
-  created_at      DateTime               @default(now())
-  updated_at      DateTime               @updatedAt
-  created_by      String                 @db.Uuid
-  deleted_at      DateTime?
-  deleted_by      String?                @db.Uuid
-  updated_by      String?                @db.Uuid
-  contact_person  String?                @db.VarChar(100)
-  creator         AdminUser              @relation("entity_creator", fields: [created_by], references: [id])
-  deleter         AdminUser?             @relation("entity_deleter", fields: [deleted_by], references: [id])
-  updater         AdminUser?             @relation("entity_updater", fields: [updated_by], references: [id])
-  custom_fields   EntityCustomField[]
-  invoices        Invoice[]
-  tasks           Task[]
-  reconcile_stats ReconcileStatsCurrent? @relation("ReconcileStats")
+  id                   String                 @id @default(uuid()) @db.Uuid
+  entity_type          EntityType
+  name                 String                 @db.VarChar(120)
+  pan                  String?                @unique
+  email                String
+  primary_phone        String
+  secondary_phone      String?
+  address_line1        String?                @db.VarChar(200)
+  address_line2        String?                @db.VarChar(200)
+  city                 String?                @db.VarChar(50)
+  state                String?                @db.VarChar(50)
+  pincode              String?                @db.Char(6)
+  status               EntityStatus           @default(INACTIVE)
+  created_at           DateTime               @default(now())
+  updated_at           DateTime               @updatedAt
+  created_by           String                 @db.Uuid
+  deleted_at           DateTime?
+  deleted_by           String?                @db.Uuid
+  updated_by           String?                @db.Uuid
+  contact_person       String?                @db.VarChar(100)
+  creator              AdminUser              @relation("entity_creator", fields: [created_by], references: [id])
+  deleter              AdminUser?             @relation("entity_deleter", fields: [deleted_by], references: [id])
+  updater              AdminUser?             @relation("entity_updater", fields: [updated_by], references: [id])
+  custom_fields        EntityCustomField[]
+  invoices             Invoice[]
+  tasks                Task[]
+  lead_references      LeadReference[]
+ 
+
+  reconcile_stats      ReconcileStatsCurrent? @relation("ReconcileStats")
 
   @@index([name])
   @@index([pan])
@@ -100,18 +103,29 @@ model AdminUser {
   deleted_admins                    AdminUser[]           @relation("admin_deleter")
   updater                           AdminUser?            @relation("admin_updater", fields: [updated_by], references: [id])
   updated_admins                    AdminUser[]           @relation("admin_updater")
+  lead_activities_created           LeadActivity[]        @relation("lead_activity_creator")
+  lead_activities_closed            LeadActivity[]        @relation("lead_activity_closer")
+ 
+  lead_assignments_received         LeadAssignment[]      @relation("lead_assignee")
+  lead_assignments_given            LeadAssignment[]      @relation("lead_assigner")
+  lead_stage_changes                LeadStageHistory[]
+  leads_lost                        Lead[]                @relation("lead_loser")
+  leads_won                         Lead[]                @relation("lead_winner")
   permissions                       AdminUserPermission[]
   reminders_created                 Reminder[]            @relation("reminder_creator")
   reminders_assigned                Reminder[]            @relation("reminder_assignee")
   reminders_updated                 Reminder[]            @relation("reminder_updater")
+  lead_contacts_created             LeadContact[]         @relation("lead_contact_creator")
+  lead_contacts_updated             LeadContact[]         @relation("lead_contact_updater")
 
-  reminder_buckets ReminderBucket[]
-  reminder_tags    ReminderTag[]
+  lead_tags_created                 LeadTag[]
+  reminder_buckets                  ReminderBucket[]
+  reminder_tags                     ReminderTag[]
 
   reminder_checklist_created ReminderChecklistItem[] @relation("reminder_checklist_creator")
   reminder_checklist_updated ReminderChecklistItem[] @relation("reminder_checklist_updater")
-
-  reminder_notifications ReminderNotification[]
+  lead_pipelines_created     LeadPipeline[]
+  reminder_notifications     ReminderNotification[]
 
   notification_preference      UserNotificationPreference?
   created_documents            Document[]                  @relation("document_creator")
@@ -263,44 +277,46 @@ model TaskAssignment {
 }
 
 model Task {
-  id                      String              @id @default(uuid()) @db.Uuid
-  entity_id               String?             @db.Uuid
-  created_by              String              @db.Uuid
+  id                      String                   @id @default(uuid()) @db.Uuid
+  entity_id               String?                  @db.Uuid
+  created_by              String                   @db.Uuid
   title                   String
   description             String?
-  status                  TaskStatus          @default(PENDING)
+  status                  TaskStatus               @default(PENDING)
   start_date              DateTime?
   end_date                DateTime?
   due_date                DateTime?
-  created_at              DateTime            @default(now())
-  updated_at              DateTime            @updatedAt
+  created_at              DateTime                 @default(now())
+  updated_at              DateTime                 @updatedAt
   last_activity_at        DateTime?
-  last_activity_by        String?             @db.Uuid
-  updated_by              String              @db.Uuid
-  priority                TaskPriority        @default(NORMAL)
-  is_billable             Boolean             @default(false)
-  assigned_to_all         Boolean             @default(false)
-  comment_count           Int                 @default(0)
+  last_activity_by        String?                  @db.Uuid
+  updated_by              String                   @db.Uuid
+  priority                TaskPriority             @default(NORMAL)
+  is_billable             Boolean                  @default(false)
+  assigned_to_all         Boolean                  @default(false)
+  comment_count           Int                      @default(0)
   last_comment_at         DateTime?
-  last_commented_by       String?             @db.Uuid
-  task_category_id        String?             @db.Uuid
-  invoice_internal_number String?             @db.VarChar(50)
+  last_commented_by       String?                  @db.Uuid
+  task_category_id        String?                  @db.Uuid
+  invoice_internal_number String?                  @db.VarChar(50)
   deleted_at              DateTime?
-  deleted_by              String?             @db.Uuid
+  deleted_by              String?                  @db.Uuid
   reminders               Reminder[]
   invoiced_at             DateTime?
-  is_locked               Boolean             @default(false)
-  is_system               Boolean             @default(false)
-  task_type               TaskType            @default(REGULAR)
-  creator                 AdminUser           @relation("task_creator", fields: [created_by], references: [id])
-  entity                  Entity?             @relation(fields: [entity_id], references: [id])
-  invoice                 Invoice?            @relation(fields: [invoice_internal_number], references: [internal_number])
-  last_activity_admin     AdminUser?          @relation("last_activity_admin", fields: [last_activity_by], references: [id])
-  category                TaskCategory?       @relation(fields: [task_category_id], references: [id])
-  updater                 AdminUser           @relation("task_updater", fields: [updated_by], references: [id])
+  is_locked               Boolean                  @default(false)
+  is_system               Boolean                  @default(false)
+  task_type               TaskType                 @default(REGULAR)
+  creator                 AdminUser                @relation("task_creator", fields: [created_by], references: [id])
+  entity                  Entity?                  @relation(fields: [entity_id], references: [id])
+  invoice                 Invoice?                 @relation(fields: [invoice_internal_number], references: [internal_number])
+  last_activity_admin     AdminUser?               @relation("last_activity_admin", fields: [last_activity_by], references: [id])
+  category                TaskCategory?            @relation(fields: [task_category_id], references: [id])
+  updater                 AdminUser                @relation("task_updater", fields: [updated_by], references: [id])
   assignments             TaskAssignment[]
   charges                 TaskCharge[]
   checklist_items         TaskChecklistItem[]
+  search_vector           Unsupported("tsvector")?
+  title_vector            Unsupported("tsvector")?
 
   @@index([entity_id, is_system, created_at])
   @@index([entity_id, task_type, created_at])
@@ -330,29 +346,32 @@ model UserPushToken {
 }
 
 model CompanyProfile {
-  id              String       @id @default(uuid()) @db.Uuid
-  name            String       @db.VarChar(150)
-  legal_name      String?      @db.VarChar(200)
-  pan             String?      @db.Char(10)
-  gst_number      String?      @db.VarChar(15)
-  email           String?
-  phone           String?
-  address_line1   String?      @db.VarChar(200)
-  address_line2   String?      @db.VarChar(200)
-  city            String?      @db.VarChar(50)
-  state           IndianState?
-  pincode         String?      @db.Char(6)
-  bank_name       String?      @db.VarChar(100)
-  bank_account_no String?      @db.VarChar(30)
-  bank_ifsc       String?      @db.VarChar(15)
-  bank_branch     String?      @db.VarChar(100)
-  is_default      Boolean      @default(false)
-  is_active       Boolean      @default(true)
-  created_at      DateTime     @default(now())
-  updated_at      DateTime     @updatedAt
-  created_by      String       @db.Uuid
-  updated_by      String       @db.Uuid
-  invoices        Invoice[]
+  id                  String                     @id @default(uuid()) @db.Uuid
+  name                String                     @db.VarChar(150)
+  legal_name          String?                    @db.VarChar(200)
+  pan                 String?                    @db.Char(10)
+  gst_number          String?                    @db.VarChar(15)
+  email               String?
+  phone               String?
+  address_line1       String?                    @db.VarChar(200)
+  address_line2       String?                    @db.VarChar(200)
+  city                String?                    @db.VarChar(50)
+  state               IndianState?
+  pincode             String?                    @db.Char(6)
+  bank_name           String?                    @db.VarChar(100)
+  bank_account_no     String?                    @db.VarChar(30)
+  bank_ifsc           String?                    @db.VarChar(15)
+  bank_branch         String?                    @db.VarChar(100)
+  is_default          Boolean                    @default(false)
+  is_active           Boolean                    @default(true)
+  created_at          DateTime                   @default(now())
+  updated_at          DateTime                   @updatedAt
+  created_by          String                     @db.Uuid
+  updated_by          String                     @db.Uuid
+  invoices            Invoice[]
+  leads               Lead[]
+  lead_pipelines      LeadPipeline[]
+
 
   @@index([name])
   @@index([gst_number])
@@ -422,20 +441,21 @@ model Invoice {
 }
 
 model Document {
-  id            String        @id @default(uuid()) @db.Uuid
-  object_key    String        @unique
-  bucket        String
-  url           String
-  original_name String
-  mime_type     String
-  size_bytes    Int
-  scope         DocumentScope
-  scope_id      String
-  created_by    String        @db.Uuid
-  created_at    DateTime      @default(now())
-  updated_at    DateTime      @updatedAt
-  deleted_at    DateTime?
-  creator       AdminUser     @relation("document_creator", fields: [created_by], references: [id])
+  id                     String                @id @default(uuid()) @db.Uuid
+  object_key             String                @unique
+  bucket                 String
+  url                    String
+  original_name          String
+  mime_type              String
+  size_bytes             Int
+  scope                  DocumentScope
+  scope_id               String
+  created_by             String                @db.Uuid
+  created_at             DateTime              @default(now())
+  updated_at             DateTime              @updatedAt
+  deleted_at             DateTime?
+  creator                AdminUser             @relation("document_creator", fields: [created_by], references: [id])
+  lead_email_attachments LeadEmailAttachment[]
 
   @@index([scope, scope_id])
   @@index([created_at])
@@ -462,6 +482,7 @@ enum DocumentScope {
   COMPANY_PROFILE
   OTHER
   REMINDER
+  LEAD_ACTIVITY
 }
 
 enum AdminUserStatus {
@@ -581,9 +602,6 @@ enum EntityType {
   ASSOCIATION_OF_PERSON
   HUF
 }
-
-
-
 
 // Reminders MANAGER
 enum ReminderStatus {
@@ -796,4 +814,765 @@ model UserNotificationPreference {
   @@index([whatsapp_enabled])
   @@index([email_enabled])
   @@index([daily_summary_enabled, summary_send_time])
+}
+
+// LEADS MANAGER
+
+enum SocialPlatform {
+  LINKEDIN
+  TWITTER
+  FACEBOOK
+  INSTAGRAM
+  YOUTUBE
+  OTHER
+}
+
+enum IndustryType {
+  ACCOMMODATION_SERVICES
+  ADMINISTRATIVE_SERVICES
+  CONSTRUCTION
+  CONSUMER_SERVICES
+  EDUCATION
+  ENTERTAINMENT
+  FARMING_FORESTRY
+  FINANCIAL_SERVICES
+  GOVERNMENT
+  HOLDING_COMPANY
+  HEALTHCARE
+  MANUFACTURING
+  OIL_GAS_MINING
+  PROFESSIONAL_SERVICES
+  REAL_ESTATE
+  RETAIL
+  TECHNOLOGY
+  TRANSPORT_LOGISTICS
+  UTILITIES
+  OTHER
+}
+
+enum PreferredLanguage {
+  ENGLISH
+  HINDI
+  MARATHI
+  GUJARATI
+  TAMIL
+  TELUGU
+  BENGALI
+  OTHER
+}
+
+model LeadContact {
+  id String @id @default(uuid()) @db.Uuid
+
+  entity_type EntityType
+
+  contact_person String @db.VarChar(120)
+
+  company_name String? @db.VarChar(150)
+  designation  String? @db.VarChar(120)
+
+  primary_email   String? @db.VarChar(150)
+  secondary_email String? @db.VarChar(150)
+
+  primary_phone    String? @db.VarChar(20)
+  primary_whatsapp Boolean @default(false)
+
+  secondary_phone    String? @db.VarChar(20)
+  secondary_whatsapp Boolean @default(false)
+
+
+
+
+  website String? @db.VarChar(200)
+
+  industry IndustryType?
+
+  pan        String? @db.Char(10)
+  gst_number String? @db.VarChar(15)
+
+  preferred_language PreferredLanguage?
+
+  address_line1 String? @db.VarChar(200)
+  address_line2 String? @db.VarChar(200)
+
+  country_code String? @db.Char(2)
+  country_name String? @db.VarChar(80)
+
+  state_code String? @db.VarChar(10)
+  state_name String? @db.VarChar(80)
+
+  city    String? @db.VarChar(80)
+  pincode String? @db.VarChar(15)
+
+  notes String?
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  created_by String  @db.Uuid
+  updated_by String? @db.Uuid
+
+  deleted_at DateTime?
+  deleted_by String? @db.Uuid
+
+  creator AdminUser  @relation("lead_contact_creator", fields: [created_by], references: [id])
+  updater AdminUser? @relation("lead_contact_updater", fields: [updated_by], references: [id])
+
+  leads Lead[]
+
+  social_links LeadContactSocialLink[]
+
+  @@index([contact_person])
+  @@index([primary_email])
+  @@index([primary_phone])
+  @@index([company_name])
+  @@index([industry])
+  @@index([country_code, state_code])
+  @@index([deleted_at])
+  @@index([pan])
+  @@index([gst_number])
+
+}
+
+model LeadContactSocialLink {
+  id         String @id @default(uuid()) @db.Uuid
+  contact_id String @db.Uuid
+
+  platform SocialPlatform
+  url      String         @db.VarChar(300)
+
+  created_at DateTime @default(now())
+
+  contact LeadContact @relation(fields: [contact_id], references: [id], onDelete: Cascade)
+
+  @@index([contact_id])
+}
+
+model LeadTag {
+  id          String  @id @default(uuid()) @db.Uuid
+  name        String  @unique @db.VarChar(50)
+  color       String? @db.VarChar(20)
+  description String?
+
+  created_at DateTime @default(now())
+  created_by String   @db.Uuid
+
+  updated_at DateTime @updatedAt
+  updated_by String?  @db.Uuid
+
+  deleted_at DateTime?
+  deleted_by String?  @db.Uuid
+
+  creator AdminUser @relation(fields: [created_by], references: [id])
+
+  lead_tags LeadTagMap[]
+
+  @@index([name])
+  @@index([deleted_at])
+}
+
+model LeadTagMap {
+  lead_id String @db.Uuid
+  tag_id  String @db.Uuid
+
+  lead Lead    @relation(fields: [lead_id], references: [id], onDelete: Cascade)
+  tag  LeadTag @relation(fields: [tag_id], references: [id], onDelete: Cascade)
+
+  @@id([lead_id, tag_id])
+  @@index([lead_id])
+  @@index([tag_id])
+}
+
+
+
+
+
+
+enum LeadAssignmentRole {
+  OWNER
+  COLLABORATOR
+}
+
+model LeadAssignment {
+  id String @id @default(uuid()) @db.Uuid
+
+  lead_id       String @db.Uuid
+  admin_user_id String @db.Uuid
+
+  role LeadAssignmentRole @default(COLLABORATOR)
+
+  assigned_by String   @db.Uuid
+  assigned_at DateTime @default(now())
+
+  lead Lead @relation(fields: [lead_id], references: [id], onDelete: Cascade)
+
+  assignee AdminUser @relation("lead_assignee", fields: [admin_user_id], references: [id])
+  assigner AdminUser @relation("lead_assigner", fields: [assigned_by], references: [id])
+
+  @@unique([lead_id, admin_user_id])
+  @@index([lead_id])
+  @@index([admin_user_id])
+}
+
+
+
+
+
+
+
+
+
+model LeadStageHistory {
+  id String @id @default(uuid()) @db.Uuid
+
+  lead_id String @db.Uuid
+
+  from_stage_id String? @db.Uuid
+  to_stage_id   String  @db.Uuid
+
+  changed_by String   @db.Uuid
+  changed_at DateTime @default(now())
+
+  note String?
+
+  lead       Lead               @relation(fields: [lead_id], references: [id], onDelete: Cascade)
+  from_stage LeadPipelineStage? @relation("stage_from", fields: [from_stage_id], references: [id])
+  to_stage   LeadPipelineStage  @relation("stage_to", fields: [to_stage_id], references: [id])
+
+  changer AdminUser @relation(fields: [changed_by], references: [id])
+
+  @@index([lead_id])
+  @@index([changed_at])
+}
+
+
+enum LeadSource {
+  MANUAL
+  WEBSITE_FORM
+  FACEBOOK_AD
+  INSTAGRAM_AD
+  GOOGLE_AD
+  YOUTUBE_AD
+  WHATSAPP
+  REFERRAL
+  EVENT
+  COLD_CALL
+  PARTNER
+  OTHER
+}
+
+model LeadSourceData {
+  id String @id @default(uuid()) @db.Uuid
+
+  lead_id String     @db.Uuid
+  source  LeadSource
+
+  external_id String? @db.VarChar(150)
+
+  is_system Boolean @default(true)
+
+  raw_payload Json?
+
+  created_at DateTime @default(now())
+
+  lead Lead @relation(fields: [lead_id], references: [id], onDelete: Cascade)
+
+  @@unique([lead_id])
+  @@index([source])
+  @@index([external_id])
+}
+
+enum LeadReferenceType {
+  INFLUENCER
+  ENTITY
+  LEAD_CONTACT
+  EXTERNAL_PERSON
+}
+model LeadReference {
+  id String @id @default(uuid()) @db.Uuid
+
+  lead_id String @db.Uuid
+
+  type LeadReferenceType
+
+  influencer_id   String? @db.Uuid
+  entity_id       String? @db.Uuid
+  lead_contact_id String? @db.Uuid
+
+  name  String? @db.VarChar(120)
+  phone String? @db.VarChar(20)
+  email String? @db.VarChar(150)
+
+  created_at DateTime @default(now())
+
+  lead        Lead         @relation(fields: [lead_id], references: [id], onDelete: Cascade)
+  influencer  Influencer?  @relation(fields: [influencer_id], references: [id])
+  entity      Entity?      @relation(fields: [entity_id], references: [id])
+  leadContact LeadContact? @relation(fields: [lead_contact_id], references: [id])
+
+  @@unique([lead_id])
+  @@index([influencer_id])
+  @@index([entity_id])
+  @@index([lead_contact_id])
+}
+
+enum LeadPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+enum LeadClosureStatus {
+  WON
+  LOST
+}
+
+model Lead {
+  id String @id @default(uuid()) @db.Uuid
+
+  lead_contact_id String? @db.Uuid
+
+
+  company_profile_id String @db.Uuid
+  pipeline_id String @db.Uuid
+  stage_id    String @db.Uuid
+
+  title       String  @db.VarChar(200)
+  description String?
+
+  source   LeadSourceData
+  priority LeadPriority @default(NORMAL)
+
+  expected_close_date DateTime?
+  closure_status LeadClosureStatus?
+ 
+  
+
+  stage_updated_at DateTime?
+  stage_updated_by String?   @db.Uuid
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  created_by String  @db.Uuid
+  updated_by String? @db.Uuid       
+
+  deleted_at DateTime?
+  deleted_by String? @db.Uuid
+
+  contact LeadContact @relation(fields: [lead_contact_id], references: [id])
+
+
+  company_profile CompanyProfile @relation(fields: [company_profile_id], references: [id])
+  pipeline        LeadPipeline   @relation(fields: [pipeline_id], references: [id])
+  stage           LeadPipelineStage @relation(fields: [stage_id], references: [id], onDelete: Restrict)
+
+  assignments LeadAssignment[]
+  activities  LeadActivity[]
+
+  tags              LeadTagMap[]
+  reference         LeadReference?
+  source_data       LeadSourceData?
+  stage_history     LeadStageHistory[]
+
+
+  @@index([lead_contact_id])
+  @@index([pipeline_id])
+  @@index([stage_id])
+  @@index([expected_close_date])
+  @@index([pipeline_id, stage_id])
+  @@index([created_at])
+  @@index([deleted_at])
+  @@index([pipeline_id, stage_id, deleted_at, created_at, id])
+}
+
+model LeadPipeline {
+  id String @id @default(uuid()) @db.Uuid
+
+  company_profile_id String @db.Uuid
+
+  name        String  @db.VarChar(120)
+  description String?
+  icon String?
+  is_default Boolean @default(false)
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  created_by String @db.Uuid
+  updated_by String? @db.Uuid
+  deleted_at DateTime?
+  deleted_by String? @db.Uuid
+
+  company_profile CompanyProfile @relation(fields: [company_profile_id], references: [id])
+  creator         AdminUser      @relation(fields: [created_by], references: [id])
+
+  stages LeadPipelineStage[]
+  leads  Lead[]
+
+  @@index([company_profile_id])
+  @@index([deleted_at])
+}
+
+
+model LeadPipelineStage {
+  id String @id @default(uuid()) @db.Uuid
+
+  pipeline_id String @db.Uuid
+
+  name String @db.VarChar(120)
+
+  stage_order Int
+
+  is_closed Boolean @default(false)
+  is_won    Boolean @default(false)
+
+  created_at DateTime @default(now())
+
+  created_by String @db.Uuid
+  updated_by String? @db.Uuid
+
+  pipeline LeadPipeline @relation(fields: [pipeline_id], references: [id], onDelete: Cascade)
+
+  leads        Lead[]
+  history_to   LeadStageHistory[] @relation("stage_to")
+  history_from LeadStageHistory[] @relation("stage_from")
+
+  @@unique([pipeline_id, name])
+  @@index([pipeline_id])
+  @@index([pipeline_id, stage_order])
+}
+
+
+
+
+model Influencer {
+  id String @id @default(uuid()) @db.Uuid
+
+  name  String  @db.VarChar(120)
+  phone String? @db.VarChar(20)
+  email String? @db.VarChar(150)
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  created_by String @db.Uuid
+  updated_by String? @db.Uuid
+
+  deleted_at DateTime?
+  deleted_by String? @db.Uuid
+
+  references   LeadReference[]
+  social_links InfluencerSocialLink[]
+
+  @@index([name])
+  @@index([phone])
+  @@index([deleted_at])
+  @@index([created_by])
+}
+
+model InfluencerSocialLink {
+  id            String @id @default(uuid()) @db.Uuid
+  influencer_id String @db.Uuid
+
+  platform SocialPlatform
+  url      String         @db.VarChar(300)
+
+  created_at DateTime @default(now())
+
+  influencer Influencer @relation(fields: [influencer_id], references: [id], onDelete: Cascade)
+
+  @@index([influencer_id])
+}
+
+
+
+
+
+
+
+
+
+
+
+enum LeadActivityType {
+  CALL
+  EMAIL
+  WHATSAPP
+  VIDEO_CALL
+}
+
+enum LeadActivityStatus {
+  ACTIVE
+  COMPLETED
+  MISSED
+
+}
+
+enum ActivityMissedBy {
+  USER
+  CLIENT
+}
+
+model LeadActivity {
+  id String @id @default(uuid()) @db.Uuid
+
+  lead_id String @db.Uuid
+
+  activity_type LeadActivityType
+  status        LeadActivityStatus @default(ACTIVE)
+
+  email_message LeadEmailMessage?
+  video_call_meta VideoCallMeta?
+
+  title       String? @db.VarChar(200)
+  description String?
+
+  is_scheduled Boolean   @default(false)
+  scheduled_at DateTime?
+
+  completed_at DateTime?
+  completion_note String?
+  deleted_at DateTime?
+  deleted_by String? @db.Uuid
+  updated_by String? @db.Uuid
+  missed_reason String?
+  missed_by     ActivityMissedBy?
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  created_by String  @db.Uuid
+  closed_by  String? @db.Uuid
+
+  lead Lead @relation(fields: [lead_id], references: [id], onDelete: Cascade)
+
+  creator AdminUser  @relation("lead_activity_creator", fields: [created_by], references: [id])
+  closer  AdminUser? @relation("lead_activity_closer", fields: [closed_by], references: [id])
+  deleter AdminUser? @relation("lead_activity_deleter", fields: [deleted_by], references: [id])
+  updater AdminUser? @relation("lead_activity_updater", fields: [updated_by], references: [id])
+
+  @@index([lead_id])
+  @@index([lead_id, deleted_at])
+  @@index([lead_id, deleted_at, created_at])
+  @@index([lead_id, status])
+  @@index([lead_id, activity_type])
+  @@index([status])
+  @@index([scheduled_at])
+  @@index([status, scheduled_at])
+  @@index([created_at])
+  @@index([deleted_at])
+}
+
+
+
+
+enum MeetingProvider {
+  ZOOM
+  GOOGLE_MEET
+  ZOHO_MEET
+  MICROSOFT_TEAMS
+  OTHER
+}
+
+enum MeetingStatus {
+  CREATED
+  SCHEDULED
+  STARTED
+  COMPLETED
+  CANCELLED
+}
+
+
+
+
+model VideoCallMeta {
+  id String @id @default(uuid()) @db.Uuid
+
+  activity_id String @db.Uuid @unique
+
+  provider MeetingProvider
+  status   MeetingStatus @default(CREATED)
+
+  meeting_link String @db.VarChar(500)
+  host_start_link String? @db.VarChar(500)
+  meeting_code String? @db.VarChar(120)
+
+  provider_meeting_id String? @db.VarChar(150)
+  has_transcript        Boolean @default(false)
+  is_transcript_ready   Boolean @default(false)
+
+  host_user_id String? @db.Uuid
+  host_email   String? @db.VarChar(150)
+
+  scheduled_at DateTime?
+  started_at   DateTime?
+  ended_at     DateTime?
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  activity LeadActivity @relation(fields: [activity_id], references: [id], onDelete: Cascade)
+  host     AdminUser?   @relation(fields: [host_user_id], references: [id])
+
+  @@index([provider])
+  @@index([status])
+}
+
+
+
+model LeadEmailMessage {
+  id String @id @default(uuid()) @db.Uuid
+
+  activity_id String @db.Uuid
+
+  to_email String @db.VarChar(150)
+
+  subject String @db.VarChar(300)
+  body    String
+
+  scheduled_at DateTime?
+  sent_at      DateTime?
+
+  retry_count   Int       @default(0)
+  next_retry_at DateTime?
+  last_error    String?
+
+  created_at DateTime @default(now())
+
+  activity LeadActivity @relation(fields: [activity_id], references: [id], onDelete: Cascade)
+
+  attachments LeadEmailAttachment[]
+
+  @@unique([activity_id])
+  @@index([scheduled_at])
+  @@index([next_retry_at])
+}
+
+model LeadEmailAttachment {
+  id String @id @default(uuid()) @db.Uuid
+
+  email_id    String @db.Uuid
+  document_id String @db.Uuid
+
+  created_at DateTime @default(now())
+
+  email    LeadEmailMessage @relation(fields: [email_id], references: [id], onDelete: Cascade)
+  document Document         @relation(fields: [document_id], references: [id])
+
+  @@unique([email_id, document_id])
+  @@index([document_id])
+}
+
+
+// LEADS ANALYTICS 
+model LeadDailyStats {
+  date        DateTime
+
+  // Dimensions
+  user_id     String?   // OWNER only
+  closed_by   String?   // who closed (won/lost)
+  pipeline_id String
+  stage_id    String
+  source      LeadSource?
+  company_profile_id String
+
+  // Metrics
+  leads_created    Int @default(0)
+  stage_entries    Int @default(0)
+  stage_exits      Int @default(0)
+  leads_converted  Int @default(0)
+  leads_lost       Int @default(0)
+  leads_assigned   Int @default(0)
+
+  @@id([date, user_id, closed_by, pipeline_id, stage_id, source, company_profile_id])
+
+  @@index([date])
+  @@index([user_id])
+  @@index([closed_by])
+  @@index([pipeline_id])
+  @@index([stage_id])
+  @@index([source])
+    @@index([company_profile_id, date])
+  @@index([company_profile_id, pipeline_id, date])
+  @@index([company_profile_id, stage_id, date])
+  @@index([company_profile_id, user_id, date])
+  @@index([company_profile_id, source, date])
+}
+
+
+model ActivityDailyStats {
+  date        DateTime
+
+  // Dimensions
+  user_id     String
+  company_profile_id String
+
+  // Metrics
+  calls_done           Int @default(0)
+  emails_sent          Int @default(0)
+  meetings_done        Int @default(0)
+  whatsapp_sent        Int @default(0)
+
+  activities_completed Int @default(0)
+  activities_missed    Int @default(0)
+
+  @@id([date, user_id, company_profile_id])
+
+  @@index([date])
+  @@index([user_id])
+    @@index([company_profile_id, date])
+  @@index([company_profile_id, user_id, date])
+}
+
+
+model LeadStageDuration {
+  date        DateTime
+
+  // Dimensions
+  stage_id    String
+  pipeline_id String
+  user_id     String?   // optional (who handled)
+  company_profile_id String
+
+  // Metrics
+  total_time_spent Float   // store in seconds or minutes
+  leads_count      Int
+
+  @@id([date, stage_id, pipeline_id, user_id, company_profile_id])
+
+  @@index([date])
+  @@index([stage_id])
+  @@index([pipeline_id])
+}
+
+model LeadSourceStats {
+  date   DateTime
+  source LeadSource
+  company_profile_id String
+
+  leads_created   Int @default(0)
+  leads_converted Int @default(0)
+  leads_lost      Int @default(0)
+
+  @@id([date, source, company_profile_id])
+    @@index([company_profile_id, date])
+}
+
+model LeadUserScore {
+  id String @id @default(uuid())
+
+  lead_id String
+  user_id String
+
+  effort_points   Float @default(0)
+  closure_points  Float @default(0)
+  ownership_points Float @default(0)
+
+  total_points Float @default(0)
+
+  created_at DateTime @default(now())
+
+  @@index([user_id])
+  @@index([lead_id])
 }

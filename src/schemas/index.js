@@ -50,11 +50,10 @@ import {
   taskCategoryUpdateSchema,
 } from "./core/taskCategory.schema.js";
 import {
-  taskCommentCreateSchema,
-  taskCommentListQuerySchema,
-  TaskCommentQuerySchema,
-  taskCommentUpdateSchema,
-} from "./activity/taskComment.schema.js";
+  commentCreateSchema,
+  commentQuerySchema,
+  commentUpdateSchema,
+} from "./activity/comment.schema.js";
 import { checklistSyncSchema } from "./core/taskChecklist.js";
 import {
   bulkMarkNonBillableSchema,
@@ -122,6 +121,32 @@ import {
   checkAliveSchema,
   getMyDaySchema,
 } from "./core/reminder.schema.js";
+import {
+  createInfluencerSchema,
+  influencerIdSchema,
+  listInfluencerSchema,
+  updateInfluencerSchema,
+} from "./core/influencer.schema.js";
+import {
+  createLeadTagSchema,
+  leadTagIdSchema,
+  listLeadTagSchema,
+  updateLeadTagSchema,
+} from "./core/leadTag.schema.js";
+import {
+  createLeadPipelineSchema,
+  leadPipelineIdSchema,
+  listLeadPipelineSchema,
+  updateLeadPipelineSchema,
+} from "./core/LeadPipelineAndStages.schema.js";
+import { syncLeadAssignmentsSchema } from "./core/leadsAssignmetns.schema.js";
+import {
+  createLeadActivitySchema,
+  activityIdSchema,
+  listLeadActivitySchema,
+  updateActivityLifecycleSchema,
+  updateLeadActivitySchema,
+} from "./core/leadActivity.schema.js";
 
 // ============================================================================
 // Structured Export Object
@@ -183,10 +208,11 @@ export const schemas = Object.freeze({
     update: taskCategoryUpdateSchema,
     id: taskCategoryIdSchema,
   },
-  taskComment: {
-    create: taskCommentCreateSchema,
-    update: taskCommentUpdateSchema,
-    query: TaskCommentQuerySchema,
+
+  comments: {
+    create: commentCreateSchema,
+    update: commentUpdateSchema,
+    query: commentQuerySchema,
   },
   taskChecklist: {
     sync: checklistSyncSchema,
@@ -258,6 +284,34 @@ export const schemas = Object.freeze({
     delete: deleteReminderListSchema,
     query: listReminderListsQuerySchema,
     id: reminderListIdSchema,
+  },
+  influencer: {
+    create: createInfluencerSchema,
+    update: updateInfluencerSchema,
+    id: influencerIdSchema,
+    list: listInfluencerSchema,
+  },
+  leadTag: {
+    create: createLeadTagSchema,
+    update: updateLeadTagSchema,
+    id: leadTagIdSchema,
+    list: listLeadTagSchema,
+  },
+  leadPipeline: {
+    create: createLeadPipelineSchema,
+    update: updateLeadPipelineSchema,
+    id: leadPipelineIdSchema,
+    list: listLeadPipelineSchema,
+  },
+  leadAssignment: {
+    sync: syncLeadAssignmentsSchema,
+  },
+  leadActivity: {
+    create: createLeadActivitySchema,
+    update: updateLeadActivitySchema,
+    lifecycle: updateActivityLifecycleSchema,
+    id: activityIdSchema,
+    list: listLeadActivitySchema,
   },
 });
 

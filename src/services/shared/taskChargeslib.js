@@ -1,7 +1,7 @@
 import { prisma } from "@/utils/server/db";
 import { NotFoundError, ForbiddenError } from "@/utils/server/errors";
 
-import { addTaskActivityLog } from "../task/taskComment.service";
+import { addTaskActivityLog } from "./comments.service";
 import { buildActivityMessage } from "@/utils/server/activityBulder";
 
 import {

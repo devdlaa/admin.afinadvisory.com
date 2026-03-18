@@ -31,14 +31,13 @@ const EMAIL_TEMPLATES = {
   },
 };
 
-
 const loadTemplate = async (templateName, variables) => {
   try {
     const filePath = path.join(
       process.cwd(),
       "emails",
       "templates",
-      `${templateName}.hbs`
+      `${templateName}.hbs`,
     );
     const templateFile = await fs.readFile(filePath, "utf8");
     const compiledTemplate = handlebars.compile(templateFile);
@@ -62,14 +61,30 @@ export async function SEND_EMAIL({
   from,
   cc,
   bcc,
+  html,
+  subjectOverride,
 }) {
   try {
-    if (!to || !type || !EMAIL_TEMPLATES[type]) {
+    let subject;
+    let htmlBody;
+
+    if (!to) {
       return { success: false, error: "Missing or invalid email type." };
     }
 
-    const { subject, template } = EMAIL_TEMPLATES[type];
-    const html = await loadTemplate(template, variables);
+    if (html) {
+      subject = subjectOverride || "Notification";
+      htmlBody = html;
+    } else {
+      if (!type || !EMAIL_TEMPLATES[type]) {
+        return { success: false, error: "Invalid email type" };
+      }
+
+      const template = EMAIL_TEMPLATES[type];
+
+      subject = template.subject;
+      htmlBody = await loadTemplate(template.template, variables);
+    }
 
     // ZeptoMail attachment format
     const formattedAttachments = attachments.map((file) => ({
@@ -93,7 +108,7 @@ export async function SEND_EMAIL({
       ],
 
       subject,
-      htmlbody: html,
+      htmlbody: htmlBody,
       attachments: formattedAttachments.length
         ? formattedAttachments
         : undefined,
@@ -119,7 +134,12 @@ export async function SEND_EMAIL({
 
     return { success: true, message: "Email sent successfully", resp };
   } catch (error) {
-    console.error("Email Sending Error:");
-    return { success: false, error: "Unknown error" };
-  }
+  console.error("Email Sending Error:", error);
+
+  return {
+    success: false,
+    error: error?.message || "Unknown error",
+    status: error?.response?.status,
+  };
+}
 }

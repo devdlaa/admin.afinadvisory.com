@@ -56,6 +56,17 @@ export async function uploadDocumentService({
   return document;
 }
 
+export async function storeVideoTranscript(activityId, buffer) {
+  const folder = `videocall_meta_files/${activityId}`;
+
+  return uploadFile({
+    buffer,
+    originalName: "transcript.txt",
+    mimeType: "text/plain",
+    folder,
+  });
+}
+
 export async function listDocumentsService({
   scope,
   scopeId,

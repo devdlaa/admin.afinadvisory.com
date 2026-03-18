@@ -581,56 +581,7 @@ const listEntities = async (filters = {}) => {
   const hasSearch = filters.search && filters.search.trim();
   const searchTerm = hasSearch ? filters.search.trim() : null;
 
-  /* --------------------------------------------------
-      COMPACT FAST PATH (ranked full-text search)
-   
-     -------------------------------------------------- */
-  /*
-  if (isCompact && hasSearch) {
-    const compactLimit = 100;
-
-    const rows = await prisma.$queryRaw`
-      SELECT id, name, email, pan
-      FROM "Entity"
-      WHERE deleted_at IS NULL
-        AND (
-          to_tsvector(
-            'english',
-            name || ' ' ||
-            COALESCE(email, '') || ' ' ||
-            COALESCE(pan, '') || ' ' ||
-            COALESCE(primary_phone, '') || ' ' ||
-            COALESCE(contact_person, '')
-          ) @@ plainto_tsquery('english', ${searchTerm})
-        )
-      ORDER BY ts_rank(
-        to_tsvector(
-          'english',
-          name || ' ' ||
-          COALESCE(email, '') || ' ' ||
-          COALESCE(pan, '') || ' ' ||
-          COALESCE(primary_phone, '') || ' ' ||
-          COALESCE(contact_person, '')
-        ),
-        plainto_tsquery('english', ${searchTerm})
-      ) DESC
-      LIMIT ${compactLimit}
-      OFFSET ${(page - 1) * pageSize}
-    `;
-
-    return {
-      data: rows,
-      pagination: {
-        page,
-        page_size: compactLimit,
-        total_items: rows.length,
-        total_pages: 1,
-        has_more: rows.length === compactLimit,
-      },
-    };
-  }
-  */
-
+ 
   /* --------------------------------------------------
       COMPACT FAST PATH (ranked full-text search w/ prefix)
      -------------------------------------------------- */
