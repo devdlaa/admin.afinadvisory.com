@@ -29,12 +29,16 @@ import chargesReducer from "./slices/chargesSlice";
 import taskSearchReducer from "./slices/tasksSearchSlice";
 import reminderMetaReducer from "./slices/reminderMetaSlice";
 import remindersReducer from "./slices/remindersSlice";
-
+import leadsMetReducer from "./slices/leadsMetaSlice";
+import leadPipelinesReducer from "./slices/leadPipelinesSlice";
+import InfluncerNewReducer from "./slices/influncersSlice";
+import leadContactReducer from "./slices/leadContactSlice";
 export const store = configureStore({
   reducer: {
     session: sessionReducer,
     user: userReducer,
     influencers: partnerReducer,
+    influencers_new: InfluncerNewReducer,
     services: serviceReducer,
     customers: customerReducers,
     coupons: couponsReducer,
@@ -58,6 +62,9 @@ export const store = configureStore({
     taskSearch: taskSearchReducer,
     reminderMeta: reminderMetaReducer,
     remindersSlice: remindersReducer,
+    leadsMeta: leadsMetReducer,
+    leadPipelines: leadPipelinesReducer,
+    leadContact : leadContactReducer
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware()

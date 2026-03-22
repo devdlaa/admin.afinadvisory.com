@@ -17,7 +17,7 @@ export default function ClientLayout({ children }) {
         >
           <div className="content-area">{children}</div>
         </div>
-        <LockDashboardButton />
+        {/* <LockDashboardButton /> */}
       </div>
     </Providers>
   );

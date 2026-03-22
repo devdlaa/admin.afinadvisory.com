@@ -74,6 +74,9 @@ export async function listDocumentsService({
   pageSize = 10,
   sort = "created_at",
   order = "desc",
+  mimeTypes,
+  minSize,
+  maxSize,
 }) {
   const validPage = Math.max(1, parseInt(page) || 1);
   const validPageSize = Math.min(100, Math.max(1, parseInt(pageSize) || 10));
@@ -84,6 +87,17 @@ export async function listDocumentsService({
     scope,
     scope_id: scopeId,
     deleted_at: null,
+
+    ...(mimeTypes?.length && {
+      mime_type: { in: mimeTypes },
+    }),
+
+    ...((minSize || maxSize) && {
+      size_bytes: {
+        ...(minSize && { gte: minSize }),
+        ...(maxSize && { lte: maxSize }),
+      },
+    }),
   };
 
   const [items, total] = await Promise.all([

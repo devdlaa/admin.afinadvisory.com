@@ -8,14 +8,12 @@ import React, {
 } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
-  Search,
   Download,
   Trash2,
   FileText,
   ChevronUp,
   ChevronDown,
   Loader2,
-  File,
   Plus,
   X,
   Upload,
@@ -26,6 +24,10 @@ import {
   List,
   Pencil,
   Check,
+  CheckSquare,
+  Square,
+  CheckCircle2,
+  AlertCircle,
 } from "lucide-react";
 
 import {
@@ -34,7 +36,6 @@ import {
   deleteDocument,
   downloadDocument,
   renameDocument,
-  setSearchQuery,
   setSortConfig,
   selectDocumentsForScope,
   selectSearchQuery,
@@ -54,11 +55,22 @@ import {
   formatDate,
 } from "@/utils/client/cutils";
 
-const DocumentManager = ({ scope, scopeId }) => {
+const DocumentManager = ({
+  scope,
+  scopeId,
+  mode = "normal",
+  selectConfig = {},
+}) => {
+  const isSelectMode = mode === "select";
+  const { mimeTypes, minSize, maxSize, maxSelectable, onSelect, onCancel } =
+    selectConfig;
+
   const dispatch = useDispatch();
   const fileInputRef = useRef(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [viewMode, setViewMode] = useState("list");
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [uploadWarn, setUploadWarn] = useState(null);
 
   const { items, pagination, loading } = useSelector((state) =>
     selectDocumentsForScope(state, scope, scopeId),
@@ -81,27 +93,48 @@ const DocumentManager = ({ scope, scopeId }) => {
     documentName: "",
   });
 
+  // Extra filters forwarded to API in select mode — never shown in UI
+  const scopeFilters = useMemo(
+    () =>
+      isSelectMode
+        ? {
+            ...(mimeTypes?.length ? { mimeTypes } : {}),
+            ...(minSize != null ? { minSize } : {}),
+            ...(maxSize != null ? { maxSize } : {}),
+          }
+        : {},
+    [isSelectMode, mimeTypes, minSize, maxSize],
+  );
+
+  const fetchDocs = useCallback(
+    (page, forceRefresh, overrideSort = {}) => {
+      dispatch(
+        fetchDocuments({
+          scope,
+          scopeId,
+          page,
+          sort: overrideSort.sort ?? sortConfig.sort,
+          order: overrideSort.order ?? sortConfig.order,
+          forceRefresh,
+          ...scopeFilters,
+        }),
+      );
+    },
+    [dispatch, scope, scopeId, sortConfig, scopeFilters],
+  );
+
   useEffect(() => {
-    dispatch(
-      fetchDocuments({
-        scope,
-        scopeId,
-        page: 1,
-        sort: sortConfig.sort,
-        order: sortConfig.order,
-        forceRefresh: false,
-      }),
-    );
+    fetchDocs(1, false);
     setCurrentPage(1);
   }, [dispatch, scope, scopeId]);
 
   const filteredItems = useMemo(() => {
     if (!searchQuery.trim()) return items;
-    const query = searchQuery.toLowerCase();
+    const q = searchQuery.toLowerCase();
     return items.filter(
       (doc) =>
-        doc.original_name.toLowerCase().includes(query) ||
-        doc.creator.name.toLowerCase().includes(query),
+        doc.original_name.toLowerCase().includes(q) ||
+        doc.creator.name.toLowerCase().includes(q),
     );
   }, [items, searchQuery]);
 
@@ -110,13 +143,11 @@ const DocumentManager = ({ scope, scopeId }) => {
     e.stopPropagation();
     setIsDragOver(true);
   }, []);
-
   const handleDragLeave = useCallback((e) => {
     e.preventDefault();
     e.stopPropagation();
     if (e.currentTarget === e.target) setIsDragOver(false);
   }, []);
-
   const handleDragOver = useCallback((e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -127,27 +158,46 @@ const DocumentManager = ({ scope, scopeId }) => {
       e.preventDefault();
       e.stopPropagation();
       setIsDragOver(false);
-      const files = e.dataTransfer.files;
-      if (files && files[0]) {
-        dispatch(uploadDocument({ file: files[0], scope, scopeId }));
-      }
+      const file = e.dataTransfer.files?.[0];
+      if (file) handleUpload(file);
     },
-    [dispatch, scope, scopeId],
+    [scope, scopeId],
   );
+
+  const handleUpload = useCallback(
+    (file) => {
+      if (isSelectMode) {
+        const outOfScope =
+          (mimeTypes?.length && !mimeTypes.includes(file.type)) ||
+          (minSize != null && file.size < minSize) ||
+          (maxSize != null && file.size > maxSize);
+        if (outOfScope) setUploadWarn(file.name);
+      }
+      dispatch(
+        uploadDocument({ file, scope, scopeId, mimeTypes, minSize, maxSize }),
+      );
+    },
+    [dispatch, scope, scopeId, isSelectMode, mimeTypes, minSize, maxSize],
+  );
+
+  const getFilterLabel = () => {
+    if (!isSelectMode) return null;
+
+    const typeLabel = mimeTypes?.length
+      ? mimeTypes.map(mimeTypeLabel).join(", ")
+      : null;
+
+    const sizeLabel = maxSize ? `≤ ${formatFileSize(maxSize)}` : null;
+
+    if (!typeLabel && !sizeLabel) return null;
+
+    return [typeLabel, sizeLabel].filter(Boolean).join(" • ");
+  };
 
   const handleFileSelect = (e) => {
     const file = e.target.files?.[0];
-    if (file) dispatch(uploadDocument({ file, scope, scopeId }));
+    if (file) handleUpload(file);
     if (fileInputRef.current) fileInputRef.current.value = "";
-  };
-
-  const handleSearch = (e) => {
-    dispatch(
-      setSearchQuery({
-        scopeKey: `${scope}_${scopeId}`,
-        query: e.target.value,
-      }),
-    );
   };
 
   const handleSort = (field) => {
@@ -160,30 +210,12 @@ const DocumentManager = ({ scope, scopeId }) => {
         order: newOrder,
       }),
     );
-    dispatch(
-      fetchDocuments({
-        scope,
-        scopeId,
-        page: 1,
-        sort: field,
-        order: newOrder,
-        forceRefresh: true,
-      }),
-    );
+    fetchDocs(1, true, { sort: field, order: newOrder });
     setCurrentPage(1);
   };
 
   const handleRefresh = () => {
-    dispatch(
-      fetchDocuments({
-        scope,
-        scopeId,
-        page: 1,
-        sort: sortConfig.sort,
-        order: sortConfig.order,
-        forceRefresh: true,
-      }),
-    );
+    fetchDocs(1, true);
     setCurrentPage(1);
   };
 
@@ -204,28 +236,63 @@ const DocumentManager = ({ scope, scopeId }) => {
     });
   };
 
-  const handleDeleteConfirm = async () => {
+  const handleDeleteConfirm = () => {
     dispatch(deleteDocument({ documentId: deleteDialog.documentId }));
     setDeleteDialog({ isOpen: false, documentId: null, documentName: "" });
   };
 
   const handleLoadMore = () => {
-    const nextPage = currentPage + 1;
-    setCurrentPage(nextPage);
-    dispatch(
-      fetchDocuments({
-        scope,
-        scopeId,
-        page: nextPage,
-        sort: sortConfig.sort,
-        order: sortConfig.order,
-        forceRefresh: false,
-      }),
-    );
+    const next = currentPage + 1;
+    setCurrentPage(next);
+    fetchDocs(next, false);
   };
 
-  const handleRename = (documentId, name) => {
+  const handleRename = (documentId, name) =>
     dispatch(renameDocument({ documentId, name }));
+
+  // Select mode handlers
+  const toggleSelect = useCallback(
+    (id) => {
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        if (next.has(id)) {
+          next.delete(id);
+          return next;
+        }
+        if (maxSelectable && next.size >= maxSelectable) return prev;
+        next.add(id);
+        return next;
+      });
+    },
+    [maxSelectable],
+  );
+
+  const handleSelectAll = () => {
+    if (selectedIds.size === filteredItems.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(
+        new Set(
+          filteredItems
+            .slice(0, maxSelectable ?? filteredItems.length)
+            .map((d) => d.id),
+        ),
+      );
+    }
+  };
+
+  const handleConfirmSelection = () => {
+    if (!onSelect) return;
+    onSelect(
+      filteredItems
+        .filter((d) => selectedIds.has(d.id))
+        .map(({ id, original_name, size_bytes, mime_type }) => ({
+          id,
+          original_name,
+          size_bytes,
+          mime_type,
+        })),
+    );
   };
 
   const SortIcon = ({ field }) => {
@@ -237,9 +304,12 @@ const DocumentManager = ({ scope, scopeId }) => {
     );
   };
 
+  const allSelected =
+    filteredItems.length > 0 && selectedIds.size === filteredItems.length;
+
   return (
     <div
-      className={styles.container}
+      className={`${styles.container} ${isSelectMode ? styles.selectModeContainer : ""}`}
       onDragEnter={handleDragEnter}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
@@ -264,8 +334,10 @@ const DocumentManager = ({ scope, scopeId }) => {
               {pagination?.total_items || 0}{" "}
               {pagination?.total_items === 1 ? "file" : "files"}
             </span>
+            {isSelectMode && getFilterLabel() && (
+              <span className={styles.filterPill}>{getFilterLabel()}</span>
+            )}
           </div>
-
           <div className={styles.headerRight}>
             <div className={styles.viewToggle}>
               <button
@@ -283,7 +355,6 @@ const DocumentManager = ({ scope, scopeId }) => {
                 <List size={18} />
               </button>
             </div>
-
             <button
               className={styles.refreshButton}
               onClick={handleRefresh}
@@ -292,20 +363,40 @@ const DocumentManager = ({ scope, scopeId }) => {
             >
               <RefreshCw size={18} className={loading ? styles.spinning : ""} />
             </button>
-
             <button
               className={styles.uploadButton}
-              onClick={() => fileInputRef.current?.click()}
+              onClick={() => {
+                if (isSelectMode && selectedIds.size > 0) {
+                  handleConfirmSelection();
+                } else {
+                  fileInputRef.current?.click();
+                }
+              }}
               disabled={!!uploadingFile}
             >
-              <Plus size={18} />
-              Upload
+              {isSelectMode && selectedIds.size > 0 ? (
+                <>
+                  <Check size={18} />
+                  Attach ({selectedIds.size})
+                </>
+              ) : (
+                <>
+                  <Plus size={18} />
+                  Upload
+                </>
+              )}
             </button>
+
             <input
               ref={fileInputRef}
               type="file"
               onChange={handleFileSelect}
               style={{ display: "none" }}
+              accept={
+                isSelectMode && mimeTypes?.length
+                  ? mimeTypes.join(",")
+                  : undefined
+              }
             />
           </div>
         </div>
@@ -339,6 +430,18 @@ const DocumentManager = ({ scope, scopeId }) => {
             <span>{error}</span>
             <button onClick={() => dispatch(clearError())}>
               <X size={16} />
+            </button>
+          </div>
+        )}
+        {isSelectMode && uploadWarn && (
+          <div className={styles.warnBanner}>
+            <AlertCircle size={15} />
+            <span>
+              <strong>{truncateText(uploadWarn, 28)}</strong> was uploaded but
+              doesn't match the required filters — it won't appear here.
+            </span>
+            <button onClick={() => setUploadWarn(null)}>
+              <X size={14} />
             </button>
           </div>
         )}
@@ -388,6 +491,9 @@ const DocumentManager = ({ scope, scopeId }) => {
                 key={doc.id}
                 doc={doc}
                 viewMode={viewMode}
+                isSelectMode={isSelectMode}
+                isSelected={selectedIds.has(doc.id)}
+                onToggleSelect={toggleSelect}
                 onDownload={handleDownload}
                 onDelete={handleDeleteClick}
                 onRename={handleRename}
@@ -396,7 +502,6 @@ const DocumentManager = ({ scope, scopeId }) => {
               />
             ))}
           </div>
-
           {pagination?.has_more && (
             <div className={styles.loadMoreWrapper}>
               <button
@@ -439,12 +544,31 @@ const DocumentManager = ({ scope, scopeId }) => {
   );
 };
 
+const mimeTypeLabel = (mime) => {
+  const map = {
+    "application/pdf": "PDF",
+    "image/png": "PNG",
+    "image/jpeg": "JPEG",
+    "image/webp": "WEBP",
+    "text/plain": "TXT",
+    "text/csv": "CSV",
+    "application/json": "JSON",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+      "DOCX",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "XLSX",
+  };
+  return map[mime] ?? mime.split("/")[1]?.toUpperCase() ?? mime;
+};
+
 // ── DocumentCard ──────────────────────────────────────────────────
 
 const DocumentCard = React.memo(
   ({
     doc,
     viewMode,
+    isSelectMode,
+    isSelected,
+    onToggleSelect,
     onDownload,
     onDelete,
     onRename,
@@ -462,7 +586,6 @@ const DocumentCard = React.memo(
     const inputRef = useRef(null);
     const wasRenamingRef = useRef(false);
 
-    // When renaming flips from true → false, close edit mode
     useEffect(() => {
       if (wasRenamingRef.current && !renaming) {
         setEditMode(false);
@@ -471,15 +594,13 @@ const DocumentCard = React.memo(
       wasRenamingRef.current = renaming;
     }, [renaming]);
 
-    // Strip extension for display in the input — we preserve it on the backend
-    const getBaseName = (filename) => {
-      const lastDot = filename.lastIndexOf(".");
-      return lastDot > 0 ? filename.slice(0, lastDot) : filename;
+    const getBaseName = (f) => {
+      const i = f.lastIndexOf(".");
+      return i > 0 ? f.slice(0, i) : f;
     };
-
-    const getFileExtension = (filename) => {
-      const ext = filename.split(".").pop().toUpperCase();
-      return ext.length > 4 ? "FILE" : ext;
+    const getExt = (f) => {
+      const e = f.split(".").pop().toUpperCase();
+      return e.length > 4 ? "FILE" : e;
     };
 
     const startEdit = () => {
@@ -515,13 +636,32 @@ const DocumentCard = React.memo(
 
     if (viewMode === "list") {
       return (
-        <div className={styles.documentRow}>
+        <div
+          className={`${styles.documentRow} ${isSelectMode ? styles.selectableRow : ""} ${isSelected ? styles.selectedRow : ""}`}
+          onClick={isSelectMode ? () => onToggleSelect(doc.id) : undefined}
+        >
+          {isSelectMode && (
+            <div
+              className={styles.rowCheckbox}
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleSelect(doc.id);
+              }}
+            >
+              {isSelected ? (
+                <CheckSquare size={18} className={styles.checkboxChecked} />
+              ) : (
+                <Square size={18} className={styles.checkboxUnchecked} />
+              )}
+            </div>
+          )}
+
           <div className={styles.rowMain}>
             <div className={styles.rowIcon}>
               <FileText size={20} />
             </div>
             <div className={styles.rowInfo}>
-              {editMode ? (
+              {!isSelectMode && editMode ? (
                 <div className={styles.renameRow}>
                   <input
                     ref={inputRef}
@@ -543,7 +683,7 @@ const DocumentCard = React.memo(
               )}
               <div className={styles.rowMeta}>
                 <span className={styles.metaChip}>
-                  {getFileExtension(doc.original_name)}
+                  {getExt(doc.original_name)}
                 </span>
                 <span className={styles.metaDot}>•</span>
                 <span>{formatFileSize(doc.size_bytes)}</span>
@@ -555,9 +695,11 @@ const DocumentCard = React.memo(
             </div>
           </div>
 
-          <div className={styles.rowActions}>
-            {editMode ? ( // In edit mode: only show confirm + cancel inline in the renameRow,
-              // hide download & delete entirely so the row stays clean
+          <div
+            className={styles.rowActions}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {!isSelectMode && editMode ? (
               <>
                 <button
                   className={`${styles.renameConfirm} ${styles.iconButton}`}
@@ -580,14 +722,16 @@ const DocumentCard = React.memo(
               </>
             ) : (
               <>
-                <button
-                  className={styles.iconButton}
-                  onClick={startEdit}
-                  disabled={busy}
-                  title="Rename"
-                >
-                  <Pencil size={15} />
-                </button>
+                {!isSelectMode && (
+                  <button
+                    className={styles.iconButton}
+                    onClick={startEdit}
+                    disabled={busy}
+                    title="Rename"
+                  >
+                    <Pencil size={15} />
+                  </button>
+                )}
                 <button
                   className={styles.iconButton}
                   onClick={() => onDownload(doc)}
@@ -600,18 +744,20 @@ const DocumentCard = React.memo(
                     <Download size={16} />
                   )}
                 </button>
-                <button
-                  className={`${styles.iconButton} ${styles.deleteIcon}`}
-                  onClick={() => onDelete(doc)}
-                  disabled={busy}
-                  title="Delete"
-                >
-                  {deleting ? (
-                    <Loader2 className={styles.spinner} size={16} />
-                  ) : (
-                    <Trash2 size={16} />
-                  )}
-                </button>
+                {!isSelectMode && (
+                  <button
+                    className={`${styles.iconButton} ${styles.deleteIcon}`}
+                    onClick={() => onDelete(doc)}
+                    disabled={busy}
+                    title="Delete"
+                  >
+                    {deleting ? (
+                      <Loader2 className={styles.spinner} size={16} />
+                    ) : (
+                      <Trash2 size={16} />
+                    )}
+                  </button>
+                )}
               </>
             )}
           </div>
@@ -621,18 +767,35 @@ const DocumentCard = React.memo(
 
     // Grid card
     return (
-      <div className={styles.documentCard}>
+      <div
+        className={`${styles.documentCard} ${isSelectMode ? styles.selectableCard : ""} ${isSelected ? styles.selectedCard : ""}`}
+        onClick={isSelectMode ? () => onToggleSelect(doc.id) : undefined}
+      >
+        {isSelectMode && (
+          <div
+            className={styles.cardCheckbox}
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleSelect(doc.id);
+            }}
+          >
+            {isSelected ? (
+              <CheckSquare size={18} className={styles.checkboxChecked} />
+            ) : (
+              <Square size={18} className={styles.checkboxUnchecked} />
+            )}
+          </div>
+        )}
+
         <div className={styles.cardHeader}>
           <div className={styles.cardIcon}>
             <FileText size={24} />
           </div>
-          <div className={styles.fileType}>
-            {getFileExtension(doc.original_name)}
-          </div>
+          <div className={styles.fileType}>{getExt(doc.original_name)}</div>
         </div>
 
         <div className={styles.cardBody}>
-          {editMode ? (
+          {!isSelectMode && editMode ? (
             <div className={styles.renameBlock}>
               <div className={styles.renameRow}>
                 <input
@@ -681,7 +844,7 @@ const DocumentCard = React.memo(
           </div>
         </div>
 
-        <div className={styles.cardFooter}>
+        <div className={styles.cardFooter} onClick={(e) => e.stopPropagation()}>
           <div className={styles.footerInfo}>
             <div className={styles.infoRow}>
               <User size={12} />
@@ -693,7 +856,7 @@ const DocumentCard = React.memo(
             </div>
           </div>
           <div className={styles.cardActions}>
-            {!editMode && (
+            {!isSelectMode && !editMode && (
               <button
                 className={styles.iconButton}
                 onClick={startEdit}
@@ -715,18 +878,20 @@ const DocumentCard = React.memo(
                 <Download size={16} />
               )}
             </button>
-            <button
-              className={`${styles.iconButton} ${styles.deleteIcon}`}
-              onClick={() => onDelete(doc)}
-              disabled={busy}
-              title="Delete"
-            >
-              {deleting ? (
-                <Loader2 className={styles.spinner} size={16} />
-              ) : (
-                <Trash2 size={16} />
-              )}
-            </button>
+            {!isSelectMode && (
+              <button
+                className={`${styles.iconButton} ${styles.deleteIcon}`}
+                onClick={() => onDelete(doc)}
+                disabled={busy}
+                title="Delete"
+              >
+                {deleting ? (
+                  <Loader2 className={styles.spinner} size={16} />
+                ) : (
+                  <Trash2 size={16} />
+                )}
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -735,5 +900,4 @@ const DocumentCard = React.memo(
 );
 
 DocumentCard.displayName = "DocumentCard";
-
 export default DocumentManager;

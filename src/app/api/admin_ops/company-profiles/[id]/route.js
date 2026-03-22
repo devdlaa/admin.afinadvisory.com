@@ -18,7 +18,7 @@ export async function GET_BY_ID(req, { params }) {
     );
     if (permissionError) return permissionError;
 
-    const { id } = params;
+    const { id } =  await params;
 
     const profile = await getCompanyProfileById(id);
 
@@ -39,7 +39,7 @@ export async function PATCH(req, { params }) {
     );
     if (permissionError) return permissionError;
 
-    const { id } = params;
+    const { id } =  await params;
 
     const body = schemas.companyProfile.update.parse(await req.json());
 
@@ -67,7 +67,7 @@ export async function DELETE(req, { params }) {
     );
     if (permissionError) return permissionError;
 
-    const { id } = params;
+    const { id } = await params;
 
     const result = await deleteCompanyProfile(id);
 

@@ -5,135 +5,272 @@ import {
   ValidationError,
 } from "@/utils/server/errors";
 
-export async function createLeadTag(data, admin_user_id) {
-  const { name, color, description } = data;
+/* ------------------------------------------------ */
+/* TAGS */
+/* ------------------------------------------------ */
 
-  const existing = await prisma.leadTag.findUnique({
-    where: {
-      name,
-      deleted_at: null,
-    },
-    select: { id: true },
-  });
+import { REMINDER_TAG_COLORS } from "../reminders/reminder.constants";
 
-  if (existing) {
-    throw new ValidationError("Lead tag with this name already exists");
-  }
+const normalizeForDuplicateCheck = (name) => {
+  return name.trim().toUpperCase().replace(/\s+/g, " ");
+};
 
-  const tag = await prisma.leadTag.create({
-    data: {
-      name,
-      color,
-      description,
-      created_by: admin_user_id,
-    },
-  });
+const formatTagResponse = (tag) => ({
+  id: tag.id,
+  name: tag.name,
+  color: tag.color,
+  color_code: REMINDER_TAG_COLORS[tag.color],
+});
 
-  return tag;
-}
+const toTitleCase = (value) =>
+  value
+    .trim()
+    .toLowerCase()
+    .replace(/\b\w/g, (char) => char.toUpperCase());
 
-export async function updateLeadTag(id, data, admin_user_id) {
-  const tag = await prisma.leadTag.findFirst({
-    where: {
-      id,
-      deleted_at: null,
-    },
-    select: { id: true, name: true },
-  });
+/* ------------------------------------------------ */
+/* CREATE */
+/* ------------------------------------------------ */
 
-  if (!tag) {
-    throw new NotFoundError("Lead tag not found");
-  }
+export const createLeadTag = async (input, currentUser) => {
+  return prisma.$transaction(async (tx) => {
+    if (!input.name || !input.name.trim()) {
+      throw new ValidationError("Tag name is required");
+    }
 
-  if (data.name && data.name !== tag.name) {
-    const existing = await prisma.leadTag.findUnique({
-      where: { name: data.name },
-      select: { id: true },
+    const user = await tx.adminUser.findUnique({
+      where: { id: currentUser.id },
+      select: { id: true, status: true, deleted_at: true },
     });
 
-    if (existing) {
-      throw new ValidationError("Lead tag with this name already exists");
+    if (!user || user.deleted_at || user.status !== "ACTIVE") {
+      throw new NotFoundError("User not found or inactive");
     }
+
+    const formattedName = toTitleCase(input.name);
+
+    if (!/^[A-Za-z0-9 _\-\/]+$/.test(formattedName)) {
+      throw new ValidationError(
+        "Tag name can only contain letters, numbers, spaces, hyphens, underscores, and slashes",
+      );
+    }
+
+    if (formattedName.length > 50) {
+      throw new ValidationError("Tag name cannot exceed 50 characters");
+    }
+
+    const normalizedName = normalizeForDuplicateCheck(formattedName);
+
+    const colorKey = (input.color || "").toUpperCase();
+
+    if (!REMINDER_TAG_COLORS[colorKey]) {
+      throw new ValidationError("Invalid tag color selected");
+    }
+
+    try {
+      const tag = await tx.leadTag.create({
+        data: {
+          name: formattedName,
+          normalized_name: normalizedName,
+          color: colorKey,
+          created_by: currentUser.id,
+        },
+      });
+
+      return {
+        tag: formatTagResponse(tag),
+      };
+    } catch (error) {
+      if (error.code === "P2002") {
+        throw new ConflictError("A tag with this name already exists");
+      }
+      throw error;
+    }
+  });
+};
+
+/* ------------------------------------------------ */
+/* UPDATE */
+/* ------------------------------------------------ */
+
+export const updateLeadTag = async (tagId, input, currentUser) => {
+  return prisma.$transaction(async (tx) => {
+    if (!tagId) {
+      throw new ValidationError("Tag ID is required");
+    }
+
+    const user = await tx.adminUser.findUnique({
+      where: { id: currentUser.id },
+      select: { id: true, status: true, deleted_at: true },
+    });
+
+    if (!user || user.deleted_at || user.status !== "ACTIVE") {
+      throw new NotFoundError("User not found or inactive");
+    }
+
+    const tag = await tx.leadTag.findUnique({
+      where: { id: tagId },
+    });
+
+    if (!tag) {
+      throw new NotFoundError("Tag not found");
+    }
+
+    let formattedName = tag.name;
+    let normalizedName = tag.normalized_name;
+
+    if (input.name !== undefined) {
+      if (!input.name.trim()) {
+        throw new ValidationError("Tag name cannot be empty");
+      }
+
+      formattedName = toTitleCase(input.name);
+
+      if (!/^[A-Za-z0-9 _\-\/]+$/.test(formattedName)) {
+        throw new ValidationError(
+          "Tag name can only contain letters, numbers, spaces, hyphens, underscores, and slashes",
+        );
+      }
+
+      if (formattedName.length > 50) {
+        throw new ValidationError("Tag name cannot exceed 50 characters");
+      }
+
+      normalizedName = normalizeForDuplicateCheck(formattedName);
+    }
+
+    let colorKey = tag.color;
+
+    if (input.color !== undefined) {
+      colorKey = input.color.toUpperCase();
+
+      if (!REMINDER_TAG_COLORS[colorKey]) {
+        throw new ValidationError("Invalid tag color selected");
+      }
+    }
+
+    try {
+      const updatedTag = await tx.leadTag.update({
+        where: { id: tagId },
+        data: {
+          name: formattedName,
+          normalized_name: normalizedName,
+          color: colorKey,
+          updated_by: currentUser.id,
+        },
+      });
+
+      return {
+        tag: formatTagResponse(updatedTag),
+      };
+    } catch (error) {
+      if (error.code === "P2002") {
+        throw new ConflictError("A tag with this name already exists");
+      }
+
+      throw error;
+    }
+  });
+};
+
+/* ------------------------------------------------ */
+/* DELETE */
+/* ------------------------------------------------ */
+
+export const deleteLeadTag = async (tagId, currentUser) => {
+  return prisma.$transaction(async (tx) => {
+    if (!tagId) {
+      throw new ValidationError("Tag ID is required");
+    }
+
+    const user = await tx.adminUser.findUnique({
+      where: { id: currentUser.id },
+      select: { id: true, status: true, deleted_at: true },
+    });
+
+    if (!user || user.deleted_at || user.status !== "ACTIVE") {
+      throw new NotFoundError("User not found or inactive");
+    }
+
+    const tag = await tx.leadTag.findUnique({
+      where: { id: tagId },
+    });
+
+    if (!tag) {
+      throw new NotFoundError("Tag not found");
+    }
+
+    const usage = await tx.leadTagMap.count({
+      where: { tag_id: tagId },
+    });
+
+    if (usage > 0) {
+      throw new ForbiddenError("Tag is used by leads and cannot be deleted");
+    }
+
+    await tx.leadTag.update({
+      where: { id: tagId },
+      data: {
+        deleted_at: new Date(),
+        deleted_by: currentUser.id,
+      },
+    });
+
+    return {
+      tagID: tagId,
+      success: true,
+      message: "Tag deleted successfully",
+    };
+  });
+};
+
+/* ------------------------------------------------ */
+/* LIST */
+/* ------------------------------------------------ */
+
+export const listLeadTags = async (input, currentUser) => {
+  const { cursor, limit = 20, search } = input || {};
+
+  const user = await prisma.adminUser.findUnique({
+    where: { id: currentUser.id },
+    select: { id: true, status: true, deleted_at: true },
+  });
+
+  if (!user || user.deleted_at || user.status !== "ACTIVE") {
+    throw new NotFoundError("User not found or inactive");
   }
 
-  const updated = await prisma.leadTag.update({
-    where: { id },
-    data: {
-      ...data,
-      updated_by: admin_user_id,
-    },
-  });
+  const where = {
+    deleted_at: null,
+  };
 
-  return updated;
-}
+  if (search && search.trim()) {
+    const normalizedSearch = search.trim().toUpperCase().replace(/\s+/g, " ");
 
-export async function deleteLeadTag(id, admin_user_id) {
-  const tag = await prisma.leadTag.findFirst({
-    where: {
-      id,
-      deleted_at: null,
-    },
-    select: { id: true },
-  });
-
-  if (!tag) {
-    throw new NotFoundError("Lead tag not found");
-  }
-
-  const used = await prisma.leadTagMap.findFirst({
-    where: { tag_id: id },
-    select: { tag_id: true },
-  });
-
-  if (used) {
-    throw new ValidationError(
-      "Lead tag cannot be deleted because it is used in a lead",
-    );
-  }
-
-  await prisma.leadTag.update({
-    where: { id },
-    data: {
-      deleted_at: new Date(),
-      deleted_by: admin_user_id,
-      updated_by: admin_user_id,
-    },
-  });
-
-  return { id };
-}
-
-export async function listLeadTags(filters, admin_user_id) {
-  const { page = 1, page_size = 20, search } = filters;
-
-  const skip = (page - 1) * page_size;
-
-  const where = {};
-
-  if (search) {
-    where.name = {
-      contains: search.toUpperCase(),
-      mode: "insensitive",
+    where.normalized_name = {
+      contains: normalizedSearch,
     };
   }
 
-  const [total, tags] = await prisma.$transaction([
-    prisma.leadTag.count({ where }),
-    prisma.leadTag.findMany({
-      where,
-      skip,
-      take: page_size,
-      orderBy: { created_at: "desc" },
+  const tags = await prisma.leadTag.findMany({
+    where,
+    orderBy: { id: "asc" },
+    take: limit + 1,
+    ...(cursor && {
+      skip: 1,
+      cursor: { id: cursor },
     }),
-  ]);
+  });
+
+  let nextCursor = null;
+
+  if (tags.length > limit) {
+    const nextItem = tags.pop();
+    nextCursor = nextItem.id;
+  }
 
   return {
-    data: tags,
-    pagination: {
-      total,
-      page,
-      per_page: page_size,
-      has_more: page * page_size < total,
-    },
+    tags: tags.map(formatTagResponse),
+    next_cursor: nextCursor,
   };
-}
+};

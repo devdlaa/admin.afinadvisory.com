@@ -1,6 +1,6 @@
 import { schemas } from "@/schemas";
-import { getStageDuration } from "@/services/analytics/analytics.service";
 
+import { getStageDuration } from "@/services/leadsManager/analytics/analytics.core.service";
 import {
   createSuccessResponse,
   handleApiError,
@@ -12,7 +12,7 @@ export async function GET(req) {
   try {
     const [permissionError] = await requirePermission(
       req,
-      "leads.analytics.access",
+           "leads.analytics.access",
     );
     if (permissionError) return permissionError;
 

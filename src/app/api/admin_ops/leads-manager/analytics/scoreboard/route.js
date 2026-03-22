@@ -1,5 +1,6 @@
 import { schemas } from "@/schemas";
-import { getScoreboard } from "@/services/analytics/analytics.service";
+
+import { getScoreboard } from "@/services/leadsManager/analytics/analytics.core.service";
 
 import {
   createSuccessResponse,

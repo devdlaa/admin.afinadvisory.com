@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, memo } from "react";
 import {
   Users,
   LogOut,
@@ -18,6 +18,13 @@ import {
   Building,
   PanelLeftOpen,
   PanelLeftClose,
+  UserPlus,
+  Activity,
+  Contact,
+  Star,
+  BarChart3,
+  CalendarDays,
+  Clock,
 } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
 import Avatar from "../newui/Avatar/Avatar";
@@ -25,9 +32,7 @@ import { useRouter, usePathname } from "next/navigation";
 import styles from "./Sidebar.module.scss";
 import { getProfileUrl } from "@/utils/shared/shared_util";
 
-// ============================================================================
-// SIDEBAR CONFIG
-// ============================================================================
+// ================= CONFIG =================
 const SIDEBAR_CONFIG = {
   sections: [
     {
@@ -67,54 +72,38 @@ const SIDEBAR_CONFIG = {
       ],
     },
     {
-      id: "website-management",
-      title: "Website Management",
+      id: "leads-management",
+      title: "Leads Management",
       items: [
         {
-          id: "website-management-dropdown",
-          label: "Website",
-          icon: Globe,
-          path: "/dashboard/website",
-          children: [
-            {
-              id: "customers",
-              label: "Customers",
-              icon: Users,
-              path: "/dashboard/customers",
-            },
-            {
-              id: "services_bookings",
-              label: "Manage Bookings",
-              icon: Calendar,
-              path: "/dashboard/service-bookings",
-            },
-            {
-              id: "pricing",
-              label: "Service Pricing",
-              icon: Tag,
-              path: "/dashboard/service-pricing",
-            },
-          ],
+          id: "leads",
+          label: "Leads",
+          icon: UserPlus,
+          path: "/dashboard/leads",
         },
-      ],
-    },
-    {
-      id: "marketing",
-      title: "Marketing",
-      items: [
         {
-          id: "marketing-dropdown",
-          label: "Marketing",
-          icon: Megaphone,
-          path: "/dashboard/marketing",
-          children: [
-            {
-              id: "coupons",
-              label: "Coupons",
-              icon: TicketPercent,
-              path: "/dashboard/marketing/coupons",
-            },
-          ],
+          id: "lead-activities",
+          label: "Lead Activities",
+          icon: Activity,
+          path: "/dashboard/lead-activities",
+        },
+        {
+          id: "lead-contacts",
+          label: "Lead Contacts",
+          icon: Contact,
+          path: "/dashboard/lead-contacts",
+        },
+        {
+          id: "influencers",
+          label: "Influencers",
+          icon: Star,
+          path: "/dashboard/influencers",
+        },
+        {
+          id: "admin-analytics",
+          label: "Admin Analytics",
+          icon: BarChart3,
+          path: "/dashboard/admin-analytics",
         },
       ],
     },
@@ -139,13 +128,90 @@ const SIDEBAR_CONFIG = {
   ],
 };
 
-// ============================================================================
-// SIDEBAR COMPONENT
-// ============================================================================
+// ================= PRECOMPUTE =================
+const ALL_TOP_LEVEL_ITEMS = SIDEBAR_CONFIG.sections.flatMap((s) => s.items);
+
+const ALL_FLAT_ITEMS = ALL_TOP_LEVEL_ITEMS.reduce((acc, item) => {
+  acc.push(item);
+  if (item.children) acc.push(...item.children);
+  return acc;
+}, []);
+
+const SORTED_ITEMS = [...ALL_FLAT_ITEMS].sort(
+  (a, b) => b.path.length - a.path.length,
+);
+
+// ================= MENU ITEM =================
+const MenuItem = memo(function MenuItem({
+  item,
+  isChild,
+  isExpanded,
+  isActive,
+  expandedItems,
+  handleNavigation,
+}) {
+  const Icon = item.icon;
+  const hasChildren = item.children?.length > 0;
+  const isItemExpanded = expandedItems[item.id];
+  const active = isActive(item);
+
+  if (isChild && !isExpanded) return null;
+
+  return (
+    <div>
+      <div
+        className={`${styles.menuItem} ${active ? styles.active : ""} ${
+          isChild ? styles.menuItemChild : ""
+        } ${!isExpanded ? styles.collapsed : ""}`}
+        onClick={() => handleNavigation(item)}
+        title={!isExpanded ? item.label : undefined}
+      >
+        <div className={styles.menuItemContent}>
+          {Icon && (
+            <div className={styles.menuItemIconWrapper}>
+              <Icon size={18} className={styles.menuItemIcon} />
+            </div>
+          )}
+          <span className={styles.menuItemLabel}>{item.label}</span>
+          {item.badge && (
+            <span className={styles.menuItemBadge}>{item.badge}</span>
+          )}
+        </div>
+
+        {hasChildren && isExpanded && (
+          <ChevronDown
+            size={16}
+            className={`${styles.chevronIcon} ${
+              isItemExpanded ? styles.expanded : ""
+            }`}
+          />
+        )}
+      </div>
+
+      {hasChildren && isItemExpanded && isExpanded && (
+        <div className={styles.childrenContainer}>
+          {item.children.map((child) => (
+            <MenuItem
+              key={child.id}
+              item={child}
+              isChild
+              isExpanded={isExpanded}
+              isActive={isActive}
+              expandedItems={expandedItems}
+              handleNavigation={handleNavigation}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+});
+
+// ================= SIDEBAR =================
 const Sidebar = ({ isExpanded, setIsExpanded }) => {
   const [activeItem, setActiveItem] = useState("");
-  const [loggingOut, setLoggingOut] = useState(false);
   const [expandedItems, setExpandedItems] = useState({});
+  const [loggingOut, setLoggingOut] = useState(false);
 
   const router = useRouter();
   const pathname = usePathname();
@@ -154,129 +220,70 @@ const Sidebar = ({ isExpanded, setIsExpanded }) => {
   const user = session?.user;
   const isSessionLoading = status === "loading";
 
-  // Set active item based on pathname and auto-expand parent
   useEffect(() => {
-    const allItems = SIDEBAR_CONFIG.sections.flatMap(
-      (section) => section.items,
-    );
-
-    const flattenItems = (items) => {
-      return items.reduce((acc, item) => {
-        acc.push(item);
-        if (item.children) acc.push(...item.children);
-        return acc;
-      }, []);
-    };
-
-    const allFlatItems = flattenItems(allItems);
-    const sortedItems = [...allFlatItems].sort(
-      (a, b) => b.path.length - a.path.length,
-    );
-    const matchedItem = sortedItems.find(
+    const matchedItem = SORTED_ITEMS.find(
       (item) => pathname === item.path || pathname.startsWith(item.path + "/"),
     );
 
-    if (matchedItem) {
+    if (matchedItem && matchedItem.id !== activeItem) {
       setActiveItem(matchedItem.id);
-      allItems.forEach((item) => {
-        if (item.children?.some((child) => child.id === matchedItem.id)) {
-          setExpandedItems((prev) => ({ ...prev, [item.id]: true }));
+
+      ALL_TOP_LEVEL_ITEMS.forEach((item) => {
+        if (item.children?.some((c) => c.id === matchedItem.id)) {
+          setExpandedItems((prev) => {
+            if (prev[item.id]) return prev;
+            return { ...prev, [item.id]: true };
+          });
         }
       });
     }
-  }, [pathname]);
+  }, [pathname, activeItem]);
 
-  const handleSignOut = () => {
-    try {
-      setLoggingOut(true);
-      signOut({ redirect: true, callbackUrl: "/login" });
-    } catch (error) {
-      setLoggingOut(false);
-      console.error("Logout error:", error);
-    }
-  };
-
-  const handleNavigation = (item) => {
-    if (item.children?.length) {
-      // If collapsed, expand sidebar first then open dropdown
-      if (!isExpanded) {
-        setIsExpanded(true);
-        setExpandedItems((prev) => ({ ...prev, [item.id]: true }));
+  const handleNavigation = useCallback(
+    (item) => {
+      if (item.children?.length) {
+        if (!isExpanded) {
+          setIsExpanded(() => true);
+          setExpandedItems((prev) => ({ ...prev, [item.id]: true }));
+        } else {
+          setExpandedItems((prev) => ({
+            ...prev,
+            [item.id]: !prev[item.id],
+          }));
+        }
       } else {
-        setExpandedItems((prev) => ({ ...prev, [item.id]: !prev[item.id] }));
-      }
-    } else {
-      setActiveItem(item.id);
-      if (item.path.startsWith("http")) {
-        window.open(item.path, "_blank");
-      } else {
+        setActiveItem(item.id);
         router.push(item.path);
       }
-    }
-  };
+    },
+    [isExpanded, router, setIsExpanded],
+  );
 
-  const isActive = (item) => {
-    if (activeItem === item.id) return true;
-    if (item.children)
-      return item.children.some((child) => activeItem === child.id);
-    return false;
-  };
+  const isActive = useCallback(
+    (item) => {
+      if (activeItem === item.id) return true;
+      if (item.children) return item.children.some((c) => activeItem === c.id);
+      return false;
+    },
+    [activeItem],
+  );
 
-  const renderMenuItem = (item, isChild = false) => {
-    const Icon = item.icon;
-    const hasChildren = item.children?.length > 0;
-    const isItemExpanded = expandedItems[item.id];
-    const active = isActive(item);
-
-    // Don't render child items when sidebar is collapsed
-    if (isChild && !isExpanded) return null;
-
-    return (
-      <div key={item.id}>
-        <div
-          className={`${styles.menuItem} ${active ? styles.active : ""} ${
-            isChild ? styles.menuItemChild : ""
-          } ${!isExpanded ? styles.collapsed : ""}`}
-          onClick={() => handleNavigation(item)}
-          title={!isExpanded ? item.label : undefined}
-        >
-          <div className={styles.menuItemContent}>
-            {Icon && (
-              <div className={styles.menuItemIconWrapper}>
-                <Icon size={18} className={styles.menuItemIcon} />
-              </div>
-            )}
-            <span className={styles.menuItemLabel}>{item.label}</span>
-            {item.badge && (
-              <span className={styles.menuItemBadge}>{item.badge}</span>
-            )}
-          </div>
-          {hasChildren && isExpanded && (
-            <ChevronDown
-              size={16}
-              className={`${styles.chevronIcon} ${isItemExpanded ? styles.expanded : ""}`}
-            />
-          )}
-        </div>
-
-        {hasChildren && isItemExpanded && isExpanded && (
-          <div className={styles.childrenContainer}>
-            {item.children.map((child) => renderMenuItem(child, true))}
-          </div>
-        )}
-      </div>
-    );
-  };
+  const handleSignOut = useCallback(() => {
+    setLoggingOut(true);
+    signOut({ callbackUrl: "/login" });
+  }, []);
 
   return (
     <div
-      className={`${styles.sidebarContainer} ${isExpanded ? styles.sidebarExpanded : styles.sidebarCollapsed}`}
+      className={`${styles.sidebarContainer} ${
+        isExpanded ? styles.sidebarExpanded : styles.sidebarCollapsed
+      }`}
     >
-      {/* User Profile */}
+      {/* USER PROFILE + TOGGLE BUTTON */}
       <div className={styles.userProfile}>
         {isSessionLoading ? (
           <>
-            <div className={styles.userAvatarSkeleton} />
+            {isExpanded && <div className={styles.userAvatarSkeleton} />}
             {isExpanded && (
               <div className={styles.userInfo}>
                 <div className={styles.userNameSkeleton} />
@@ -286,23 +293,38 @@ const Sidebar = ({ isExpanded, setIsExpanded }) => {
           </>
         ) : user ? (
           <>
-            <Avatar
-              src={getProfileUrl(user.id)}
-              alt={user.name}
-              size={32}
-              fallbackText={user.name}
-            />
             {isExpanded && (
-              <div className={styles.userInfo}>
-                <div className={styles.userName}>{user.name || "User"}</div>
-                <div className={styles.userEmail}>{user.email || ""}</div>
-              </div>
+              <>
+                <Avatar
+                  src={getProfileUrl(user.id)}
+                  alt={user.name}
+                  size={32}
+                  fallbackText={user.name}
+                />
+                <div className={styles.userInfo}>
+                  <div className={styles.userName}>{user.name || "User"}</div>
+                  <div className={styles.userEmail}>{user.email || ""}</div>
+                </div>
+              </>
             )}
           </>
         ) : null}
+
+        {/* COLLAPSE TOGGLE — moved here from footer */}
+        <button
+          className={styles.profileToggleButton}
+          onClick={() => setIsExpanded((p) => !p)}
+          title={isExpanded ? "Collapse sidebar" : "Expand sidebar"}
+        >
+          {isExpanded ? (
+            <PanelLeftClose size={18} />
+          ) : (
+            <PanelLeftOpen size={24} />
+          )}
+        </button>
       </div>
 
-      {/* Navigation */}
+      {/* NAV */}
       <div className={styles.sidebarNavigation}>
         {SIDEBAR_CONFIG.sections.map((section) => (
           <div key={section.id} className={styles.navSection}>
@@ -310,26 +332,22 @@ const Sidebar = ({ isExpanded, setIsExpanded }) => {
               <h4 className={styles.navSectionTitle}>{section.title}</h4>
             )}
             {!isExpanded && <div className={styles.navSectionDivider} />}
-            {section.items.map((item) => renderMenuItem(item))}
+            {section.items.map((item) => (
+              <MenuItem
+                key={item.id}
+                item={item}
+                isExpanded={isExpanded}
+                isActive={isActive}
+                expandedItems={expandedItems}
+                handleNavigation={handleNavigation}
+              />
+            ))}
           </div>
         ))}
       </div>
 
-      {/* Footer: Toggle + Logout */}
+      {/* FOOTER — only logout now */}
       <div className={styles.sidebarFooter}>
-        <button
-          className={styles.toggleButton}
-          onClick={() => setIsExpanded((prev) => !prev)}
-          title={isExpanded ? "Collapse sidebar" : "Expand sidebar"}
-        >
-          {isExpanded ? (
-            <PanelLeftClose size={18} />
-          ) : (
-            <PanelLeftOpen size={18} />
-          )}
-          {isExpanded && <span>Collapse</span>}
-        </button>
-
         <button
           className={styles.logoutButton}
           onClick={handleSignOut}

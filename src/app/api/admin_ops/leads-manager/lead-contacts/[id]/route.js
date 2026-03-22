@@ -6,10 +6,10 @@ import {
 import { requirePermission } from "@/utils/server/requirePermission";
 
 import {
-  getLeadContactById,
   updateLeadContact,
   deleteLeadContact,
-} from "@/services/leads/leadContact.service";
+  getLeadContactById,
+} from "@/services/leadsManager/leadContacts.service";
 
 export async function GET(req, { params }) {
   try {
@@ -19,7 +19,7 @@ export async function GET(req, { params }) {
     );
     if (permissionError) return permissionError;
 
-    const { id } = schemas.leadContact.id.parse(params);
+    const { id } = schemas.leadContact.id.parse(await params);
 
     const contact = await getLeadContactById(id, admin_user.id);
 
@@ -40,7 +40,7 @@ export async function PATCH(req, { params }) {
     );
     if (permissionError) return permissionError;
 
-    const { id } = schemas.leadContact.id.parse(params);
+    const { id } = schemas.leadContact.id.parse(await params);
 
     const body = schemas.leadContact.update.parse(await req.json());
 
@@ -60,7 +60,7 @@ export async function DELETE(req, { params }) {
     );
     if (permissionError) return permissionError;
 
-    const { id } = schemas.leadContact.id.parse(params);
+    const { id } = schemas.leadContact.id.parse(await params);
 
     const result = await deleteLeadContact(id, admin_user.id);
 

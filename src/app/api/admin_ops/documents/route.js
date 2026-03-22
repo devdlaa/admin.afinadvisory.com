@@ -26,6 +26,9 @@ export async function GET(req) {
       page_size: searchParams.get("page_size"),
       sort: searchParams.get("sort"),
       order: searchParams.get("order"),
+      mime_types: searchParams.get("mime_types"),
+      min_size: searchParams.get("min_size"),
+      max_size: searchParams.get("max_size"),
     });
 
     const result = await listDocumentsService({
@@ -35,11 +38,14 @@ export async function GET(req) {
       pageSize: filters.page_size,
       sort: filters.sort,
       order: filters.order,
+      mimeTypes: filters.mime_types,
+      minSize: filters.min_size,
+      maxSize: filters.max_size,
     });
 
     return createSuccessResponse("Documents retrieved successfully", result);
   } catch (e) {
-    console.log(e)
+    console.log(e);
     return handleApiError(e);
   }
 }

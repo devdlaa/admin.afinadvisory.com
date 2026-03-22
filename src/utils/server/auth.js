@@ -34,6 +34,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             },
           });
 
+         
           if (!user) {
             return null;
           }
@@ -82,6 +83,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               secret: user.totp_secret,
             });
 
+          
             if (!isValidTotp) {
               return null;
             }
@@ -103,7 +105,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           }
 
           // Extract permission codes
-          const permissionCodes = user.permissions.map(
+          const permissionCodes = user?.permissions?.map(
             (up) => up.permission.code,
           );
 

@@ -11,6 +11,8 @@ const DocumentManagerDialog = ({
   scope,
   scopeId,
   title = "Documents",
+  mode = "normal",
+  selectConfig = {},
 }) => {
   const handleKeyDown = useCallback(
     (e) => {
@@ -55,9 +57,13 @@ const DocumentManagerDialog = ({
           </button>
         </div>
 
-        {/* Scrollable body — DocumentManager is untouched */}
         <div className={styles.dialogBody}>
-          <DocumentManager scope={scope} scopeId={scopeId} />
+          <DocumentManager
+            scope={scope}
+            scopeId={scopeId}
+            mode={mode}
+            selectConfig={selectConfig}
+          />
         </div>
       </div>
     </div>

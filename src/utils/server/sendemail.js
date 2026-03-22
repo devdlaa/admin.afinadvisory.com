@@ -50,7 +50,7 @@ const loadTemplate = async (templateName, variables) => {
 
 const client = new SendMailClient({
   url: "https://api.zeptomail.in/v1.1/email",
-  token: process.env.ZEPTO_MAIL_TOKEN_SECONDARY,
+  token: process.env.ZEPTO_MAIL_TOKEN,
 });
 
 export async function SEND_EMAIL({
@@ -134,12 +134,12 @@ export async function SEND_EMAIL({
 
     return { success: true, message: "Email sent successfully", resp };
   } catch (error) {
-  console.error("Email Sending Error:", error);
+    console.error("Email Sending Error:", error);
 
-  return {
-    success: false,
-    error: error?.message || "Unknown error",
-    status: error?.response?.status,
-  };
-}
+    return {
+      success: false,
+      error: error?.message || "Unknown error",
+      status: error?.response?.status,
+    };
+  }
 }

@@ -135,11 +135,13 @@ import {
 } from "./core/leadTag.schema.js";
 import {
   createLeadPipelineSchema,
+  deleteStageSchema,
   leadPipelineIdSchema,
   listLeadPipelineSchema,
   updateLeadPipelineSchema,
 } from "./core/LeadPipelineAndStages.schema.js";
 import { syncLeadAssignmentsSchema } from "./core/leadsAssignmetns.schema.js";
+
 import {
   createLeadActivitySchema,
   activityIdSchema,
@@ -147,6 +149,23 @@ import {
   updateActivityLifecycleSchema,
   updateLeadActivitySchema,
 } from "./core/leadActivity.schema.js";
+
+import {
+  createLeadSchema,
+  deleteLeadParamsSchema,
+  getLeadParamsSchema,
+  listPipelineLeadsQuerySchema,
+  updateLeadParamsSchema,
+  updateLeadSchema,
+  updateLeadStageBodySchema,
+  updateLeadTagsBodySchema,
+} from "./core/leadCore.schema.js";
+import {
+  createLeadContactSchema,
+  leadContactIdSchema,
+  listLeadContactSchema,
+  updateLeadContactSchema,
+} from "./core/leadContact.schema.js";
 
 // ============================================================================
 // Structured Export Object
@@ -298,6 +317,7 @@ export const schemas = Object.freeze({
     list: listLeadTagSchema,
   },
   leadPipeline: {
+    deleteStage : deleteStageSchema,
     create: createLeadPipelineSchema,
     update: updateLeadPipelineSchema,
     id: leadPipelineIdSchema,
@@ -312,6 +332,22 @@ export const schemas = Object.freeze({
     lifecycle: updateActivityLifecycleSchema,
     id: activityIdSchema,
     list: listLeadActivitySchema,
+  },
+  leadContact: {
+    list: listLeadContactSchema,
+    create: createLeadContactSchema,
+    id: leadContactIdSchema,
+    update: updateLeadContactSchema,
+  },
+  lead: {
+    create: createLeadSchema,
+    update: updateLeadSchema,
+    params: updateLeadParamsSchema,
+    stage: updateLeadStageBodySchema,
+    tags: updateLeadTagsBodySchema,
+    delete: deleteLeadParamsSchema,
+    get: getLeadParamsSchema,
+    list: listPipelineLeadsQuerySchema,
   },
 });
 

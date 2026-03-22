@@ -1,5 +1,6 @@
 import { schemas } from "@/schemas";
-import { getFunnel } from "@/services/analytics/analytics.service";
+
+import { getFunnel } from "@/services/leadsManager/analytics/analytics.core.service";
 
 import {
   createSuccessResponse,

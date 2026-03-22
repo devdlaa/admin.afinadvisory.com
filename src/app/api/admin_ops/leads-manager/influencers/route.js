@@ -10,7 +10,7 @@ import { requirePermission } from "@/utils/server/requirePermission";
 import {
   createInfluencer,
   listInfluencers,
-} from "@/services/leads/influencer.service";
+} from "@/services/leadsManager/influencer.service";
 
 export async function GET(req) {
   try {
@@ -23,9 +23,12 @@ export async function GET(req) {
     const { searchParams } = new URL(req.url);
 
     const filters = schemas.influencer.list.parse({
-      page: searchParams.get("page") ?? undefined,
+      cursor: searchParams.get("cursor") ?? undefined,
       page_size: searchParams.get("page_size") ?? undefined,
       search: searchParams.get("search") ?? undefined,
+      sort_by: searchParams.get("sort_by") ?? undefined,
+      compact: searchParams.get("compact") ?? undefined,
+      sort_order: searchParams.get("sort_order") ?? undefined,
     });
 
     const influencers = await listInfluencers(filters, admin_user.id);

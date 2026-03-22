@@ -6,11 +6,8 @@ import {
 
 import { requirePermission } from "@/utils/server/requirePermission";
 
-import {
-  updateLeadPipeline,
-  deleteLeadPipeline,
-  getLeadPipelineById,
-} from "@/services/leads/leadPipeline.service";
+
+import { updateLeadPipeline,deleteLeadPipeline,getLeadPipelineById } from "@/services/leadsManager/LeadPipelineAndStages.service";
 
 
 export async function GET(req, { params }) {
@@ -21,7 +18,7 @@ export async function GET(req, { params }) {
     );
     if (permissionError) return permissionError;
 
-    const { id } = schemas.leadPipeline.id.parse(params);
+    const { id } = schemas.leadPipeline.id.parse(await params);
 
     const pipeline = await getLeadPipelineById(id, admin_user.id);
 
@@ -43,7 +40,7 @@ export async function PATCH(req, { params }) {
     );
     if (permissionError) return permissionError;
 
-    const { id } = schemas.leadPipeline.id.parse(params);
+    const { id } = schemas.leadPipeline.id.parse(await params);
 
     const body = schemas.leadPipeline.update.parse(await req.json());
 
@@ -66,7 +63,7 @@ export async function DELETE(req, { params }) {
     );
     if (permissionError) return permissionError;
 
-    const { id } = schemas.leadPipeline.id.parse(params);
+    const { id } = schemas.leadPipeline.id.parse(await params);
 
     const result = await deleteLeadPipeline(id, admin_user.id);
 

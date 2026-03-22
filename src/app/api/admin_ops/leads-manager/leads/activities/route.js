@@ -5,12 +5,14 @@ import {
 import { requirePermission } from "@/utils/server/requirePermission";
 import { schemas } from "@/schemas";
 
-
 import { listActivities } from "@/services/leadsManager/leadsActivity.service";
 
 export async function GET(request) {
   try {
-    const [permissionError] = await requirePermission(request, "leads.access");
+    const [permissionError, session, admin_user] = await requirePermission(
+      request,
+      "leads.access",
+    );
     if (permissionError) return permissionError;
 
     const { searchParams } = new URL(request.url);
@@ -19,7 +21,7 @@ export async function GET(request) {
       Object.fromEntries(searchParams),
     );
 
-    const result = await listActivities(parsed);
+    const result = await listActivities(parsed, admin_user);
 
     return createSuccessResponse(
       "Dashboard activities fetched successfully",

@@ -11,7 +11,8 @@ import {
   getInfluencerById,
   updateInfluencer,
   deleteInfluencer,
-} from "@/services/leads/influencer.service";
+} from "@/services/leadsManager/influencer.service";
+
 
 /**
  * GET /api/influencers/:id
@@ -24,7 +25,7 @@ export async function GET(req, { params }) {
     );
     if (permissionError) return permissionError;
 
-    const { id } = schemas.influencer.id.parse(params);
+    const { id } = schemas.influencer.id.parse(await params);
 
     const influencer = await getInfluencerById(id, admin_user.id);
 
@@ -45,7 +46,7 @@ export async function PATCH(req, { params }) {
     );
     if (permissionError) return permissionError;
 
-    const { id } = schemas.influencer.id.parse(params);
+    const { id } = schemas.influencer.id.parse(await params);
 
     const body = schemas.influencer.update.parse(await req.json());
 
@@ -65,7 +66,7 @@ export async function DELETE(req, { params }) {
     );
     if (permissionError) return permissionError;
 
-    const { id } = schemas.influencer.id.parse(params);
+    const { id } = schemas.influencer.id.parse(await params);
 
     await deleteInfluencer(id, admin_user.id);
 

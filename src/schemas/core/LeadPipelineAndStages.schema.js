@@ -57,31 +57,38 @@ const stageSchema = z.object({
 
 /* ---------------- CREATE ---------------- */
 
-export const createLeadPipelineSchema = z
+export const createLeadPipelineSchema = z.object({
+  company_profile_id: z.string().uuid(),
+
+  name: pipelineNameSchema,
+
+  description: z.string().trim().max(200).optional(),
+  is_default: z.boolean().optional().default(false),
+  icon: PipelineIconEnum.optional(),
+});
+
+export const deleteStageSchema = z
   .object({
-    company_profile_id: z.string().uuid(),
+    stage_id: z.string().uuid("Invalid stage ID"),
 
-    name: pipelineNameSchema,
+    migrate_to_stage_id: z.string().uuid("Invalid target stage ID").optional(),
 
-    description: z.string().trim().max(200).optional(),
-
-    icon: PipelineIconEnum.optional(),
-
-    stages: z.array(stageSchema).min(1).max(10),
+    migrate_to_new_stage_name: z
+      .string()
+      .min(2, "Stage name must be at least 2 characters")
+      .max(80, "Stage name too long")
+      .regex(/^[A-Za-z0-9 ]+$/, "Only letters, numbers and spaces allowed")
+      .optional(),
   })
-  .superRefine((data, ctx) => {
-    const names = data.stages.map((s) => s.name.toLowerCase());
+  .refine(
+    (data) => !!data.migrate_to_stage_id !== !!data.migrate_to_new_stage_name,
+    {
+      message:
+        "Provide either migrate_to_stage_id or migrate_to_new_stage_name — not both, not neither",
+      path: ["migrate_to_stage_id"],
+    },
+  );
 
-    const duplicates = names.filter((name, i) => names.indexOf(name) !== i);
-
-    if (duplicates.length) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Duplicate stage names are not allowed within a pipeline",
-        path: ["stages"],
-      });
-    }
-  });
 
 /* ---------------- UPDATE ---------------- */
 
@@ -92,7 +99,7 @@ export const updateLeadPipelineSchema = z
     description: z.string().trim().max(200).optional(),
 
     icon: PipelineIconEnum.optional(),
-
+    is_default: z.boolean().nullable().optional(),
     stages: z.array(stageSchema).min(1).max(10).optional(),
   })
   .superRefine((data, ctx) => {

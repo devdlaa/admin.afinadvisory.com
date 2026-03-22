@@ -5,10 +5,9 @@ import {
 } from "@/utils/server/apiResponse";
 import { requirePermission } from "@/utils/server/requirePermission";
 
-import {
-  createLeadContact,
-  listLeadContacts,
-} from "@/services/leads/leadContact.service";
+
+
+import { createLeadContact,listLeadContacts } from "@/services/leadsManager/leadContacts.service";
 
 export async function GET(req) {
   try {

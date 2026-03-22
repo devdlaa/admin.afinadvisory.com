@@ -7,26 +7,28 @@ import {
 
 import { requirePermission } from "@/utils/server/requirePermission";
 
-import { createLeadTag, listLeadTags } from "@/services/leads/leadTag.service";
-
+import {
+  createLeadTag,
+  listLeadTags,
+} from "@/services/leadsManager/leadTags.service";
 
 export async function GET(req) {
   try {
     const [permissionError, session, admin_user] = await requirePermission(
       req,
-      "leadtag.view",
+      "leads.access",
     );
     if (permissionError) return permissionError;
 
     const { searchParams } = new URL(req.url);
 
     const filters = schemas.leadTag.list.parse({
-      page: searchParams.get("page") ?? undefined,
-      page_size: searchParams.get("page_size") ?? undefined,
+      cursor: searchParams.get("cursor") ?? undefined,
+      limit: searchParams.get("limit") ?? undefined,
       search: searchParams.get("search") ?? undefined,
     });
 
-    const tags = await listLeadTags(filters, admin_user.id);
+    const tags = await listLeadTags(filters, admin_user);
 
     return createSuccessResponse("Lead tags retrieved successfully", tags);
   } catch (e) {
@@ -34,18 +36,17 @@ export async function GET(req) {
   }
 }
 
-
 export async function POST(req) {
   try {
     const [permissionError, session, admin_user] = await requirePermission(
       req,
-      "leadtag.manage",
+      "leads.manage",
     );
     if (permissionError) return permissionError;
 
     const body = schemas.leadTag.create.parse(await req.json());
 
-    const tag = await createLeadTag(body, admin_user.id);
+    const tag = await createLeadTag(body, admin_user);
 
     return createSuccessResponse("Lead tag created successfully", tag, 201);
   } catch (e) {

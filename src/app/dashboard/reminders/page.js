@@ -463,16 +463,581 @@
 //   );
 // }
 
-"use client";
-import React from "react";
-import ReminderDialog from "./components/Reminderdialog/Reminderdialog";
+// "use client";
+// import React, { useEffect, useState } from "react";
+// import { useDispatch, useSelector } from "react-redux";
+// import { Plus, Pencil, Layers } from "lucide-react";
+// import {
+//   BarChart2,
+//   Headphones,
+//   Building2,
+//   Wrench,
+//   Truck,
+//   Code2,
+//   MessageSquare,
+//   Telescope,
+//   Shield,
+//   Banknote,
+//   Landmark,
+//   GraduationCap,
+//   Car,
+//   Settings,
+//   User,
+//   Gift,
+//   Heart,
+//   Home,
+//   Stethoscope,
+//   Workflow,
+// } from "lucide-react";
 
-const page = () => {
+// import PipelineDrawer from "../leads-manager/components/Pipelinedrawer/Pipelinedrawer";
+// import {
+//   fetchLeadPipelines,
+//   selectPipelineList,
+//   selectPipelineLoading,
+// } from "@/store/slices/leadPipelinesSlice";
+
+// const ICON_MAP = {
+//   chart: BarChart2,
+//   support: Headphones,
+//   buildings: Building2,
+//   tools: Wrench,
+//   truck: Truck,
+//   code: Code2,
+//   message: MessageSquare,
+//   telescope: Telescope,
+//   shield: Shield,
+//   money: Banknote,
+//   bank: Landmark,
+//   education: GraduationCap,
+//   car: Car,
+//   settings: Settings,
+//   user: User,
+//   gift: Gift,
+//   heart: Heart,
+//   home: Home,
+//   medical: Stethoscope,
+//   workflow: Workflow,
+// };
+
+// function PipelineIcon({ name, size = 16 }) {
+//   const Comp = ICON_MAP[name] || Settings;
+//   return <Comp size={size} />;
+// }
+
+// const Page = () => {
+//   const dispatch = useDispatch();
+//   const pipelines = useSelector(selectPipelineList);
+//   const loading = useSelector(selectPipelineLoading);
+
+//   const [drawerOpen, setDrawerOpen] = useState(false);
+//   const [editingId, setEditingId] = useState(null);
+
+//   useEffect(() => {
+//     dispatch(fetchLeadPipelines({ page_size: 20 }));
+//   }, []);
+
+//   const handleClose = () => {
+//     setDrawerOpen(false);
+//     setEditingId(null);
+//     // Refresh list to reflect any creates/updates
+//     dispatch(fetchLeadPipelines({ page_size: 20 }));
+//   };
+
+//   const openCreate = () => {
+//     setEditingId(null);
+//     setDrawerOpen(true);
+//   };
+//   const openEdit = (id) => {
+//     setEditingId(id);
+//     setDrawerOpen(true);
+//   };
+
+//   return (
+//     <div style={{ padding: "32px", fontFamily: "sans-serif", maxWidth: 620 }}>
+//       {/* Header */}
+//       <div
+//         style={{
+//           display: "flex",
+//           alignItems: "center",
+//           justifyContent: "space-between",
+//           marginBottom: 24,
+//         }}
+//       >
+//         <div>
+//           <h2
+//             style={{
+//               margin: "0 0 3px",
+//               fontSize: 18,
+//               fontWeight: 700,
+//               color: "#111827",
+//             }}
+//           >
+//             Pipelines
+//           </h2>
+//           <p style={{ margin: 0, fontSize: 13, color: "#6b7280" }}>
+//             {loading
+//               ? "Loading…"
+//               : `${pipelines.length} pipeline${pipelines.length !== 1 ? "s" : ""}`}
+//           </p>
+//         </div>
+//         <button
+//           onClick={openCreate}
+//           style={{
+//             display: "inline-flex",
+//             alignItems: "center",
+//             gap: 6,
+//             height: 36,
+//             padding: "0 16px",
+//             background: "#1d4ed8",
+//             color: "#fff",
+//             border: "none",
+//             borderRadius: 8,
+//             fontSize: 13.5,
+//             fontWeight: 600,
+//             cursor: "pointer",
+//           }}
+//         >
+//           <Plus size={14} /> New Pipeline
+//         </button>
+//       </div>
+
+//       {/* List */}
+//       {loading && pipelines.length === 0 ? (
+//         <div
+//           style={{
+//             padding: "48px 0",
+//             textAlign: "center",
+//             color: "#9ca3af",
+//             fontSize: 13,
+//           }}
+//         >
+//           Loading pipelines…
+//         </div>
+//       ) : pipelines.length === 0 ? (
+//         <div
+//           style={{
+//             padding: "48px 24px",
+//             textAlign: "center",
+//             background: "#f9fafb",
+//             border: "1px dashed #d1d5db",
+//             borderRadius: 12,
+//           }}
+//         >
+//           <Layers size={30} style={{ color: "#d1d5db", marginBottom: 12 }} />
+//           <p
+//             style={{
+//               margin: "0 0 4px",
+//               fontSize: 14,
+//               fontWeight: 600,
+//               color: "#374151",
+//             }}
+//           >
+//             No pipelines yet
+//           </p>
+//           <p style={{ margin: 0, fontSize: 12.5, color: "#9ca3af" }}>
+//             Create your first pipeline to get started
+//           </p>
+//         </div>
+//       ) : (
+//         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+//           {pipelines.map((p) => (
+//             <div
+//               key={p.id}
+//               style={{
+//                 display: "flex",
+//                 alignItems: "center",
+//                 gap: 14,
+//                 padding: "13px 16px",
+//                 background: "#fff",
+//                 border: "1px solid #e5e7eb",
+//                 borderRadius: 10,
+//                 boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+//               }}
+//             >
+//               {/* Icon badge */}
+//               <div
+//                 style={{
+//                   width: 36,
+//                   height: 36,
+//                   borderRadius: 8,
+//                   background: "#eff6ff",
+//                   display: "flex",
+//                   alignItems: "center",
+//                   justifyContent: "center",
+//                   color: "#1d4ed8",
+//                   flexShrink: 0,
+//                 }}
+//               >
+//                 <PipelineIcon name={p.icon || "settings"} size={16} />
+//               </div>
+
+//               {/* Name + description */}
+//               <div style={{ flex: 1, minWidth: 0 }}>
+//                 <div
+//                   style={{
+//                     display: "flex",
+//                     alignItems: "center",
+//                     gap: 7,
+//                     flexWrap: "wrap",
+//                   }}
+//                 >
+//                   <span
+//                     style={{ fontWeight: 600, fontSize: 14, color: "#111827" }}
+//                   >
+//                     {p.name}
+//                   </span>
+//                   {p.is_default && (
+//                     <span
+//                       style={{
+//                         fontSize: 10,
+//                         fontWeight: 700,
+//                         color: "#1d4ed8",
+//                         background: "#eff6ff",
+//                         border: "1px solid #bfdbfe",
+//                         borderRadius: 20,
+//                         padding: "1px 7px",
+//                         letterSpacing: "0.04em",
+//                       }}
+//                     >
+//                       DEFAULT
+//                     </span>
+//                   )}
+//                 </div>
+//                 {p.description ? (
+//                   <p
+//                     style={{
+//                       margin: "2px 0 0",
+//                       fontSize: 12,
+//                       color: "#6b7280",
+//                       whiteSpace: "nowrap",
+//                       overflow: "hidden",
+//                       textOverflow: "ellipsis",
+//                     }}
+//                   >
+//                     {p.description}
+//                   </p>
+//                 ) : null}
+//               </div>
+
+//               {/* Edit button */}
+//               <button
+//                 onClick={() => openEdit(p.id)}
+//                 style={{
+//                   display: "inline-flex",
+//                   alignItems: "center",
+//                   gap: 5,
+//                   height: 30,
+//                   padding: "0 11px",
+//                   background: "#f3f4f6",
+//                   border: "1px solid #e5e7eb",
+//                   borderRadius: 7,
+//                   fontSize: 12.5,
+//                   fontWeight: 500,
+//                   color: "#374151",
+//                   cursor: "pointer",
+//                   flexShrink: 0,
+//                 }}
+//               >
+//                 <Pencil size={12} /> Edit
+//               </button>
+//             </div>
+//           ))}
+//         </div>
+//       )}
+
+//       <PipelineDrawer
+//         open={drawerOpen}
+//         onClose={handleClose}
+//         pipelineId={editingId}
+//       />
+//     </div>
+//   );
+// };
+
+// export default Page;
+
+"use client";
+
+import React, { useRef, useState, useEffect, useCallback } from "react";
+import { useDispatch, useSelector } from "react-redux";
+
+import LeadContactDialog from "../leads-manager/leads-contact/components/LeadContactDialog/LeadContactDialog";
+import InfluencerDialog from "../leads-manager/influncers/components/InfluencerDialog/InfluencerDialog";
+import LinkSelectionDialog from "../leads-manager/components/LinkSelectionDialog/LinkSelectionDialog";
+
+import {
+  quickSearchLeadContacts,
+  clearQuickSearch,
+  selectQuickSearchResults,
+  selectQuickSearchLoading,
+} from "@/store/slices/leadContactSlice";
+
+import {
+  searchInfluencers,
+  selectInfluencerSearchList,
+  selectInfluencerSearchLoading,
+} from "@/store/slices/influncersSlice";
+
+/* ─────────────────────────────────────────────────────────────
+   Demo page — all Redux + handlers live HERE, not in the dialog
+───────────────────────────────────────────────────────────── */
+export default function LinkSelectionDemoPage() {
+  const dispatch = useDispatch();
+
+  /* ── Redux selectors ── */
+  const leadContactResults = useSelector(selectQuickSearchResults);
+  const leadContactSearching = useSelector(selectQuickSearchLoading);
+  const influencerResults = useSelector(selectInfluencerSearchList);
+  const influencerSearching = useSelector(selectInfluencerSearchLoading);
+
+  /* ── Sub-dialog open state ── */
+  const [addLeadContactOpen, setAddLeadContactOpen] = useState(false);
+  const [addInfluencerOpen, setAddInfluencerOpen] = useState(false);
+
+  /* ── Client dialog state ── */
+  const [clientDialogOpen, setClientDialogOpen] = useState(false);
+  const [selectedClient, setSelectedClient] = useState({
+    __type: "lead_contact",
+    id: "lc_001",
+    contact_person: "Urban Hues Private Limited",
+    entity_type: "PRIVATE_LIMITED_COMPANY",
+    email: "porushlalwani30@yahoo.com",
+    primary_phone: "+91 98765 43210",
+    status: "ACTIVE",
+  });
+  const [isUpdatingClient, setIsUpdatingClient] = useState(false);
+
+  /* ── Reference dialog state ── */
+  const [refDialogOpen, setRefDialogOpen] = useState(false);
+  const [selectedRef, setSelectedRef] = useState(null);
+  const [isUpdatingRef, setIsUpdatingRef] = useState(false);
+
+  /* ── Debounce timer ── */
+  const debounceRef = useRef(null);
+
+  /* ── Shared search handler (used by both dialogs) ── */
+  const handleSearchChange = useCallback(
+    (query, tabId) => {
+      clearTimeout(debounceRef.current);
+
+      // Empty query → clear results
+      if (!query.trim()) {
+        dispatch(clearQuickSearch());
+        return;
+      }
+
+      debounceRef.current = setTimeout(() => {
+        if (tabId === "lead_contact") {
+          dispatch(quickSearchLeadContacts({ search: query, limit: 20 }));
+        } else if (tabId === "influencer") {
+          dispatch(searchInfluencers({ search: query, page_size: 20 }));
+        }
+        // "external" tab has no search — inputs only
+      }, 280);
+    },
+    [dispatch],
+  );
+
+  /* ── Tab switch → clear stale results ── */
+  const handleTabChange = useCallback(() => {
+    clearTimeout(debounceRef.current);
+    dispatch(clearQuickSearch());
+  }, [dispatch]);
+
+  /* ── Add-new router ── */
+  const handleAddNew = useCallback((tabId) => {
+    if (tabId === "lead_contact") setAddLeadContactOpen(true);
+    if (tabId === "influencer") setAddInfluencerOpen(true);
+  }, []);
+
+  /* ── Client confirm ── */
+  const handleClientConfirm = async (payload) => {
+    setIsUpdatingClient(true);
+    try {
+      // Replace with real dispatch:
+      // await dispatch(updateLead({ id: leadId, client_id: payload.id ?? null })).unwrap();
+      await new Promise((r) => setTimeout(r, 700)); // simulate network
+      setSelectedClient(
+        payload.type === "__cleared" ? null : { ...payload, status: "ACTIVE" },
+      );
+      setClientDialogOpen(false);
+      dispatch(clearQuickSearch());
+    } finally {
+      setIsUpdatingClient(false);
+    }
+  };
+
+  /* ── Reference confirm ── */
+  const handleRefConfirm = async (payload) => {
+    setIsUpdatingRef(true);
+    try {
+      // Replace with real dispatch:
+      // await dispatch(updateLead({ id: leadId, reference: payload.type === "__cleared" ? null : payload })).unwrap();
+      await new Promise((r) => setTimeout(r, 700));
+      setSelectedRef(payload.type === "__cleared" ? null : payload);
+      setRefDialogOpen(false);
+      dispatch(clearQuickSearch());
+    } finally {
+      setIsUpdatingRef(false);
+    }
+  };
+
+  /* ── Cleanup on unmount ── */
+  useEffect(() => () => clearTimeout(debounceRef.current), []);
+
   return (
-    <div>
-      <ReminderDialog mode="detail" onClose={() => {}} />
+    <div style={{ padding: 40, fontFamily: "Poppins, sans-serif" }}>
+      <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 8 }}>
+        LinkSelectionDialog — Demo
+      </h1>
+      <p style={{ color: "#6b7280", fontSize: 14, marginBottom: 32 }}>
+        <strong>client</strong> mode = lead contact only &nbsp;|&nbsp;
+        <strong>reference</strong> mode = lead contact / influencer / external
+      </p>
+
+      <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+        <button
+          onClick={() => setClientDialogOpen(true)}
+          style={{
+            padding: "10px 22px",
+            background: "#4f46e5",
+            color: "#fff",
+            border: "none",
+            borderRadius: 9,
+            fontFamily: "inherit",
+            fontSize: 14,
+            fontWeight: 600,
+            cursor: "pointer",
+          }}
+        >
+          Open — Client Mode
+        </button>
+        <button
+          onClick={() => setRefDialogOpen(true)}
+          style={{
+            padding: "10px 22px",
+            background: "#0f766e",
+            color: "#fff",
+            border: "none",
+            borderRadius: 9,
+            fontFamily: "inherit",
+            fontSize: 14,
+            fontWeight: 600,
+            cursor: "pointer",
+          }}
+        >
+          Open — Reference Mode
+        </button>
+      </div>
+
+      {/* State preview */}
+      <div
+        style={{ marginTop: 32, display: "flex", gap: 20, flexWrap: "wrap" }}
+      >
+        {[
+          { heading: "Selected Client", value: selectedClient },
+          { heading: "Selected Reference", value: selectedRef },
+        ].map(({ heading, value }) => (
+          <div
+            key={heading}
+            style={{
+              padding: "16px 20px",
+              border: "1.5px solid #e5e7eb",
+              borderRadius: 10,
+              minWidth: 260,
+              background: "#f9fafb",
+            }}
+          >
+            <div
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                color: "#9ca3af",
+                textTransform: "uppercase",
+                letterSpacing: "0.6px",
+                marginBottom: 8,
+              }}
+            >
+              {heading}
+            </div>
+            {value ? (
+              <>
+                <div
+                  style={{ fontSize: 14, fontWeight: 600, color: "#111827" }}
+                >
+                  {value.contact_person || value.name}
+                </div>
+                <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>
+                  {[value.type || value.__type, value.email]
+                    .filter(Boolean)
+                    .join(" • ")}
+                </div>
+              </>
+            ) : (
+              <div style={{ fontSize: 13, color: "#9ca3af" }}>None</div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* ══ Dialogs ══ */}
+
+      {/* Client mode */}
+      <LinkSelectionDialog
+        isOpen={clientDialogOpen}
+        mode="client"
+        selectedData={selectedClient}
+        leadContactResults={leadContactResults}
+        leadContactSearching={leadContactSearching}
+        influencerResults={influencerResults}
+        influencerSearching={influencerSearching}
+        onClose={() => {
+          setClientDialogOpen(false);
+          dispatch(clearQuickSearch());
+        }}
+        onSearchChange={handleSearchChange}
+        onTabChange={handleTabChange}
+        onConfirm={handleClientConfirm}
+        onAddNew={handleAddNew}
+        isUpdating={isUpdatingClient}
+      />
+
+      {/* Reference mode */}
+      <LinkSelectionDialog
+        isOpen={refDialogOpen}
+        mode="reference"
+        selectedData={selectedRef}
+        leadContactResults={leadContactResults}
+        leadContactSearching={leadContactSearching}
+        influencerResults={influencerResults}
+        influencerSearching={influencerSearching}
+        onClose={() => {
+          setRefDialogOpen(false);
+          dispatch(clearQuickSearch());
+        }}
+        onSearchChange={handleSearchChange}
+        onTabChange={handleTabChange}
+        onConfirm={handleRefConfirm}
+        onAddNew={handleAddNew}
+        isUpdating={isUpdatingRef}
+      />
+
+      {/* Add new lead contact */}
+      <LeadContactDialog
+        isOpen={addLeadContactOpen}
+        mode="create"
+        onClose={() => setAddLeadContactOpen(false)}
+        onSuccess={() => setAddLeadContactOpen(false)}
+      />
+
+      {/* Add new influencer */}
+      <InfluencerDialog
+        isOpen={true}
+        mode="create"
+        onClose={() => setAddInfluencerOpen(false)}
+        onSuccess={() => setAddInfluencerOpen(false)}
+      />
     </div>
   );
-};
-
-export default page;
+}

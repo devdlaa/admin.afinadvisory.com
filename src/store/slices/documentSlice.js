@@ -18,16 +18,26 @@ export const fetchDocuments = createAsyncThunk(
       page = 1,
       sort = "created_at",
       order = "desc",
+      mimeTypes,
+      minSize,
+      maxSize,
       forceRefresh = false,
     },
     { rejectWithValue, getState },
   ) => {
     try {
-      const scopeKey = `${scope}_${scopeId}`;
+      const filterKey = JSON.stringify({
+        mimeTypes,
+        minSize,
+        maxSize,
+        sort,
+        order,
+      });
+
+      const scopeKey = `${scope}_${scopeId}_${filterKey}`;
       const state = getState();
       const existingData = state.documents.data[scopeKey];
 
-      // Skip fetch if data exists and not forcing refresh and on page 1
       if (
         existingData &&
         existingData.items.length > 0 &&
@@ -50,6 +60,16 @@ export const fetchDocuments = createAsyncThunk(
         sort,
         order,
       });
+
+      if (mimeTypes?.length) {
+        params.append(
+          "mime_types",
+          Array.isArray(mimeTypes) ? mimeTypes.join(",") : mimeTypes,
+        );
+      }
+
+      if (minSize) params.append("min_size", minSize.toString());
+      if (maxSize) params.append("max_size", maxSize.toString());
 
       const response = await fetch(`/api/admin_ops/documents?${params}`);
       const result = await response.json();
@@ -288,20 +308,27 @@ const documentSlice = createSlice({
         state.error = null;
       })
       .addCase(uploadDocument.fulfilled, (state, action) => {
-        const { scope, scopeId } = action.meta.arg;
+        const { scope, scopeId, mimeTypes, minSize, maxSize } = action.meta.arg;
         const scopeKey = `${scope}_${scopeId}`;
         const newDocument = action.payload;
 
-        // Add to beginning of list
-        if (state.data[scopeKey]) {
-          state.data[scopeKey].items = [
-            newDocument,
-            ...state.data[scopeKey].items,
-          ];
+        const isValidType =
+          !mimeTypes?.length || mimeTypes.includes(newDocument.mime_type);
 
-          // Update pagination count
-          if (state.data[scopeKey].pagination) {
-            state.data[scopeKey].pagination.total_items += 1;
+        const isValidSize =
+          (!minSize || newDocument.size_bytes >= minSize) &&
+          (!maxSize || newDocument.size_bytes <= maxSize);
+
+        if (isValidType && isValidSize) {
+          if (state.data[scopeKey]) {
+            state.data[scopeKey].items = [
+              newDocument,
+              ...state.data[scopeKey].items,
+            ];
+
+            if (state.data[scopeKey].pagination) {
+              state.data[scopeKey].pagination.total_items += 1;
+            }
           }
         }
 

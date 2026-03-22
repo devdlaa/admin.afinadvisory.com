@@ -1,5 +1,6 @@
 import { schemas } from "@/schemas";
-import { getTimeseries } from "@/services/analytics/analytics.service";
+
+import { getTimeseries } from "@/services/leadsManager/analytics/analytics.core.service";
 
 import {
   createSuccessResponse,

@@ -1,4 +1,51 @@
 "use client";
+
+import {
+  BarChart2,
+  Headphones,
+  Building2,
+  Wrench,
+  Truck,
+  Code2,
+  MessageSquare,
+  Telescope,
+  Shield,
+  Banknote,
+  Landmark,
+  GraduationCap,
+  Car,
+  Settings,
+  User,
+  Gift,
+  Heart,
+  Home,
+  Stethoscope,
+  Workflow,
+} from "lucide-react";
+
+export const PIPLINE_ICON_MAP = {
+  chart: BarChart2,
+  support: Headphones,
+  buildings: Building2,
+  tools: Wrench,
+  truck: Truck,
+  code: Code2,
+  message: MessageSquare,
+  telescope: Telescope,
+  shield: Shield,
+  money: Banknote,
+  bank: Landmark,
+  education: GraduationCap,
+  car: Car,
+  settings: Settings,
+  user: User,
+  gift: Gift,
+  heart: Heart,
+  home: Home,
+  medical: Stethoscope,
+  workflow: Workflow,
+};
+
 export function truncateText(text, maxLength = 50) {
   if (!text || typeof text !== "string") return "";
   return text.length > maxLength ? text.slice(0, maxLength) + "…" : text;
@@ -13,12 +60,11 @@ export const formatDate = (dateString) => {
   });
 };
 
-  export const formatFileSize = (bytes) => {
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  };
-
+export const formatFileSize = (bytes) => {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+};
 
 export function generateInfluencerUsername(email, phone) {
   // 1️⃣  Take the email name part (before @) and clean it
@@ -129,4 +175,14 @@ export function removeEmptyFields(input) {
   }
   // Primitive value (non-empty) → return as is
   return input;
+}
+
+
+
+
+export function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+export function isValidPhone(phone) {
+  return phone.trim().length >= 7;
 }

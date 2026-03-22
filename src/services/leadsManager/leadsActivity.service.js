@@ -251,6 +251,20 @@ export async function listLeadActivities(lead_id, query, admin_user) {
     throw new NotFoundError("Lead not found");
   }
 
+  if (admin_user.admin_role !== "SUPER_ADMIN") {
+    const assignment = await prisma.leadAssignment.findFirst({
+      where: {
+        lead_id,
+        admin_user_id: admin_user.id,
+      },
+      select: { id: true },
+    });
+
+    if (!assignment) {
+      throw new ForbiddenError("You are not assigned to this lead");
+    }
+  }
+
   const where = {
     lead_id,
     deleted_at: null,
@@ -494,9 +508,24 @@ export async function updateLeadActivity(activity_id, payload, admin_user) {
   /* ----------------------------------------
   2. Permission Check
   ---------------------------------------- */
+  if (admin_user.admin_role !== "SUPER_ADMIN") {
+    // must be assigned to lead
+    const assignment = await prisma.leadAssignment.findFirst({
+      where: {
+        lead_id: activity.lead_id,
+        admin_user_id: adminUserId,
+      },
+      select: { id: true },
+    });
 
-  if (activity.created_by !== adminUserId) {
-    throw new ForbiddenError("Only the creator of this activity can edit it");
+    if (!assignment) {
+      throw new ForbiddenError("You are not assigned to this lead");
+    }
+
+    // must be creator
+    if (activity.created_by !== adminUserId) {
+      throw new ForbiddenError("Only the creator of this activity can edit it");
+    }
   }
 
   /* ----------------------------------------
@@ -845,7 +874,7 @@ export async function updateActivityLifecycle(
     },
   ];
 
-  await addLeadActivityLog( activity.lead_id, adminUserId, {
+  await addLeadActivityLog(activity.lead_id, adminUserId, {
     action: `LEAD_ACTIVITY_${payload.action}`,
 
     message: buildActivityMessage(changes),
@@ -878,8 +907,26 @@ export async function deleteLeadActivity(activity_id, admin_user) {
 
   /* Only creator can delete */
 
-  if (activity.created_by !== adminUserId) {
-    throw new ForbiddenError("Only the creator of this activity can delete it");
+  if (admin_user.admin_role !== "SUPER_ADMIN") {
+    // must be assigned to lead
+    const assignment = await prisma.leadAssignment.findFirst({
+      where: {
+        lead_id: activity.lead_id,
+        admin_user_id: adminUserId,
+      },
+      select: { id: true },
+    });
+
+    if (!assignment) {
+      throw new ForbiddenError("You are not assigned to this lead");
+    }
+
+    // must be creator
+    if (activity.created_by !== adminUserId) {
+      throw new ForbiddenError(
+        "Only the creator of this activity can delete it",
+      );
+    }
   }
 
   /* Only ACTIVE activities */
@@ -961,7 +1008,7 @@ export async function deleteLeadActivity(activity_id, admin_user) {
       to,
     },
   ];
-  await addLeadActivityLog( activity.lead_id, adminUserId, {
+  await addLeadActivityLog(activity.lead_id, adminUserId, {
     action: "LEAD_ACTIVITY_DELETED",
     message: buildActivityMessage(changes),
     meta: {
@@ -1014,7 +1061,7 @@ export async function handleZoomWebhook(payload) {
   }
 }
 
-export async function fetchMeetingTranscript(activity_id) {
+export async function fetchMeetingTranscript(activity_id, admin_user) {
   const video = await prisma.videoCallMeta.findFirst({
     where: { activity_id },
   });
@@ -1025,6 +1072,20 @@ export async function fetchMeetingTranscript(activity_id) {
 
   if (!video.provider_meeting_id) {
     throw new ValidationError("Meeting does not have provider meeting id");
+  }
+
+  if (admin_user.admin_role !== "SUPER_ADMIN") {
+    const assignment = await prisma.leadAssignment.findFirst({
+      where: {
+        lead_id: video.activity.lead_id,
+        admin_user_id: admin_user.id,
+      },
+      select: { id: true },
+    });
+
+    if (!assignment) {
+      throw new ForbiddenError("You are not assigned to this lead");
+    }
   }
 
   const folder = `videocall_meta_files/${activity_id}`;
@@ -1079,7 +1140,7 @@ export async function fetchMeetingTranscript(activity_id) {
   };
 }
 
-export async function getLeadActivityEmailContent(activity_id) {
+export async function getLeadActivityEmailContent(activity_id, admin_user) {
   const activity = await prisma.leadActivity.findUnique({
     where: { id: activity_id },
     include: {
@@ -1109,6 +1170,20 @@ export async function getLeadActivityEmailContent(activity_id) {
       },
     },
   });
+
+  if (admin_user.admin_role !== "SUPER_ADMIN") {
+    const assignment = await prisma.leadAssignment.findFirst({
+      where: {
+        lead_id: activity.lead.id,
+        admin_user_id: admin_user.id,
+      },
+      select: { id: true },
+    });
+
+    if (!assignment) {
+      throw new ForbiddenError("You are not assigned to this lead");
+    }
+  }
 
   /* ----------------------------------------
      Activity Validation
@@ -1179,6 +1254,7 @@ export async function updateLeadActivityEmailContent(
   const activity = await prisma.leadActivity.findUnique({
     where: { id: activity_id },
     include: {
+      lead_id: true,
       email_message: {
         include: {
           attachments: true,
@@ -1201,10 +1277,24 @@ export async function updateLeadActivityEmailContent(
     );
   }
 
-  if (activity.created_by !== adminUserId) {
-    throw new ForbiddenError(
-      "Only the creator of this activity can update the email",
-    );
+  if (admin_user.admin_role !== "SUPER_ADMIN") {
+    const assignment = await prisma.leadAssignment.findFirst({
+      where: {
+        lead_id: activity.lead_id,
+        admin_user_id: adminUserId,
+      },
+      select: { id: true },
+    });
+
+    if (!assignment) {
+      throw new ForbiddenError("You are not assigned to this lead");
+    }
+
+    if (activity.created_by !== adminUserId) {
+      throw new ForbiddenError(
+        "Only the creator of this activity can update the email",
+      );
+    }
   }
 
   if (!activity.email_message) {
@@ -1364,7 +1454,7 @@ export async function updateLeadActivityEmailContent(
       },
     ];
 
-    await addLeadActivityLog( activity.lead_id, adminUserId, {
+    await addLeadActivityLog(activity.lead_id, adminUserId, {
       action: "LEAD_ACTIVITY_EMAIL_UPDATED",
       message: buildActivityMessage(changes),
       meta: {
@@ -1494,14 +1584,32 @@ export async function generateMeetingLink(activity_id, admin_user) {
   return videoMeta;
 }
 
-export async function listActivities(query) {
+export async function listActivities(query, admin_user) {
   const pageSize = Math.min(50, query.page_size || 20);
   const now = new Date();
+
+  /* ----------------------------------------
+     Base Filters
+  ---------------------------------------- */
 
   const where = {
     deleted_at: null,
     is_scheduled: true,
   };
+
+  /* ----------------------------------------
+     Access Control (IMPORTANT)
+  ---------------------------------------- */
+
+  if (admin_user.admin_role !== "SUPER_ADMIN") {
+    where.lead = {
+      assignments: {
+        some: {
+          admin_user_id: admin_user.id,
+        },
+      },
+    };
+  }
 
   /* ----------------------------------------
      Status Filter
@@ -1697,9 +1805,7 @@ export async function listActivities(query) {
     },
 
     created_by: a.creator,
-
     updated_by: a.updater,
-
     closed_by: a.closer,
 
     email: a.email_message
@@ -1723,7 +1829,7 @@ export async function listActivities(query) {
   };
 }
 
-export async function getLeadActivityDetails(activity_id) {
+export async function getLeadActivityDetails(activity_id, admin_user) {
   const activity = await prisma.leadActivity.findUnique({
     where: { id: activity_id },
     include: {
@@ -1817,6 +1923,20 @@ export async function getLeadActivityDetails(activity_id) {
 
   if (!activity.lead || activity.lead.deleted_at) {
     throw new NotFoundError("Lead not found");
+  }
+
+  if (admin_user.admin_role !== "SUPER_ADMIN") {
+    const assignment = await prisma.leadAssignment.findFirst({
+      where: {
+        lead_id: activity.lead.id,
+        admin_user_id: admin_user.id,
+      },
+      select: { id: true },
+    });
+
+    if (!assignment) {
+      throw new ForbiddenError("You are not assigned to this lead");
+    }
   }
 
   const now = new Date();

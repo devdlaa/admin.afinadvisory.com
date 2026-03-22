@@ -7,21 +7,24 @@ import {
 
 import { requirePermission } from "@/utils/server/requirePermission";
 
-import { updateLeadTag, deleteLeadTag } from "@/services/leads/leadTag.service";
+import {
+  updateLeadTag,
+  deleteLeadTag,
+} from "@/services/leadsManager/leadTags.service";
 
 export async function PATCH(req, { params }) {
   try {
     const [permissionError, session, admin_user] = await requirePermission(
       req,
-      "leadtag.manage",
+      "leads.manage",
     );
     if (permissionError) return permissionError;
 
-    const { id } = schemas.leadTag.id.parse(params);
+    const { id } = schemas.leadTag.id.parse(await params);
 
     const body = schemas.leadTag.update.parse(await req.json());
 
-    const tag = await updateLeadTag(id, body, admin_user.id);
+    const tag = await updateLeadTag(id, body, admin_user);
 
     return createSuccessResponse("Lead tag updated successfully", tag);
   } catch (e) {
@@ -33,13 +36,13 @@ export async function DELETE(req, { params }) {
   try {
     const [permissionError, session, admin_user] = await requirePermission(
       req,
-      "leadtag.manage",
+      "leads.manage",
     );
     if (permissionError) return permissionError;
 
-    const { id } = schemas.leadTag.id.parse(params);
+    const { id } = schemas.leadTag.id.parse(await params);
 
-    const result = await deleteLeadTag(id, admin_user.id);
+    const result = await deleteLeadTag(id, admin_user);
 
     return createSuccessResponse("Lead tag deleted successfully", result);
   } catch (e) {

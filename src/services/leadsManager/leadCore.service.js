@@ -7,6 +7,8 @@ import {
 import { handleLeadStageChange } from "./analytics/orchestrator";
 import { onLeadCreated, onLeadAssigned } from "./analytics/aggregator";
 import { addLeadActivityLog } from "../shared/comments.service";
+
+
 export async function createLead(payload, admin_user) {
   const adminUserId = admin_user.id;
   const now = new Date();
@@ -378,16 +380,20 @@ export async function updateLead(lead_id, payload, admin_user) {
   }
 
   const originalLead = structuredClone(lead);
-  const assignment = await prisma.leadAssignment.findFirst({
-    where: {
-      lead_id,
-      admin_user_id: adminUserId,
-    },
-    select: { id: true },
-  });
 
-  if (!assignment) {
-    throw new ForbiddenError("You are not assigned to this lead");
+
+  if (admin_user.admin_role !== "SUPER_ADMIN") {
+    const assignment = await prisma.leadAssignment.findFirst({
+      where: {
+        lead_id,
+        admin_user_id: adminUserId,
+      },
+      select: { id: true },
+    });
+
+    if (!assignment) {
+      throw new ForbiddenError("You are not assigned to this lead");
+    }
   }
 
   /* ----------------------------------------
@@ -708,7 +714,7 @@ export async function updateLead(lead_id, payload, admin_user) {
   }
 
   if (changes.length) {
-    await addLeadActivityLog( result.id, adminUserId, {
+    await addLeadActivityLog(result.id, adminUserId, {
       action: "LEAD_UPDATED",
       message: buildActivityMessage(changes),
       meta: { changes },
@@ -922,7 +928,7 @@ export async function updateLeadStage(lead_id, payload, admin_user) {
     });
   }
 
-  await addLeadActivityLog( lead_id, adminUserId, {
+  await addLeadActivityLog(lead_id, adminUserId, {
     action: "LEAD_STAGE_CHANGED",
     message: buildActivityMessage(changes),
     meta: { changes },
@@ -1096,7 +1102,7 @@ export async function deleteLead(lead_id, admin_user) {
   });
 
   // CHANGE-LOG
-  await addLeadActivityLog( lead_id, adminUserId, {
+  await addLeadActivityLog(lead_id, adminUserId, {
     action: "LEAD_DELETED",
     message: "Lead deleted",
     meta: {
@@ -1115,16 +1121,18 @@ export async function getLeadDetails(lead_id, admin_user) {
   Assignment Check
   ---------------------------------------- */
 
-  const assignment = await prisma.leadAssignment.findFirst({
-    where: {
-      lead_id,
-      admin_user_id: adminUserId,
-    },
-    select: { id: true },
-  });
+  if (admin_user.admin_role !== "SUPER_ADMIN") {
+    const assignment = await prisma.leadAssignment.findFirst({
+      where: {
+        lead_id,
+        admin_user_id: adminUserId,
+      },
+      select: { id: true },
+    });
 
-  if (!assignment) {
-    throw new ForbiddenError("You are not assigned to this lead");
+    if (!assignment) {
+      throw new ForbiddenError("You are not assigned to this lead");
+    }
   }
 
   /* ----------------------------------------

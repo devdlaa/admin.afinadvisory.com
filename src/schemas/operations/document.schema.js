@@ -25,12 +25,21 @@ export const documentListQuerySchema = z.object({
     .default("created_at"),
 
   order: z.enum(["asc", "desc"]).default("desc"),
+
+
+  mime_types: z
+    .string()
+    .nullish()
+    .optional()
+    .transform((val) => (val ? val.split(",") : undefined)),
+
+  min_size: z.coerce.number().optional(),
+  max_size: z.coerce.number().optional(),
 });
 
 export const documentDeleteSchema = z.object({
   id: z.string().uuid(),
 });
-
 
 export const renameDocumentSchema = z.object({
   id: z.string().uuid("Invalid document ID"),

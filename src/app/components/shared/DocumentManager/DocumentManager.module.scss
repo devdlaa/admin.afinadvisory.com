@@ -633,7 +633,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-  padding: 60px;
+    padding: 60px;
     text-align: center;
   }
 
@@ -738,7 +738,6 @@
     transform: rotate(360deg);
   }
 }
-
 
 // ── Append these to your existing DocumentManager.module.scss ────
 
@@ -851,4 +850,308 @@
 .renameActions {
   display: flex;
   gap: 5px;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DocumentManager — SELECT MODE additions
+// Append these to the bottom of DocumentManager.module.scss
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Container tweak when in select mode (adds bottom padding for the sticky footer)
+.selectModeContainer {
+  padding-bottom: 72px;
+}
+
+// ── Select Mode Banner (top info strip) ──────────────────────────────────────
+.selectModeBanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 16px;
+  background: var(--color-primary-subtle, #eff6ff);
+  border: 1px solid var(--color-primary-border, #bfdbfe);
+  border-radius: 8px;
+  margin-bottom: 12px;
+  font-size: 0.8125rem;
+  color: var(--color-primary, #2563eb);
+}
+
+.selectModeBannerLeft {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.filterPills {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.filterPill {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--color-primary, #2563eb);
+  color: #fff;
+  text-transform: uppercase;
+}
+
+.selectModeCancelBtn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary, #64748b);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition:
+    background 0.15s,
+    color 0.15s;
+
+  &:hover {
+    background: var(--color-bg-hover, #f1f5f9);
+    color: var(--color-text-primary, #0f172a);
+  }
+}
+
+// ── Warn Banner (upload outside filter) ──────────────────────────────────────
+.warnBanner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  background: var(--color-warn-subtle, #fffbeb);
+  border: 1px solid var(--color-warn-border, #fde68a);
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  color: var(--color-warn, #92400e);
+  margin-bottom: 8px;
+
+  > button {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: inherit;
+    opacity: 0.7;
+    flex-shrink: 0;
+
+    &:hover {
+      opacity: 1;
+    }
+  }
+}
+
+// ── Select All button (in sort controls row) ─────────────────────────────────
+.selectAllBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary, #64748b);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition:
+    background 0.15s,
+    color 0.15s;
+  margin-right: 4px;
+
+  &:hover {
+    background: var(--color-bg-hover, #f1f5f9);
+    color: var(--color-text-primary, #0f172a);
+  }
+
+  .indeterminate {
+    opacity: 0.5;
+  }
+}
+
+// ── Row checkbox ─────────────────────────────────────────────────────────────
+.rowCheckbox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-right: 4px;
+  cursor: pointer;
+  color: var(--color-text-secondary, #94a3b8);
+  transition: color 0.15s;
+
+  &:hover {
+    color: var(--color-primary, #2563eb);
+  }
+}
+
+.checkboxChecked {
+  color: var(--color-primary, #2563eb) !important;
+}
+
+.checkboxUnchecked {
+  color: var(--color-text-tertiary, #cbd5e1);
+}
+
+// ── Selectable / Selected — List Row ──────────────────────────────────────────
+.selectableRow {
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.12s;
+
+  &:hover {
+    background: var(--color-bg-hover, #f8fafc);
+  }
+}
+
+.selectedRow {
+  background: var(--color-primary-subtle, #eff6ff) !important;
+  border-color: var(--color-primary-border, #bfdbfe) !important;
+
+  .rowName {
+    color: var(--color-primary, #2563eb);
+    font-weight: 500;
+  }
+}
+
+// ── Selectable / Selected — Grid Card ─────────────────────────────────────────
+.selectableCard {
+  cursor: pointer;
+  user-select: none;
+  transition:
+    box-shadow 0.15s,
+    border-color 0.15s;
+
+  &:hover {
+    box-shadow: 0 0 0 2px var(--color-primary-border, #bfdbfe);
+  }
+}
+
+.selectedCard {
+  border-color: var(--color-primary, #2563eb) !important;
+  box-shadow: 0 0 0 2px var(--color-primary, #2563eb) !important;
+  background: var(--color-primary-subtle, #eff6ff) !important;
+
+  .fileName {
+    color: var(--color-primary, #2563eb);
+  }
+}
+
+// Card checkbox (positioned top-right inside the card)
+.cardCheckbox {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--color-text-tertiary, #cbd5e1);
+  transition: color 0.15s;
+
+  &:hover {
+    color: var(--color-primary, #2563eb);
+  }
+}
+
+// Make sure .documentCard has position: relative if it doesn't already
+// (add this rule only if not already present in your base styles)
+// .documentCard { position: relative; }
+
+// ── Select Mode Footer (sticky) ───────────────────────────────────────────────
+.selectModeFooter {
+  position: sticky;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--color-bg-surface, #fff);
+  border-top: 1px solid var(--color-border, #e2e8f0);
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.06);
+  border-radius: 0 0 12px 12px;
+}
+
+.selectionCount {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary, #64748b);
+  font-weight: 500;
+}
+
+.selectModeActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cancelSelectionBtn {
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--color-border, #e2e8f0);
+  background: transparent;
+  color: var(--color-text-secondary, #64748b);
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    color 0.15s;
+
+  &:hover {
+    background: var(--color-bg-hover, #f1f5f9);
+    color: var(--color-text-primary, #0f172a);
+  }
+}
+
+.confirmSelectionBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 8px 18px;
+  border-radius: 8px;
+  border: none;
+  background: var(--color-primary, #2563eb);
+  color: #fff;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    opacity 0.15s;
+
+  &:hover:not(:disabled) {
+    background: var(--color-primary-hover, #1d4ed8);
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+}
+
+.filterPill {
+  margin-left: 8px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #3730a3;
+  font-size: 14px;
+  outline: 1px solid rgba(0, 0, 0, 0.056);
+  font-weight: 600;
 }

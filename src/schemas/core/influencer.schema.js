@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-const SOCIAL_PLATFORMS = [
+export const SOCIAL_PLATFORMS = [
   "LINKEDIN",
   "TWITTER",
   "FACEBOOK",
@@ -9,12 +9,12 @@ const SOCIAL_PLATFORMS = [
   "OTHER",
 ];
 
-const socialLinkSchema = z.object({
+export const socialLinkSchema = z.object({
   platform: z.enum(SOCIAL_PLATFORMS),
   url: z.string().trim().url("Invalid social media URL"),
 });
 
-const uniqueLinksArray = (schema) =>
+export const uniqueLinksArray = (schema) =>
   schema.superRefine((links, ctx) => {
     const urls = links.map((l) => l.url.trim().toLowerCase());
     const duplicates = urls.filter((url, i) => urls.indexOf(url) !== i);
@@ -29,7 +29,7 @@ const uniqueLinksArray = (schema) =>
 
 /* CREATE */
 
-const createInfluencerSchema = z.object({
+export const createInfluencerSchema = z.object({
   name: z.string().trim().min(2).max(120),
   email: z.string().trim().email(),
   phone: z.string().trim().min(5).max(20),
@@ -41,7 +41,7 @@ const createInfluencerSchema = z.object({
 
 /* UPDATE */
 
-const updateInfluencerSchema = z.object({
+export const updateInfluencerSchema = z.object({
   name: z.string().trim().min(2).max(120).optional(),
   email: z.string().trim().email().optional(),
   phone: z.string().trim().min(5).max(20).optional(),
@@ -51,19 +51,14 @@ const updateInfluencerSchema = z.object({
 
 /* ID PARAM */
 
-const influencerIdSchema = z.object({
+export const influencerIdSchema = z.object({
   id: z.string().uuid(),
 });
 
 /* LIST (Cursor Pagination + Search) */
 
-const listInfluencerSchema = z.object({
-  page: z
-    .string()
-    .transform((v) => parseInt(v))
-    .pipe(z.number().min(1))
-    .optional()
-    .default(1),
+export const listInfluencerSchema = z.object({
+  cursor: z.string().uuid().optional(),
 
   page_size: z
     .string()
@@ -73,11 +68,13 @@ const listInfluencerSchema = z.object({
     .default(20),
 
   search: z.string().trim().max(120).optional(),
-});
 
-module.exports = {
-  createInfluencerSchema,
-  updateInfluencerSchema,
-  influencerIdSchema,
-  listInfluencerSchema,
-};
+  sort_by: z
+    .enum(["created_at", "reference_count"])
+    .optional()
+    .default("created_at"),
+
+  sort_order: z.enum(["asc", "desc"]).optional().default("desc"),
+
+  compact: z.union([z.string(), z.boolean()]).optional(),
+});

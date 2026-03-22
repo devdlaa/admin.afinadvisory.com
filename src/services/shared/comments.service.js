@@ -96,7 +96,6 @@ async function ensureUserCanViewTask(task_id, user) {
 }
 
 export async function ensureUserCanAccessLead(lead_id, user) {
-  // SUPER ADMIN → full access
   if (user.admin_role === "SUPER_ADMIN") {
     const lead = await prisma.lead.findUnique({
       where: { id: lead_id },
@@ -389,6 +388,43 @@ export const createComment = async (
 // ------------------------------------------------------------------
 // CREATE ACTIVITY ENTRY (backend/internal only) do not touch this
 // ------------------------------------------------------------------
+
+export const addTaskActivityLog = async (task_id, actor_id, activity) => {
+  const user = await getValidAdminUser(actor_id);
+  const docRef = db
+    .collection(COMMENTS_COLLECTION)
+    .doc(task_id)
+    .collection(COMMENTS_SUBCOLLECTION)
+    .doc();
+  const HAS_STATUS_TIMELINE_UPDATED =
+    [
+      "TASK_CREATED",
+      "TASK_DELETED",
+      "TASK_RESTORED",
+      "TASK_ASSIGNMENT_UPDATED",
+    ].includes(activity.action) ||
+    (activity.meta?.changes ?? []).some((c) => c.from?.status || c.to?.status);
+  const now = new Date();
+  const payload = {
+    id: docRef.id,
+    task_id,
+    type: "ACTIVITY",
+    timeline_type: HAS_STATUS_TIMELINE_UPDATED ? "STATUS_TIMELINE" : null,
+    user_id: user.id,
+    user_name: user.name,
+    user_email: user.email,
+    message: activity.message,
+    activity: { action: activity.action, meta: activity.meta ?? null },
+    created_at: now.toISOString(),
+    deleted: false,
+  };
+  await docRef.set(safeForFirestore(payload));
+  await prisma.task.update({
+    where: { id: task_id },
+    data: { last_activity_at: now, last_activity_by: user.id },
+  });
+  return payload;
+};
 
 export const addLeadActivityLog = async (lead_id, actor_id, activity) => {
   const user = await getValidAdminUser(actor_id);

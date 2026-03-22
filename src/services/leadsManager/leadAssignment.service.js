@@ -19,7 +19,7 @@ export const syncLeadAssignments = async (lead_id, users, admin_user) => {
     }
 
     const lead = await tx.lead.findUnique({
-      where: { id: lead_id },
+      where: { id: lead_id, deleted_at: null },
       select: {
         id: true,
         pipeline_id: true,
@@ -61,8 +61,6 @@ export const syncLeadAssignments = async (lead_id, users, admin_user) => {
 
     const isSuperAdmin = admin_user.admin_role === "SUPER_ADMIN";
 
-    const ownerAssignment = currentAssignments.find((a) => a.role === "OWNER");
-
     const currentUserAssignment = currentAssignments.find(
       (a) => a.admin_user_id === admin_user.id,
     );
@@ -70,21 +68,15 @@ export const syncLeadAssignments = async (lead_id, users, admin_user) => {
     // ---------------- PERMISSION CHECK ----------------
 
     if (!isSuperAdmin) {
-      if (!ownerAssignment || ownerAssignment.admin_user_id !== admin_user.id) {
-        throw new ForbiddenError("Only the lead owner can modify assignments");
-      }
-
-      if (!currentUserAssignment || currentUserAssignment.role !== "OWNER") {
-        throw new ForbiddenError(
-          "Owner must remain assigned to modify assignments",
-        );
+      if (!currentUserAssignment) {
+        throw new ForbiddenError("You are not assigned to this lead");
       }
     }
 
     // ---------------- OWNER SAFETY ----------------
 
     if (!isSuperAdmin && !newIds.includes(admin_user.id)) {
-      throw new ValidationError("Owner cannot remove themselves");
+      throw new ValidationError("You cannot remove yourself from this lead");
     }
 
     // ---------------- SYNC LOGIC ----------------
@@ -204,7 +196,7 @@ export const syncLeadAssignments = async (lead_id, users, admin_user) => {
       await notify(result.toAdd, {
         type: "LEAD_ASSIGNED",
         title: "New lead assigned",
-        body: `Lead: ${lead.name}`,
+        body: `Lead: ${result.lead.title}`,
         actor_id: admin_user.id,
         actor_name: admin_user?.name ?? null,
         link: `/dashboard/leads-managment?leadId=${result.lead.id}`,

@@ -72,6 +72,12 @@ export async function createLeadContact(data, admin_user_id) {
     return tx.leadContact.findUnique({
       where: { id: created.id },
       include: {
+        creator: {
+          select: { id: true, name: true },
+        },
+        updater: {
+          select: { id: true, name: true },
+        },
         social_links: {
           orderBy: { created_at: "asc" },
         },
@@ -91,6 +97,12 @@ export async function updateLeadContact(id, data, admin_user_id) {
       deleted_at: null,
     },
     include: {
+      creator: {
+        select: { id: true, name: true },
+      },
+      updater: {
+        select: { id: true, name: true },
+      },
       social_links: true,
     },
   });
@@ -190,6 +202,12 @@ export async function updateLeadContact(id, data, admin_user_id) {
     return tx.leadContact.findUnique({
       where: { id },
       include: {
+        creator: {
+          select: { id: true, name: true },
+        },
+        updater: {
+          select: { id: true, name: true },
+        },
         social_links: {
           orderBy: { created_at: "asc" },
         },
@@ -222,8 +240,14 @@ export async function deleteLeadContact(id, admin_user_id) {
     );
   }
 
-  const meeting = await prisma.videoCallAttendee.findFirst({
-    where: { lead_contact_id: id },
+  const meeting = await prisma.leadActivity.findFirst({
+    where: {
+      activity_type: "VIDEO_CALL",
+      lead: {
+        lead_contact_id: id,
+      },
+      deleted_at: null,
+    },
     select: { id: true },
   });
 
@@ -252,6 +276,12 @@ export async function getLeadContactById(id, admin_user_id) {
       deleted_at: null,
     },
     include: {
+      creator: {
+        select: { id: true, name: true },
+      },
+      updater: {
+        select: { id: true, name: true },
+      },
       social_links: {
         orderBy: { created_at: "asc" },
       },
@@ -445,7 +475,10 @@ export async function listLeadContacts(filters = {}) {
         : {
             include: {
               creator: {
-                select: { id: true, name: true, email: true },
+                select: { id: true, name: true },
+              },
+              updater: {
+                select: { id: true, name: true },
               },
               social_links: {
                 orderBy: { created_at: "asc" },

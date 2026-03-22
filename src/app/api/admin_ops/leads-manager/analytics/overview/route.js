@@ -1,5 +1,6 @@
 import { schemas } from "@/schemas";
-import { getOverview } from "@/services/analytics/analytics.service";
+
+import { getOverview } from "@/services/leadsManager/analytics/analytics.core.service";
 
 import {
   createSuccessResponse,

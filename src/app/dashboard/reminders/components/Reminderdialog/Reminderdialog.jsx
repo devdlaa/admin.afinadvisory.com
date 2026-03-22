@@ -19,7 +19,7 @@ import styles from "./ReminderDialog.module.scss";
 
 // ── Sub-dialogs ──────────────────────────────────────────────────────────────
 
-import ReminderTagsDialog from "../Remindertagsdialog/Remindertagsdialog";
+import LeadTagsDialog from "../LeadTagsDialog/LeadTagsDialog";
 import ReminderListsDialog from "../Reminderlistsdialog/Reminderlistsdialog";
 import RemindMeDialog from "../Remindmedialog/Remindmedialog";
 import FilterDropdown from "@/app/components/pages/FilterDropdown/FilterDropdown";
@@ -273,6 +273,7 @@ export default function ReminderDialog({
   /* ── Handlers ── */
   const handleTagsDone = useCallback(
     (selectedTags) => {
+      console.log("selectedTags",selectedTags);
       patch({ tags: selectedTags });
       setTagsOpen(false);
     },
@@ -635,7 +636,7 @@ export default function ReminderDialog({
         so the overlay never closes when interacting with tags/lists/remind dialogs.
       */}
       {tagsOpen && (
-        <ReminderTagsDialog
+        <LeadTagsDialog
           open={tagsOpen}
           onClose={() => setTagsOpen(false)}
           selectedTagIds={form.tags.map((t) => t.id)}

@@ -1,85 +1,58 @@
 import { z } from "zod";
 
-const TAG_NAME_REGEX = /^[A-Za-z0-9_-]+$/;
+/* REGEX (match service) */
+export const TAG_NAME_REGEX = /^[A-Za-z0-9 _\-\/]+$/;
 
 /* COLOR PALETTE */
+import { REMINDER_TAG_COLORS } from "@/services/reminders/reminder.constants";
 
-const LEAD_TAG_COLORS = [
-  "#EF4444", // red
-  "#F97316", // orange
-  "#F59E0B", // amber
-  "#EAB308", // yellow
-  "#84CC16", // lime
-  "#22C55E", // green
-  "#10B981", // emerald
-  "#14B8A6", // teal
-  "#06B6D4", // cyan
-  "#3B82F6", // blue
-  "#6366F1", // indigo
-  "#8B5CF6", // violet
-  "#A855F7", // purple
-  "#EC4899", // pink
-  "#6B7280", // gray
-];
-
-const LeadTagColorEnum = z.enum(LEAD_TAG_COLORS);
+export const LeadTagColorEnum = z.enum(Object.keys(REMINDER_TAG_COLORS));
 
 /* CREATE */
 
-const createLeadTagSchema = z.object({
+export const createLeadTagSchema = z.object({
   name: z
     .string()
     .trim()
-    .min(2)
+    .min(1)
     .max(50)
     .regex(
       TAG_NAME_REGEX,
-      "Name can only contain letters, numbers, underscore (_) and dash (-)",
-    )
-    .transform((v) => v.toUpperCase()),
+      "Name can only contain letters, numbers, spaces, hyphens, underscores, and slashes",
+    ),
 
   color: LeadTagColorEnum.optional(),
-
-  description: z.string().trim().max(255).optional(),
 });
 
 /* UPDATE */
 
-const updateLeadTagSchema = z.object({
+export const updateLeadTagSchema = z.object({
   name: z
     .string()
     .trim()
-    .min(2)
+    .min(1)
     .max(50)
     .regex(
       TAG_NAME_REGEX,
-      "Name can only contain letters, numbers, underscore (_) and dash (-)",
+      "Name can only contain letters, numbers, spaces, hyphens, underscores, and slashes",
     )
-    .transform((v) => v.toUpperCase())
     .optional(),
 
   color: LeadTagColorEnum.optional(),
-
-  description: z.string().trim().max(255).optional(),
 });
 
 /* ID */
 
-const leadTagIdSchema = z.object({
+export const leadTagIdSchema = z.object({
   id: z.string().uuid(),
 });
 
-/* LIST */
+/* LIST (cursor based) */
 
-const listLeadTagSchema = z.object({
-  page: z
-    .string()
-    .transform((v) => parseInt(v))
-    .pipe(z.number().min(1))
-    .optional()
-    .default(1),
+export const listLeadTagSchema = z.object({
+  cursor: z.string().uuid().optional(),
 
-  page_size: z
+  limit: z
     .string()
     .transform((v) => parseInt(v))
     .pipe(z.number().min(1).max(100))
@@ -88,12 +61,3 @@ const listLeadTagSchema = z.object({
 
   search: z.string().trim().max(50).optional(),
 });
-
-module.exports = {
-  LEAD_TAG_COLORS,
-  LeadTagColorEnum,
-  createLeadTagSchema,
-  updateLeadTagSchema,
-  leadTagIdSchema,
-  listLeadTagSchema,
-};

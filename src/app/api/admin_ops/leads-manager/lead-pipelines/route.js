@@ -6,10 +6,9 @@ import {
 
 import { requirePermission } from "@/utils/server/requirePermission";
 
-import {
-  createLeadPipeline,
-  listLeadPipelines,
-} from "@/services/leads/leadPipeline.service";
+
+
+import { createLeadPipeline,listLeadPipelines } from "@/services/leadsManager/LeadPipelineAndStages.service";
 
 export async function GET(req) {
   try {
@@ -57,6 +56,7 @@ export async function POST(req) {
       201,
     );
   } catch (e) {
+    
     return handleApiError(e);
   }
 }

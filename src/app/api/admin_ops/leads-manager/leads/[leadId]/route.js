@@ -1,0 +1,71 @@
+import {
+  createSuccessResponse,
+  handleApiError,
+} from "@/utils/server/apiResponse";
+import { requirePermission } from "@/utils/server/requirePermission";
+import { schemas } from "@/schemas";
+
+import { getLeadDetails,updateLead,deleteLead } from "@/services/leadsManager/leadCore.service";
+
+
+export async function GET(request, { params }) {
+  try {
+    const [permissionError, session,admin_user] = await requirePermission(
+      request,
+      "leads.access",
+    );
+    if (permissionError) return permissionError;
+
+    const resolvedParams = await params;
+    const parsed = schemas.lead.get.parse(resolvedParams);
+
+    const result = await getLeadDetails(parsed.id, admin_user);
+
+    return createSuccessResponse("Lead fetched successfully", result);
+  } catch (error) {
+    return handleApiError(error);
+  }
+}
+
+
+export async function PATCH(request, { params }) {
+  try {
+    const [permissionError,session, admin_user] = await requirePermission(
+      request,
+      "leads.manage",
+    );
+    if (permissionError) return permissionError;
+
+    const resolvedParams = await params;
+    const body = await request.json();
+
+    const parsedParams = schemas.lead.params.parse(resolvedParams);
+    const parsedBody = schemas.lead.update.parse(body);
+
+    const result = await updateLead(parsedParams.id, parsedBody, admin_user);
+
+    return createSuccessResponse("Lead updated successfully", result);
+  } catch (error) {
+    return handleApiError(error);
+  }
+}
+
+
+export async function DELETE(request, { params }) {
+  try {
+    const [permissionError,session, admin_user] = await requirePermission(
+      request,
+      "leads.manage",
+    );
+    if (permissionError) return permissionError;
+
+    const resolvedParams = await params;
+    const parsed = schemas.lead.delete.parse(resolvedParams);
+
+    const result = await deleteLead(parsed.id, admin_user);
+
+    return createSuccessResponse("Lead deleted successfully", result);
+  } catch (error) {
+    return handleApiError(error);
+  }
+}
