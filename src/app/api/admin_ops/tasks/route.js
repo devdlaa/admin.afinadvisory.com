@@ -1,0 +1,130 @@
+import { createTask, listTasks } from "@/services/task/task.service";
+
+import { requirePermission } from "@/utils/server/requirePermission";
+import { schemas } from "@/schemas";
+
+import {
+  handleApiError,
+  createSuccessResponse,
+} from "@/utils/server/apiResponse";
+
+// POST - Create a new task
+export async function POST(request) {
+  try {
+    const [permissionError, session, admin_user] = await requirePermission(
+      request,
+      "tasks.manage",
+    );
+    if (permissionError) return permissionError;
+
+    const body = await request.json();
+
+    const validatedData = schemas.task.create.parse(body);
+
+    const task = await createTask(validatedData, admin_user);
+
+    return createSuccessResponse("Task created successfully", task, 201);
+  } catch (error) {
+    return handleApiError(error);
+  }
+}
+
+// GET - List all tasks with filters and pagination
+export async function GET(request) {
+  try {
+    const [permissionError, session, admin_user] = await requirePermission(
+      request,
+      "tasks.access",
+    );
+    if (permissionError) return permissionError;
+
+    const { searchParams } = new URL(request.url);
+
+    const params = {
+      page: searchParams.get("page"),
+      page_size: searchParams.get("page_size"),
+
+      entity_id: searchParams.get("entity_id"),
+      status: searchParams.get("status"),
+      priority: searchParams.get("priority"),
+      task_category_id: searchParams.get("task_category_id"),
+
+      created_by: searchParams.get("created_by"),
+      assigned_to: searchParams.get("assigned_to"),
+      unassigned_only: searchParams.get("unassigned_only"),
+
+      due_date_from: searchParams.get("due_date_from"),
+      due_date_to: searchParams.get("due_date_to"),
+      include_deleted: searchParams.get("include_deleted"),
+      deleted_only: searchParams.get("deleted_only"),
+
+      search: searchParams.get("search"),
+      entity_missing: searchParams.get("entity_missing"),
+      created_date_from: searchParams.get("created_date_from"),
+      created_date_to: searchParams.get("created_date_to"),
+      financial_year: searchParams.get("financial_year"),
+
+      is_magic_sort: searchParams.get("is_magic_sort"),
+
+      sla_status: searchParams.get("sla_status"),
+      sla_due_date_from: searchParams.get("sla_due_date_from"),
+      sla_due_date_to: searchParams.get("sla_due_date_to"),
+      sla_paused_before: searchParams.get("sla_paused_before"),
+
+      sort_by: searchParams.get("sort_by"),
+      sort_order: searchParams.get("sort_order"),
+    };
+
+    // ── Boolean coercions ──────────────────────────────────────────────────
+    if (params.is_magic_sort === "true") params.is_magic_sort = true;
+    else delete params.is_magic_sort;
+
+    if (params.unassigned_only === "true") params.unassigned_only = true;
+    else delete params.unassigned_only;
+
+    if (params.is_billable === "true") params.is_billable = true;
+    else if (params.is_billable === "false") params.is_billable = false;
+    else delete params.is_billable;
+
+    if (params.entity_missing === "true") params.entity_missing = true;
+    else if (params.entity_missing === "false") params.entity_missing = false;
+    else delete params.entity_missing;
+
+    if (params.include_deleted === "true") params.include_deleted = true;
+    else delete params.include_deleted;
+
+    if (params.deleted_only === "true") params.deleted_only = true;
+    else delete params.deleted_only;
+
+    //    Zod validation so the schema never sees "ALL" (not in the enum).
+    if (params.status === "ALL" || params.status === null) {
+      delete params.status;
+    }
+
+    if (params.financial_year) {
+      const fy = Number(params.financial_year);
+
+      const from = new Date(Date.UTC(fy, 3, 1, 0, 0, 0));
+      const to = new Date(Date.UTC(fy + 1, 2, 31, 23, 59, 59));
+
+      params.created_date_from = from.toISOString();
+      params.created_date_to = to.toISOString();
+
+      delete params.due_date_from;
+      delete params.due_date_to;
+    }
+
+    // ── Strip all null values left over from searchParams.get() misses ────
+    Object.keys(params).forEach(
+      (key) => params[key] === null && delete params[key],
+    );
+
+    const validatedParams = schemas.task.query.parse(params);
+
+    const result = await listTasks(validatedParams, admin_user);
+
+    return createSuccessResponse("Tasks retrieved successfully", result);
+  } catch (error) {
+    return handleApiError(error);
+  }
+}

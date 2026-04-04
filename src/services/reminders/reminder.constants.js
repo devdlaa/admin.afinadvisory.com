@@ -1,0 +1,60 @@
+export const REMINDER_TAG_COLORS = {
+  RED: "#EF4444",
+  ORANGE: "#F97316",
+  YELLOW: "#EAB308",
+  GREEN: "#22C55E",
+  BLUE: "#3B82F6",
+  INDIGO: "#6366F1",
+  PURPLE: "#A855F7",
+  PINK: "#EC4899",
+  GRAY: "#6B7280",
+};
+
+export const REMINDER_LIST_ICONS = {
+  HASH: { icon: "Hash", bg: "#F3F4F6", stroke: "#374151" },
+  BRIEFCASE: { icon: "Briefcase", bg: "#DBEAFE", stroke: "#1D4ED8" },
+  HOME: { icon: "Home", bg: "#DCFCE7", stroke: "#166534" },
+  SHOPPING_CART: { icon: "ShoppingCart", bg: "#FEF9C3", stroke: "#854D0E" },
+  CALENDAR: { icon: "Calendar", bg: "#FCE7F3", stroke: "#BE185D" },
+  DOLLAR_SIGN: { icon: "DollarSign", bg: "#DCFCE7", stroke: "#15803D" },
+  HEART: { icon: "Heart", bg: "#FEE2E2", stroke: "#991B1B" },
+  BOOK_OPEN: { icon: "BookOpen", bg: "#E0F2FE", stroke: "#0369A1" },
+  FOLDER: { icon: "Folder", bg: "#F3E8FF", stroke: "#7E22CE" },
+  STAR: { icon: "Star", bg: "#FEF3C7", stroke: "#B45309" },
+
+  BELL: { icon: "Bell", bg: "#E0E7FF", stroke: "#4338CA" },
+  CLOCK: { icon: "Clock", bg: "#F1F5F9", stroke: "#334155" },
+  CHECK: { icon: "Check", bg: "#DCFCE7", stroke: "#166534" },
+  LIST: { icon: "List", bg: "#F3F4F6", stroke: "#374151" },
+  TAG: { icon: "Tag", bg: "#FCE7F3", stroke: "#BE185D" },
+
+  FLAG: { icon: "Flag", bg: "#FEE2E2", stroke: "#B91C1C" },
+  TARGET: { icon: "Target", bg: "#E0F2FE", stroke: "#0369A1" },
+  LIGHTBULB: { icon: "Lightbulb", bg: "#FEF9C3", stroke: "#A16207" },
+  ROCKET: { icon: "Rocket", bg: "#F3E8FF", stroke: "#6B21A8" },
+  GIFT: { icon: "Gift", bg: "#FCE7F3", stroke: "#BE185D" },
+
+  CAR: { icon: "Car", bg: "#E5E7EB", stroke: "#374151" },
+  PLANE: { icon: "Plane", bg: "#E0F2FE", stroke: "#0284C7" },
+  TRAIN: { icon: "Train", bg: "#F3F4F6", stroke: "#4B5563" },
+  MAP: { icon: "Map", bg: "#ECFCCB", stroke: "#3F6212" },
+  COMPASS: { icon: "Compass", bg: "#E0E7FF", stroke: "#4338CA" },
+
+  MUSIC: { icon: "Music", bg: "#FCE7F3", stroke: "#BE185D" },
+  FILM: { icon: "Film", bg: "#E5E7EB", stroke: "#111827" },
+  CAMERA: { icon: "Camera", bg: "#E0F2FE", stroke: "#0369A1" },
+  GAMEPAD: { icon: "Gamepad", bg: "#F3E8FF", stroke: "#7E22CE" },
+  CODE: { icon: "Code", bg: "#DCFCE7", stroke: "#15803D" },
+
+  TERMINAL: { icon: "Terminal", bg: "#E5E7EB", stroke: "#111827" },
+  DATABASE: { icon: "Database", bg: "#DBEAFE", stroke: "#1D4ED8" },
+  SERVER: { icon: "Server", bg: "#F3F4F6", stroke: "#374151" },
+  CLOUD: { icon: "Cloud", bg: "#E0F2FE", stroke: "#0284C7" },
+  LOCK: { icon: "Lock", bg: "#FEE2E2", stroke: "#991B1B" },
+
+  KEY: { icon: "Key", bg: "#FEF3C7", stroke: "#B45309" },
+  SHIELD: { icon: "Shield", bg: "#E0E7FF", stroke: "#4338CA" },
+  WIFI: { icon: "Wifi", bg: "#E0F2FE", stroke: "#0284C7" },
+  PHONE: { icon: "Phone", bg: "#DCFCE7", stroke: "#15803D" },
+  MAIL: { icon: "Mail", bg: "#FCE7F3", stroke: "#BE185D" },
+};

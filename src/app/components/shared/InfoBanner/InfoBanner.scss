@@ -1,0 +1,56 @@
+.info_banner {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  border-radius: 999px;
+  gap: 12px;
+
+  margin-bottom: 20px;
+  font-family: "Poppins";
+
+  .icon {
+    display: flex;
+    align-items: center;
+    svg {
+      width: 24px;
+      height: 24px;
+    }
+  }
+
+  .text {
+    flex: 1;
+    font-size: 15px;
+    font-weight: 500;
+  }
+
+  .button {
+    display: flex;
+  }
+
+  &.success {
+    background-color: #e6f4ea;
+    color: #2e7d32;
+
+    .icon svg {
+      stroke: #2e7d32;
+    }
+  }
+
+  &.error {
+    background-color: #fdecea;
+    color: #c62828;
+
+    .icon svg {
+      stroke: #c62828;
+    }
+  }
+
+  &.info {
+    background-color: #e8f0fe;
+    color: #1565c0;
+
+    .icon svg {
+      stroke: #1565c0;
+    }
+  }
+}

@@ -1,0 +1,1116 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.555);
+  z-index: 1000;
+  display: flex;
+  align-items: stretch;
+  justify-content: flex-end;
+  backdrop-filter: blur(2px);
+}
+
+.drawer {
+  position: relative;
+  width: 80%;
+  height: 100vh;
+  background: #f4f4f5;
+  display: flex;
+  flex-direction: column;
+  box-shadow: -8px 0 40px rgba(0, 0, 0, 0.12);
+  animation: slideIn 0.48s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* ── Control Pill ── */
+.controlPill {
+  position: absolute;
+  left: -54px;
+  top: 22px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
+  overflow: hidden;
+  z-index: 10;
+}
+
+.pillBtn {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #a1a1aa;
+  transition:
+    color 0.15s ease,
+    background 0.15s ease;
+
+  &:hover {
+    color: #3f3f46;
+    background: #f4f4f5;
+  }
+
+  &:active {
+    background: #e4e4e7;
+  }
+}
+
+.pillDivider {
+  width: 22px;
+  height: 1px;
+  background: #e4e4e7;
+}
+
+/* ── Drawer Body ── */
+.body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  height: 100%;
+}
+
+/* ── Left Panel ── */
+.leftPanel {
+  width: 42%;
+  min-width: 0;
+  flex-shrink: 0;
+  overflow-y: auto;
+  position: relative;
+
+  background: #ffffff;
+
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: #d4d4d8;
+    border-radius: 4px;
+  }
+}
+
+/* ── Divider ── */
+.divider {
+  width: 1px;
+  background: #e4e4e7;
+  flex-shrink: 0;
+  align-self: stretch;
+}
+
+/* ── Right Panel ── */
+.rightPanel {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  padding: 28px 24px;
+  background: #f4f4f5;
+
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: #d4d4d8;
+    border-radius: 4px;
+  }
+}
+/* ─────────────────────────────────────────
+   APPEND THIS TO LeadDetailsDrawer.module.scss
+   ───────────────────────────────────────── */
+
+/* ── Lead Title Section ── */
+.leadTitleSection {
+  margin-bottom: 16px;
+}
+
+.sectionEyebrow {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: #a1a1aa;
+  margin: 0 0 6px;
+  text-transform: uppercase;
+}
+
+/* Editable title — looks like a heading, behaves like an input */
+.titleTextarea {
+  width: 100%;
+  resize: none;
+  border: none;
+  background: transparent;
+  padding: 0;
+  font-size: 22px;
+  font-weight: 600;
+  color: #3c3c42;
+  line-height: 1.35;
+  font-family: inherit;
+  outline: none;
+  box-sizing: border-box;
+  border-radius: 6px;
+  transition:
+    background 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+/* ── Description Textarea ── */
+.descTextarea {
+  width: 100%;
+  resize: none;
+  border: 1.5px solid rgba(0, 0, 0, 0.119);
+  border-radius: 15px;
+  background: #f9f9fb;
+  padding: 14px 16px;
+  font-size: 14px;
+  color: #3f3f46;
+  font-weight: 500;
+  line-height: 1.6;
+  font-family: inherit;
+  outline: none;
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    background 0.18s ease;
+  margin-bottom: 20px;
+  box-sizing: border-box;
+
+  &::placeholder {
+    color: #a1a1aa;
+  }
+
+  &:focus {
+    border-color: #6366f1;
+    background: #ffffff;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  }
+}
+
+/* ── Pill shared base ── */
+.pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--pill-bg, #fafafa);
+  border: 1.5px solid rgba(0, 0, 0, 0.119);
+  font-family: inherit;
+  text-align: left;
+  cursor: default;
+  width: 100%;
+  box-sizing: border-box;
+
+  transition:
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
+
+  button {
+    cursor: pointer;
+  }
+}
+.pillMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.pillLabel {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  color: #9fa3ab;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.pillValue {
+  font-size: 13.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: grey;
+  align-items: center;
+  display: flex;
+  gap: 6px;
+}
+
+.pillChevron {
+  flex-shrink: 0;
+  transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.pillChevronOpen {
+  transform: rotate(180deg);
+}
+
+/* ── Priority Wrapper + Dropdown ── */
+.priorityWrapper {
+  position: relative;
+}
+
+.dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  min-width: 190px;
+  background: #ffffff;
+  border: 1.5px solid #e4e4e7;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  z-index: 50;
+  overflow: hidden;
+  padding: 4px;
+
+  /* closed state */
+  opacity: 0;
+  transform: translateY(-6px) scale(0.98);
+  pointer-events: none;
+  transition:
+    opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dropdownOpen {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.dropdownItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  background: none;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14.5px;
+  font-weight: 500;
+  color: #3f3f46;
+  font-family: inherit;
+  transition: background 0.13s ease;
+
+  &:hover {
+    background: #f4f4f5;
+  }
+}
+
+.dropdownItemActive {
+  background: #f4f4f5;
+}
+
+/* ── Pills Grid — 2 columns ── */
+.pillsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+/* ── Meta Grid — 3 columns ── */
+.metaGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+}
+
+.lead_primary_info {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.111);
+  padding: 28px 24px;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   APPEND TO LeadDetailsDrawer.module.scss
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Tags & Team section wrapper ── */
+.lead_tags_n_team {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.111);
+  padding: 28px 24px;
+}
+
+/* ── Generic label + content row ── */
+.metaRow {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.metaRowLabel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  min-width: 40px;
+  padding-top: 2px;
+  color: #bdbdbd;
+
+  span {
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: #bdbdbd;
+    white-space: nowrap;
+  }
+}
+
+/* ── Tags pill row ── */
+.tagsRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 2px;
+
+  overflow-x: auto;
+  scroll-behavior: smooth;
+
+  // hide scrollbar (all browsers)
+  -ms-overflow-style: none; // IE/Edge
+  scrollbar-width: none; // Firefox
+
+  &::-webkit-scrollbar {
+    display: none; // Chrome/Safari
+  }
+
+  // grab cursor
+  cursor: grab;
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+/* Individual tag chip */
+.tagChip {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1.5px solid var(--tag-color-30);
+  background: var(--tag-color-10);
+  color: var(--tag-color);
+  font-size: 13px;
+  text-wrap-mode: nowrap;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  letter-spacing: 0.01em;
+  transition:
+    background 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.12s ease;
+
+  &:hover {
+    background: var(--tag-color-30);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+/* Plus / add chip */
+.addChip {
+  position: relative;
+  z-index: 1;
+  margin-left: 4px; /* small gap after the overlapping stack */
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px dashed #d4d4d8;
+  background: #ffffff;
+  color: #a1a1aa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease,
+    background 0.15s ease;
+
+  &:hover {
+    border-color: #6366f1;
+    color: #6366f1;
+    background: #eef2ff;
+  }
+}
+.tagsRow.dragging {
+  user-select: none;
+  cursor: grabbing;
+}
+
+.tagsRow.dragging * {
+  user-select: none;
+  pointer-events: none;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   APPEND TO LeadDetailsDrawer.module.scss  (TEAM section)
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Team row container ── */
+.teamRow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-top: 2px;
+}
+
+/* ── Avatar stack ── */
+.avatarStack {
+  display: flex;
+  align-items: center;
+}
+
+.avatarItem {
+  margin-right: -8px; /* overlap */
+  border-radius: 50%;
+  border: 2.5px solid #ffffff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  transition:
+    transform 0.15s ease,
+    z-index 0s;
+  position: relative;
+  z-index: 1;
+
+  &:hover {
+    z-index: 10;
+  }
+}
+
+/* Plus / add avatar button */
+.avatarAddBtn {
+  position: relative;
+  z-index: 1;
+  margin-left: 4px; /* small gap after the overlapping stack */
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px dashed #d4d4d8;
+  background: #ffffff;
+  color: #a1a1aa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease,
+    background 0.15s ease;
+
+  &:hover {
+    border-color: #6366f1;
+    color: #6366f1;
+    background: #eef2ff;
+  }
+}
+
+/* ── "N USERS ASSIGNED" badge ── */
+.assignedBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 14px;
+  border-radius: 999px;
+  background: #eff6ff;
+  border: 1.5px solid #bfdbfe;
+  color: #2563eb;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   APPEND TO LeadDetailsDrawer.module.scss  (CONTACT section)
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Contact section wrapper — no side padding, flush edges ── */
+
+/* ── Header ── */
+.contactHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px 24px 12px;
+  flex-wrap: wrap;
+  background: #fafafa;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.111);
+}
+
+.contactHeaderLeft {
+  display: flex;
+  svg {
+    color: #6c6c71;
+  }
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  align-items: center;
+}
+
+.contactIcon {
+  color: #a1a1aa;
+
+  flex-shrink: 0;
+}
+
+.contactLabel {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: #b4b4bb;
+  text-transform: uppercase;
+}
+
+.contactName {
+  font-size: 15px;
+  font-weight: 600;
+  color: #56565d;
+  margin: 0;
+}
+
+.contactHeaderPills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.contactPill {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 15px;
+  border-radius: 999px;
+  border: 1.5px solid #0d0d0d1e;
+  background: #ffffff;
+  font-size: 12px;
+  font-weight: 600;
+  color: #6c6c71;
+  text-transform: uppercase;
+  white-space: nowrap;
+  svg {
+    color: #6c6c71;
+  }
+}
+
+/* Edit button */
+.contactEditBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 15px;
+  border-radius: 999px;
+  border: 1.5px solid #e4e4e7;
+  background: #ffffff;
+  color: #6c6c71;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  text-transform: uppercase;
+  svg {
+    color: #6c6c71;
+  }
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease,
+    background 0.15s ease;
+
+  &:hover {
+    border-color: #6366f1;
+    color: #6366f1;
+    background: #eef2ff;
+  }
+}
+
+/* ── Divider ── */
+.contactDivider {
+  height: 1px;
+  background: #e4e4e7;
+  margin: 0 24px;
+}
+
+/* ── Body rows ── */
+.contactBody {
+  padding: 12px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.contactRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  svg {
+    color: #6c6c71;
+  }
+}
+
+.contactRowIcon {
+  color: #b7b7bf;
+  margin-top: 14px;
+  flex-shrink: 0;
+}
+
+.contactRowContent {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.contactRowLabel {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: #a1a1aa;
+  text-transform: uppercase;
+}
+
+.contactRowValue {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #646467;
+  flex-wrap: wrap;
+}
+
+/* WhatsApp / external link icon button */
+.waLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #2563eb;
+  text-decoration: none;
+  flex-shrink: 0;
+  transition: background 0.13s ease;
+
+  &:hover {
+    background: #dbeafe;
+  }
+}
+
+/* Language badge */
+.langBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  font-size: 12px;
+  font-weight: 600;
+  color: #2563eb;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+/* ── "Other details" label ── */
+.otherDetailsLabel {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #a1a1aa;
+  text-transform: uppercase;
+  margin: 4px 0 0;
+}
+
+/* ── Secondary grid ── */
+.secondaryGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px 16px;
+}
+
+.secondaryItem {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+/* Full width item (address) */
+.secondaryItemFull {
+  grid-column: 1 / -1;
+}
+
+.secondaryValue {
+  font-size: 14px;
+  font-weight: 600;
+  color: #18181b;
+
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #565658;
+  flex-wrap: wrap;
+  word-break: break-word;
+}
+
+/* ── Social chips ── */
+.socialChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.socialChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1.5px solid #e4e4e7;
+  background: #ffffff;
+  font-size: 12px;
+  font-weight: 600;
+  color: #565658;
+  text-decoration: none;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease,
+    background 0.15s ease;
+
+  &:hover {
+    border-color: #6366f1;
+    color: #6366f1;
+    background: #eef2ff;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   APPEND TO LeadDetailsDrawer.module.scss  (REFERENCE section)
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Reference section wrapper — same flush grey style as contact ── */
+.lead_reference {
+  border-top: 1px solid rgba(0, 0, 0, 0.111);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.111);
+  padding: 16px 24px 20px;
+}
+
+/* ── Header row ── */
+.refHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+  svg {
+    color: #6c6c71;
+  }
+}
+
+.refHeaderLeft {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.refIcon {
+  color: #d6d6da;
+  margin-top: 3px;
+  flex-shrink: 0;
+}
+
+.refLabel {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: #a1a1aa;
+  text-transform: uppercase;
+  margin: 0 0 3px;
+}
+
+.refName {
+  font-size: 14px;
+  font-weight: 600;
+  color: #63636a;
+  margin: 0;
+}
+
+.refEmpty {
+  font-size: 12px;
+  font-weight: 600;
+  color: #78787d;
+}
+
+.refHeaderActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-top: 2px;
+}
+
+/* Type badge — e.g. "EXTERNAL CONTACT" */
+.refTypeBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: 1.5px solid #bfdbfe;
+  background: #eff6ff;
+  color: #2563eb;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+/* Update / link button */
+.refUpdateBtn {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 14px;
+  border-radius: 999px;
+  border: 1.5px solid #e4e4e7;
+  background: #ffffff;
+  color: #52525b;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease,
+    background 0.15s ease;
+
+  &:hover {
+    border-color: #6366f1;
+    color: #6366f1;
+    background: #eef2ff;
+  }
+}
+
+/* ── Body rows ── */
+.refBody {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  svg {
+    color: #84848a;
+  }
+}
+
+.refRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.refRowIcon {
+  margin-top: 14px;
+  flex-shrink: 0;
+}
+
+.refRowContent {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.refRowLabel {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: #a1a1aa;
+  text-transform: uppercase;
+  margin: 0 0 3px;
+}
+
+.refRowValue {
+  font-size: 14px;
+  font-weight: 600;
+  color: #63636a;
+}
+
+/* ── "Linked by" footer line ── */
+.refLinkedBy {
+  font-size: 12px;
+  color: #a1a1aa;
+  margin: 4px 0 0;
+
+  strong {
+    color: #52525b;
+    font-weight: 700;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   APPEND TO LeadDetailsDrawer.module.scss  (SOURCE section)
+   ═══════════════════════════════════════════════════════════ */
+
+.leadSourceSection {
+  border-top: 1px solid rgba(0, 0, 0, 0.111);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.111);
+  padding: 16px 24px 20px;
+}
+
+/* ── 2-col grid, full-width override ── */
+.leadSourceGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.leadSourceItem {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.leadSourceItemFull {
+  grid-column: 1 / -1;
+}
+
+.leadSourceLabel {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: #8d8d92;
+  text-transform: uppercase;
+}
+
+.leadSourceValue {
+  font-size: 14px;
+  font-weight: 600;
+  color: #606062;
+  word-break: break-all;
+}
+
+/* ── Clickable link value ── */
+.leadSourceLinkValue {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  text-decoration: none;
+  max-width: 100%;
+
+  &:hover .leadSourceLinkText {
+    text-decoration: underline;
+  }
+
+  &:hover .leadSourceLinkIcon {
+    color: #2563eb;
+  }
+}
+
+.leadSourceLinkText {
+  font-size: 14px;
+  font-weight: 700;
+  color: #2563eb;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.leadSourceLinkIcon {
+  color: #93c5fd;
+  flex-shrink: 0;
+  transition: color 0.15s ease;
+}
+
+.floatingUpdateBar {
+  position: sticky;
+  bottom: 0px;
+  left: 0px;
+  right: 0px;
+  box-shadow: rgba(0, 0, 0, 0.4) 0px 30px 90px;
+  display: flex;
+  justify-content: center;
+  padding: 15px 10px;
+  border-top: 1px solid rgba(0, 0, 0, 0.095);
+  background-color: rgb(237, 244, 255);
+  animation: slideUp 0.2s ease-out;
+}
+
+.updateBtn {
+  width: 100%;
+  padding: 16px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: #2563eb;
+  color: #fff;
+
+  border: none;
+  border-radius: 10px;
+
+  font-weight: 600;
+  font-size: 16px;
+  box-shadow:
+    rgba(9, 30, 66, 0.25) 0px 1px 1px,
+    rgba(9, 30, 66, 0.13) 0px 0px 1px 1px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: #1d4ed8;
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

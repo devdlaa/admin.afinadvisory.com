@@ -1,0 +1,1535 @@
+// ViewActivityDialog.module.scss
+
+// ── Design Tokens ────────────────────────────────────────────────────────────
+$white: #ffffff;
+$gray-50: #f8f9fa;
+$gray-100: #f1f3f5;
+$gray-150: #eaecef;
+$gray-200: #e4e7eb;
+$gray-300: #d1d5db;
+$gray-400: #9ca3af;
+$gray-500: #6b7280;
+$gray-600: #4b5563;
+$gray-700: #374151;
+$gray-800: #1f2937;
+$gray-900: #111827;
+
+$indigo-50: #eef2ff;
+$indigo-100: #e0e7ff;
+$indigo-200: #c7d2fe;
+$indigo-300: #a5b4fc;
+$indigo-400: #818cf8;
+$indigo-500: #6366f1;
+$indigo-600: #4f46e5;
+$indigo-700: #4338ca;
+
+$green-50: #f0fdf4;
+$green-100: #dcfce7;
+$green-600: #16a34a;
+$green-700: #15803d;
+$green-border: #86efac;
+
+$red-50: #fff1f2;
+$red-100: #ffe4e6;
+$red-500: #ef4444;
+$red-600: #dc2626;
+$red-700: #b91c1c;
+$red-border: #fca5a5;
+
+$orange: #ea580c;
+$orange-bg: #fff7ed;
+$orange-border: #fed7aa;
+$orange-text: #c2410c;
+
+$violet-bg: #f5f3ff;
+$violet-border: #ddd6fe;
+$violet-text: #6d28d9;
+
+$slate-50: #f8fafc;
+
+$radius-sm: 6px;
+$radius-md: 10px;
+$radius-lg: 14px;
+$radius-xl: 18px;
+$radius-full: 9999px;
+
+$font: "Poppins", sans-serif;
+
+@mixin focus-ring($color: $indigo-500) {
+  outline: 2px solid $color;
+  outline-offset: 2px;
+}
+
+// ── Overlay ──────────────────────────────────────────────────────────────────
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 16px;
+  animation: overlayIn 0.18s ease;
+}
+@keyframes overlayIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+// ── Dialog ───────────────────────────────────────────────────────────────────
+.dialog {
+  background: $white;
+  border-radius: $radius-xl;
+  width: 100%;
+  max-width: 1050px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow:
+    0 24px 64px rgba(0, 0, 0, 0.16),
+    0 4px 16px rgba(0, 0, 0, 0.08),
+    0 0 0 1px rgba(0, 0, 0, 0.04);
+  animation: dialogIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  font-family: $font;
+}
+@keyframes dialogIn {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.975);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+// ── Lifecycle standalone dialog ───────────────────────────────────────────────
+.lcDialog {
+  background: $white;
+  border-radius: $radius-xl;
+  width: 100%;
+  max-width: 460px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow:
+    0 24px 64px rgba(0, 0, 0, 0.16),
+    0 4px 16px rgba(0, 0, 0, 0.08),
+    0 0 0 1px rgba(0, 0, 0, 0.04);
+  animation: dialogIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  font-family: $font;
+}
+
+.lcDialogHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid $gray-150;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.lcDialogHeaderLeft {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.lcDialogPills {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 10px 20px 0;
+}
+
+.lcDialogBody {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.lcDialogFooter {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 14px 20px;
+  border-top: 1px solid $gray-150;
+}
+
+// ── Header ───────────────────────────────────────────────────────────────────
+.header {
+  padding: 18px 22px 14px;
+  border-bottom: 1px solid $gray-150;
+  flex-shrink: 0;
+}
+
+.headerInner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.headerIcon {
+  color: $indigo-400;
+  flex-shrink: 0;
+}
+
+.headerTitle {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: $gray-600;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.updateStatusBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 13px;
+  border-radius: $radius-full;
+  border: 1.5px solid $indigo-200;
+  background: $indigo-50;
+  color: $indigo-600;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  font-family: $font;
+  transition:
+    background 0.12s,
+    border-color 0.12s;
+
+  svg {
+    color: $indigo-400;
+    flex-shrink: 0;
+  }
+
+  &:hover:not(:disabled) {
+    background: $indigo-100;
+    border-color: $indigo-400;
+  }
+  &:focus-visible {
+    @include focus-ring;
+  }
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+.cancelLifecycleBtn {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 13px;
+  border-radius: $radius-full;
+  border: 1.5px solid $gray-200;
+  background: $white;
+  color: $gray-500;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: $font;
+  transition:
+    background 0.12s,
+    border-color 0.12s;
+
+  &:hover:not(:disabled) {
+    background: $gray-50;
+    border-color: $gray-300;
+  }
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+.closeBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  border-radius: $radius-md;
+  color: $gray-400;
+  cursor: pointer;
+  transition:
+    background 0.12s,
+    color 0.12s;
+
+  &:hover {
+    background: $gray-100;
+    color: $gray-700;
+  }
+  &:focus-visible {
+    @include focus-ring;
+  }
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+// ── Header pills ──────────────────────────────────────────────────────────────
+.headerTags {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.statusPill {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: $radius-full;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border: 1.5px solid;
+}
+
+.statusActive {
+  background: #fef9c3;
+  color: #854d0e;
+  border-color: #fde047;
+}
+.statusOverdue {
+  background: #fff1f2;
+  color: #9f1239;
+  border-color: #fda4af;
+}
+.statusCompleted {
+  background: $green-50;
+  color: $green-700;
+  border-color: $green-border;
+}
+.statusMissed {
+  background: $red-50;
+  color: $red-700;
+  border-color: $red-border;
+}
+.statusCancelled {
+  background: $gray-100;
+  color: $gray-600;
+  border-color: $gray-300;
+}
+
+.tagPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: $radius-full;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: $gray-100;
+  color: $gray-500;
+  border: 1.5px solid $gray-200;
+}
+
+.overrideChip {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: $radius-full;
+  background: $violet-bg;
+  border: 1px solid $violet-border;
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: $violet-text;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+// ── Body ─────────────────────────────────────────────────────────────────────
+// Fixed two-column layout — left panel always visible, right panel swaps content
+.body {
+  display: grid;
+  grid-template-columns: 1fr 1px 400px;
+  max-height: 75vh;
+  overflow: hidden;
+}
+
+// ── Left panel ────────────────────────────────────────────────────────────────
+.leftPanel {
+  overflow-y: auto;
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  scrollbar-width: thin;
+  scrollbar-color: $gray-200 transparent;
+
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: $gray-200;
+    border-radius: 10px;
+  }
+}
+
+// ── Divider ───────────────────────────────────────────────────────────────────
+.divider {
+  background: $gray-150;
+  width: 1px;
+  align-self: stretch;
+}
+
+// ── Right panel ───────────────────────────────────────────────────────────────
+.rightPanel {
+  overflow-y: auto;
+  padding: 22px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  background: $slate-50;
+  scrollbar-width: thin;
+  scrollbar-color: $gray-200 transparent;
+
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: $gray-200;
+    border-radius: 10px;
+  }
+}
+
+// ── Right panel — normal content ──────────────────────────────────────────────
+.rightSection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rightSectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: $gray-400;
+
+  svg {
+    flex-shrink: 0;
+  }
+}
+
+.viewLeadLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: $indigo-500;
+  text-decoration: none;
+  padding: 3px 8px;
+  border-radius: $radius-full;
+  border: 1px solid $indigo-200;
+  background: $indigo-50;
+  transition:
+    background 0.12s,
+    color 0.12s;
+
+  &:hover {
+    background: $indigo-100;
+    color: $indigo-700;
+  }
+}
+
+.leadCard {
+  background: $white;
+  border: 1.5px solid $gray-150;
+  border-radius: $radius-md;
+  padding: 14px 16px;
+}
+
+.leadMetaLabel {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: $gray-400;
+  margin: 0 0 4px;
+}
+
+.leadMetaValue {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: $gray-500;
+  margin: 0;
+  line-height: 1.55;
+}
+
+.leadChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.leadChip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  border: 0.6px solid;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.leadChipIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.leadChipValue {
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.timestampsList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.timestampRow {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.timestampLabel {
+  font-weight: 600;
+  color: $gray-400;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.timestampValue {
+  font-weight: 500;
+  color: $gray-400;
+}
+
+// Update button — sits at bottom of right panel
+.rightFooter {
+  margin-top: auto;
+}
+
+.submitBtn {
+  width: 100%;
+  padding: 12px 20px;
+  border: none;
+  border-radius: $radius-md;
+  background: $indigo-500;
+  color: $white;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: $font;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 7px;
+  transition:
+    background 0.12s,
+    opacity 0.15s;
+  animation: slideInBtn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+
+  svg {
+    color: rgba($white, 0.85);
+  }
+
+  &:hover:not(:disabled) {
+    background: $indigo-600;
+  }
+  &:active:not(:disabled) {
+    transform: translateY(1px);
+  }
+  &:focus-visible {
+    @include focus-ring;
+  }
+  &:disabled {
+    background: $indigo-300;
+    cursor: not-allowed;
+    opacity: 0.7;
+  }
+}
+
+@keyframes slideInBtn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.spinner {
+  width: 13px;
+  height: 13px;
+  border: 2px solid rgba($white, 0.3);
+  border-top-color: $white;
+  border-radius: 50%;
+  animation: spin 0.65s linear infinite;
+}
+
+// ── Right panel — lifecycle content ──────────────────────────────────────────
+.lcContent {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  flex: 1;
+  animation: lcIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes lcIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// Abruption block
+.lcAbruption {
+  display: flex;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: $radius-lg;
+  background: rgb(255 252 243);
+  outline: 1px solid #e6dcc7;
+  align-items: flex-start;
+}
+
+.lcAbruptionIcon {
+  color: #b08900;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.lcAbruptionContent {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.lcAbruptionTitle {
+  font-size: 15px;
+  font-weight: 600;
+  color: #8a6d00;
+  margin: 0;
+}
+
+.lcAbruptionDesc {
+  font-size: 13px;
+  color: #9c8a5a;
+  margin: 4px 0 0;
+  line-height: 1.45;
+}
+
+.lcAbruptionActions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 2px;
+}
+
+.lcAbruptionBtnSecondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border-radius: $radius-full;
+  border: 1px solid #d6c9a6;
+  background: #f9f6ef;
+  color: #7a6a3a;
+  font-size: 12px;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  text-transform: uppercase;
+
+  &:hover {
+    background: #f1eadc;
+    border-color: #cbb98a;
+  }
+}
+
+.lcAbruptionBtnPrimary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: $radius-full;
+  border: none;
+  background: #a88b00;
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: background 0.12s ease;
+
+  &:hover {
+    background: #8f7600;
+  }
+}
+
+// Status dropdown
+.lcDropdownWrap {
+  position: relative;
+}
+
+.lcDropdownTrigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  background: $white;
+  border: 1.5px solid $gray-200;
+  border-radius: $radius-md;
+  font-family: $font;
+  font-size: 14px;
+  font-weight: 500;
+  color: $gray-800;
+  cursor: pointer;
+  text-align: left;
+  transition:
+    border-color 0.12s,
+    box-shadow 0.12s;
+  gap: 8px;
+
+  &:hover:not(:disabled) {
+    border-color: darken($gray-200, 8%);
+  }
+
+  &.open {
+    border-color: $indigo-500;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+  }
+  &.error {
+    border-color: $red-500;
+  }
+  &.placeholder .lcDropdownTriggerText {
+    color: $gray-400;
+  }
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+}
+
+// Tint variants when value is selected
+.lcCompletedSelected {
+  border-color: $green-600 !important;
+  color: $green-700 !important;
+  background: $green-50 !important;
+}
+.lcMissedSelected {
+  border-color: $red-600 !important;
+  color: $red-700 !important;
+  background: $red-50 !important;
+}
+.lcCancelledSelected {
+  border-color: $orange !important;
+  color: $orange-text !important;
+  background: $orange-bg !important;
+}
+
+.lcDropdownTriggerText {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chevron {
+  flex-shrink: 0;
+  color: $gray-400;
+  transition: transform 0.18s ease;
+}
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+.lcDropdownMenu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background: $white;
+  border: 1px solid $gray-200;
+  border-radius: $radius-md;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  padding: 4px;
+  overflow-y: auto;
+  animation: ddIn 0.12s ease;
+}
+@keyframes ddIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.lcDropdownItem {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 9px 10px;
+  border: none;
+  background: transparent;
+  border-radius: $radius-sm;
+  font-family: $font;
+  font-size: 14px;
+  font-weight: 500;
+  color: $gray-600;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.1s;
+
+  &:hover {
+    background: $gray-50;
+    color: $gray-800;
+  }
+  &.selected {
+    background: $indigo-50;
+    color: $indigo-600;
+    font-weight: 600;
+  }
+}
+
+// Reason textarea
+.lcTextarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1.5px solid $gray-200;
+  border-radius: $radius-md;
+  background: $white;
+  padding: 12px 14px;
+  font-size: 14px;
+  font-weight: 400;
+  color: $gray-800;
+  font-family: $font;
+  resize: vertical;
+  min-height: 96px;
+  max-height: 160px;
+  line-height: 1.6;
+  transition:
+    border-color 0.12s,
+    box-shadow 0.12s;
+
+  &::placeholder {
+    color: $gray-400;
+    font-weight: 400;
+  }
+  &:focus {
+    outline: none;
+    border-color: $indigo-500;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+  }
+  &.error {
+    border-color: $red-500;
+  }
+  &:disabled {
+    background: $gray-50;
+    color: $gray-400;
+    cursor: not-allowed;
+    opacity: 0.7;
+  }
+}
+
+// Lifecycle footer
+.lcFooter {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid $gray-150;
+  margin-top: auto;
+}
+
+.lcCancelBtn {
+  padding: 9px 18px;
+  border: 1px solid $gray-200;
+  border-radius: $radius-md;
+  background: $white;
+  font-family: $font;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: $gray-600;
+  cursor: pointer;
+  transition:
+    background 0.12s,
+    border-color 0.12s;
+
+  &:hover:not(:disabled) {
+    background: $gray-50;
+    border-color: $gray-300;
+  }
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.lcSubmitBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 20px;
+  border: none;
+  border-radius: $radius-md;
+  font-family: $font;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: $white;
+  cursor: pointer;
+  transition:
+    background 0.12s,
+    opacity 0.12s;
+
+  &:active:not(:disabled) {
+    transform: translateY(1px);
+  }
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  &.lcBtnCompleted {
+    background: $green-600;
+    &:hover:not(:disabled) {
+      background: $green-700;
+    }
+  }
+  &.lcBtnMissed {
+    background: $red-600;
+    &:hover:not(:disabled) {
+      background: $red-700;
+    }
+  }
+  &.lcBtnCancelled {
+    background: $orange;
+    &:hover:not(:disabled) {
+      background: darken($orange, 6%);
+    }
+  }
+  &.lcBtnDefault {
+    background: $indigo-500;
+    &:hover:not(:disabled) {
+      background: $indigo-600;
+    }
+  }
+}
+
+.lcSpinner {
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+// ── Left panel form elements ──────────────────────────────────────────────────
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: $gray-400;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.sectionLabel {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: $gray-500;
+  margin: 0 0 4px;
+  line-height: 1.4;
+}
+
+.req {
+  color: $red-500;
+}
+
+.titleWrap {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  border: 1.5px solid $gray-200;
+  border-radius: $radius-md;
+  background: $white;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+
+  &:focus-within {
+    border-color: $indigo-300;
+    box-shadow:
+      0 0 0 3px rgba(99, 102, 241, 0.12),
+      0 1px 3px rgba(0, 0, 0, 0.06);
+  }
+  &.error {
+    border-color: $red-500;
+  }
+  &.readOnly {
+    background: $gray-50;
+    border-color: $gray-150;
+  }
+}
+
+.typeBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  min-width: 48px;
+  border: none;
+  border-right: 1.5px solid $indigo-100;
+  background: $indigo-50;
+  border-radius: ($radius-md - 2) 0 0 ($radius-md - 2);
+  cursor: pointer;
+  color: $indigo-500;
+  padding: 0;
+  transition:
+    background 0.12s,
+    color 0.12s;
+
+  &:hover:not(.disabled) {
+    background: $indigo-100;
+    color: $indigo-600;
+  }
+  &:focus-visible {
+    @include focus-ring;
+  }
+  &.disabled {
+    cursor: default;
+  }
+}
+
+.titleInput {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  padding: 0 14px;
+  height: 50px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: $gray-500;
+  font-family: $font;
+  min-width: 0;
+
+  &::placeholder {
+    color: $gray-300;
+    font-weight: 400;
+  }
+  &:read-only {
+    color: $gray-500;
+    cursor: default;
+  }
+  &:disabled {
+    color: $gray-400;
+  }
+}
+
+.typeDropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 200;
+  background: $white;
+  border: 1.5px solid $gray-200;
+  border-radius: $radius-md;
+  box-shadow:
+    0 10px 30px rgba(0, 0, 0, 0.12),
+    0 2px 8px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+  min-width: 180px;
+  animation: dropIn 0.13s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes dropIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.typeOption {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: $gray-500;
+  cursor: pointer;
+  transition:
+    background 0.1s,
+    color 0.1s;
+
+  svg {
+    color: $gray-400;
+    flex-shrink: 0;
+    stroke-width: 2.2;
+  }
+
+  &:hover {
+    background: $indigo-50;
+    color: $indigo-600;
+    svg {
+      color: $indigo-400;
+    }
+  }
+  &.active {
+    background: $indigo-50;
+    color: $indigo-600;
+    font-weight: 600;
+    svg {
+      color: $indigo-500;
+    }
+  }
+}
+
+.textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1.5px solid $gray-200;
+  border-radius: $radius-md;
+  background: $white;
+  padding: 11px 13px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: $gray-500;
+  font-family: $font;
+  resize: vertical;
+  min-height: 82px;
+  max-height: 140px;
+  line-height: 1.6;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+
+  &::placeholder {
+    color: $gray-300;
+    font-weight: 500;
+  }
+  &:focus {
+    outline: none;
+    border-color: $indigo-300;
+    box-shadow:
+      0 0 0 3px rgba(99, 102, 241, 0.12),
+      0 1px 3px rgba(0, 0, 0, 0.06);
+  }
+  &.error {
+    border-color: $red-500;
+  }
+  &.readOnly {
+    background: $gray-50;
+    border-color: $gray-150;
+    color: $gray-500;
+    cursor: default;
+    resize: none;
+  }
+  &:disabled {
+    color: $gray-400;
+  }
+}
+
+.natureGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.statusGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.disabledGrid {
+  pointer-events: none;
+  opacity: 0.75;
+}
+
+.natureCard {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 13px 14px;
+  border: 1.5px solid $gray-200;
+  border-radius: $radius-md;
+  cursor: pointer;
+  background: $white;
+  user-select: none;
+  transition:
+    border-color 0.15s,
+    background 0.15s,
+    box-shadow 0.15s;
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+  &.notClickable {
+    cursor: default;
+  }
+
+  .natureIcon {
+    color: $gray-300;
+    flex-shrink: 0;
+    margin-top: 1px;
+    transition: color 0.15s;
+  }
+  .natureTitle {
+    font-size: 0.84rem;
+    font-weight: 600;
+    color: $gray-600;
+    margin: 0 0 3px;
+    line-height: 1.3;
+    transition: color 0.15s;
+  }
+  .natureDesc {
+    font-size: 0.7rem;
+    font-weight: 400;
+    color: $gray-400;
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  &.selected {
+    border-color: $indigo-400;
+    background: $indigo-50;
+    box-shadow:
+      0 0 0 3px rgba(99, 102, 241, 0.1),
+      0 1px 3px rgba(0, 0, 0, 0.05);
+    .natureIcon {
+      color: $indigo-500;
+    }
+    .natureTitle {
+      color: $indigo-600;
+      font-weight: 600;
+    }
+    .natureDesc {
+      color: $gray-500;
+    }
+  }
+}
+
+.statusCard {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 13px 14px;
+  border: 1.5px solid $gray-200;
+  border-radius: $radius-md;
+  cursor: pointer;
+  background: $white;
+  user-select: none;
+  transition:
+    border-color 0.15s,
+    background 0.15s,
+    box-shadow 0.15s;
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+  &.notClickable {
+    cursor: default;
+  }
+
+  .statusIcon {
+    flex-shrink: 0;
+    margin-top: 1px;
+    color: $gray-300;
+    transition: color 0.15s;
+  }
+  .statusTitle {
+    font-size: 0.84rem;
+    font-weight: 600;
+    color: $gray-600;
+    margin: 0 0 3px;
+    line-height: 1.3;
+    transition: color 0.15s;
+  }
+  .statusDesc {
+    font-size: 0.7rem;
+    font-weight: 400;
+    color: $gray-400;
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  &.completed.selected {
+    border-color: $green-600;
+    background: $green-50;
+    box-shadow:
+      0 0 0 3px rgba(22, 163, 74, 0.1),
+      0 1px 3px rgba(0, 0, 0, 0.05);
+    .statusIcon {
+      color: $green-600;
+    }
+    .statusTitle {
+      color: $green-700;
+    }
+  }
+  &.missed.selected {
+    border-color: $red-600;
+    background: $red-50;
+    box-shadow:
+      0 0 0 3px rgba(220, 38, 38, 0.1),
+      0 1px 3px rgba(0, 0, 0, 0.05);
+    .statusIcon {
+      color: $red-600;
+    }
+    .statusTitle {
+      color: $red-700;
+    }
+  }
+}
+
+.dateTimeRow {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 2px;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 15px;
+  border: 1.5px solid $gray-200;
+  border-radius: $radius-md;
+  background: $white;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: $gray-500;
+  cursor: pointer;
+  font-family: $font;
+  transition:
+    border-color 0.15s,
+    background 0.15s,
+    color 0.15s;
+
+  svg {
+    color: $gray-400;
+    flex-shrink: 0;
+    transition: color 0.15s;
+  }
+
+  &:hover:not(.disabledPill) {
+    border-color: $indigo-200;
+    background: $indigo-50;
+    color: $indigo-600;
+    svg {
+      color: $indigo-400;
+    }
+  }
+  &:focus-visible {
+    @include focus-ring;
+  }
+  &.filled {
+    border-color: $indigo-300;
+    background: $indigo-50;
+    color: $indigo-600;
+    font-weight: 600;
+    svg {
+      color: $indigo-400;
+    }
+  }
+  &.error {
+    border-color: $red-500;
+  }
+  &.disabledPill {
+    background: $gray-50;
+    border-color: $gray-150;
+    color: $gray-400;
+    cursor: default;
+  }
+}
+
+.hiddenInput {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+  width: 1px;
+  height: 1px;
+  top: 0;
+  left: 0;
+}
+
+.errText {
+  font-size: 0.73rem;
+  font-weight: 500;
+  color: $red-600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: -2px;
+}
+
+// ── Banner ────────────────────────────────────────────────────────────────────
+.banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px 18px;
+  border-radius: 18px;
+  background: #fffdf8;
+  outline: 2px dashed #e5e2dc;
+  &:hover {
+    background: #fbfaf6;
+  }
+}
+
+.bannerIconWrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  color: #856903;
+  flex-shrink: 0;
+}
+
+.bannerBody {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.bannerTitle {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #856903;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.bannerDesc {
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: #9ca3af;
+  margin: 0;
+  line-height: 1.6;
+}
+
+.bannerActions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.bannerActionBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: $radius-full;
+  border: 1px solid transparent;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  font-family: $font;
+  background: $gray-100;
+  color: $gray-700;
+  transition:
+    background 0.15s,
+    transform 0.08s;
+
+  &:hover {
+    background: $gray-200;
+  }
+  &:active {
+    transform: scale(0.97);
+  }
+  &:focus-visible {
+    @include focus-ring;
+  }
+}

@@ -1,0 +1,30 @@
+.outstanding {
+  min-height: 100vh;
+  background: #f9fafb;
+  padding: 24px;
+
+
+  &__container {
+    max-width: 1300px;
+    margin: 40px auto 0 auto;
+  }
+
+  &__error {
+    margin-top: 16px;
+    padding: 16px;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 8px;
+    color: #991b1b;
+
+    p {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 500;
+    }
+  }
+
+  @media (max-width: 768px) {
+    padding: 16px;
+  }
+}

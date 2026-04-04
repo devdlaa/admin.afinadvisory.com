@@ -1,0 +1,500 @@
+/* ── Outer wrapper ── */
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px 20px 0;
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #e4e4e7;
+  padding: 18px 20px 20px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.heading {
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.09em;
+  color: #a1a1aa;
+  text-transform: uppercase;
+}
+
+.timeInfo {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #71717a;
+  svg {
+    color: #71717a;
+    flex-shrink: 0;
+  }
+}
+
+/* ── Track ── */
+.track {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.stage {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  min-width: 0;
+  height: 40px;
+  padding: 0 10px 0 14px;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: transparent;
+    transition: background 0.15s ease;
+    z-index: 0;
+    pointer-events: none;
+  }
+  &:first-child {
+    border-radius: 10px 0 0 10px;
+    &::before {
+      border-radius: 10px 0 0 10px;
+    }
+  }
+  &:disabled {
+    cursor: default;
+  }
+  &:not(:disabled):hover::before {
+    background: rgba(0, 0, 0, 0.07);
+  }
+  &:not(:disabled):hover {
+    outline: 2px solid rgba(0, 0, 0, 0.12);
+    outline-offset: -2px;
+  }
+}
+
+.stageFilled {
+  background: #ade6ff;
+}
+.stageCurrent {
+  background: #ade6ff;
+}
+.stageGrey {
+  background: #e4e4e7;
+}
+
+.stageLast {
+  border-radius: 0 10px 10px 0;
+  padding-right: 14px;
+  &::before {
+    border-radius: 0 10px 10px 0;
+  }
+}
+
+.stageLabel {
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  position: relative;
+  z-index: 1;
+  pointer-events: none;
+}
+.stageFilled .stageLabel,
+.stageCurrent .stageLabel {
+  color: #0c4a6e;
+}
+.stageGrey .stageLabel {
+  color: #71717a;
+}
+
+.arrow {
+  position: absolute;
+  top: 0;
+  right: -7px;
+  width: 14px;
+  height: 100%;
+  z-index: 3;
+  clip-path: polygon(0 0, 60% 0, 100% 50%, 60% 100%, 0 100%, 40% 50%);
+  pointer-events: none;
+  background: #ffffff;
+}
+
+.spinner {
+  position: relative;
+  z-index: 1;
+  color: #0c4a6e !important;
+}
+
+/* ══════════════════════════════════════
+   SUMMARY CARDS
+══════════════════════════════════════ */
+.summaryCard {
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #e4e4e7;
+  overflow: hidden;
+}
+
+.summaryCardAi {
+  background: #fdf4ff;
+  border-color: #e9d5ff;
+}
+
+/* Header row */
+.summaryHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  cursor: pointer;
+  gap: 12px;
+  user-select: none;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.02);
+  }
+}
+
+.summaryHeaderLeft {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex: 1;
+}
+
+/* AI sparkle icon */
+.aiIcon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  svg {
+    color: #a855f7;
+  }
+}
+
+.summaryTitle {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: #18181b;
+  margin: 0 0 2px;
+}
+
+.summarySubtitle {
+  font-size: 11px;
+  color: #a1a1aa;
+  margin: 0;
+  font-weight: 600;
+}
+
+/* Right side of summary header */
+.summaryAction {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.chevron {
+  color: #a1a1aa;
+  transition: transform 0.2s ease;
+}
+
+.iconBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: none;
+  background: none;
+  color: #a1a1aa;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+
+  &:hover {
+    background: #f4f4f5;
+    color: #3f3f46;
+  }
+}
+
+.summarySpinner {
+  color: #a855f7 !important;
+}
+
+/* Body */
+.summaryBody {
+  padding: 0 16px 16px;
+  border-top: 1px solid #00000011;
+}
+
+.summaryText {
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.7;
+  color: #3f3f46;
+  margin: 12px 0 0;
+}
+
+/* ── Skeleton ── */
+.skeletonBlock {
+  padding-top: 12px;
+  display: flex;
+  flex-direction: column;
+}
+
+.skeletonLine {
+  border-radius: 6px;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* ── Team effort total badge ── */
+.totalPointsBadge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 6px 14px;
+  border-radius: 50px;
+  background: #eff6ff;
+  outline: 1.5px solid #bfdbfe;
+}
+
+.totalPointsNum {
+  font-size: 16px;
+  font-weight: 600;
+  color: #2563eb;
+  line-height: 1;
+}
+
+.totalPointsLabel {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: #6f9fd5;
+  text-transform: uppercase;
+  margin-top: 1px;
+}
+
+/* ── Team member rows ── */
+.teamList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-top: 14px;
+}
+
+.teamMemberRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.teamAvatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #f4f4f5;
+  border: 1.5px solid #e4e4e7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #a1a1aa;
+  flex-shrink: 0;
+}
+
+.teamMemberInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.teamMemberTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  gap: 8px;
+}
+
+.teamMemberName {
+  font-size: 14px;
+  font-weight: 600;
+  color: #18181b;
+}
+
+.teamMemberStats {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.teamPoints,
+.teamEffortPct {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  strong {
+    font-size: 14px;
+    font-weight: 700;
+    color: #2563eb;
+    line-height: 1;
+  }
+}
+
+.teamStatLabel {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: #a1a1aa;
+  text-transform: uppercase;
+  margin-top: 1px;
+}
+
+.teamDivider {
+  width: 1px;
+  height: 28px;
+  background: #e4e4e7;
+}
+
+/* Progress bar */
+.progressTrack {
+  width: 100%;
+  height: 6px;
+  background: #e4e4e7;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: #2563eb;
+  border-radius: 999px;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Team skeleton rows */
+.teamSkeletonRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.skeletonAvatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+}
+
+/* WON (Green) */
+.stageWon {
+  background: #3ebb6c !important;
+  .stageLabel {
+    color: #ffffff;
+  }
+}
+
+.stageWon .arrow {
+  border-left-color: #16a34a !important;
+}
+
+/* LOST (Red) */
+.stageLost {
+  background: #e95050 !important;
+  .stageLabel {
+    color: #ffffff;
+  }
+}
+
+.stageLost .arrow {
+  border-left-color: #dc2626 !important;
+}
+
+.lostBanner {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+
+  margin-top: 10px;
+  padding: 12px 14px;
+
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+
+  animation: fadeIn 0.2s ease;
+}
+
+.lostBannerIcon {
+  color: #e15656;
+  margin-top: 2px;
+}
+
+.lostBannerContent {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.lostBannerTitle {
+  font-size: 12px;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: #e15656;
+  letter-spacing: 0.04em;
+}
+
+.lostBannerText {
+  font-size: 14.5px;
+  color: #cb2626;
+  font-weight: 600;
+  line-height: 1.4;
+  text-transform: capitalize;
+}
+
+.lostBannerMeta {
+  font-size: 12px;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: #e15656;
+  letter-spacing: 0.04em;
+}

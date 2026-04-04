@@ -1,0 +1,967 @@
+import {
+  createSlice,
+  createAsyncThunk,
+  createSelector,
+} from "@reduxjs/toolkit";
+
+// ============================================
+// CACHE CONFIGURATION
+// ============================================
+const CACHE_CONFIG = {
+  TASK_LIST_TTL: 2 * 60 * 1000,
+  MAX_CACHE_ENTRIES: 50,
+};
+
+// ============================================
+// SENTINEL KEYS — live in Redux but are NEVER sent to the API
+// ============================================
+// aging_active: set by AgingBoard when it applies its filter,
+// cleared by DateRangeFilter / handleClearAllFilters.
+// This lets us distinguish "created_date_to set by AgingBoard"
+// from "created_date_to set by DateRangeFilter".
+const CLIENT_ONLY_FILTER_KEYS = new Set(["aging_active"]);
+
+// ============================================
+// CACHE KEY GENERATOR
+// ============================================
+const generateCacheKey = (filters, page, pageSize) => {
+  const filterStr = Object.entries(filters)
+    .filter(
+      ([key, value]) =>
+        !CLIENT_ONLY_FILTER_KEYS.has(key) &&
+        value !== null &&
+        value !== "" &&
+        value !== undefined,
+    )
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([key, value]) => `${key}:${value}`)
+    .join("|");
+
+  return `tasks_${filterStr}_p${page}_ps${pageSize}`;
+};
+
+// ============================================
+// HELPER - API FETCH WRAPPER
+// ============================================
+const apiFetch = async (url, options = {}) => {
+  const response = await fetch(url, {
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
+    ...options,
+  });
+
+  const result = await response.json();
+
+  if (!response.ok || !result.success) {
+    throw {
+      status: response.status,
+      message: result.error?.message || result.message || "Request failed",
+      code: result.error?.code || "UNKNOWN_ERROR",
+      details: result.error?.details || null,
+    };
+  }
+
+  return result;
+};
+
+// ============================================
+// ASYNC THUNKS
+// ============================================
+
+export const fetchTasks = createAsyncThunk(
+  "task/fetchTasks",
+  async (forceRefresh = false, { getState, rejectWithValue }) => {
+    try {
+      const state = getState().task;
+      const { currentPage, pageSize, filters, cache } = state;
+
+      const cacheKey = generateCacheKey(filters, currentPage, pageSize);
+
+      if (!forceRefresh && cache[cacheKey]) {
+        const cachedData = cache[cacheKey];
+        const now = Date.now();
+        if (now - cachedData.timestamp < CACHE_CONFIG.TASK_LIST_TTL) {
+          return { ...cachedData.data, fromCache: true, cacheKey };
+        }
+      }
+
+      const params = new URLSearchParams();
+      params.append("page", currentPage);
+      params.append("page_size", pageSize);
+
+      Object.entries(filters).forEach(([key, value]) => {
+        // Skip client-only sentinel keys — never send to API
+        if (CLIENT_ONLY_FILTER_KEYS.has(key)) return;
+        if (value !== null && value !== "" && value !== undefined) {
+          params.append(key, value);
+        }
+      });
+
+      const result = await apiFetch(
+        `/api/admin_ops/tasks?${params.toString()}`,
+      );
+
+      return { ...result.data, fromCache: false, cacheKey };
+    } catch (error) {
+      return rejectWithValue({
+        message: error.message || "Failed to fetch tasks",
+        code: error.code,
+        details: error.details,
+      });
+    }
+  },
+);
+
+export const createTask = createAsyncThunk(
+  "task/createTask",
+  async (taskData, { rejectWithValue }) => {
+    try {
+      const result = await apiFetch("/api/admin_ops/tasks", {
+        method: "POST",
+        body: JSON.stringify(taskData),
+      });
+      return result.data;
+    } catch (error) {
+      return rejectWithValue({
+        message: error.message || "Failed to create task",
+        code: error.code,
+        details: error.details,
+      });
+    }
+  },
+);
+
+export const updateTask = createAsyncThunk(
+  "task/updateTask",
+  async ({ taskId, data }, { rejectWithValue }) => {
+    try {
+      const result = await apiFetch(`/api/admin_ops/tasks/${taskId}`, {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      });
+      return result.data;
+    } catch (error) {
+      return rejectWithValue({
+        message: error.message || "Failed to update task",
+        code: error.code,
+        details: error.details,
+      });
+    }
+  },
+);
+
+export const deleteTask = createAsyncThunk(
+  "task/deleteTask",
+  async ({ taskId, authorizer_id, totp_code }, { rejectWithValue }) => {
+    try {
+      const result = await apiFetch(`/api/admin_ops/tasks/${taskId}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ authorizer_id, totp_code }),
+      });
+      return { taskId, ...result.data };
+    } catch (error) {
+      return rejectWithValue({
+        message: error.message || "Failed to delete task",
+        code: error.code,
+        details: error.details,
+      });
+    }
+  },
+);
+
+export const restoreTask = createAsyncThunk(
+  "task/restoreTask",
+  async ({ taskId, authorizer_id, totp_code }, { rejectWithValue }) => {
+    try {
+      const result = await apiFetch(`/api/admin_ops/tasks/${taskId}/restore`, {
+        method: "PATCH",
+        body: JSON.stringify({ authorizer_id, totp_code }),
+      });
+      return { taskId, ...result.data };
+    } catch (error) {
+      return rejectWithValue({
+        message: error.message || "Failed to restore task",
+        code: error.code,
+        details: error.details,
+      });
+    }
+  },
+);
+
+export const bulkUpdateTaskStatus = createAsyncThunk(
+  "task/bulkUpdateTaskStatus",
+  async ({ task_ids, status }, { rejectWithValue }) => {
+    try {
+      const result = await apiFetch("/api/admin_ops/tasks/bulk?action=status", {
+        method: "POST",
+        body: JSON.stringify({ task_ids, status }),
+      });
+      return result.data;
+    } catch (error) {
+      return rejectWithValue({
+        message: error.message || "Failed to update task statuses",
+        code: error.code,
+        details: error.details,
+      });
+    }
+  },
+);
+
+export const bulkUpdateTaskPriority = createAsyncThunk(
+  "task/bulkUpdateTaskPriority",
+  async ({ task_ids, priority }, { rejectWithValue }) => {
+    try {
+      const result = await apiFetch(
+        "/api/admin_ops/tasks/bulk?action=priority",
+        {
+          method: "POST",
+          body: JSON.stringify({ task_ids, priority }),
+        },
+      );
+      return result.data;
+    } catch (error) {
+      return rejectWithValue({
+        message: error.message || "Failed to update task priorities",
+        code: error.code,
+        details: error.details,
+      });
+    }
+  },
+);
+
+export const bulkAssignTasks = createAsyncThunk(
+  "task/bulkAssignTasks",
+  async ({ task_ids, user_ids }, { rejectWithValue }) => {
+    try {
+      const result = await apiFetch("/api/admin_ops/tasks/assignments/bulk", {
+        method: "POST",
+        body: JSON.stringify({ task_ids, user_ids }),
+      });
+      return result.data;
+    } catch (error) {
+      return rejectWithValue({
+        message: error.message || "Failed to assign tasks",
+        code: error.code,
+        details: error.details,
+      });
+    }
+  },
+);
+
+export const fetchAssignmentReport = createAsyncThunk(
+  "task/fetchAssignmentReport",
+  async (_, { rejectWithValue }) => {
+    try {
+      const result = await apiFetch("/api/admin_ops/tasks/assignments/report");
+      return result.data;
+    } catch (error) {
+      return rejectWithValue({
+        message: error.message || "Failed to fetch assignment report",
+        code: error.code,
+        details: error.details,
+      });
+    }
+  },
+);
+
+export const fetchUnassignedTasksCount = createAsyncThunk(
+  "task/fetchUnassignedTasksCount",
+  async (_, { rejectWithValue }) => {
+    try {
+      const result = await apiFetch("/api/admin_ops/tasks/unassigned");
+      return result.data.count;
+    } catch (error) {
+      return rejectWithValue({
+        message: error.message || "Failed to fetch unassigned tasks count",
+        code: error.code,
+        details: error.details,
+      });
+    }
+  },
+);
+
+export const fetchSLASummary = createAsyncThunk(
+  "task/fetchSLASummary",
+  async (_, { rejectWithValue }) => {
+    try {
+      const result = await apiFetch("/api/admin_ops/tasks/sla-summry");
+      return result.data.SLA_SUMMARY;
+    } catch (error) {
+      return rejectWithValue({
+        message: error.message || "Failed to fetch SLA summary",
+        code: error.code,
+        details: error.details,
+      });
+    }
+  },
+);
+
+// ============================================
+// INITIAL STATE
+// ============================================
+const initialState = {
+  tasks: [],
+  totalTasks: 0,
+  currentPage: 1,
+  pageSize: 20,
+  totalPages: 0,
+
+  statusCounts: {
+    filtered: {
+      PENDING: 0,
+      IN_PROGRESS: 0,
+      COMPLETED: 0,
+      CANCELLED: 0,
+      ON_HOLD: 0,
+      PENDING_CLIENT_INPUT: 0,
+    },
+    global: {
+      PENDING: 0,
+      IN_PROGRESS: 0,
+      COMPLETED: 0,
+      CANCELLED: 0,
+      ON_HOLD: 0,
+      PENDING_CLIENT_INPUT: 0,
+    },
+  },
+
+  cache: {},
+  cacheKeys: [],
+  lastCacheCleanup: Date.now(),
+
+  filters: {
+    entity_id: null,
+    status: "ALL",
+    is_magic_sort: null,
+    unassigned_only: null,
+    priority: null,
+    task_category_id: null,
+
+    created_by: null,
+    assigned_to: null,
+    due_date_from: null,
+    due_date_to: null,
+    created_date_from: null,
+    created_date_to: null,
+    search: null,
+    is_billable: null,
+    billed_from_firm: null,
+    entity_missing: null,
+
+    sla_status: null,
+    sla_due_date_from: null,
+    sla_due_date_to: null,
+    sla_paused_before: null,
+
+    // ── Sentinel key — UI only, never sent to API ──────────────────────────
+    // Set to `true` by AgingBoard when it applies its created_date filter.
+    // Cleared by DateRangeFilter and handleClearAllFilters so the two
+    // features don't bleed into each other.
+    aging_active: null,
+  },
+
+  activeFilterCount: 0,
+
+  selectedTaskIds: [],
+  bulkActionInProgress: false,
+
+  createDialogOpen: false,
+  manageDialogOpen: false,
+  manageDialogTaskId: null,
+
+  assignmentReport: null,
+  assignmentReportLoading: false,
+  unassignedTasksCount: null,
+  unassignedTasksCountLoading: false,
+  slaSummary: null,
+  slaSummaryLoading: false,
+
+  loading: {
+    list: false,
+    create: false,
+    update: false,
+    delete: false,
+    bulkStatus: false,
+    bulkPriority: false,
+    bulkAssign: false,
+    restore: false,
+  },
+
+  error: {
+    list: null,
+    create: null,
+    update: null,
+    delete: null,
+    restore: null,
+    bulkStatus: null,
+    bulkPriority: null,
+    bulkAssign: null,
+  },
+};
+
+// ============================================
+// HELPER FUNCTIONS
+// ============================================
+const countActiveFilters = (filters) => {
+  return Object.entries(filters).filter(
+    ([key, value]) =>
+      !CLIENT_ONLY_FILTER_KEYS.has(key) &&
+      value !== null &&
+      value !== "" &&
+      value !== undefined,
+  ).length;
+};
+
+const updateTaskInList = (tasks, updatedTask) => {
+  return tasks.map((task) =>
+    task.id === updatedTask.id ? { ...task, ...updatedTask } : task,
+  );
+};
+
+const doesTaskMatchFilters = (task, filters) => {
+  if (filters.status && task.status !== filters.status) return false;
+  if (filters.priority && task.priority !== filters.priority) return false;
+  if (filters.assigned_to && task.assigned_to !== filters.assigned_to)
+    return false;
+  if (
+    filters.task_category_id &&
+    task.task_category_id !== filters.task_category_id
+  )
+    return false;
+  if (filters.entity_id && task.entity_id !== filters.entity_id) return false;
+  return true;
+};
+
+const updateMultipleTasksInList = (tasks, taskIds, updates) => {
+  return tasks.map((task) =>
+    taskIds.includes(task.id) ? { ...task, ...updates } : task,
+  );
+};
+
+const removeTaskFromList = (tasks, taskId) => {
+  return tasks.filter((task) => task.id !== taskId);
+};
+
+const cleanCache = (cache, cacheKeys) => {
+  const now = Date.now();
+  const validKeys = [];
+  const newCache = {};
+
+  cacheKeys.forEach((key) => {
+    if (cache[key] && now - cache[key].timestamp < CACHE_CONFIG.TASK_LIST_TTL) {
+      validKeys.push(key);
+      newCache[key] = cache[key];
+    }
+  });
+
+  if (validKeys.length > CACHE_CONFIG.MAX_CACHE_ENTRIES) {
+    const sorted = validKeys
+      .map((key) => ({ key, timestamp: cache[key].timestamp }))
+      .sort((a, b) => b.timestamp - a.timestamp)
+      .slice(0, CACHE_CONFIG.MAX_CACHE_ENTRIES);
+
+    const finalCache = {};
+    const finalKeys = [];
+    sorted.forEach(({ key }) => {
+      finalCache[key] = newCache[key];
+      finalKeys.push(key);
+    });
+
+    return { cache: finalCache, cacheKeys: finalKeys };
+  }
+
+  return { cache: newCache, cacheKeys: validKeys };
+};
+
+const invalidateCache = (state) => {
+  state.cache = {};
+  state.cacheKeys = [];
+  state.lastCacheCleanup = Date.now();
+};
+
+const updateGlobalCounts = (state, statusCounts) => {
+  if (statusCounts?.global) {
+    state.statusCounts.global = {
+      ...state.statusCounts.global,
+      ...statusCounts.global,
+    };
+  }
+};
+
+// ============================================
+// SLICE
+// ============================================
+const taskSlice = createSlice({
+  name: "task",
+  initialState,
+  reducers: {
+    updateTaskAssignmentsInList: (state, action) => {
+      const {
+        task_id,
+        assigned_to_all,
+        assignments,
+        remaining_assignee_count,
+      } = action.payload;
+
+      const task = state.tasks.find((t) => t.id === task_id);
+      if (task) {
+        task.assigned_to_all = assigned_to_all;
+        task.assignments = assignments;
+        if (remaining_assignee_count !== undefined) {
+          task.remaining_assignee_count = remaining_assignee_count;
+        }
+      }
+
+      invalidateCache(state);
+    },
+
+    setFilters: (state, action) => {
+      state.filters = { ...state.filters, ...action.payload };
+      state.activeFilterCount = countActiveFilters(state.filters);
+      state.currentPage = 1;
+    },
+
+    resetFilters: (state) => {
+      state.filters = initialState.filters;
+      state.activeFilterCount = 0;
+      state.currentPage = 1;
+    },
+
+    setPage: (state, action) => {
+      state.currentPage = action.payload;
+    },
+
+    toggleTaskSelection: (state, action) => {
+      const taskId = action.payload;
+      const index = state.selectedTaskIds.indexOf(taskId);
+      if (index > -1) {
+        state.selectedTaskIds.splice(index, 1);
+      } else {
+        state.selectedTaskIds.push(taskId);
+      }
+    },
+
+    selectAllTasks: (state) => {
+      const currentTaskIds = state.tasks.map((task) => task.id);
+      state.selectedTaskIds = [
+        ...new Set([...state.selectedTaskIds, ...currentTaskIds]),
+      ];
+    },
+
+    deselectAllTasks: (state) => {
+      state.selectedTaskIds = [];
+    },
+
+    openCreateDialog: (state) => {
+      state.createDialogOpen = true;
+    },
+
+    closeCreateDialog: (state) => {
+      state.createDialogOpen = false;
+    },
+
+    openManageDialog: (state, action) => {
+      state.manageDialogOpen = true;
+      state.manageDialogTaskId = action.payload;
+    },
+
+    closeManageDialog: (state) => {
+      state.manageDialogOpen = false;
+      state.manageDialogTaskId = null;
+    },
+
+    clearErrors: (state) => {
+      state.error = initialState.error;
+    },
+
+    clearError: (state, action) => {
+      const errorKey = action.payload;
+      if (state.error[errorKey]) {
+        state.error[errorKey] = null;
+      }
+    },
+
+    invalidateTaskCache: (state) => {
+      invalidateCache(state);
+    },
+  },
+
+  extraReducers: (builder) => {
+    builder
+      .addCase(fetchTasks.pending, (state) => {
+        state.loading.list = true;
+        state.error.list = null;
+      })
+      .addCase(fetchTasks.fulfilled, (state, action) => {
+        const {
+          tasks,
+          page,
+          page_size,
+          total,
+          total_pages,
+          status_counts,
+          fromCache,
+          cacheKey,
+        } = action.payload;
+
+        state.tasks = tasks;
+        state.totalTasks = total;
+        state.currentPage = page;
+        state.pageSize = page_size;
+        state.totalPages = total_pages;
+        state.statusCounts = status_counts || state.statusCounts;
+
+        if (!fromCache && cacheKey) {
+          state.cache[cacheKey] = {
+            data: { tasks, page, page_size, total, total_pages, status_counts },
+            timestamp: Date.now(),
+          };
+
+          if (!state.cacheKeys.includes(cacheKey)) {
+            state.cacheKeys.push(cacheKey);
+          }
+
+          const now = Date.now();
+          if (now - state.lastCacheCleanup > 60000) {
+            const cleaned = cleanCache(state.cache, state.cacheKeys);
+            state.cache = cleaned.cache;
+            state.cacheKeys = cleaned.cacheKeys;
+            state.lastCacheCleanup = now;
+          }
+        }
+
+        state.loading.list = false;
+      })
+      .addCase(fetchTasks.rejected, (state, action) => {
+        state.loading.list = false;
+        state.error.list = action.payload?.message || "Failed to fetch tasks";
+      });
+
+    builder
+      .addCase(createTask.pending, (state) => {
+        state.loading.create = true;
+        state.error.create = null;
+      })
+      .addCase(createTask.fulfilled, (state, action) => {
+        const { task, status_counts } = action.payload;
+        if (state.currentPage === 1) {
+          state.tasks.unshift(task);
+        }
+        updateGlobalCounts(state, status_counts);
+        state.createDialogOpen = false;
+        state.loading.create = false;
+        invalidateCache(state);
+      })
+      .addCase(createTask.rejected, (state, action) => {
+        state.loading.create = false;
+        state.error.create = action.payload?.message || "Failed to create task";
+      });
+
+    builder
+      .addCase(updateTask.pending, (state) => {
+        state.loading.update = true;
+        state.error.update = null;
+      })
+      .addCase(updateTask.fulfilled, (state, action) => {
+        const { task, status_counts } = action.payload;
+        state.tasks = updateTaskInList(state.tasks, task);
+        state.tasks = state.tasks.filter((t) =>
+          doesTaskMatchFilters(t, state.filters),
+        );
+        updateGlobalCounts(state, status_counts);
+        state.loading.update = false;
+        invalidateCache(state);
+      })
+      .addCase(updateTask.rejected, (state, action) => {
+        state.loading.update = false;
+        state.error.update = action.payload?.message || "Failed to update task";
+      });
+
+    builder
+      .addCase(deleteTask.pending, (state) => {
+        state.loading.delete = true;
+        state.error.delete = null;
+      })
+      .addCase(deleteTask.fulfilled, (state, action) => {
+        const { taskId, status_counts } = action.payload;
+        state.tasks = removeTaskFromList(state.tasks, taskId);
+        state.selectedTaskIds = state.selectedTaskIds.filter(
+          (id) => id !== taskId,
+        );
+        updateGlobalCounts(state, status_counts);
+        state.manageDialogOpen = false;
+        state.manageDialogTaskId = null;
+        state.loading.delete = false;
+        invalidateCache(state);
+      })
+      .addCase(deleteTask.rejected, (state, action) => {
+        state.loading.delete = false;
+        state.error.delete = action.payload?.message || "Failed to delete task";
+      });
+
+    builder
+      .addCase(restoreTask.pending, (state) => {
+        state.loading.restore = true;
+        state.error.restore = null;
+      })
+      .addCase(restoreTask.fulfilled, (state, action) => {
+        const { task } = action.payload;
+        if (task) {
+          state.tasks = state.tasks.map((t) =>
+            t.id === task.id ? { ...t, ...task, deleted_at: null } : t,
+          );
+        }
+        state.loading.restore = false;
+        invalidateCache(state);
+      })
+      .addCase(restoreTask.rejected, (state, action) => {
+        state.loading.restore = false;
+        state.error.restore =
+          action.payload?.message || "Failed to restore task";
+      });
+
+    builder
+      .addCase(bulkUpdateTaskStatus.pending, (state) => {
+        state.loading.bulkStatus = true;
+        state.error.bulkStatus = null;
+        state.bulkActionInProgress = true;
+      })
+      .addCase(bulkUpdateTaskStatus.fulfilled, (state, action) => {
+        const { updated_task_ids, new_status, status_counts } = action.payload;
+        state.tasks = updateMultipleTasksInList(state.tasks, updated_task_ids, {
+          status: new_status,
+        });
+        state.tasks = state.tasks.filter((task) =>
+          doesTaskMatchFilters(task, state.filters),
+        );
+        updateGlobalCounts(state, status_counts);
+        state.selectedTaskIds = [];
+        state.loading.bulkStatus = false;
+        state.bulkActionInProgress = false;
+        invalidateCache(state);
+      })
+      .addCase(bulkUpdateTaskStatus.rejected, (state, action) => {
+        state.loading.bulkStatus = false;
+        state.bulkActionInProgress = false;
+        state.error.bulkStatus =
+          action.payload?.message || "Failed to update task statuses";
+      });
+
+    builder
+      .addCase(bulkUpdateTaskPriority.pending, (state) => {
+        state.loading.bulkPriority = true;
+        state.error.bulkPriority = null;
+        state.bulkActionInProgress = true;
+      })
+      .addCase(bulkUpdateTaskPriority.fulfilled, (state, action) => {
+        const { updated_task_ids, new_priority } = action.payload;
+        state.tasks = updateMultipleTasksInList(state.tasks, updated_task_ids, {
+          priority: new_priority,
+        });
+        state.tasks = state.tasks.filter((task) =>
+          doesTaskMatchFilters(task, state.filters),
+        );
+        state.selectedTaskIds = [];
+        state.loading.bulkPriority = false;
+        state.bulkActionInProgress = false;
+        invalidateCache(state);
+      })
+      .addCase(bulkUpdateTaskPriority.rejected, (state, action) => {
+        state.loading.bulkPriority = false;
+        state.bulkActionInProgress = false;
+        state.error.bulkPriority =
+          action.payload?.message || "Failed to update task priorities";
+      });
+
+    builder
+      .addCase(bulkAssignTasks.pending, (state) => {
+        state.loading.bulkAssign = true;
+        state.error.bulkAssign = null;
+        state.bulkActionInProgress = true;
+      })
+      .addCase(bulkAssignTasks.fulfilled, (state) => {
+        state.selectedTaskIds = [];
+        state.loading.bulkAssign = false;
+        state.bulkActionInProgress = false;
+        invalidateCache(state);
+      })
+      .addCase(bulkAssignTasks.rejected, (state, action) => {
+        state.loading.bulkAssign = false;
+        state.bulkActionInProgress = false;
+        state.error.bulkAssign =
+          action.payload?.message || "Failed to assign tasks";
+      });
+
+    builder
+      .addCase(fetchAssignmentReport.pending, (state) => {
+        state.assignmentReportLoading = true;
+      })
+      .addCase(fetchAssignmentReport.fulfilled, (state, action) => {
+        state.assignmentReport = action.payload;
+        state.assignmentReportLoading = false;
+      })
+      .addCase(fetchAssignmentReport.rejected, (state) => {
+        state.assignmentReportLoading = false;
+      });
+
+    builder
+      .addCase(fetchUnassignedTasksCount.pending, (state) => {
+        state.unassignedTasksCountLoading = true;
+      })
+      .addCase(fetchUnassignedTasksCount.fulfilled, (state, action) => {
+        state.unassignedTasksCount = action.payload;
+        state.unassignedTasksCountLoading = false;
+      })
+      .addCase(fetchUnassignedTasksCount.rejected, (state) => {
+        state.unassignedTasksCountLoading = false;
+      });
+
+    builder
+      .addCase(fetchSLASummary.pending, (state) => {
+        state.slaSummaryLoading = true;
+      })
+      .addCase(fetchSLASummary.fulfilled, (state, action) => {
+        state.slaSummary = action.payload;
+        state.slaSummaryLoading = false;
+      })
+      .addCase(fetchSLASummary.rejected, (state) => {
+        state.slaSummaryLoading = false;
+      });
+  },
+});
+
+// ============================================
+// ACTIONS
+// ============================================
+export const {
+  updateTaskAssignmentsInList,
+  setFilters,
+  resetFilters,
+  setPage,
+  toggleTaskSelection,
+  selectAllTasks,
+  deselectAllTasks,
+  openCreateDialog,
+  closeCreateDialog,
+  openManageDialog,
+  closeManageDialog,
+  clearErrors,
+  clearError,
+  invalidateTaskCache,
+} = taskSlice.actions;
+
+// ============================================
+// SELECTORS
+// ============================================
+const selectTaskState = (state) => state.task || initialState;
+
+export const selectTasks = createSelector(
+  [selectTaskState],
+  (task) => task.tasks,
+);
+
+export const selectPagination = createSelector([selectTaskState], (task) => ({
+  currentPage: task.currentPage,
+  pageSize: task.pageSize,
+  totalTasks: task.totalTasks,
+  totalPages: task.totalPages,
+}));
+
+export const selectFilters = createSelector(
+  [selectTaskState],
+  (task) => task.filters,
+);
+
+export const selectActiveFilterCount = createSelector(
+  [selectTaskState],
+  (task) => task.activeFilterCount,
+);
+
+export const selectSelectedTaskIds = createSelector(
+  [selectTaskState],
+  (task) => task.selectedTaskIds,
+);
+
+export const selectSelectedTasksCount = createSelector(
+  [selectTaskState],
+  (task) => task.selectedTaskIds.length,
+);
+
+export const selectHasSelectedTasks = createSelector(
+  [selectTaskState],
+  (task) => task.selectedTaskIds.length > 0,
+);
+
+export const selectCreateDialogOpen = createSelector(
+  [selectTaskState],
+  (task) => task.createDialogOpen,
+);
+
+export const selectManageDialogOpen = createSelector(
+  [selectTaskState],
+  (task) => task.manageDialogOpen,
+);
+
+export const selectManageDialogTaskId = createSelector(
+  [selectTaskState],
+  (task) => task.manageDialogTaskId,
+);
+
+export const selectAssignmentReport = createSelector(
+  [selectTaskState],
+  (task) => task.assignmentReport,
+);
+
+export const selectStatusCounts = createSelector(
+  [selectTaskState],
+  (task) => task.statusCounts,
+);
+
+export const selectIsLoading =
+  ({ type = "list" } = {}) =>
+  (state) =>
+    state?.task?.loading?.[type] ?? false;
+
+export const selectError = (state, type = "list") =>
+  state?.task?.error?.[type] ?? null;
+
+export const selectBulkActionInProgress = createSelector(
+  [selectTaskState],
+  (task) => task.bulkActionInProgress,
+);
+
+export const selectAssignmentReportLoading = createSelector(
+  [selectTaskState],
+  (task) => task.assignmentReportLoading,
+);
+
+export const selectHasAssignmentReportData = createSelector(
+  [selectTaskState],
+  (task) =>
+    Array.isArray(task.assignmentReport) && task.assignmentReport.length > 0,
+);
+
+export const selectUnassignedTasksCount = createSelector(
+  [selectTaskState],
+  (task) => task.unassignedTasksCount,
+);
+
+export const selectUnassignedTasksCountLoading = createSelector(
+  [selectTaskState],
+  (task) => task.unassignedTasksCountLoading,
+);
+
+export const selectSLASummary = createSelector(
+  [selectTaskState],
+  (task) => task.slaSummary,
+);
+
+export const selectSLASummaryLoading = createSelector(
+  [selectTaskState],
+  (task) => task.slaSummaryLoading,
+);
+
+export default taskSlice.reducer;

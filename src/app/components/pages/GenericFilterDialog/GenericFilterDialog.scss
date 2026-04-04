@@ -1,0 +1,456 @@
+// ======================
+// MAIN DIALOG OVERLAY
+// ======================
+.generic-filter-dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4); /* dark overlay */
+  backdrop-filter: blur(4px); /* blur background behind overlay */
+  -webkit-backdrop-filter: blur(4px); /* Safari support */
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 30px;
+  font-family: "Poppins", sans-serif;
+}
+
+// ======================
+// DIALOG CONTAINER
+// ======================
+.generic-filter-dialog {
+  background: #ffffff;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 520px;
+  max-height: 90vh;
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  animation: generic-filter-dialog-slide-in 0.3s ease-out;
+
+  // ======================
+  // HEADER SECTION
+  // ======================
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid #e2e8f0;
+    background: #f8fafc;
+  }
+
+  &__header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    svg {
+      color: #0f172a;
+    }
+
+    h3 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 600;
+      color: #0f172a;
+      letter-spacing: 0.025em;
+    }
+  }
+
+  &__close-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    background: #ffffff;
+    border: 1px solid #d1d5db;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #6b7280;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    font-family: "Poppins", sans-serif;
+    &:hover:not(:disabled) {
+      background: #f9fafb;
+      border-color: #9ca3af;
+      color: #374151;
+    }
+
+    &:disabled {
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+  }
+
+  // ======================
+  // CONTENT SECTION
+  // ======================
+  &__content {
+    padding: 24px;
+    max-height: 60vh;
+    overflow-y: auto;
+
+    // Custom scrollbar
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: #f1f5f9;
+      border-radius: 3px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 3px;
+
+      &:hover {
+        background: #94a3b8;
+      }
+    }
+  }
+
+  &__section {
+    margin-bottom: 32px;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+
+    h4 {
+      margin: 0 0 12px 0;
+      font-size: 14px;
+      font-weight: 600;
+      color: #374151;
+      text-transform: uppercase;
+      letter-spacing: 0.025em;
+    }
+  }
+
+  // ======================
+  // QUICK FILTERS SECTION
+  // ======================
+  &__quick-filters {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 12px;
+  }
+
+  &__quick-btn {
+    padding: 12px 16px;
+    background: #ffffff;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #374151;
+    transition: all 0.2s ease;
+    text-align: center;
+    cursor: pointer;
+    font-family: "Poppins", sans-serif;
+    &:hover:not(:disabled) {
+      border-color: #059669;
+      color: #059669;
+      background: #ecfdf5;
+    }
+
+    &--active {
+      background: #059669;
+      border-color: #059669;
+      color: #ffffff;
+    }
+
+    &:disabled {
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+  }
+
+  // ======================
+  // DATE INPUTS SECTION
+  // ======================
+  &__date-inputs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  &__date-group {
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      color: #374151;
+    }
+  }
+
+  &__date-container {
+    position: relative;
+  }
+
+  &__date-input {
+    width: 100%;
+    padding: 12px 16px;
+
+    border: 1.5px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 14px;
+    color: #374151;
+    background: #ffffff;
+    transition: all 0.2s ease;
+    font-family: "Poppins", sans-serif;
+    &:focus {
+      border-color: #059669;
+      box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.1);
+      outline: none;
+    }
+
+    &:disabled {
+      background: #f3f4f6;
+      cursor: not-allowed;
+      opacity: 0.7;
+    }
+  }
+
+  &__date-icon {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #9ca3af;
+    pointer-events: none;
+    display: none;
+  }
+
+  // ======================
+  // FIELD SEARCH SECTION
+  // ======================
+  &__field-search {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 12px;
+    font-family: "Poppins", sans-serif;
+  }
+
+  &__field-group {
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      color: #374151;
+    }
+  }
+
+  &__field-select,
+  &__field-input {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1.5px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 14px;
+    color: #374151;
+    background: #ffffff;
+    transition: all 0.2s ease;
+    font-family: "Poppins", sans-serif;
+    &:focus {
+      border-color: #059669;
+      box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.1);
+      outline: none;
+    }
+
+    &:disabled {
+      background: #f3f4f6;
+      cursor: not-allowed;
+      opacity: 0.7;
+    }
+  }
+
+  &__field-input {
+    &::placeholder {
+      color: #9ca3af;
+    }
+  }
+
+  &__field-hint {
+    margin: 0;
+    font-size: 12px;
+    color: #6b7280;
+    font-style: italic;
+  }
+
+  // ======================
+  // FOOTER SECTION
+  // ======================
+  &__footer {
+    display: flex;
+    gap: 12px;
+    padding: 20px 24px;
+    border-top: 1px solid #e2e8f0;
+    background: #f8fafc;
+  }
+
+  &__reset-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 20px;
+    background: #ffffff;
+    color: #6b7280;
+    border: 1.5px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    font-family: "Poppins", sans-serif;
+    &:hover:not(:disabled) {
+      background: #f9fafb;
+      border-color: #9ca3af;
+      color: #374151;
+    }
+
+    &:disabled {
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+  }
+
+  &__apply-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 20px;
+    background: #059669;
+    color: #ffffff;
+    border: 1.5px solid #059669;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    font-family: "Poppins", sans-serif;
+    &:hover:not(:disabled) {
+      background: #047857;
+      border-color: #047857;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);
+    }
+
+    &--disabled {
+      background: #d1d5db;
+      border-color: #d1d5db;
+      color: #9ca3af;
+      cursor: not-allowed;
+
+      &:hover {
+        background: #d1d5db;
+        border-color: #d1d5db;
+        transform: none;
+        box-shadow: none;
+      }
+    }
+
+    &--loading {
+      cursor: wait;
+
+      &:hover {
+        transform: none;
+      }
+    }
+  }
+
+  // ======================
+  // SPINNER
+  // ======================
+  &__spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid transparent;
+    border-top: 2px solid currentColor;
+    border-radius: 50%;
+    animation: generic-filter-dialog-spin 1s linear infinite;
+  }
+}
+
+// ======================
+// KEYFRAME ANIMATIONS
+// ======================
+@keyframes generic-filter-dialog-slide-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes generic-filter-dialog-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+// ======================
+// RESPONSIVE DESIGN
+// ======================
+@media (max-width: 768px) {
+  .generic-filter-dialog-overlay {
+    padding: 16px;
+    align-items: flex-end;
+  }
+
+  .generic-filter-dialog {
+    max-width: none;
+    width: 100%;
+    max-height: 85vh;
+    border-radius: 16px 16px 0 0;
+    animation: generic-filter-dialog-slide-up 0.3s ease-out;
+
+    &__content {
+      padding: 20px;
+    }
+
+    &__quick-filters {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    &__date-inputs,
+    &__field-search {
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+
+    &__footer {
+      flex-direction: column;
+      gap: 12px;
+    }
+  }
+}
+
+@keyframes generic-filter-dialog-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

@@ -1,0 +1,964 @@
+// ============================================================
+// TasksTable.scss
+// ============================================================
+
+// ── 1. Variables & Tokens ────────────────────────────────────
+$radius-sm: 6px;
+$radius-md: 8px;
+$radius-lg: 12px;
+
+$border-color: #e5e7eb;
+$bg-white: #ffffff;
+$bg-subtle: #f9fafb;
+$text-primary: #111827;
+$text-secondary: #374151;
+$text-muted: #6b7280;
+$text-light: #9ca3af;
+$accent-green: #10b981;
+
+$sla-breached-bg: #fef2f2;
+$sla-breached-clr: #dc2626;
+$sla-breached-border: #fecaca;
+
+$sla-today-bg: #fffbeb;
+$sla-today-clr: #d97706;
+$sla-today-border: #fde68a;
+
+$sla-paused-bg: #f5f3ff;
+$sla-paused-clr: #7c3aed;
+$sla-paused-border: #ddd6fe;
+
+$sla-running-bg: #f0fdf4;
+$sla-running-clr: #059669;
+$sla-running-border: #bbf7d0;
+
+// ── 2. Base Layout ───────────────────────────────────────────
+.task-table {
+  width: 100%;
+  max-width: 100%;
+}
+
+// ── 3. Controls Bar ──────────────────────────────────────────
+.task-table {
+  .controls-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 20px;
+    padding: 14px 20px;
+    background: $bg-white;
+    border: 1px solid $border-color;
+    border-radius: $radius-lg;
+  }
+
+  .controls-left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .controls-right-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+
+  .checkbox {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    accent-color: #4e4e4e;
+    flex-shrink: 0;
+  }
+
+  .magic-sort-badge {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 10px;
+    background: linear-gradient(135deg, #faf5ff 0%, #eff6ff 100%);
+    border: 1px solid #e9d5ff;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #7c3aed;
+    svg {
+      color: #a855f7;
+    }
+  }
+
+  .status-tabs {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .status-tab {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 7px 14px;
+    background: $bg-subtle;
+    border: 1px solid transparent;
+    border-radius: $radius-md;
+    font-size: 15px;
+    font-weight: 600;
+    color: $text-muted;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+
+    svg {
+      width: 18px;
+      height: 18px;
+      color: $text-muted;
+    }
+
+    &:hover {
+      background: #f3f4f6;
+    }
+
+    .status-count {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 18px;
+      height: 18px;
+      padding: 0 5px;
+      margin-left: 4px;
+      background: #e5e7eb;
+      color: $text-muted;
+      font-size: 11px;
+      font-weight: 700;
+      border-radius: 9px;
+      line-height: 1;
+    }
+
+    &.active {
+      background: $bg-white;
+      border-color: var(--tab-color);
+      color: var(--tab-color);
+      font-weight: 700;
+      box-shadow:
+        rgba(9, 30, 66, 0.25) 0 1px 1px,
+        rgba(9, 30, 66, 0.13) 0 0 1px 1px;
+      svg {
+        color: var(--tab-color);
+      }
+      .status-count {
+        background: var(--tab-color);
+        color: #fff;
+      }
+    }
+  }
+
+  .priority-filter {
+    position: relative;
+  }
+
+  .priority-button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 14px;
+    background: $bg-white;
+    border: 1px solid $border-color;
+    border-radius: $radius-md;
+    font-size: 13px;
+    font-weight: 500;
+    color: $text-secondary;
+    cursor: pointer;
+    transition: all 0.2s;
+    &:hover {
+      border-color: $accent-green;
+      background: #f0fdf4;
+    }
+  }
+
+  .priority-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    min-width: 190px;
+    background: $bg-white;
+    border: 1px solid $border-color;
+    border-radius: $radius-md;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    z-index: 10;
+    overflow: hidden;
+  }
+
+  .priority-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    font-size: 13px;
+    color: $text-secondary;
+    cursor: pointer;
+    transition: background 0.2s;
+    &:hover {
+      background: $bg-subtle;
+    }
+    &.active {
+      background: #f0fdf4;
+      color: $accent-green;
+      font-weight: 600;
+    }
+  }
+
+  .priority-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .bulk-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex: 1;
+  }
+
+  .bulk-count {
+    font-size: 14px;
+    font-weight: 600;
+    color: $text-secondary;
+  }
+  .bulk-buttons {
+    display: flex;
+    gap: 8px;
+  }
+}
+
+// ── 4. Task List & Card Wrapper ───────────────────────────────
+.task-table {
+  .task-list {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    align-items: stretch;
+  }
+
+  .task-card-wrapper {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+// ── 5. Task Cards ────────────────────────────────────────────
+.task-table {
+  .task-card {
+    position: relative;
+    display: flex;
+    gap: 14px;
+    padding: 18px 20px 16px;
+    background: $bg-white;
+    border: 1px solid $border-color;
+    border-radius: $radius-lg;
+    cursor: pointer;
+    flex: 1;
+    transition:
+      background 0.18s,
+      border-color 0.18s,
+      box-shadow 0.18s;
+
+    &:hover {
+      background: #fafafa;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+    }
+
+    &.selected {
+      background: #f0fdf4;
+      border-color: $accent-green;
+      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+    }
+  }
+
+  .task-checkbox {
+    padding-top: 3px;
+    flex-shrink: 0;
+  }
+
+  .task-content {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  // ── Header ──
+  .task-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .task-title-group {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .task-title {
+    margin: 0 0 4px;
+    font-size: 15.5px;
+    font-weight: 600;
+    color: $text-primary;
+    line-height: 1.4;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .entity-name {
+    font-size: 13px;
+    color: $text-light;
+    font-weight: 500;
+  }
+
+  .task-badges {
+    display: flex;
+    gap: 5px;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .badge {
+    padding: 4px 10px;
+    border-radius: $radius-sm;
+    font-size: 12.5px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+  }
+
+  // ── Meta row ──
+  .task-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 18px;
+    align-items: center;
+  }
+
+  .meta-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13.5px;
+    color: $text-secondary;
+    font-weight: 500;
+
+    svg {
+      flex-shrink: 0;
+      color: $text-light;
+      width: 15px;
+      height: 15px;
+    }
+
+    // Created date — subtle
+    &.meta-created {
+      color: $text-muted;
+      svg {
+        color: $text-light;
+      }
+    }
+
+    // Due date — prominent amber
+    &.meta-due {
+      color: #b45309;
+      font-weight: 600;
+      svg {
+        color: #d97706;
+        width: 15px;
+        height: 15px;
+      }
+    }
+  }
+
+  .meta-label {
+    color: $text-light;
+    font-size: 12px;
+  }
+
+  .billable-badge {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    background: #dbeafe;
+    color: #1e40af;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .timeline-badge {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: #f3f4f6;
+    color: #6b7280;
+    border: 1px solid #e5e7eb;
+
+    svg {
+      flex-shrink: 0;
+    }
+
+    &:hover {
+      background: #eff6ff;
+      color: #2563eb;
+      border-color: #bfdbfe;
+    }
+  }
+}
+
+// ── 6. SLA Bar ───────────────────────────────────────────────
+.task-table {
+  .sla-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 8px 12px;
+    border-radius: $radius-sm;
+    border: 1px solid transparent;
+
+    &.bar-breached {
+      background: $sla-breached-bg;
+      border-color: $sla-breached-border;
+      color: $sla-breached-clr;
+    }
+    &.bar-due-today {
+      background: $sla-today-bg;
+      border-color: $sla-today-border;
+      color: $sla-today-clr;
+    }
+    &.bar-paused {
+      background: $sla-paused-bg;
+      border-color: $sla-paused-border;
+      color: $sla-paused-clr;
+    }
+    &.bar-running {
+      background: $sla-running-bg;
+      border-color: $sla-running-border;
+      color: $sla-running-clr;
+    }
+    &.bar-due-tomorrow {
+      background: rgba(59, 130, 246, 0.08);
+      color: #2563eb;
+    }
+
+    &.bar-due-soon {
+      background: rgba(245, 158, 11, 0.1); 
+      color: #d97706;
+    }
+    
+  }
+
+  .sla-bar-left {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+
+    svg {
+      width: 16px;
+      height: 16px;
+      opacity: 1;
+      flex-shrink: 0;
+    }
+  }
+
+  .sla-status-label {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+  }
+
+  .sla-bar-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .sla-deadline {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 13px;
+    font-weight: 600;
+
+    svg {
+      width: 13px;
+      height: 13px;
+      opacity: 0.7;
+    }
+  }
+
+  .sla-relative {
+    font-size: 12.5px;
+    font-weight: 500;
+    opacity: 0.75;
+    margin-left: 2px;
+  }
+
+  .sla-flag {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+
+    &.flag-overdue {
+      background: $sla-breached-clr;
+      color: #fff;
+    }
+    &.flag-today {
+      background: $sla-today-clr;
+      color: #fff;
+    }
+    &.flag-paused {
+      background: $sla-paused-clr;
+      color: #fff;
+    }
+  }
+}
+
+// ── 7. Footer Pills ──────────────────────────────────────────
+.task-table {
+  // Shared pill base
+  .footer-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 11px;
+    border-radius: 20px;
+    font-size: 12.5px;
+    font-weight: 600;
+    border: 1px solid;
+    white-space: nowrap;
+    line-height: 1.2;
+
+    svg {
+      width: 13px;
+      height: 13px;
+      flex-shrink: 0;
+    }
+  }
+
+  // Urgency pill
+  .urgency-pill {
+    @extend .footer-pill;
+
+    &.urgency-level-1 {
+      background: #f9fafb;
+      color: $text-muted;
+      border-color: #e5e7eb;
+    }
+    &.urgency-level-2 {
+      background: #f0fdf4;
+      color: #059669;
+      border-color: #bbf7d0;
+    }
+    &.urgency-level-3 {
+      background: #fffbeb;
+      color: #d97706;
+      border-color: #fde68a;
+    }
+    &.urgency-level-4 {
+      background: #fff7ed;
+      color: #ea580c;
+      border-color: #fed7aa;
+    }
+    &.urgency-level-5 {
+      background: #fef2f2;
+      color: #dc2626;
+      border-color: #fecaca;
+    }
+
+    .urgency-dots {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .urgency-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+      opacity: 0.2;
+      &.filled {
+        opacity: 1;
+      }
+    }
+  }
+
+  // "Not Assigned" pill
+  .unassigned-pill {
+    @extend .footer-pill;
+    background: #fef2f2;
+    color: #dc2626;
+    border-color: #fecaca;
+  }
+}
+
+// ── 8. Card Footer ───────────────────────────────────────────
+.task-table {
+  .task-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #f3f4f6;
+    margin-top: auto;
+  }
+
+  .footer-left {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    flex-wrap: wrap;
+  }
+
+  .footer-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .assignee-count-label {
+    font-size: 12.5px;
+    color: $text-light;
+    font-weight: 500;
+  }
+
+  .task-assignees {
+    display: flex;
+    align-items: center;
+  }
+
+  .avatar-stack {
+    display: flex;
+    align-items: center;
+    padding: 2px 7px;
+    border-radius: 60px;
+    cursor: pointer;
+    transition: background 0.2s;
+
+    gap: 0;
+    &:hover {
+      background: #f1f1f1;
+    }
+    > * + * {
+      margin-left: -6px;
+    }
+  }
+
+  .avatar-wrapper {
+    position: relative;
+    display: inline-flex;
+    border-radius: 50%;
+    &.sla-ok {
+      box-shadow: 0 0 0 2px $sla-running-clr;
+    }
+    &.sla-breach {
+      box-shadow: 0 0 0 2px $sla-breached-clr;
+    }
+  }
+
+  .avatar-more {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #f3f4f6;
+    border: 2px solid $bg-white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    color: $text-muted;
+    flex-shrink: 0;
+  }
+
+  .avatar-add {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: #f9fafb;
+    border: 1.5px dashed #d1d5db;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: $text-light;
+    flex-shrink: 0;
+    transition: all 0.2s;
+    &:hover {
+      background: #f0fdf4;
+      border-color: $accent-green;
+      color: $accent-green;
+    }
+  }
+
+  .assignee-chip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 11px;
+    border-radius: $radius-md;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+
+    svg {
+      width: 15px;
+      height: 15px;
+    }
+
+    &.assignee-empty {
+      background: #f0fdf4;
+      color: #059669;
+      border: 1px solid #86efac;
+      &:hover {
+        background: #dcfce7;
+      }
+    }
+    &.assignee-all {
+      background: #eff6ff;
+      color: #1e40af;
+      border: 1px solid #bfdbfe;
+      &:hover {
+        background: #dbeafe;
+      }
+    }
+  }
+
+  .doc-badge {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid $border-color;
+    color: $text-muted;
+    background: $bg-subtle;
+
+    svg {
+      width: 14px;
+      height: 14px;
+      flex-shrink: 0;
+    }
+
+    &.has-docs {
+      background: #eff6ff;
+      color: #1d4ed8;
+      border-color: #bfdbfe;
+      &:hover {
+        background: #dbeafe;
+      }
+    }
+    &.no-docs:hover {
+      background: #f3f4f6;
+      color: $text-secondary;
+    }
+  }
+}
+
+// ── 9. Bulk Dropdowns ─────────────────────────────────────────
+.bulk-buttons {
+  display: flex;
+  gap: 8px;
+}
+.bulk-actions-menu {
+  position: relative;
+}
+
+.bulk-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  min-width: 220px;
+  background: $bg-white;
+  border: 1px solid $border-color;
+  border-radius: $radius-md;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  overflow: hidden;
+}
+
+.dropdown-section {
+  padding: 8px 0;
+}
+
+.dropdown-label {
+  padding: 8px 16px;
+  font-size: 11px;
+  font-weight: 700;
+  color: $text-muted;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+.dropdown-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 16px;
+  font-size: 13.5px;
+  color: $text-secondary;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s;
+  text-align: left;
+  svg {
+    flex-shrink: 0;
+  }
+  &:hover {
+    background: $bg-subtle;
+  }
+}
+
+.dropdown-divider {
+  height: 1px;
+  background: $border-color;
+  margin: 4px 0;
+}
+
+// ── 10. States ────────────────────────────────────────────────
+.task-table {
+  .loading-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 20px;
+    color: $text-muted;
+    p {
+      margin-top: 16px;
+      font-size: 14px;
+    }
+  }
+
+  .spinner {
+    width: 36px;
+    height: 36px;
+    border: 3px solid #f3f4f6;
+    border-top-color: $accent-green;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 20px;
+    text-align: center;
+    p {
+      font-size: 16px;
+      font-weight: 600;
+      color: $text-secondary;
+      margin: 0 0 8px;
+    }
+    span {
+      font-size: 14px;
+      color: $text-muted;
+    }
+  }
+}
+
+// ── 11. Responsive ────────────────────────────────────────────
+@media (max-width: 900px) {
+  .task-table .task-list {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .task-table {
+    .controls-bar,
+    .controls-left {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .controls-right-group {
+      justify-content: flex-end;
+    }
+    .task-header {
+      flex-direction: column;
+    }
+    .task-badges {
+      align-self: flex-start;
+      justify-content: flex-start;
+    }
+    .task-footer {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+  }
+}
+
+@media (min-width: 1440px) {
+  .task-table {
+    .task-card {
+      padding: 20px 22px 18px;
+    }
+    .task-title {
+      font-size: 16px;
+    }
+    .meta-item {
+      font-size: 14px;
+    }
+    .badge {
+      font-size: 13px;
+    }
+    .sla-bar {
+      padding: 9px 13px;
+    }
+    .sla-status-label {
+      font-size: 13.5px;
+    }
+    .sla-deadline {
+      font-size: 13.5px;
+    }
+    .footer-pill {
+      font-size: 13px;
+    }
+  }
+}

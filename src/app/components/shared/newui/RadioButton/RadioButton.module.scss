@@ -1,0 +1,334 @@
+.radioButton {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1.5px solid #e5e7eb;
+  background: #ffffff;
+
+  &.hasContent {
+    &:hover:not(.disabled) {
+      border-color: #d1d5db;
+      background: #f9fafb;
+    }
+
+    &.checked {
+      border-color: #3b82f6;
+      background: #eff6ff;
+      
+    }
+  }
+
+  &.minimal {
+    padding: 0;
+    border: none;
+    background: transparent;
+    gap: 8px;
+    align-items: center;
+
+    &:hover:not(.disabled) {
+      background: transparent;
+    }
+  }
+
+  &.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+
+}
+
+.radioInput {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.radioCircle {
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  border: 2px solid #d1d5db;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  transition: all 0.2s ease;
+  margin-top: 2px;
+
+  .checked & {
+    border-color: #3b82f6;
+    background: #ffffff;
+  }
+
+  .disabled & {
+    background: #f3f4f6;
+  }
+}
+
+.radioInner {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #3b82f6;
+  transform: scale(0);
+  animation: radioScale 0.2s ease forwards;
+}
+
+@keyframes radioScale {
+  from {
+    transform: scale(0);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+.radioContent {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  position: relative;
+  min-width: 0;
+}
+
+.radioLabel {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1f2937;
+  line-height: 1.4;
+
+  .disabled & {
+    color: #9ca3af;
+  }
+}
+
+.radioDescription {
+  font-size: 14px;
+  font-weight: 400;
+  color: #6b7280;
+  line-height: 1.5;
+
+  .disabled & {
+    color: #d1d5db;
+  }
+}
+
+.radioIndicator {
+  position: absolute;
+  top: 4px;
+  right: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #3b82f6;
+  animation: indicatorPulse 0.3s ease;
+}
+
+@keyframes indicatorPulse {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+// Size variants
+.small {
+  padding: 12px;
+  gap: 10px;
+  border-radius: 10px;
+
+  &.minimal {
+    padding: 0;
+    gap: 6px;
+  }
+
+  .radioCircle {
+    width: 18px;
+    height: 18px;
+    min-width: 18px;
+  }
+
+  .radioInner {
+    width: 8px;
+    height: 8px;
+  }
+
+  .radioLabel {
+    font-size: 14px;
+  }
+
+  .radioDescription {
+    font-size: 13px;
+  }
+
+  .radioIndicator {
+    width: 6px;
+    height: 6px;
+  }
+}
+
+.mid {
+  padding: 16px;
+  gap: 12px;
+  border-radius: 12px;
+
+  &.minimal {
+    padding: 0;
+    gap: 8px;
+  }
+
+  .radioCircle {
+    width: 20px;
+    height: 20px;
+    min-width: 20px;
+  }
+
+  .radioInner {
+    width: 10px;
+    height: 10px;
+  }
+
+  .radioLabel {
+    font-size: 15px;
+  }
+
+  .radioDescription {
+    font-size: 14px;
+  }
+
+  .radioIndicator {
+    width: 8px;
+    height: 8px;
+  }
+}
+
+.large {
+  padding: 20px;
+  gap: 14px;
+  border-radius: 14px;
+
+  &.minimal {
+    padding: 0;
+    gap: 10px;
+  }
+
+  .radioCircle {
+    width: 22px;
+    height: 22px;
+    min-width: 22px;
+  }
+
+  .radioInner {
+    width: 11px;
+    height: 11px;
+  }
+
+  .radioLabel {
+    font-size: 16px;
+  }
+
+  .radioDescription {
+    font-size: 15px;
+  }
+
+  .radioIndicator {
+    width: 9px;
+    height: 9px;
+  }
+}
+
+// RadioGroup styles
+.radioGroup {
+  display: flex;
+
+  &.vertical {
+    flex-direction: column;
+  }
+
+  &.horizontal {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  &.gap-small {
+    gap: 8px;
+  }
+
+  &.gap-mid {
+    gap: 12px;
+  }
+
+  &.gap-large {
+    gap: 16px;
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 640px) {
+  .radioButton {
+    &.large {
+      padding: 16px;
+      gap: 12px;
+
+      .radioLabel {
+        font-size: 15px;
+      }
+
+      .radioDescription {
+        font-size: 14px;
+      }
+    }
+
+    &.mid {
+      padding: 14px;
+    }
+  }
+
+  .radioGroup.horizontal {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 480px) {
+  .radioButton {
+    &.large {
+      padding: 14px;
+      gap: 10px;
+    }
+
+    &.mid {
+      padding: 12px;
+      gap: 10px;
+    }
+
+    &.small {
+      padding: 10px;
+      gap: 8px;
+    }
+
+    .radioLabel {
+      font-size: 14px;
+    }
+
+    .radioDescription {
+      font-size: 13px;
+    }
+  }
+}

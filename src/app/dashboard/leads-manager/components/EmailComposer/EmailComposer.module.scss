@@ -1,0 +1,1069 @@
+// EmailComposer.module.scss
+// Matches the CreateActivityDialog design language:
+// Poppins, indigo accent, $gray-* palette, subtle shadows, no 700 weight
+
+// ── Tokens ────────────────────────────────────────────────────────────────────
+$white: #ffffff;
+$gray-50: #f8f9fa;
+$gray-100: #f1f3f5;
+$gray-150: #eaecef;
+$gray-200: #e4e7eb;
+$gray-300: #d1d5db;
+$gray-400: #9ca3af;
+$gray-500: #6b7280;
+$gray-600: #4b5563;
+$gray-700: #374151;
+$gray-800: #1f2937;
+
+$indigo-50: #eef2ff;
+$indigo-100: #e0e7ff;
+$indigo-200: #c7d2fe;
+$indigo-300: #a5b4fc;
+$indigo-400: #818cf8;
+$indigo-500: #6366f1;
+$indigo-600: #4f46e5;
+
+$red-50: #fff1f2;
+$red-500: #ef4444;
+$red-600: #dc2626;
+
+$green-50: #f0fdf4;
+$green-500: #22c55e;
+$green-600: #16a34a;
+
+$amber-50: #fffbeb;
+$amber-200: #fde68a;
+$amber-600: #d97706;
+$amber-700: #b45309;
+
+$drawer-width: 860px;
+
+$font: "Poppins", sans-serif;
+$radius-sm: 6px;
+$radius-md: 10px;
+$radius-lg: 14px;
+$radius-xl: 18px;
+$radius-full: 9999px;
+
+@mixin card-shadow {
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.07),
+    0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+@mixin focus-ring($color: $indigo-500) {
+  outline: 2px solid $color;
+  outline-offset: 2px;
+}
+
+// ── Backdrop ──────────────────────────────────────────────────────────────────
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.685);
+  backdrop-filter: blur(12px);
+  z-index: 11000;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+// ── Drawer ────────────────────────────────────────────────────────────────────
+.drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100dvh;
+  width: $drawer-width;
+  max-width: 100vw;
+  background: $white;
+  z-index: 11000;
+  display: flex;
+  flex-direction: column;
+  font-family: $font;
+  box-shadow:
+    -8px 0 32px rgba(0, 0, 0, 0.157),
+    -2px 0 8px rgba(0, 0, 0, 0.06);
+  animation: slideIn 0.26s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+// ── Header ────────────────────────────────────────────────────────────────────
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid $gray-150;
+  flex-shrink: 0;
+  background: $white;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.headerIcon {
+  color: $gray-600;
+  flex-shrink: 0;
+}
+
+.headerText {
+  h2 {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: $gray-600;
+    letter-spacing: -0.02em;
+    line-height: 1.25;
+  }
+
+  p {
+    margin: 2px 0 0;
+    font-size: 0.85rem;
+    font-weight: 400;
+    color: $gray-400;
+  }
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.draftBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border: 1.5px solid $gray-200;
+  border-radius: $radius-full;
+  background: $white;
+  color: $gray-500;
+  font-size: 0.75rem;
+  font-weight: 500;
+  font-family: $font;
+  cursor: pointer;
+  @include card-shadow;
+  transition:
+    border-color 0.12s,
+    background 0.12s,
+    color 0.12s;
+
+  svg {
+    color: $gray-400;
+  }
+
+  &:hover {
+    border-color: $indigo-200;
+    background: $indigo-50;
+    color: $indigo-600;
+    svg {
+      color: $indigo-400;
+    }
+  }
+  &:focus-visible {
+    @include focus-ring;
+  }
+}
+
+.closeBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  border-radius: $radius-md;
+  color: $gray-400;
+  cursor: pointer;
+  transition:
+    background 0.12s,
+    color 0.12s;
+
+  &:hover {
+    background: $gray-100;
+    color: $gray-700;
+  }
+  &:focus-visible {
+    @include focus-ring;
+  }
+}
+
+// ── Draft restored banner ─────────────────────────────────────────────────────
+.draftBanner {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 20px;
+  background: $amber-50;
+  border-bottom: 1px solid $amber-200;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: $amber-700;
+  flex-shrink: 0;
+
+  svg {
+    color: $amber-600;
+    flex-shrink: 0;
+  }
+}
+
+// ── Body ──────────────────────────────────────────────────────────────────────
+.body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 20px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  scrollbar-width: thin;
+  scrollbar-color: $gray-200 transparent;
+
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: $gray-200;
+    border-radius: 10px;
+  }
+}
+
+// ── Field ─────────────────────────────────────────────────────────────────────
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fieldLabel {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: $gray-400;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+
+  .req {
+    color: $red-500;
+  }
+}
+
+// ── To field ──────────────────────────────────────────────────────────────────
+.toWrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  border: 1.5px solid $gray-200;
+  border-radius: $radius-md;
+  background: $white;
+
+  padding: 0 10px 0 6px;
+  height: 46px;
+
+  cursor: pointer; // 👈 makes it feel clickable
+
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+
+  &:hover {
+    border-color: $gray-300;
+  }
+
+  &:focus-within {
+    border-color: $indigo-300;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  }
+
+  &.fieldError {
+    border-color: $red-500;
+  }
+}
+
+.toIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 32px;
+  height: 32px;
+
+  color: $gray-400;
+  flex-shrink: 0;
+}
+
+.emailChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: $indigo-50;
+  border: 1px solid $indigo-100;
+  border-radius: $radius-full;
+  padding: 4px 10px;
+  font-size: 0.82rem;
+  font-weight: 500;
+
+  color: $indigo-600;
+
+  span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .chipCaret {
+    color: $indigo-400;
+    flex-shrink: 0;
+  }
+}
+
+.toPlaceholder {
+  flex: 1;
+  font-size: 0.86rem;
+  font-weight: 400;
+  color: $gray-300;
+  font-family: $font;
+}
+
+.toToggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  border-radius: $radius-sm;
+  cursor: pointer;
+  color: $gray-400;
+  transition:
+    background 0.1s,
+    color 0.1s;
+  flex-shrink: 0;
+
+  &:hover:not(:disabled) {
+    background: $gray-100;
+    color: $gray-600;
+  }
+  &:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+}
+
+.toChevron {
+  transition: transform 0.18s ease;
+  &.open {
+    transform: rotate(180deg);
+  }
+}
+
+.toDropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 300;
+  background: $white;
+  border: 1.5px solid $gray-200;
+  border-radius: $radius-md;
+  box-shadow:
+    0 10px 28px rgba(0, 0, 0, 0.12),
+    0 2px 8px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+  animation: dropIn 0.13s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes dropIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.toOption {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 14px;
+  font-size: 0.9rem;
+  font-weight: 400;
+  color: $gray-600;
+  cursor: pointer;
+  transition:
+    background 0.1s,
+    color 0.1s;
+
+  &:hover {
+    background: $indigo-50;
+    color: $indigo-600;
+  }
+
+  &.toOptionActive {
+    background: $indigo-50;
+    color: $indigo-600;
+    font-weight: 500;
+  }
+}
+
+.toOptionIcon {
+  color: $gray-400;
+  flex-shrink: 0;
+}
+
+.toOptionCheck {
+  color: $indigo-500;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+// ── From field ────────────────────────────────────────────────────────────────
+.fromWrap {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  height: 46px;
+  padding: 0 14px;
+  border: 1.5px solid $gray-150;
+  border-radius: $radius-md;
+  background: $gray-50;
+}
+
+.lockIcon {
+  color: $gray-300;
+  flex-shrink: 0;
+}
+
+.fromEmail {
+  font-size: 0.86rem;
+  font-weight: 500;
+  color: $gray-500;
+  font-family: $font;
+}
+
+// ── Subject input ─────────────────────────────────────────────────────────────
+.subjectInput {
+  height: 46px;
+  border: 1.5px solid $gray-200;
+  border-radius: $radius-md;
+  background: $white;
+  padding: 0 14px;
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: $gray-800;
+  font-family: $font;
+
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+
+  &::placeholder {
+    color: $gray-300;
+    font-weight: 400;
+  }
+
+  &:focus {
+    outline: none;
+    border-color: $indigo-300;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  }
+
+  &.fieldError {
+    border-color: $red-500;
+  }
+}
+
+.editorWrapper {
+  position: relative;
+  outline: 1px solid rgba(0, 0, 0, 0.079);
+
+  border-radius: $radius-md;
+}
+
+// ── Toolbar ───────────────────────────────────────────────────────────────────
+.toolbar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+
+  display: flex;
+  align-items: center;
+  gap: 4px;
+
+  padding: 8px 10px;
+
+  background: $gray-50;
+  border-bottom: 1px solid $gray-200;
+
+  border-radius: $radius-md $radius-md 0 0;
+
+  z-index: 10;
+  width: inherit;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.164);
+}
+
+.toolbarBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  border-radius: $radius-sm;
+  color: $gray-500;
+  cursor: pointer;
+  transition:
+    background 0.1s,
+    color 0.1s;
+
+  &:hover {
+    background: $gray-200;
+    color: $gray-800;
+  }
+  &:focus-visible {
+    @include focus-ring;
+  }
+}
+
+.toolbarSep {
+  width: 1px;
+  height: 18px;
+  background: $gray-200;
+  margin: 0 3px;
+  flex-shrink: 0;
+}
+
+// ── Editor ────────────────────────────────────────────────────────────────────
+
+.editor {
+  position: relative;
+  flex: 1;
+  min-height: 100%;
+  overflow-y: auto;
+
+  border: 1.5px solid $gray-200;
+  border-radius: $radius-md;
+  background: $white;
+
+  padding: 60px 16px 14px; // 👈 space for toolbar
+
+  font-size: 0.95rem;
+  line-height: 1.75;
+  letter-spacing: 0.01em;
+  color: $gray-700;
+  font-family: $font;
+  overflow-x: auto;
+
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+
+  // subtle "writing surface" feel
+  box-shadow:
+    inset 0 1px 2px rgba(0, 0, 0, 0.03),
+    0 1px 2px rgba(0, 0, 0, 0.04);
+
+  scrollbar-width: thin;
+  scrollbar-color: $gray-200 transparent;
+  max-height: 420px;
+  outline: none;
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: $gray-200;
+    border-radius: 10px;
+  }
+
+  // ✅ PLACEHOLDER (robust)
+  &::before {
+    content: attr(data-placeholder);
+    position: absolute;
+    top: 60px; // below toolbar
+    left: 16px;
+    color: $gray-300;
+    pointer-events: none;
+  }
+
+  // hide placeholder when typing OR browser inserts <br>
+  &:not(:empty)::before,
+  &:focus::before,
+  &:has(br:only-child):focus::before {
+    display: none;
+  }
+
+  // ✅ FOCUS STATE
+  &:focus {
+    border-color: $indigo-300;
+    box-shadow:
+      inset 0 1px 2px rgba(0, 0, 0, 0.04),
+      0 0 0 3px rgba(99, 102, 241, 0.1);
+  }
+
+  &.fieldError {
+    border-color: $red-500;
+
+    &:focus {
+      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+    }
+  }
+
+  // ── TEXT ELEMENTS ─────────────────────────────
+
+  p {
+    margin: 0 0 10px;
+  }
+
+  b,
+  strong {
+    font-weight: 600;
+  }
+
+  i,
+  em {
+    font-style: italic;
+  }
+
+  u {
+    text-decoration: underline;
+  }
+
+  a {
+    color: $indigo-500;
+    text-decoration: underline;
+  }
+
+  // ── LISTS (FIXED PROPERLY) ────────────────────
+
+  ul,
+  ol {
+    padding-left: 22px;
+    margin: 10px 0;
+  }
+
+  ul {
+    list-style-type: disc;
+  }
+
+  ol {
+    list-style-type: decimal;
+  }
+
+  li {
+    margin: 4px 0;
+  }
+
+  // nested lists
+  ul ul {
+    list-style-type: circle;
+  }
+
+  ul ul ul {
+    list-style-type: square;
+  }
+
+  // ── BLOCKQUOTE ────────────────────────────────
+
+  blockquote {
+    margin: 10px 0;
+    padding: 8px 12px;
+    border-left: 3px solid $indigo-200;
+    background: $indigo-50;
+    border-radius: 0 $radius-sm $radius-sm 0;
+    color: $gray-600;
+    font-style: italic;
+  }
+
+  // ── CODE STYLE (optional but nice) ────────────
+
+  code {
+    background: $gray-100;
+    padding: 2px 5px;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+}
+
+// ── Error text ────────────────────────────────────────────────────────────────
+.errText {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.73rem;
+  font-weight: 500;
+  color: $red-600;
+  margin-top: -2px;
+}
+
+// ── Attachments ───────────────────────────────────────────────────────────────
+.attachSection {
+  border: 1.5px solid $gray-150;
+  border-radius: $radius-md;
+  background: $gray-50;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.attachHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.attachTitle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: $gray-500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+
+  svg {
+    color: $gray-400;
+  }
+}
+
+.attachCount {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: $gray-400;
+  background: $gray-200;
+  border-radius: $radius-full;
+  padding: 1px 7px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.addAttachBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border: 1.5px solid $gray-200;
+  border-radius: $radius-full;
+  background: $white;
+  color: $gray-500;
+  font-size: 0.75rem;
+  font-weight: 500;
+  font-family: $font;
+  cursor: pointer;
+
+  transition:
+    border-color 0.12s,
+    background 0.12s,
+    color 0.12s;
+
+  svg {
+    color: $gray-400;
+  }
+
+  &:hover {
+    border-color: $indigo-200;
+    background: $indigo-50;
+    color: $indigo-600;
+    svg {
+      color: $indigo-400;
+    }
+  }
+  &:focus-visible {
+    @include focus-ring;
+  }
+}
+
+.attachEmpty {
+  font-size: 0.78rem;
+  font-weight: 400;
+  color: $gray-300;
+  margin: 0;
+}
+
+.attachList {
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
+  overflow-y: auto;
+}
+
+.attachChip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1.5px solid $gray-200;
+  border-radius: $radius-md;
+  background: $white;
+
+  transition: border-color 0.12s;
+
+  &:hover {
+    border-color: $gray-300;
+  }
+}
+
+.attachChipIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: $radius-sm;
+  background: $indigo-50;
+  color: $indigo-400;
+  flex-shrink: 0;
+}
+
+.attachChipInfo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.attachChipName {
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: $gray-700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attachChipMeta {
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: $gray-400;
+}
+
+.attachRemove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: transparent;
+  border-radius: $radius-sm;
+  color: $gray-400;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition:
+    background 0.1s,
+    color 0.1s;
+
+  &:hover {
+    background: $red-50;
+    color: $red-600;
+  }
+  &:focus-visible {
+    @include focus-ring($red-500);
+  }
+}
+
+// ── Footer ────────────────────────────────────────────────────────────────────
+.footer {
+  padding: 14px 20px 18px;
+  border-top: 1px solid $gray-150;
+  background: $gray-50;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.cancelBtn {
+  padding: 12px 20px;
+  border: 1.5px solid $gray-200;
+  border-radius: $radius-full;
+  background: $white;
+  color: $gray-400;
+  font-size: 0.875rem;
+  font-weight: 500;
+  font-family: $font;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  transition:
+    border-color 0.12s,
+    background 0.12s,
+    color 0.12s;
+
+  svg {
+    color: $gray-400;
+  }
+
+  &:hover {
+    border-color: $gray-300;
+    background: $gray-100;
+    color: $gray-700;
+  }
+  &:focus-visible {
+    @include focus-ring;
+  }
+}
+
+.sendBtn {
+  padding: 12px 20px;
+  border: none;
+  border-radius: $radius-full;
+  background: $indigo-500;
+  color: $white;
+  font-size: 0.875rem;
+  font-weight: 500;
+  font-family: $font;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.25);
+  transition:
+    background 0.12s,
+    box-shadow 0.12s,
+    transform 0.1s;
+
+  &:hover {
+    background: $indigo-600;
+    box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
+  }
+  &:active {
+    transform: translateY(1px);
+    box-shadow: 0 1px 4px rgba(99, 102, 241, 0.2);
+  }
+  &:focus-visible {
+    @include focus-ring;
+  }
+}
+
+// ── Draft saved toast ─────────────────────────────────────────────────────────
+.draftToast {
+  position: absolute;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 16px;
+  background: $gray-800;
+  color: $white;
+  border-radius: $radius-full;
+  font-size: 0.78rem;
+  font-weight: 500;
+  font-family: $font;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  animation:
+    toastIn 0.2s ease,
+    toastOut 0.3s ease 1.9s forwards;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 10;
+
+  svg {
+    color: $green-500;
+  }
+}
+
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+@keyframes toastOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+// ── Responsive ────────────────────────────────────────────────────────────────
+@media (max-width: 600px) {
+  .drawer {
+    width: 100vw;
+  }
+}
+
+// ── Skeleton loading (append to EmailComposer.module.scss) ───────────────────
+
+@keyframes shimmer {
+  0% {
+    background-position: -600px 0;
+  }
+  100% {
+    background-position: 600px 0;
+  }
+}
+
+%skeleton-base {
+  background: linear-gradient(
+    90deg,
+    $gray-100 25%,
+    $gray-150 50%,
+    $gray-100 75%
+  );
+  background-size: 600px 100%;
+  animation: shimmer 1.4s infinite linear;
+}
+
+.skeletonLine {
+  @extend %skeleton-base;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.skeletonBlock {
+  @extend %skeleton-base;
+  border-radius: 10px;
+  flex-shrink: 0;
+  width: 100%;
+}

@@ -1,0 +1,14 @@
+/* InfluencersPage.module.scss — page shell only */
+
+.page {
+  padding: 28px 32px;
+  height: 100vh; /* was min-height — that lets page grow forever  */
+  box-sizing: border-box; /* padding counts inside the 100vh, not on top   */
+  background: #f3f4f6;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+
+  margin: 0 20px;
+  overflow: hidden; /* nothing escapes the viewport                  */
+}
