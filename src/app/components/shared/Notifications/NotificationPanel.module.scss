@@ -241,3 +241,53 @@
     transform: rotate(360deg);
   }
 }
+
+.tabs {
+  display: flex;
+  gap: 8px;
+  padding: 10px 16px 8px;
+  border-bottom: 1px solid #f1f1f1;
+}
+
+.tab {
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  background: #f3f4f6;
+  color: #6b7280; // gray-500
+  outline: 1px solid #0505051d;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: #eaebec;
+    color: #4d525c;
+  }
+}
+
+.activeTab {
+  background: #111827; // dark
+  color: #ffffff;
+  border-color: #111827;
+  &:hover {
+    background: #111827; // dark
+    color: #ffffff;
+    border-color: #111827;
+  }
+}
+
+.count {
+  margin-left: 6px;
+  padding: 2px 6px;
+  font-size: 11px;
+  border-radius: 999px;
+  background: #e5e7eb; // light gray
+  color: #374151;
+}
+
+.activeTab .count {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+}

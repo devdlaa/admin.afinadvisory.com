@@ -75,7 +75,7 @@ export async function GET(request, { params }) {
 
     return createSuccessResponse("Comments retrieved successfully", result);
   } catch (error) {
-    console.log(error);
+  
     return handleApiError(error);
   }
 }

@@ -62,10 +62,9 @@ export async function DELETE(request, { params }) {
     );
     if (permissionError) return permissionError;
 
-    const resolvedParams = await params;
-    const parsed = schemas.lead.delete.parse(resolvedParams);
+    const { leadId } = await params;
 
-    const result = await deleteLead(parsed.id, admin_user);
+    const result = await deleteLead(leadId, admin_user);
 
     return createSuccessResponse("Lead deleted successfully", result);
   } catch (error) {

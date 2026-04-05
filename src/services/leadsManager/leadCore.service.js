@@ -12,6 +12,7 @@ import { addLeadActivityLog } from "../shared/comments.service";
 import { buildActivityMessage } from "@/utils/server/activityBulder";
 import { listPinnedLeadComments } from "../shared/comments.service";
 import { REMINDER_TAG_COLORS } from "../reminders/reminder.constants";
+import { notify } from "../shared/notifications.service";
 
 export async function createLead(payload, admin_user) {
   const adminUserId = admin_user.id;
@@ -550,7 +551,7 @@ export async function updateLeadStage(lead_id, payload, admin_user) {
         id: lead.id,
         pipeline_id: lead.pipeline_id,
         company_profile_id: lead.company_profile_id,
-        source: lead.source?.source || null,
+        source: lead.source?.source ?? "MANUAL",
         stage_updated_at: lead.stage_updated_at,
       },
       oldStage,
@@ -619,8 +620,6 @@ export async function listPipelineLeads(pipeline_id, query, admin_user) {
   const limit = 6;
   const adminUserId = admin_user.id;
   const includeMeta = query.include_meta === true;
-
-
 
   let parsedCursor = {};
   if (query.cursor) {
@@ -1741,6 +1740,9 @@ export async function getLeadDetails(lead_id, admin_user) {
         lead_id,
         deleted_at: null,
         status: "ACTIVE",
+        lead: {
+          deleted_at: null,
+        },
       },
       orderBy: [{ scheduled_at: "asc" }, { created_at: "desc" }],
       take: 10,
@@ -2282,7 +2284,7 @@ export async function handleExternalLeadInit(body) {
         orderBy: {
           id: "asc",
         },
-        select: { id: true },
+        select: { id: true, name: true },
       }),
       tx.adminUser.findFirst({
         where: {
@@ -2297,11 +2299,10 @@ export async function handleExternalLeadInit(body) {
             },
           },
         },
-        select: { id: true },
+        select: { id: true, name: true },
       }),
     ]);
 
-   
     let ownerId = null;
 
     if (users.length > 0) {
@@ -2348,8 +2349,41 @@ export async function handleExternalLeadInit(body) {
 
     await tx.leadAssignment.createMany({ data: assignmentData });
 
-    return lead;
+    const assignedUsers = [];
+
+    const ownerUser = users.find((u) => u.id === ownerId);
+    if (ownerUser) {
+      assignedUsers.push(ownerUser);
+    }
+
+    if (superAdmin && superAdmin.id !== ownerId) {
+      assignedUsers.push(superAdmin);
+    }
+
+    return {
+      lead,
+      assignedUsers,
+    };
   });
+
+  // NEW-LEAD NOTIFICATION
+  try {
+    if (result.assignedUsers.length > 0) {
+      await notify(
+        result.assignedUsers.map((u) => u.id),
+        {
+          type: "LEAD_ASSIGNED",
+          title: "New lead assigned",
+          body: `Lead: ${service.name}`,
+          actor_id: SYSTEM_USER_ID,
+          actor_name: "System",
+          link: `/dashboard/leads-manager?leadId=${result.lead.id}`,
+        },
+      );
+    }
+  } catch (err) {
+    console.error("Assignment notification failed:", err);
+  }
 
   return {
     status: "CREATED",

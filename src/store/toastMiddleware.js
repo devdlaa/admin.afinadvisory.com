@@ -46,6 +46,9 @@ const toastMiddleware = () => (next) => (action) => {
       // ===== TASK SLICE =====
 
       // ===== ACTIVITIES SLICE (leads-manager global list) FULFILLED =====
+      case "leadDetails/deleteLead/fulfilled":
+        showSuccess("Lead deleted successfully");
+        break;
 
       case "activities/updateActivity/fulfilled":
         showSuccess("Activity updated successfully");
@@ -803,6 +806,19 @@ const toastMiddleware = () => (next) => (action) => {
           showError("Invalid data. Please check your input.");
         } else {
           showError(err || "Failed to update lead");
+        }
+        break;
+      }
+
+      case "leadDetails/deleteLead/rejected": {
+        const err = getErrorMessage(action);
+
+        if (safeIncludes(err, "not found")) {
+          showError("Lead already deleted or not found.");
+        } else if (safeIncludes(err, "permission")) {
+          showError("You don’t have permission to delete this lead.");
+        } else {
+          showError(err || "Failed to delete lead");
         }
         break;
       }
@@ -1960,6 +1976,9 @@ const toastMiddleware = () => (next) => (action) => {
       // ===== TASK SLICE PENDING =====
 
       // ===== ACTIVITIES SLICE (leads-manager global list) PENDING =====
+      case "leadDetails/deleteLead/pending":
+        showInfo("Deleting lead...");
+        break;
 
       case "activities/updateActivity/pending":
         showInfo("Updating activity...");

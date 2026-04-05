@@ -8,7 +8,7 @@ import { onLeadAssignedBulk } from "./analytics/aggregator.js";
 import { buildActivityMessage } from "@/utils/server/activityBulder.js";
 import { addLeadActivityLog } from "../shared/comments.service.js";
 import { notify } from "../shared/notifications.service.js";
-import { emailPayloadSchema } from "@/schemas/core/leadActivity.schema.js";
+
 export const syncLeadAssignments = async (lead_id, users, admin_user) => {
   const result = await prisma.$transaction(async (tx) => {
     const now = new Date();
@@ -196,11 +196,11 @@ export const syncLeadAssignments = async (lead_id, users, admin_user) => {
     if (result.toAdd.length > 0) {
       await notify(result.toAdd, {
         type: "LEAD_ASSIGNED",
-        title: "New lead assigned",
+        title: "New lead assigned", 
         body: `Lead: Assigned`,
         actor_id: admin_user.id,
         actor_name: admin_user?.name ?? null,
-        link: `/dashboard/leads-managment?leadId=${result.lead.id}`,
+        link: `/dashboard/leads-manager?leadId=${result.lead.id}`,
       });
     }
   } catch (err) {
@@ -212,7 +212,6 @@ export const syncLeadAssignments = async (lead_id, users, admin_user) => {
     assignments: result.assignments.map((a) => ({
       id: a.admin_user_id,
       name: a.assignee?.name,
-      emailPayloadSchema: a.assignee?.email,
       role: a.role,
       assigned_at: a.assigned_at,
       assigned_by: a.assigned_by,

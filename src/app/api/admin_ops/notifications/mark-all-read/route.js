@@ -7,10 +7,10 @@ import { markAllAsRead } from "@/services/shared/notifications.service";
 
 export async function POST(request) {
   try {
-    const [permissionError, session] = await requirePermission(request);
+    const [permissionError, session,admin_user] = await requirePermission(request);
     if (permissionError) return permissionError;
 
-    const updated = await markAllAsRead(session.user.id);
+    const updated = await markAllAsRead(admin_user.id);
 
     if (updated === 0) {
       return createSuccessResponse("No unread notifications");

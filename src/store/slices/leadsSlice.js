@@ -7,6 +7,7 @@ import {
   updateLead,
   fetchAiSummary,
   updateLeadStage,
+  deleteLead,
 } from "./leadDetails.slice";
 
 async function apiFetch(url, options = {}) {
@@ -400,6 +401,16 @@ const leadsSlice = createSlice({
           targetStage.items.unshift(foundLead);
         }
       });
+    });
+
+    builder.addCase(deleteLead.fulfilled, (state, action) => {
+      const { leadId, stageId, pipelineId } = action.payload;
+
+      const stage = state.byPipeline?.[pipelineId]?.stages?.[stageId];
+
+      if (!stage) return;
+
+      stage.items = stage.items.filter((l) => l.id !== leadId);
     });
   },
 });

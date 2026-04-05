@@ -13,6 +13,8 @@ const UserMentionsDropdown = ({
   onClose,
   taskId,
   task,
+  currentUserId,
+  eligibleUserIds = [],
 }) => {
   const dispatch = useDispatch();
   const dropdownRef = useRef(null);
@@ -27,49 +29,22 @@ const UserMentionsDropdown = ({
     }
   }, [dispatch, users.length, loading]);
 
-  // Filter users based on task assignment
-  const getEligibleUsers = () => {
-    if (!users || users.length === 0) return [];
-
-    if (!task) return users;
-
-    if (task.assigned_to_all === true) {
-      return users;
-    }
-
-    const assignedUserIds = Array.isArray(task.assignments)
-      ? task.assignments.map((a) => a.admin_user_id).filter(Boolean)
-      : [];
-
-    const eligibleUserIds = new Set(assignedUserIds);
-
-    if (task.created_by) {
-      eligibleUserIds.add(task.created_by);
-    }
-
-    const eligibleUsers = users.filter((user) => {
-      if (user.admin_role === "SUPER_ADMIN") return true;
-      return eligibleUserIds.has(user.id);
-    });
-
-    if (eligibleUsers.length === 0) {
-      console.warn("No eligible users found, showing all users");
-      return users;
-    }
-
-    return eligibleUsers;
-  };
-
   // Filter users by query
-  const filteredUsers = getEligibleUsers()
+  const filteredUsers = (users || [])
     .filter((user) => {
+      if (String(user.id) === String(currentUserId)) return false;
+
+      if (eligibleUserIds.length > 0 && !eligibleUserIds.includes(user.id)) {
+        return false;
+      }
+
       if (!query.trim()) return true;
 
       const q = query.toLowerCase();
-      const name = (user.name || "").toLowerCase();
-      const email = (user.email || "").toLowerCase();
-
-      return name.includes(q) || email.includes(q);
+      return (
+        (user.name || "").toLowerCase().includes(q) ||
+        (user.email || "").toLowerCase().includes(q)
+      );
     })
     .slice(0, 8);
 

@@ -108,6 +108,21 @@ export const updateLeadAssignments = createAsyncThunk(
   },
 );
 
+export const deleteLead = createAsyncThunk(
+  "leadDetails/deleteLead",
+  async ({ leadId, stageId, pipelineId }, { rejectWithValue }) => {
+    try {
+      await apiFetch(`/api/admin_ops/leads-manager/leads/${leadId}`, {
+        method: "DELETE",
+      });
+
+      return { leadId, stageId, pipelineId };
+    } catch (err) {
+      return rejectWithValue(err.message);
+    }
+  },
+);
+
 /* -------- AI Summary -------- */
 export const fetchAiSummary = createAsyncThunk(
   "leadDetails/fetchAiSummary",
@@ -295,7 +310,7 @@ const initialState = {
     updateActivity: false,
     updateActivityLifecycle: false,
     deleteActivity: false,
-
+    delete: false,
     email: false,
     updateEmail: false,
   },
@@ -307,7 +322,7 @@ const initialState = {
     assignments: null,
     ai: null,
     team: null,
-
+    delete: null,
     activities: null,
     createActivity: null,
     updateActivity: null,
@@ -645,6 +660,25 @@ const leadDetailsSlice = createSlice({
           state.currentLead.pinned_comments.items.filter(
             (c) => c.id !== commentId,
           );
+      })
+      .addCase(deleteLead.pending, (state) => {
+        state.loading.delete = true;
+        state.error.delete = null;
+      })
+
+      .addCase(deleteLead.fulfilled, (state, action) => {
+        state.loading.delete = false;
+
+        const deletedId = action.payload?.leadId;
+
+        if (state.currentLead?.id === deletedId) {
+          state.currentLead = null;
+        }
+      })
+
+      .addCase(deleteLead.rejected, (state, action) => {
+        state.loading.delete = false;
+        state.error.delete = action.payload;
       });
   },
 });

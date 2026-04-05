@@ -1,25 +1,22 @@
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "@/utils/server/db.js";
 import fs from "fs/promises";
 import path from "path";
 import { requirePermission } from "@/utils/server/requirePermission";
-
-const prisma = new PrismaClient();
 
 export async function GET(req) {
   try {
     const [permissionError] = await requirePermission(
       req,
-      "admin_users.access"
+      "admin_users.access",
     );
     if (permissionError) return permissionError;
 
-    // 1) load roles + roleDefaults from JSON file
     const filePath = path.join(
       process.cwd(),
       "src",
       "config",
-      "permission_v2.json"
+      "permission_v2.json",
     );
 
     const fileData = await fs.readFile(filePath, "utf-8");
@@ -28,7 +25,6 @@ export async function GET(req) {
     const roles = json.roles || [];
     const roleDefaults = json.roleDefaults || {};
 
-    // 2) load permissions from DB
     const permissions = await prisma.permission.findMany({
       select: {
         id: true,
@@ -40,14 +36,29 @@ export async function GET(req) {
         category: "asc",
       },
     });
-    
-    // 3) send combined payload
+
+    const validPermissionCodes = new Set(permissions.map((p) => p.code));
+
+    const filteredRoleDefaults = Object.fromEntries(
+      Object.entries(roleDefaults).map(([role, perms]) => [
+        role,
+        perms.filter((code) => validPermissionCodes.has(code)),
+      ]),
+    );
+
+    const missingPermissions = Object.fromEntries(
+      Object.entries(roleDefaults).map(([role, perms]) => [
+        role,
+        perms.filter((code) => !validPermissionCodes.has(code)),
+      ]),
+    );
+
     return NextResponse.json({
       success: true,
       data: {
         permissions,
         roles,
-        roleDefaults,
+        roleDefaults: filteredRoleDefaults,
       },
       timestamp: new Date().toISOString(),
     });
@@ -60,7 +71,7 @@ export async function GET(req) {
         message: "Failed to load permissions and roles",
         error: error.message,
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

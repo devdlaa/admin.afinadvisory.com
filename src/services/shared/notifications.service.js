@@ -17,8 +17,6 @@ export async function notify(userIds, payload) {
     return { success: 0, failed: 0 };
   }
 
-  const now = new Date().toISOString();
-
   try {
     const BATCH_SIZE = 500;
     const batches = [];
@@ -29,6 +27,7 @@ export async function notify(userIds, payload) {
 
       for (const userId of batchUserIds) {
         const notifId = uuidv4();
+        const isMention = payload.is_mention ?? false;
 
         const ref = db
           .collection(NOTIF_COLLECTION)
@@ -48,21 +47,33 @@ export async function notify(userIds, payload) {
           comment_id: payload.comment_id ?? null,
           actor_id: payload.actor_id ?? null,
           actor_name: payload.actor_name ?? null,
+          is_mention: isMention,
           unread: true,
-          created_at: now,
+          created_at: admin.firestore.FieldValue.serverTimestamp(),
           read_at: null,
         });
 
         // INCREMENT unread_count in parent document
         const userRef = db.collection(NOTIF_COLLECTION).doc(userId);
-        batch.set(
-          userRef,
-          {
-            unread_count: admin.firestore.FieldValue.increment(1),
-            updated_at: admin.firestore.FieldValue.serverTimestamp(),
-          },
-          { merge: true },
-        );
+
+        const metaUpdate = {
+          updated_at: admin.firestore.FieldValue.serverTimestamp(),
+        };
+
+        if (isMention) {
+          metaUpdate.unread_mentions_count =
+            admin.firestore.FieldValue.increment(1);
+
+          metaUpdate.last_mention_at =
+            admin.firestore.FieldValue.serverTimestamp();
+        } else {
+          metaUpdate.unread_count = admin.firestore.FieldValue.increment(1);
+
+          metaUpdate.last_unread_at =
+            admin.firestore.FieldValue.serverTimestamp();
+        }
+
+        batch.set(userRef, metaUpdate, { merge: true });
       }
 
       batches.push(batch.commit());
@@ -101,6 +112,7 @@ export async function notify(userIds, payload) {
             entity_id: payload.entity_id ?? "",
             comment_id: payload.comment_id ?? "",
             type: payload.type ?? "GENERAL",
+            is_mention: String(payload.is_mention ?? false),
           },
           android: {
             priority: "high",
@@ -139,7 +151,7 @@ export async function notify(userIds, payload) {
           }
         }
       } catch (pushError) {
-        console.error("Push notification batch failed:", pushError);
+     
         pushFailCount += batchTokens.length;
       }
     }
@@ -183,6 +195,7 @@ export async function markAllAsRead(userId) {
     userRef,
     {
       unread_count: 0,
+      unread_mentions_count: 0,
       updated_at: admin.firestore.FieldValue.serverTimestamp(),
     },
     { merge: true },

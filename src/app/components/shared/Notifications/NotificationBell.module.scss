@@ -1,88 +1,21 @@
-.bellWrapper {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.bellButton {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  width: 36px;
-  height: 36px;
-
-  border-radius: 50%;
-  background: #1a4098;
-  border: none;
-  cursor: pointer;
-  color: #fff;
-  transition: all 0.2s;
-
-  &:hover {
-    background: #102558;
-    color: #fff;
-  }
-
-  &.hasUnread {
-    color: #bbdefb;
-  }
-
-  svg {
-    width: 16px;
-    height: 16px;
-  }
-}
-
-.badge {
-  position: absolute;
-  top: 2px;
-  right: 2px;
-  min-width: 14px;
-  height: 14px;
-  border-radius: 7px;
-
-  background: #f44336;
-  color: #fff;
-  font-size: 9px;
-  font-weight: 600;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 4px;
-
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-  animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-  0%,
-  100% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.12);
-  }
-}
-
 @keyframes bell-shake {
   0% {
     transform: rotate(0deg);
   }
-  20% {
+  15% {
     transform: rotate(-14deg);
   }
-  40% {
+  30% {
     transform: rotate(10deg);
   }
-  60% {
+  45% {
     transform: rotate(-8deg);
   }
-  80% {
+  60% {
     transform: rotate(6deg);
+  }
+  75% {
+    transform: rotate(-4deg);
   }
   100% {
     transform: rotate(0deg);
@@ -91,7 +24,7 @@
 
 @keyframes glow-pulse {
   0% {
-    box-shadow: 0 0 0 0 rgba(255, 0, 80, 0.6);
+    box-shadow: 0 0 0 0 rgba(255, 0, 80, 0.55);
   }
   70% {
     box-shadow: 0 0 0 10px rgba(255, 0, 80, 0);
@@ -101,8 +34,304 @@
   }
 }
 
-.highlight {
-  animation:
-    bell-shake 0.9s ease-in-out both,
-    glow-pulse 1.6s ease-out infinite;
+@keyframes badge-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+}
+
+// Button grows tall, stripes scroll, bounces back
+@keyframes stretch {
+  0% {
+    height: 36px;
+    border-radius: 18px;
+    box-shadow: none;
+  }
+  12% {
+    height: 96px;
+    border-radius: 18px;
+    box-shadow: 0 0 0 5px rgba(167, 139, 250, 0.45);
+  }
+  60% {
+    height: 96px;
+    border-radius: 18px;
+    box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.25);
+  }
+  72% {
+    height: 28px;
+    border-radius: 18px;
+    box-shadow: none;
+  }
+  81% {
+    height: 42px;
+    border-radius: 18px;
+  }
+  89% {
+    height: 33px;
+    border-radius: 18px;
+  }
+  100% {
+    height: 36px;
+    border-radius: 18px;
+  }
+}
+
+// Stripes scroll upward inside the button
+@keyframes barber {
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: 0 -40px;
+  }
+}
+
+@keyframes stripes-fade {
+  0% {
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  60% {
+    opacity: 1;
+  }
+  72% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes icon-fade {
+  0% {
+    opacity: 1;
+  }
+  8% {
+    opacity: 0;
+  }
+  72% {
+    opacity: 0;
+  }
+  84% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes label-fade {
+  0% {
+    opacity: 0;
+  }
+  14% {
+    opacity: 1;
+  }
+  60% {
+    opacity: 1;
+  }
+  70% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes idle-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(167, 139, 250, 0.25);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(167, 139, 250, 0.2);
+  }
+}
+
+// ─── Layout ──────────────────────────────────────────────────────────────────
+
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+// ─── Shared button base ───────────────────────────────────────────────────────
+
+.btn {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  border-radius: 18px;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #1a4098;
+  color: #fff;
+  transition: background 0.2s;
+  overflow: hidden; // clips stripes AND keeps badge inside
+
+  svg {
+    width: 16px;
+    height: 16px;
+    position: relative;
+    z-index: 2;
+    flex-shrink: 0;
+  }
+
+  &:hover {
+    background: #102558;
+  }
+}
+
+// ─── Bell button ─────────────────────────────────────────────────────────────
+
+.bellBtn {
+  &.highlight {
+    animation:
+      bell-shake 0.9s ease-in-out,
+      glow-pulse 1.6s ease-out infinite;
+  }
+}
+
+.badge {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 3px;
+  border-radius: 7px;
+  background: #f44336;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3;
+  animation: badge-pulse 2.4s ease-in-out infinite;
+}
+
+// ─── Mentions button ──────────────────────────────────────────────────────────
+
+.mentionsBtn {
+  background: linear-gradient(180deg, #7c3aed, #5b21b6);
+
+  &:hover {
+    background: linear-gradient(180deg, #6d28d9, #4c1d95);
+  }
+
+  &.hasUnread {
+    animation: idle-glow 2.8s ease-in-out infinite;
+  }
+}
+
+.mentionsBadge {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 3px;
+  border-radius: 7px;
+  background: #f59e0b;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3;
+  animation: badge-pulse 1.4s ease-in-out infinite;
+}
+
+// Stripes layer — sits behind icon, clipped by button overflow:hidden
+.stripes {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  opacity: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    -45deg,
+    rgba(255, 255, 255, 0.18) 0px,
+    rgba(255, 255, 255, 0.18) 6px,
+    transparent 6px,
+    transparent 12px,
+    rgba(255, 255, 255, 0.07) 12px,
+    rgba(255, 255, 255, 0.07) 18px,
+    transparent 18px,
+    transparent 20px
+  );
+  background-size: 40px 40px;
+}
+
+// Label shown during stretch — absolutely centered, won't affect layout
+.label {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  opacity: 0;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+}
+
+.labelCount {
+  font-size: 13px;
+  font-weight: 900;
+  color: #fbbf24;
+  line-height: 1;
+}
+
+.labelText {
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: rgba(255, 255, 255, 0.8);
+  line-height: 1;
+}
+
+// ─── Active animation state (toggled via ref) ─────────────────────────────────
+
+.animating {
+  animation: stretch 2.2s cubic-bezier(0.22, 1, 0.36, 1) forwards !important;
+
+  .stripes {
+    animation:
+      stripes-fade 2.2s ease forwards,
+      barber 0.3s linear infinite;
+  }
+
+  svg {
+    animation: icon-fade 2.2s ease forwards;
+  }
+
+  .mentionsBadge {
+    animation: icon-fade 2.2s ease forwards;
+  }
+  .labelCount {
+    font-size: 25px;
+  }
+  .labelText {
+    display: none;
+  }
+
+  .label {
+    animation: label-fade 2.2s ease forwards;
+  }
 }

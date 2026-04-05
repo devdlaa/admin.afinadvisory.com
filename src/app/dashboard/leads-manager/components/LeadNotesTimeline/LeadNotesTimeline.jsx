@@ -31,7 +31,7 @@ import {
 } from "lucide-react";
 import styles from "./LeadNotesTimeline.module.scss";
 
-import { getInitials,formatTime } from "@/utils/client/cutils";
+import { getInitials, formatTime } from "@/utils/client/cutils";
 
 // ─── NoteCard ────────────────────────────────────────────────────────────────
 
@@ -49,10 +49,9 @@ export const NoteCard = ({
   isLast,
   onDelete,
   lead,
-  
 }) => {
   const isOwner = comment.user_id === currentUserId;
-  const canEditComment = isOwner && new Date() < new Date(comment.edited_until);
+
   const isDeleted = comment.deleted === true;
   const inputRef = useRef(null);
   const [showMentions, setShowMentions] = useState(false);
@@ -202,7 +201,7 @@ export const NoteCard = ({
                 )}
               </button>
             )}
-            {!isEditing && isOwner && canEditComment && (
+            {!isEditing && isOwner && (
               <button
                 className={styles.editBtn}
                 onClick={() => onEdit(comment)}
@@ -264,6 +263,8 @@ export const NoteCard = ({
                   onSelect={handleMentionSelect}
                   onClose={() => setShowMentions(false)}
                   leadId={comment.scope_id}
+                  currentUserId={currentUserId}
+                  eligibleUserIds={lead.assignments.map((a) => a.id)}
                 />
               )}
             </div>
@@ -349,7 +350,8 @@ const CreateNoteBox = ({ leadId, lead, onCreated, isCreating }) => {
   const [mentionQuery, setMentionQuery] = useState("");
   const inputRef = useRef(null);
   const dispatch = useDispatch();
-
+  const { data: session } = useSession();
+  const currentUserId = session?.user?.id;
   const handleExpand = () => {
     setExpanded(true);
     setTimeout(() => inputRef.current?.focus(), 50);
@@ -489,7 +491,8 @@ const CreateNoteBox = ({ leadId, lead, onCreated, isCreating }) => {
             onSelect={handleMentionSelect}
             onClose={() => setShowMentions(false)}
             leadId={leadId}
-            task={lead}
+            currentUserId={currentUserId}
+            eligibleUserIds={lead.assignments.map((a) => a.id)}
           />
         )}
       </div>

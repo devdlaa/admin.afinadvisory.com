@@ -1066,8 +1066,10 @@
   left: 0px;
   right: 0px;
   box-shadow: rgba(0, 0, 0, 0.4) 0px 30px 90px;
-  display: flex;
-  justify-content: center;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+
   padding: 15px 10px;
   border-top: 1px solid rgba(0, 0, 0, 0.095);
   background-color: rgb(237, 244, 255);
@@ -1076,7 +1078,7 @@
 
 .updateBtn {
   width: 100%;
-  padding: 16px 16px;
+
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1086,7 +1088,7 @@
 
   border: none;
   border-radius: 10px;
-
+  padding: 16px 16px;
   font-weight: 600;
   font-size: 16px;
   box-shadow:
@@ -1112,5 +1114,127 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* Cancel button (grey) */
+.cancelBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: center;
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #e5e7eb;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  border-radius: 10px;
+  padding: 16px 16px;
+  font-weight: 600;
+  font-size: 16px;
+  outline: 1px solid rgba(0, 0, 0, 0.086);
+  &:hover {
+    background: #e5e7eb;
+  }
+}
+
+.deleteFloatingBar {
+  width: 100%;
+  display: flex;
+  justify-content: flex-end;
+  padding: 12px 16px;
+  background: #fefefe;
+  border-top: 1px solid #00000019;
+
+  transform: translateY(100%);
+}
+
+/* Delete button */
+.deleteBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: #fee2e2;
+  width: 100%;
+  color: #ef4b4b;
+  outline: 1px solid #fecaca;
+
+  border: none;
+  border-radius: 10px;
+  padding: 16px 16px;
+  font-weight: 600;
+  font-size: 16px;
+
+  cursor: pointer;
+
+  &:hover {
+    background: #fecaca;
+  }
+}
+
+.emptyState {
+  height: 100%;
+  width: 100%;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  text-align: center;
+  padding: 40px 24px;
+  background: #ffffff;
+}
+
+/* Icon */
+.emptyIcon {
+  color: #ef4444; // red-500
+  margin-bottom: 16px;
+  opacity: 0.9;
+}
+
+/* Title */
+.emptyState h2 {
+  font-size: 20px;
+  font-weight: 600;
+  color: #111827; // gray-900
+  margin-bottom: 8px;
+}
+
+/* Description */
+.emptyState p {
+  font-size: 14px;
+  color: #6b7280; // gray-500
+  max-width: 320px;
+  line-height: 1.5;
+  margin-bottom: 20px;
+}
+
+/* Button */
+.closeBtn {
+  background: #3b82f6; // blue-500
+  color: #ffffff;
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: none;
+
+  font-size: 14px;
+  font-weight: 500;
+
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: #2563eb; // blue-600
+  }
+
+  &:active {
+    transform: scale(0.97);
   }
 }

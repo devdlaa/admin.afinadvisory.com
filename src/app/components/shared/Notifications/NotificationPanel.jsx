@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useRouter } from "next/navigation";
 import { Drawer } from "@mui/material";
@@ -16,6 +17,7 @@ import {
   fetchNotifications,
   markAllAsRead,
   markAsRead,
+  setActiveTab,
 } from "@/store/slices/notificationSlice";
 import { formatDistanceToNow } from "date-fns";
 import styles from "./NotificationPanel.module.scss";
@@ -44,7 +46,6 @@ function NotificationItem({ notification, onClose }) {
   const colorClass = NOTIFICATION_COLORS[notification.type] || "";
 
   const handleClick = () => {
-    // Fire-and-forget — deferred so it never blocks navigation or re-render
     if (notification.unread) {
       setTimeout(() => dispatch(markAsRead(notification.id)), 0);
     }
@@ -83,7 +84,7 @@ function NotificationItem({ notification, onClose }) {
 
         <div className={styles.meta}>
           <span>
-            {formatDistanceToNow(new Date(notification.created_at), {
+            {formatDistanceToNow(new Date(notification?.created_at), {
               addSuffix: true,
             })}
           </span>
@@ -97,27 +98,39 @@ function NotificationItem({ notification, onClose }) {
 
 export default function NotificationPanel() {
   const dispatch = useDispatch();
-  const {
-    items,
-    unreadCount,
-    nextCursor,
-    isLoading,
-    isLoadingMore,
-    isPanelOpen,
-    isMarkingAllRead,
-  } = useSelector((state) => state.notifications);
+  const { lists, activeTab, meta, isPanelOpen, isMarkingAllRead } = useSelector(
+    (state) => state.notifications,
+  );
+  const totalUnreadCount = meta.unreadCount + meta.unreadMentionsCount;
+  const unreadCount = meta.unreadCount;
+  const mentionsCount = meta.unreadMentionsCount;
+
+  const currentList = lists[activeTab];
+
+  const items = currentList.items;
+  const nextCursor = currentList.nextCursor;
+  const isLoading = currentList.isLoading;
+  const isLoadingMore = currentList.isLoadingMore;
 
   const handleClose = () => dispatch(closePanel());
 
   const handleMarkAllAsRead = () => {
-    if (unreadCount > 0) dispatch(markAllAsRead());
+    if (totalUnreadCount > 0) dispatch(markAllAsRead());
   };
 
   const handleLoadMore = () => {
     if (nextCursor && !isLoadingMore) {
-      dispatch(fetchNotifications({ cursor: nextCursor }));
+      dispatch(fetchNotifications({ tab: activeTab, cursor: nextCursor }));
     }
   };
+
+  useEffect(() => {
+    const list = lists[activeTab];
+
+    if (isPanelOpen && !list.isLoading && !list.hasLoaded) {
+      dispatch(fetchNotifications({ tab: activeTab }));
+    }
+  }, [isPanelOpen, activeTab, lists, dispatch]);
 
   return (
     <Drawer
@@ -130,7 +143,7 @@ export default function NotificationPanel() {
         <h2>Notifications</h2>
 
         <div className={styles.actions}>
-          {unreadCount > 0 && (
+          {totalUnreadCount > 0 && (
             <button
               className={styles.markAllBtn}
               onClick={handleMarkAllAsRead}
@@ -149,6 +162,36 @@ export default function NotificationPanel() {
 
           <X size={24} className={styles.closeBtn} onClick={handleClose} />
         </div>
+      </div>
+
+      <div className={styles.tabs}>
+        {[
+          { key: "all", label: "All" },
+          { key: "unread", label: "Unread", count: unreadCount },
+          { key: "mentions", label: "Mentions", count: mentionsCount },
+        ].map((tab) => (
+          <button
+            key={tab.key}
+            className={`${styles.tab} ${
+              activeTab === tab.key ? styles.activeTab : ""
+            }`}
+            onClick={() => {
+              dispatch(setActiveTab(tab.key));
+
+              if (!lists[tab.key].hasLoaded) {
+                dispatch(fetchNotifications({ tab: tab.key }));
+              }
+            }}
+          >
+            <span>{tab.label}</span>
+
+            {tab.count > 0 && (
+              <span className={styles.count}>
+                {tab.count > 99 ? "99+" : tab.count}
+              </span>
+            )}
+          </button>
+        ))}
       </div>
 
       <div className={styles.content}>

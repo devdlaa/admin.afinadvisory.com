@@ -131,7 +131,7 @@ export default function LeadsManagerPage() {
   const stageCount = activePipelineStages.length;
 
   useEffect(() => {
-    dispatch(fetchCompanyProfiles({ page: 1, page_size: 20 }));
+    dispatch(fetchCompanyProfiles({ page: 1, page_size: 10 }));
   }, [dispatch]);
 
   useEffect(() => {
@@ -150,6 +150,16 @@ export default function LeadsManagerPage() {
       }),
     );
   }, [selectedCompanyId, dispatch]);
+
+  useEffect(() => {
+    const leadId = searchParams.get("leadId");
+
+    if (!leadId) return;
+
+    if (selectedLeadId === leadId) return;
+
+    setSelectedLeadId(leadId);
+  }, [searchParams]);
 
   useEffect(() => {
     if (!pipelines.length || initialSelectionDoneRef.current) return;
@@ -465,11 +475,19 @@ export default function LeadsManagerPage() {
   const handleOpenLead = (leadId, stageId) => {
     setSelectedLeadId(leadId);
     setSelectedLeadStageId(stageId);
+    const params = new URLSearchParams(window.location.search);
+    params.set("leadId", leadId);
+
+    router.replace(`?${params.toString()}`);
   };
 
   const handleCloseDrawer = () => {
     setSelectedLeadId(null);
     setSelectedLeadStageId(null);
+    const params = new URLSearchParams(window.location.search);
+    params.delete("leadId");
+    params.delete("tab");
+    router.replace(`?${params.toString()}`);
   };
 
   const stageOptions = activePipelineStages.map((s) => ({

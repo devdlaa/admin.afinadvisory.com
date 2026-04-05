@@ -235,7 +235,7 @@ export const COMMENT_SCOPES = {
     buildNotification({ entity, message, scope_id, comment_id, user }) {
       return {
         type: "TASK_COMMENT",
-        title: `New comment on ${entity.title}`,
+        title: `TASK : New comment on ${entity.title}`,
         body:
           message.length > 100 ? `${message.substring(0, 100)}...` : message,
         task_id: scope_id,
@@ -276,14 +276,14 @@ export const COMMENT_SCOPES = {
     buildNotification({ entity, message, scope_id, comment_id, user }) {
       return {
         type: "LEAD_COMMENT",
-        title: `New comment on ${entity.title}`,
+        title: `LEAD : New comment on ${entity.title}`,
         body:
           message.length > 100 ? `${message.substring(0, 100)}...` : message,
         lead_id: scope_id,
         comment_id,
         actor_id: user.id,
         actor_name: user.name,
-        link: `/dashboard/leads?leadId=${scope_id}`,
+        link: `/dashboard/leads-manager?leadId=${scope_id}&tab=activity`,
       };
     },
   },
@@ -370,16 +370,16 @@ export const createComment = async (
     });
 
     if (notifyUserIds.length > 0 && config.buildNotification) {
-      await notify(
-        notifyUserIds,
-        config.buildNotification({
+      await notify(notifyUserIds, {
+        ...config.buildNotification({
           entity,
           message: cleanedMessage,
           scope_id,
           comment_id: payload.id,
           user,
         }),
-      );
+        is_mention: mentions?.length > 0 ? true : false,
+      });
     }
   }
 

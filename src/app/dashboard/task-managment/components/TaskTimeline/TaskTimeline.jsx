@@ -17,7 +17,6 @@ import {
   selectPaginationInfo,
 } from "@/store/slices/taskTimelineSlice";
 
-
 import UserMentionsDropdown from "@/app/components/shared/UserMentionsDropdown/UserMentionsDropdown";
 import {
   Send,
@@ -60,7 +59,6 @@ const renderChangeDetails = (changes = []) => {
       {changes.map((change, idx) => {
         const from = change.from;
         const to = change.to;
-
 
         if (
           (typeof from !== "object" || from === null) &&
@@ -141,24 +139,24 @@ const TaskTimeline = ({ taskId, task }) => {
 
   // Redux selectors based on active tab
   const groupedTimeline = useSelector((state) =>
-    selectTimelineGroupedByDate(state, activeTab)
+    selectTimelineGroupedByDate(state, activeTab),
   );
   const hasMore = useSelector((state) => selectHasMore(state, activeTab));
   const isLoadingInitial = useSelector((state) =>
-    selectIsLoading(state, activeTab, "initial")
+    selectIsLoading(state, activeTab, "initial"),
   );
   const isLoadingMoreData = useSelector((state) =>
-    selectIsLoading(state, activeTab, "more")
+    selectIsLoading(state, activeTab, "more"),
   );
   const isRefreshing = useSelector((state) =>
-    selectIsLoading(state, activeTab, "refresh")
+    selectIsLoading(state, activeTab, "refresh"),
   );
   const isCreating = useSelector((state) =>
-    selectIsLoading(state, "loading", "create")
+    selectIsLoading(state, "loading", "create"),
   );
   const error = useSelector((state) => selectError(state, activeTab));
   const paginationInfo = useSelector((state) =>
-    selectPaginationInfo(state, activeTab)
+    selectPaginationInfo(state, activeTab),
   );
 
   // Load initial timeline when component mounts or task changes
@@ -212,7 +210,7 @@ const TaskTimeline = ({ taskId, task }) => {
         taskId,
         type: activeTab,
         limit: 20,
-      })
+      }),
     ).then(() => {
       isInitialLoad.current = true;
       setTimeout(() => {
@@ -311,7 +309,7 @@ const TaskTimeline = ({ taskId, task }) => {
           commentId: editingCommentId,
           message: message.trim(),
           mentions,
-        })
+        }),
       );
       setEditingCommentId(null);
     } else {
@@ -368,7 +366,7 @@ const TaskTimeline = ({ taskId, task }) => {
           cursor: paginationInfo.nextCursor,
           type: activeTab,
           limit: 20,
-        })
+        }),
       ).then(() => {
         setTimeout(() => {
           if (timelineRef.current) {
@@ -538,7 +536,7 @@ const TaskTimeline = ({ taskId, task }) => {
   // Render timeline grouped by date
   const renderTimeline = () => {
     const dates = Object.keys(groupedTimeline).sort(
-      (a, b) => new Date(a) - new Date(b)
+      (a, b) => new Date(a) - new Date(b),
     );
 
     if (dates.length === 0) {
@@ -569,7 +567,7 @@ const TaskTimeline = ({ taskId, task }) => {
             {items.map((item) =>
               item.type === "ACTIVITY"
                 ? renderActivity(item)
-                : renderComment(item)
+                : renderComment(item),
             )}
           </div>
         </div>
@@ -750,7 +748,8 @@ const TaskTimeline = ({ taskId, task }) => {
                 onSelect={handleMentionSelect}
                 onClose={() => setShowMentions(false)}
                 taskId={taskId}
-                task={task}
+                currentUserId={currentUserId}
+                eligibleUserIds={task.assignments.map((a) => a.admin_user_id)}
               />
             )}
           </div>

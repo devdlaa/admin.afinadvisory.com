@@ -25,7 +25,7 @@ export default function LockDashboardButton() {
         window.location.href = "/dashboard/locked";
       }, 0);
     } catch (err) {
-      console.error("Failed to lock dashboard:", err);
+      console.error("Failed to lock dashboard:");
 
       setLoading(false);
       setSuccess(false);

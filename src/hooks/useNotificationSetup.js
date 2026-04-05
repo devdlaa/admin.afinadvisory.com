@@ -4,7 +4,10 @@ import { useDispatch } from "react-redux";
 import { getToken, onMessage } from "firebase/messaging";
 import { messaging } from "@/lib/firebase";
 
-import { addNotification } from "@/store/slices/notificationSlice";
+import {
+  addNotification,
+  fetchNotificationMeta,
+} from "@/store/slices/notificationSlice";
 
 export const useNotificationSetup = () => {
   const dispatch = useDispatch();
@@ -14,7 +17,6 @@ export const useNotificationSetup = () => {
 
     const setupNotifications = async () => {
       try {
-        // Request permission
         const permission = await Notification.requestPermission();
 
         if (permission === "granted") {
@@ -33,14 +35,10 @@ export const useNotificationSetup = () => {
 
           // Listen for foreground messages
           onMessage(messaging, (payload) => {
-       
-
             // ============================================
             // HANDLE CHAT NOTIFICATIONS
             // ============================================
             if (payload.data?.type === "NEW_MESSAGE") {
-              // Chat unread counts are already handled by Firestore real-time listener
-              // Just show browser notification if user is not on the tab
               if (document.hidden) {
                 const notification = new Notification(
                   payload.notification?.title || "New Message",
@@ -55,33 +53,34 @@ export const useNotificationSetup = () => {
                   },
                 );
 
-                // Handle notification click
                 notification.onclick = function (event) {
                   event.preventDefault();
                   window.focus();
                   window.location.href = this.data.url;
                 };
               }
-              return; // Don't add chat notifications to Redux notification store
+              return;
             }
 
             // ============================================
-            // HANDLE OTHER NOTIFICATIONS (Tasks, etc.)
+            // HANDLE OTHER NOTIFICATIONS (Tasks, mentions, etc.)
             // ============================================
             dispatch(
               addNotification({
-                id: Date.now().toString(),
+                id: payload.data?.id || Date.now().toString(),
                 title: payload.notification?.title,
                 body: payload.notification?.body,
                 type: payload.data?.type || "GENERAL",
                 link: payload.data?.link,
                 task_id: payload.data?.task_id,
+                is_mention: payload.data?.is_mention === "true",
                 unread: true,
-                created_at: new Date().toISOString(),
+                created_at:
+                  payload.data?.created_at || new Date().toISOString(),
               }),
             );
+            dispatch(fetchNotificationMeta());
 
-            // Show browser notification if tab not focused
             if (document.hidden) {
               new Notification(payload.notification?.title || "Notification", {
                 body: payload.notification?.body || "",
@@ -92,7 +91,7 @@ export const useNotificationSetup = () => {
           });
         }
       } catch (error) {
-       
+        
       }
     };
 
@@ -104,25 +103,24 @@ export const useNotificationSetup = () => {
         if (event.data?.type === "NEW_NOTIFICATION") {
           const payload = event.data.payload;
 
-
-          // Chat notifications don't go to Redux
           if (payload.data?.type === "NEW_MESSAGE") {
             return;
           }
 
-          // Other notifications
           dispatch(
             addNotification({
-              id: Date.now().toString(),
+              id: payload.data?.id || Date.now().toString(),
               title: payload.notification?.title,
               body: payload.notification?.body,
               type: payload.data?.type || "GENERAL",
               link: payload.data?.link,
               task_id: payload.data?.task_id,
+              is_mention: payload.data?.is_mention === "true",
               unread: true,
-              created_at: new Date().toISOString(),
+              created_at: payload.data?.created_at || new Date().toISOString(),
             }),
           );
+          dispatch(fetchNotificationMeta());
         }
       });
     }

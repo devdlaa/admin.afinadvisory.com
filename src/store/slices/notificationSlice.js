@@ -1,13 +1,18 @@
-import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import {
+  createSlice,
+  createAsyncThunk,
+  createSelector,
+} from "@reduxjs/toolkit";
 import { playNotificationSound } from "@/utils/client/playNotificationSound";
+
 export const fetchNotifications = createAsyncThunk(
   "notifications/fetch",
-  async ({ cursor = null, unread = false } = {}, { rejectWithValue }) => {
+  async ({ cursor = null, tab = "unread" } = {}, { rejectWithValue }) => {
     try {
       const params = new URLSearchParams({
         limit: "5",
         ...(cursor && { cursor }),
-        ...(unread && { unread: "true" }),
+        ...(tab && { tab }),
       });
 
       const response = await fetch(`/api/admin_ops/notifications?${params}`);
@@ -23,6 +28,25 @@ export const fetchNotifications = createAsyncThunk(
     }
   },
 );
+
+export const fetchNotificationMeta = createAsyncThunk(
+  "notifications/fetchMeta",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await fetch("/api/admin_ops/notifications/meta");
+      const data = await response.json();
+
+      if (!response.ok) {
+        return rejectWithValue(data.error);
+      }
+
+      return data.data;
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  },
+);
+
 export const markAsRead = createAsyncThunk(
   "notifications/markAsRead",
   async (notificationId, { rejectWithValue }) => {
@@ -72,21 +96,51 @@ export const markAllAsRead = createAsyncThunk(
 const notificationSlice = createSlice({
   name: "notifications",
   initialState: {
-    items: [],
-    unreadCount: 0,
-    nextCursor: null,
-    isLoading: false,
-    isLoadingMore: false,
+    lists: {
+      all: {
+        items: [],
+        nextCursor: null,
+        isLoading: false,
+        isLoadingMore: false,
+        hasLoaded: false,
+      },
+      unread: {
+        items: [],
+        nextCursor: null,
+        isLoading: false,
+        isLoadingMore: false,
+        hasLoaded: false,
+      },
+      mentions: {
+        items: [],
+        nextCursor: null,
+        isLoading: false,
+        isLoadingMore: false,
+        hasLoaded: false,
+      },
+    },
+
     error: null,
     isPanelOpen: false,
     highlightBell: false,
     hasLoadedInitial: false,
     isMarkingAllRead: false,
     soundEnabled: true,
+    meta: {
+      unreadCount: 0,
+      lastUnreadAt: null,
+      unreadMentionsCount: 0,
+      lastMentionAt: null,
+    },
+    isMetaLoading: false,
+    activeTab: "all",
   },
   reducers: {
     togglePanel: (state) => {
       state.isPanelOpen = !state.isPanelOpen;
+    },
+    setActiveTab: (state, action) => {
+      state.activeTab = action.payload;
     },
     setSoundEnabled: (state, action) => {
       state.soundEnabled = action.payload;
@@ -115,15 +169,33 @@ const notificationSlice = createSlice({
       state.isPanelOpen = true;
     },
     addNotification: (state, action) => {
-      state.items.unshift(action.payload);
-      if (action.payload.unread) {
-        state.unreadCount += 1;
-        state.highlightBell = true;
+      const notif = action.payload;
+      
+      const alreadyExists = state.lists.all.items.some(
+        (n) => n.id === notif.id,
+      );
+      if (alreadyExists) return;
+
+      // Always add to "all"
+      state.lists.all.items.unshift(notif);
+
+      if (notif.unread) {
+        if (notif.is_mention) {
+          // BUG FIX: mentions go to meta.unreadMentionsCount and mentions list
+          state.meta.unreadMentionsCount += 1;
+          state.lists.mentions.items.unshift(notif);
+        } else {
+          // BUG FIX: non-mentions go to meta.unreadCount and unread list
+          state.meta.unreadCount += 1;
+          state.lists.unread.items.unshift(notif);
+        }
       }
+
       playNotificationSound(state.soundEnabled);
     },
+    // BUG FIX: was referencing state.unreadCount (doesn't exist), correct path is state.meta.unreadCount
     decrementUnreadCount: (state) => {
-      state.unreadCount = Math.max(0, state.unreadCount - 1);
+      state.meta.unreadCount = Math.max(0, state.meta.unreadCount - 1);
     },
     clearHighlight: (state) => {
       state.highlightBell = false;
@@ -138,63 +210,112 @@ const notificationSlice = createSlice({
     builder
       // Fetch notifications
       .addCase(fetchNotifications.pending, (state, action) => {
+        const tab = action.meta.arg?.tab || "all";
+
         if (action.meta.arg?.cursor) {
-          state.isLoadingMore = true;
+          state.lists[tab].isLoadingMore = true;
         } else {
-          state.isLoading = true;
+          state.lists[tab].isLoading = true;
         }
       })
       .addCase(fetchNotifications.fulfilled, (state, action) => {
-        state.isLoading = false;
-        state.isLoadingMore = false;
+        const tab = action.meta.arg?.tab || "all";
+        const list = state.lists[tab];
+
+        list.isLoading = false;
+        list.isLoadingMore = false;
 
         if (action.meta.arg?.cursor) {
-          state.items = [...state.items, ...action.payload.items];
+          list.items = [...list.items, ...action.payload.items];
         } else {
-          state.items = action.payload.items;
+          list.items = action.payload.items;
         }
 
-        state.nextCursor = action.payload.next_cursor;
-        state.unreadCount = action.payload.unread_count;
+        list.nextCursor = action.payload.next_cursor;
+        list.hasLoaded = true;
+
         state.error = null;
         state.hasLoadedInitial = true;
 
-        if (state.unreadCount > 0 && !state.isPanelOpen) {
+        if (state.meta.unreadCount > 0 && !state.isPanelOpen) {
           state.highlightBell = true;
           playNotificationSound(state.soundEnabled);
         }
       })
       .addCase(fetchNotifications.rejected, (state, action) => {
-        state.isLoading = false;
-        state.isLoadingMore = false;
+        const tab = action.meta.arg?.tab || "all";
+
+        state.lists[tab].isLoading = false;
+        state.lists[tab].isLoadingMore = false;
         state.error = action.payload;
       })
 
       // Mark as read
       .addCase(markAsRead.fulfilled, (state, action) => {
         const notificationId = action.payload;
-        const notification = state.items.find((n) => n.id === notificationId);
 
-        if (notification && notification.unread) {
-          notification.unread = false;
-          notification.read_at = new Date().toISOString();
-          state.unreadCount = Math.max(0, state.unreadCount - 1);
-        }
+        Object.values(state.lists).forEach((list) => {
+          const notification = list.items.find((n) => n.id === notificationId);
+
+          if (notification && notification.unread) {
+            notification.unread = false;
+            notification.read_at = new Date().toISOString();
+
+            if (notification.is_mention) {
+              state.meta.unreadMentionsCount = Math.max(
+                0,
+                state.meta.unreadMentionsCount - 1,
+              );
+            } else {
+              state.meta.unreadCount = Math.max(0, state.meta.unreadCount - 1);
+            }
+          }
+        });
       })
 
-      .addCase(markAllAsRead.pending, (state, action) => {
+      .addCase(markAllAsRead.pending, (state) => {
         state.isMarkingAllRead = true;
+      })
+
+      // BUG FIX: missing rejected case — isMarkingAllRead would stay true forever on failure
+      .addCase(markAllAsRead.rejected, (state) => {
+        state.isMarkingAllRead = false;
+      })
+
+      .addCase(fetchNotificationMeta.pending, (state) => {
+        state.isMetaLoading = true;
+      })
+
+      .addCase(fetchNotificationMeta.fulfilled, (state, action) => {
+        const data = action.payload;
+
+        state.meta = {
+          unreadCount: data.unread_count ?? 0,
+          unreadMentionsCount: data.unread_mentions_count ?? 0,
+          lastUnreadAt: data.last_unread_at,
+          lastMentionAt: data.last_mention_at,
+        };
+
+        state.isMetaLoading = false;
+      })
+      .addCase(fetchNotificationMeta.rejected, (state) => {
+        state.isMetaLoading = false;
       })
 
       // Mark all as read
       .addCase(markAllAsRead.fulfilled, (state) => {
         state.isMarkingAllRead = false;
-        state.items = state.items.map((item) => ({
-          ...item,
-          unread: false,
-          read_at: new Date().toISOString(),
-        }));
-        state.unreadCount = 0;
+
+        Object.values(state.lists).forEach((list) => {
+          list.items = list.items.map((item) => ({
+            ...item,
+            unread: false,
+            read_at: new Date().toISOString(),
+          }));
+        });
+
+        state.meta.unreadCount = 0;
+        state.meta.unreadMentionsCount = 0;
       });
   },
 });
@@ -209,6 +330,14 @@ export const {
   decrementUnreadCount,
   clearHighlight,
   highlightBellFromInit,
+  setActiveTab,
 } = notificationSlice.actions;
+
+const selectNotifications = (state) => state.notifications;
+
+export const selectNotificationMeta = createSelector(
+  [selectNotifications],
+  (notifications) => notifications.meta,
+);
 
 export default notificationSlice.reducer;

@@ -1,9 +1,18 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { X, ChevronUp, ChevronDown, Save, Mail } from "lucide-react";
+import {
+  X,
+  ChevronUp,
+  ChevronDown,
+  Save,
+  Mail,
+  Trash2,
+  AlertCircleIcon,
+} from "lucide-react";
 import styles from "./LeadDetailsDrawer.module.scss";
 import { useDispatch, useSelector } from "react-redux";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import {
   fetchLeadDetails,
@@ -25,6 +34,7 @@ import {
   resetLeadActivitiesHistory,
   updateActivityEmail,
   updateLeadActivity,
+  deleteLead,
   updateActivityLifecycle,
 } from "@/store/slices/leadDetails.slice";
 
@@ -87,7 +97,7 @@ export default function LeadDetailsDrawer({
   const [isContactDialogOpen, setIsContactDialogOpen] = useState(false);
   const [isReferenceDialogOpen, setIsReferenceDialogOpen] = useState(false);
   const [lostStageConfirm, setLostStageConfirm] = useState(null);
-
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [contactDialogMode, setContactDialogMode] = useState(null);
   const [activeContactId, setActiveContactId] = useState(null);
   const [isCreateActivityOpen, setIsCreateActivityOpen] = useState(false);
@@ -96,7 +106,11 @@ export default function LeadDetailsDrawer({
   const influencerResults = useSelector(selectInfluencerSearchList);
   const influencerSearching = useSelector(selectInfluencerSearchLoading);
   const leadAcitiesPagination = useSelector(selectLeadAcitiesPagination);
+  const VALID_TABS = ["activity", "timeline", "notes", "documents", "logs"];
   const leadActivitiesHistory = useSelector(selectLeadActivitiesHistory);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const leftPanelRef = useRef(null);
   const emailData = useSelector(
     (state) => state.leadDetails.activityDetails.email,
   );
@@ -124,6 +138,14 @@ export default function LeadDetailsDrawer({
     setDraft(mapped);
     setOriginal(mapped);
   }, [lead]);
+
+  useEffect(() => {
+    const tabFromUrl = searchParams.get("tab");
+
+    if (tabFromUrl && VALID_TABS.includes(tabFromUrl)) {
+      setActiveTab(tabFromUrl);
+    }
+  }, [searchParams]);
 
   const updateDraft = (field, value) => {
     setDraft((prev) => ({ ...prev, [field]: value }));
@@ -153,6 +175,23 @@ export default function LeadDetailsDrawer({
     try {
       await dispatch(updateLead({ leadId: LEADID, payload })).unwrap();
       setOriginal((prev) => ({ ...prev, ...payload }));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // delete lead and close the drawer
+  const handleDeleteLead = async () => {
+    try {
+      await dispatch(
+        deleteLead({
+          leadId: lead?.id,
+          stageId: lead?.timeline?.summary?.current_stage?.id,
+          pipelineId: lead?.pipeline?.pipline_id,
+        }),
+      ).unwrap();
+      setDeleteConfirmOpen(false);
+      handleOnCloseDrawer();
     } catch (err) {
       console.error(err);
     }
@@ -418,6 +457,10 @@ export default function LeadDetailsDrawer({
     setEmailState({ activityId: activity.id, mode: "UPDATE" });
   };
 
+  const handleCancelUpdate = () => {
+    setDraft(original);
+  };
+
   const handelActivityClick = (id, activity, original_activity_format) => {
     setViewActivityState({
       hydrated: activity,
@@ -605,10 +648,10 @@ export default function LeadDetailsDrawer({
         </div>
         {loading?.fetch ? (
           <LeadDetailsSkeleton />
-        ) : (
+        ) : lead ? (
           <div className={styles.body}>
             {/* ── Left Panel ── */}
-            <div className={styles.leftPanel}>
+            <div className={styles.leftPanel} ref={leftPanelRef}>
               {draft && (
                 <LeadPrimaryInfo
                   title={draft.title}
@@ -661,21 +704,38 @@ export default function LeadDetailsDrawer({
 
               <LeadSourceSection items={lead?.source} />
 
+              <div className={styles.deleteFloatingBar}>
+                <button
+                  className={styles.deleteBtn}
+                  onClick={() => setDeleteConfirmOpen(true)}
+                >
+                  <Trash2 size={18} />
+                  Delete Lead
+                </button>
+              </div>
+
               {isPrimaryDirty() && (
                 <div className={styles.floatingUpdateBar}>
+                  {/* Cancel */}
+                  <button
+                    className={styles.cancelBtn}
+                    onClick={handleCancelUpdate}
+                    disabled={loading?.update || !isPrimaryDirty()}
+                  >
+                    <X size={18} />
+                    Cancel
+                  </button>
+
+                  {/* Update */}
                   <button
                     className={styles.updateBtn}
                     onClick={handlePrimaryUpdate}
                     disabled={loading?.update}
                   >
                     {loading?.update ? (
-                      <CircularProgress
-                        color="grey"
-                        size={20}
-                        className={styles.spinner}
-                      />
+                      <CircularProgress size={18} className={styles.spinner} />
                     ) : (
-                      <Save size={20} />
+                      <Save size={18} />
                     )}
                     {loading?.update ? "Updating..." : "Update Lead Details"}
                   </button>
@@ -704,7 +764,14 @@ export default function LeadDetailsDrawer({
 
               <LeadDrawerTabs
                 currentTab={activeTab}
-                onTabChange={setActiveTab}
+                onTabChange={(tab) => {
+                  setActiveTab(tab);
+
+                  const params = new URLSearchParams(searchParams.toString());
+                  params.set("tab", tab);
+
+                  router.replace(`?${params.toString()}`);
+                }}
               />
               <section className={styles.tab_rendrer}>
                 {activeTab === "activity" && (
@@ -737,6 +804,20 @@ export default function LeadDetailsDrawer({
                 {activeTab === "logs" && <LeadLogsTimeline leadId={lead?.id} />}
               </section>
             </div>
+          </div>
+        ) : (
+          <div className={styles.emptyState}>
+            <AlertCircleIcon size={48} className={styles.emptyIcon} />
+
+            <h2>Lead Not Found</h2>
+            <p>
+              This lead may have been deleted or you don’t have permission to
+              view it.
+            </p>
+
+            <button className={styles.closeBtn} onClick={handleOnCloseDrawer}>
+              Close
+            </button>
           </div>
         )}
         {/* ── Dialogs ── */}
@@ -781,6 +862,19 @@ export default function LeadDetailsDrawer({
           }
           onCancel={() => setLostStageConfirm(null)}
         />
+
+        <ConfirmationDialog
+          isOpen={deleteConfirmOpen}
+          onClose={() => setDeleteConfirmOpen(false)}
+          actionName="Delete Lead"
+          actionInfo="This action will permanently delete this lead. This cannot be undone."
+          variant="danger"
+          isCritical={true}
+          criticalConfirmWord="Delete Lead"
+          onConfirm={handleDeleteLead}
+          onCancel={() => setDeleteConfirmOpen(false)}
+        />
+
         <LinkSelectionDialog
           isOpen={isReferenceDialogOpen}
           mode="reference"
