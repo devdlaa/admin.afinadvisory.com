@@ -21,7 +21,6 @@ export async function createLeadContact(data, admin_user_id) {
 
   const duplicate = await prisma.leadContact.findFirst({
     where: {
-      deleted_at: null,
       OR: [
         rest.primary_email ? { primary_email: rest.primary_email } : undefined,
         rest.secondary_email
@@ -43,6 +42,19 @@ export async function createLeadContact(data, admin_user_id) {
       gst_number: true,
     },
   });
+
+  if (duplicate && duplicate.deleted_at !== null) {
+    duplicate = await prisma.leadContact.update({
+      where: { id: duplicate.id },
+      data: {
+        deleted_at: null,
+        updated_by: admin_user_id,
+        ...rest,
+      },
+    });
+
+    return duplicate;
+  }
 
   if (duplicate) {
     throw new ValidationError(
@@ -229,14 +241,16 @@ export async function deleteLeadContact(id, admin_user_id) {
     throw new NotFoundError("Lead contact not found");
   }
 
-  const lead = await prisma.lead.findFirst({
-    where: { lead_contact_id: id },
-    select: { id: true },
+  const activeLeadsCount = await prisma.lead.count({
+    where: {
+      lead_contact_id: id,
+      deleted_at: null,
+    },
   });
 
-  if (lead) {
+  if (activeLeadsCount > 0) {
     throw new ValidationError(
-      "Lead contact cannot be deleted because it is used in a lead",
+      "Lead contact cannot be deleted because it is used in active leads",
     );
   }
 

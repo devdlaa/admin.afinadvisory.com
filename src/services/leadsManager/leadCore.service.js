@@ -50,7 +50,6 @@ export async function createLead(payload, admin_user) {
     prisma.leadContact.findFirst({
       where: {
         id: payload.lead_contact_id,
-        deleted_at: null,
       },
       select: { id: true, contact_person: true },
     }),
@@ -68,6 +67,17 @@ export async function createLead(payload, admin_user) {
     throw new ValidationError("Invalid lead contact");
   }
 
+  // AUTO REVIVE DELTED LEAD CONTACT
+  if (contact.deleted_at !== null) {
+    contact = await prisma.leadContact.update({
+      where: { id: contact.id },
+      data: {
+        deleted_at: null,
+        updated_by: adminUserId,
+      },
+    });
+  }
+
   /* ----------------------------------------
   Resolve Default Stage
   ---------------------------------------- */
@@ -76,6 +86,7 @@ export async function createLead(payload, admin_user) {
     where: {
       pipeline_id: payload.pipeline_id,
       is_closed: false,
+      deleted_at: null,
     },
     orderBy: {
       stage_order: "asc",
@@ -859,7 +870,7 @@ export async function deleteLead(lead_id, admin_user) {
 
   const lead = await prisma.lead.findFirst({
     where: { id: lead_id, deleted_at: null },
-    select: { id: true, created_by: true },
+    select: { id: true, created_by: true, lead_contact_id: true },
   });
 
   if (!lead) {
@@ -907,22 +918,55 @@ export async function deleteLead(lead_id, admin_user) {
   }
 
   /* ----------------------------------------
-  Soft Delete
+  Transaction: Delete Lead + Handle Contact
   ---------------------------------------- */
 
-  const result = await prisma.lead.update({
-    where: { id: lead_id },
-    data: {
-      deleted_at: now,
-      deleted_by: adminUserId,
-    },
-    select: {
-      id: true,
-      deleted_at: true,
-    },
+  const result = await prisma.$transaction(async (tx) => {
+    // 1. Soft delete lead
+    const deletedLead = await tx.lead.update({
+      where: { id: lead_id },
+      data: {
+        deleted_at: now,
+        deleted_by: adminUserId,
+      },
+      select: {
+        id: true,
+        deleted_at: true,
+        lead_contact_id: true,
+      },
+    });
+
+    // 2. Check if contact is used by other ACTIVE leads
+    if (deletedLead.lead_contact_id) {
+      const otherLeadsUsingContact = await tx.lead.count({
+        where: {
+          lead_contact_id: deletedLead.lead_contact_id,
+          deleted_at: null,
+          NOT: {
+            id: lead_id,
+          },
+        },
+      });
+
+      // 3. If unused → soft delete contact
+      if (otherLeadsUsingContact === 0) {
+        await tx.leadContact.update({
+          where: { id: deletedLead.lead_contact_id },
+          data: {
+            deleted_at: now,
+            deleted_by: adminUserId,
+          },
+        });
+      }
+    }
+
+    return deletedLead;
   });
 
-  // CHANGE-LOG
+  /* ----------------------------------------
+  CHANGE-LOG
+  ---------------------------------------- */
+
   await addLeadActivityLog(lead_id, adminUserId, {
     action: "LEAD_DELETED",
     message: "Lead deleted",
@@ -1033,11 +1077,20 @@ export async function updateLead(lead_id, payload, admin_user) {
     payload.lead_contact_id !== null
   ) {
     const contact = await prisma.leadContact.findFirst({
-      where: { id: payload.lead_contact_id, deleted_at: null },
+      where: { id: payload.lead_contact_id },
       select: { id: true },
     });
 
     if (!contact) throw new ValidationError("Invalid lead contact");
+    if (contact.deleted_at !== null) {
+      contact = await prisma.leadContact.update({
+        where: { id: contact.id },
+        data: {
+          deleted_at: null,
+          updated_by: adminUserId,
+        },
+      });
+    }
   }
 
   /* ----------------------------------------
@@ -1600,6 +1653,7 @@ export async function getLeadDetails(lead_id, admin_user) {
       },
       contact: {
         include: {
+          where: { deleted_at: null },
           creator: {
             select: {
               id: true,
@@ -2136,9 +2190,18 @@ export async function handleExternalLeadInit(body) {
   let contact = await prisma.leadContact.findFirst({
     where: {
       OR: [{ primary_email: email }, { primary_phone: phone }],
-      deleted_at: null,
     },
   });
+
+  if (contact && contact.deleted_at !== null) {
+    contact = await prisma.leadContact.update({
+      where: { id: contact.id },
+      data: {
+        deleted_at: null,
+        updated_by: SYSTEM_USER_ID,
+      },
+    });
+  }
 
   if (!contact) {
     contact = await prisma.leadContact.create({

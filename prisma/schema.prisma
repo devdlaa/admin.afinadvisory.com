@@ -1542,14 +1542,33 @@ enum DraftStatus {
 
 // ─── Gmail Account (OAuth + Sync State) ──────────────────────────────
 
+enum EmailProvider {
+  GMAIL
+  OUTLOOK
+  IMAP
+}
+
+enum EmailAuthType {
+  OAUTH
+  IMAP_SMTP
+}
+
 model GmailAccount {
   id                  String          @id @default(uuid()) @db.Uuid
   user_id             String          @db.Uuid
   email               String
 
+  provider        EmailProvider @default(GMAIL)
+  auth_type       EmailAuthType @default(OAUTH)
   access_token        String
   refresh_token       String
   expiry_date         DateTime
+
+   imap_host       String?
+  imap_port       Int?
+  smtp_host       String?
+  smtp_port       Int?
+  smtp_secure     Boolean?
 
   history_id          String?         // Gmail incremental sync cursor
   sync_status         EmailSyncStatus @default(ACTIVE)
@@ -1581,7 +1600,7 @@ model GmailLabel {
   id              String         @id @default(uuid()) @db.Uuid
   gmail_label_id  String
   account_id      String         @db.Uuid       // scoped per account, not just user
-
+  provider_label_id String?
   name            String
   type            GmailLabelType
   text_color      String?
@@ -1603,6 +1622,7 @@ model GmailLabel {
 model EmailThread {
   id               String   @id @default(uuid()) @db.Uuid
   gmail_thread_id  String
+  provider_thread_id String? 
   account_id       String   @db.Uuid           // which Gmail account
 
   subject          String?
@@ -1626,6 +1646,7 @@ model EmailThread {
   @@index([account_id, has_unread, last_message_at])   // unread inbox query
   @@index([account_id, is_starred])
   @@index([account_id, is_important])
+   @@index([account_id, provider_thread_id])
 }
 
 // ─── Messages ────────────────────────────────────────────────────────
@@ -1633,7 +1654,7 @@ model EmailThread {
 model EmailMessage {
   id                String         @id @default(uuid()) @db.Uuid
   gmail_message_id  String
-
+  provider_message_id String?
   thread_id         String         @db.Uuid
   account_id        String         @db.Uuid
 
@@ -1690,6 +1711,8 @@ model EmailMessage {
   @@index([account_id, thread_id, received_at])
   @@index([account_id, is_trashed, received_at])
   @@index([account_id, has_attachments])
+  @@index([account_id, provider_message_id])
+ 
 }
 
 // ─── Message ↔ Label join table (replaces label_ids String[]) ────────
@@ -1716,6 +1739,7 @@ model EmailAttachment {
   mime_type            String
   size_bytes           Int
   gmail_attachment_id  String?
+  provider_attachment_id String?
   document_id          String?  @db.Uuid  // → Document (MinIO) after download
 
   created_at           DateTime @default(now())
