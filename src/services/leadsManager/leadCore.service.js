@@ -1653,7 +1653,6 @@ export async function getLeadDetails(lead_id, admin_user) {
       },
       contact: {
         include: {
-          where: { deleted_at: null },
           creator: {
             select: {
               id: true,
