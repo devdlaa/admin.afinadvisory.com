@@ -1078,7 +1078,7 @@ export async function updateLead(lead_id, payload, admin_user) {
   ) {
     let contact = await prisma.leadContact.findFirst({
       where: { id: payload.lead_contact_id },
-      select: { id: true },
+      select: { id: true,deleted_at: true },
     });
 
     if (!contact) throw new ValidationError("Invalid lead contact");
