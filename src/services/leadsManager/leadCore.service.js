@@ -1076,7 +1076,7 @@ export async function updateLead(lead_id, payload, admin_user) {
     payload.lead_contact_id !== undefined &&
     payload.lead_contact_id !== null
   ) {
-    const contact = await prisma.leadContact.findFirst({
+    let contact = await prisma.leadContact.findFirst({
       where: { id: payload.lead_contact_id },
       select: { id: true },
     });
