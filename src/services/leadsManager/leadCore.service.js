@@ -30,7 +30,7 @@ export async function createLead(payload, admin_user) {
   Validate Core Entities
   ---------------------------------------- */
 
-  const [pipeline, company, contact] = await Promise.all([
+  let [pipeline, company, contact] = await Promise.all([
     prisma.leadPipeline.findFirst({
       where: {
         id: payload.pipeline_id,
