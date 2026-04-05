@@ -205,21 +205,4 @@ export async function markAllAsRead(userId) {
   return snapshot.size;
 }
 
-export async function deleteOldNotifications(daysOld = 90) {
-  const cutoffDate = new Date();
-  cutoffDate.setDate(cutoffDate.getDate() - daysOld);
 
-  const snapshot = await db
-    .collectionGroup("items")
-    .where("created_at", "<", cutoffDate.toISOString())
-    .limit(500)
-    .get();
-
-  if (snapshot.empty) return 0;
-
-  const batch = db.batch();
-  snapshot.forEach((doc) => batch.delete(doc.ref));
-
-  await batch.commit();
-  return snapshot.size;
-}

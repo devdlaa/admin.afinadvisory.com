@@ -925,11 +925,11 @@ export async function deleteLead(lead_id, admin_user) {
 
     // 3. Delete contact only if the pre-transaction guard confirmed it's safe.
     //    Never re-derive this inside the tx — the decision is already made.
-    if (shouldDeleteContact) {
-      await tx.leadContact.delete({
-        where: { id: lead.lead_contact_id },
-      });
-    }
+    // if (shouldDeleteContact) {
+    //   await tx.leadContact.delete({
+    //     where: { id: lead.lead_contact_id },
+    //   });
+    // }
   });
 
   return { id: lead_id, deleted: true };

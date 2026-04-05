@@ -7,6 +7,45 @@ import { requirePermission } from "@/utils/server/requirePermission";
 
 const db = admin.firestore();
 
+function normalizeDate(value) {
+  if (!value) return null;
+
+  try {
+    if (typeof value.toDate === "function") {
+      return value.toDate().toISOString();
+    }
+
+    if (value?.seconds) {
+      return new Date(value.seconds * 1000).toISOString();
+    }
+
+    const parsed = new Date(value);
+
+    if (!isNaN(parsed.getTime())) {
+      return parsed.toISOString();
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function getCursor(value) {
+  if (!value) return null;
+
+  if (typeof value.toMillis === "function") {
+    return value.toMillis();
+  }
+
+  if (value?.seconds) {
+    return value.seconds * 1000;
+  }
+
+  const parsed = new Date(value);
+  return !isNaN(parsed.getTime()) ? parsed.getTime() : null;
+}
+
 export async function GET(request) {
   try {
     const [permissionError, session, admin_user] =
@@ -51,18 +90,14 @@ export async function GET(request) {
       items.push({
         ...data,
         id: doc.id,
-        created_at: data.created_at
-          ? data.created_at.toDate().toISOString()
-          : null,
-        read_at: data.read_at ? new Date(data.read_at).toISOString() : null,
+        created_at: normalizeDate(data.created_at),
+        read_at: normalizeDate(data.read_at),
       });
     });
 
     const lastDoc = snapshot.docs[snapshot.docs.length - 1];
 
-    const nextCursor = lastDoc
-      ? lastDoc.data().created_at?.toMillis?.() || null
-      : null;
+    const nextCursor = lastDoc ? getCursor(lastDoc.data().created_at) : null;
 
     const unreadCount = metadataDoc.exists
       ? metadataDoc.data()?.unread_count || 0
