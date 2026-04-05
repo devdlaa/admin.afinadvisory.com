@@ -961,13 +961,13 @@ export async function deleteLead(lead_id, admin_user) {
   CHANGE-LOG
   ---------------------------------------- */
 
-  await addLeadActivityLog(lead_id, adminUserId, {
-    action: "LEAD_DELETED",
-    message: "Lead permanently deleted",
-    meta: {
-      deleted_by: adminUserId,
-    },
-  });
+  // await addLeadActivityLog(lead_id, adminUserId, {
+  //   action: "LEAD_DELETED",
+  //   message: "Lead permanently deleted",
+  //   meta: {
+  //     deleted_by: adminUserId,
+  //   },
+  // });
 
   return { id: lead_id, deleted: true };
 }
