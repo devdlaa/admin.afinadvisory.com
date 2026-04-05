@@ -7,6 +7,7 @@ import { getClientIp } from "@/utils/server/utils";
 import { schemas } from "@/schemas";
 import crypto from "crypto";
 const MARKETING_API_KEY = process.env.MARKETING_API_KEY;
+const AFIN_ADVISORY_COMPANY_ID = "ceace07d-9fc9-4ed9-bded-5ae0383365c2";
 import {
   handleExternalLeadInit,
   handleExternalLeadProgress,
@@ -75,6 +76,7 @@ export async function POST(request) {
 
       result = await handleExternalLeadInit({
         ...parsed.data,
+        AFIN_ADVISORY_COMPANY_ID,
         ip_address,
       });
     } else if (body.action === "PROGRESS") {
