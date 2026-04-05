@@ -144,6 +144,9 @@ const leadsSlice = createSlice({
       });
     },
 
+    clearCurrentPipeline: (state) => {
+  state.current = null;
+},
     /* -------- OPTIONAL: RESET STAGE (invalidate) -------- */
     resetStage: (state, action) => {
       const { pipelineId, stageId } = action.payload;
@@ -475,6 +478,7 @@ export const {
   resetStage,
   moveLeadOptimistic,
   rollbackLeadMove,
+  clearCurrentPipeline
 } = leadsSlice.actions;
 
 export default leadsSlice.reducer;

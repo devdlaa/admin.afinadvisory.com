@@ -136,12 +136,28 @@ export default function LeadsManagerPage() {
 
   useEffect(() => {
     if (!companies.length || selectedCompanyId) return;
-    const target = defaultCompany ?? companies[0];
-    if (target) setSelectedCompanyId(target.id);
-  }, [companies, defaultCompany]);
+
+    const companyIdFromUrl = searchParams.get("company_id");
+
+    const fromUrl = companies.find((c) => c.id === companyIdFromUrl);
+
+    const target = fromUrl || defaultCompany || companies[0];
+
+    if (!target) return;
+
+    setSelectedCompanyId(target.id);
+
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("company_id", target.id);
+
+    router.replace(`?${params.toString()}`);
+  }, [companies, defaultCompany, searchParams]);
 
   useEffect(() => {
     if (!selectedCompanyId) return;
+
+    dispatch({ type: "leadPipelines/clearCurrentPipeline" });
+
     dispatch(
       fetchLeadPipelines({
         page: 1,
@@ -149,7 +165,7 @@ export default function LeadsManagerPage() {
         company_profile_id: selectedCompanyId,
       }),
     );
-  }, [selectedCompanyId, dispatch]);
+  }, [selectedCompanyId]);
 
   useEffect(() => {
     const leadId = searchParams.get("leadId");
@@ -162,26 +178,21 @@ export default function LeadsManagerPage() {
   }, [searchParams]);
 
   useEffect(() => {
-    if (!pipelines.length || initialSelectionDoneRef.current) return;
+    if (!pipelines.length) return;
 
-    const urlId = searchParams.get("pipeline_id");
     const target = pipelines.find((p) => p.is_default) ?? pipelines[0];
 
-    if (urlId) {
-      if (activePipeline?.id !== urlId) {
-        dispatch(fetchAndSetActivePipeline(urlId));
-      }
-    } else {
-      if (activePipeline?.id !== target.id) {
-        dispatch(fetchAndSetActivePipeline(target.id));
-      }
-      const params = new URLSearchParams(window.location.search);
-      params.set("pipeline_id", target.id);
-      router.replace(`?${params.toString()}`);
+    if (!target) return;
+
+    if (activePipeline?.id !== target.id) {
+      dispatch(fetchAndSetActivePipeline(target.id));
     }
 
-    initialSelectionDoneRef.current = true;
-  }, [pipelines.length]);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("pipeline_id", target.id);
+
+    router.replace(`?${params.toString()}`);
+  }, [pipelines]);
 
   useEffect(() => {
     if (!stageCount) return;
@@ -232,7 +243,7 @@ export default function LeadsManagerPage() {
       params.set("pipeline_id", p.id);
       router.replace(`?${params.toString()}`);
     },
-    [dispatch, router],
+    [dispatch, router, activePipelineId],
   );
 
   const handleLoadMore = useCallback(async () => {
@@ -472,6 +483,16 @@ export default function LeadsManagerPage() {
     }
   };
 
+  const handleCompanyChange = (company_id) => {
+    const params = new URLSearchParams(searchParams.toString());
+
+    params.set("company_id", company_id);
+    params.delete("pipeline_id");
+
+    router.replace(`?${params.toString()}`);
+
+    setSelectedCompanyId(company_id);
+  };
   const handleOpenLead = (leadId, stageId) => {
     setSelectedLeadId(leadId);
     setSelectedLeadStageId(stageId);
@@ -533,7 +554,7 @@ export default function LeadsManagerPage() {
           selectedCompanyId={selectedCompanyId}
           selectedPiplineId={activePipelineId}
           companiesLoading={companiesLoading}
-          onCompanyChange={setSelectedCompanyId}
+          onCompanyChange={handleCompanyChange}
         />
         <div className={styles.content}>
           <KanbanBoard
