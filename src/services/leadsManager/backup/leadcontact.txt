@@ -19,9 +19,8 @@ export async function createLeadContact(data, admin_user_id) {
     );
   }
 
-  const duplicate = await prisma.leadContact.findFirst({
+  let duplicate = await prisma.leadContact.findFirst({
     where: {
-      deleted_at: null,
       OR: [
         rest.primary_email ? { primary_email: rest.primary_email } : undefined,
         rest.secondary_email
@@ -41,8 +40,22 @@ export async function createLeadContact(data, admin_user_id) {
       primary_phone: true,
       pan: true,
       gst_number: true,
+      deleted_at: true,
     },
   });
+
+  if (duplicate && duplicate.deleted_at !== null) {
+    duplicate = await prisma.leadContact.update({
+      where: { id: duplicate.id },
+      data: {
+        deleted_at: null,
+        updated_by: admin_user_id,
+        ...rest,
+      },
+    });
+
+    return duplicate;
+  }
 
   if (duplicate) {
     throw new ValidationError(
@@ -217,12 +230,11 @@ export async function updateLeadContact(id, data, admin_user_id) {
 }
 
 export async function deleteLeadContact(id, admin_user_id) {
-  /* ----------------------------------------
-  Check Contact Exists
-  ---------------------------------------- */
-
-  const contact = await prisma.leadContact.findUnique({
-    where: { id },
+  const contact = await prisma.leadContact.findFirst({
+    where: {
+      id,
+      deleted_at: null,
+    },
     select: { id: true },
   });
 
@@ -230,43 +242,46 @@ export async function deleteLeadContact(id, admin_user_id) {
     throw new NotFoundError("Lead contact not found");
   }
 
-  /* ----------------------------------------
-  Block if used in ANY lead
-  ---------------------------------------- */
-
-  const leadExists = await prisma.lead.findFirst({
-    where: { lead_contact_id: id },
-    select: { id: true },
+  const activeLeadsCount = await prisma.lead.count({
+    where: {
+      lead_contact_id: id,
+      deleted_at: null,
+    },
   });
 
-  if (leadExists) {
+  if (activeLeadsCount > 0) {
     throw new ValidationError(
-      "Lead contact cannot be deleted because it is used in a lead",
+      "Lead contact cannot be deleted because it is used in active leads",
     );
   }
 
-  /* ----------------------------------------
-  HARD DELETE (transaction)
-  ---------------------------------------- */
-
-  await prisma.$transaction(async (tx) => {
-    // 1. Delete dependent relations (if any)
-
-    await tx.leadContactSocialLink.deleteMany({
-      where: { contact_id: id },
-    });
-
-    await tx.leadReference.deleteMany({
-      where: { lead_contact_id: id },
-    });
-
-    // 2. Delete contact
-    await tx.leadContact.delete({
-      where: { id },
-    });
+  const meeting = await prisma.leadActivity.findFirst({
+    where: {
+      activity_type: "VIDEO_CALL",
+      lead: {
+        lead_contact_id: id,
+      },
+      deleted_at: null,
+    },
+    select: { id: true },
   });
 
-  return { id, deleted: true };
+  if (meeting) {
+    throw new ValidationError(
+      "Lead contact cannot be deleted because it is used in a video call",
+    );
+  }
+
+  await prisma.leadContact.update({
+    where: { id },
+    data: {
+      deleted_at: new Date(),
+      deleted_by: admin_user_id,
+      updated_by: admin_user_id,
+    },
+  });
+
+  return { id };
 }
 
 export async function getLeadContactById(id, admin_user_id) {

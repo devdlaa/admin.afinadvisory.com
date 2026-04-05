@@ -30,7 +30,7 @@ export async function createLead(payload, admin_user) {
   Validate Core Entities
   ---------------------------------------- */
 
-  const [pipeline, company, contact] = await Promise.all([
+  let [pipeline, company, contact] = await Promise.all([
     prisma.leadPipeline.findFirst({
       where: {
         id: payload.pipeline_id,
@@ -50,7 +50,6 @@ export async function createLead(payload, admin_user) {
     prisma.leadContact.findFirst({
       where: {
         id: payload.lead_contact_id,
-        deleted_at: null,
       },
       select: { id: true, contact_person: true },
     }),
@@ -68,6 +67,17 @@ export async function createLead(payload, admin_user) {
     throw new ValidationError("Invalid lead contact");
   }
 
+  // AUTO REVIVE DELTED LEAD CONTACT
+  if (contact.deleted_at !== null) {
+    contact = await prisma.leadContact.update({
+      where: { id: contact.id },
+      data: {
+        deleted_at: null,
+        updated_by: adminUserId,
+      },
+    });
+  }
+
   /* ----------------------------------------
   Resolve Default Stage
   ---------------------------------------- */
@@ -76,6 +86,7 @@ export async function createLead(payload, admin_user) {
     where: {
       pipeline_id: payload.pipeline_id,
       is_closed: false,
+      deleted_at: null,
     },
     orderBy: {
       stage_order: "asc",
@@ -851,6 +862,7 @@ export async function listPipelineLeads(pipeline_id, query, admin_user) {
 
 export async function deleteLead(lead_id, admin_user) {
   const adminUserId = admin_user.id;
+  const now = new Date();
 
   /* ----------------------------------------
   Fetch Lead
@@ -906,55 +918,49 @@ export async function deleteLead(lead_id, admin_user) {
   }
 
   /* ----------------------------------------
-  HARD DELETE TRANSACTION
+  Transaction: Delete Lead + Handle Contact
   ---------------------------------------- */
 
-  await prisma.$transaction(async (tx) => {
-    // 1. Delete dependent tables (order matters)
-
-    await tx.leadActivity.deleteMany({
-      where: { lead_id },
-    });
-
-    await tx.leadStageHistory.deleteMany({
-      where: { lead_id },
-    });
-
-    await tx.leadAssignment.deleteMany({
-      where: { lead_id },
-    });
-
-    await tx.leadTagMap.deleteMany({
-      where: { lead_id },
-    });
-
-    await tx.leadReference.deleteMany({
-      where: { lead_id },
-    });
-
-    await tx.leadSourceData.deleteMany({
-      where: { lead_id },
-    });
-
-    // 2. Delete lead
-    await tx.lead.delete({
+  const result = await prisma.$transaction(async (tx) => {
+    // 1. Soft delete lead
+    const deletedLead = await tx.lead.update({
       where: { id: lead_id },
+      data: {
+        deleted_at: now,
+        deleted_by: adminUserId,
+      },
+      select: {
+        id: true,
+        deleted_at: true,
+        lead_contact_id: true,
+      },
     });
 
-    // 3. Handle contact (delete ONLY if unused)
-    if (lead.lead_contact_id) {
-      const count = await tx.lead.count({
+    // 2. Check if contact is used by other ACTIVE leads
+    if (deletedLead.lead_contact_id) {
+      const otherLeadsUsingContact = await tx.lead.count({
         where: {
-          lead_contact_id: lead.lead_contact_id,
+          lead_contact_id: deletedLead.lead_contact_id,
+          deleted_at: null,
+          NOT: {
+            id: lead_id,
+          },
         },
       });
 
-      if (count === 0) {
-        await tx.leadContact.delete({
-          where: { id: lead.lead_contact_id },
+      // 3. If unused → soft delete contact
+      if (otherLeadsUsingContact === 0) {
+        await tx.leadContact.update({
+          where: { id: deletedLead.lead_contact_id },
+          data: {
+            deleted_at: now,
+            deleted_by: adminUserId,
+          },
         });
       }
     }
+
+    return deletedLead;
   });
 
   /* ----------------------------------------
@@ -963,13 +969,14 @@ export async function deleteLead(lead_id, admin_user) {
 
   await addLeadActivityLog(lead_id, adminUserId, {
     action: "LEAD_DELETED",
-    message: "Lead permanently deleted",
+    message: "Lead deleted",
     meta: {
       deleted_by: adminUserId,
+      deleted_at: now,
     },
   });
 
-  return { id: lead_id, deleted: true };
+  return result;
 }
 
 export async function updateLead(lead_id, payload, admin_user) {
@@ -1069,12 +1076,21 @@ export async function updateLead(lead_id, payload, admin_user) {
     payload.lead_contact_id !== undefined &&
     payload.lead_contact_id !== null
   ) {
-    const contact = await prisma.leadContact.findFirst({
-      where: { id: payload.lead_contact_id, deleted_at: null },
-      select: { id: true },
+    let contact = await prisma.leadContact.findFirst({
+      where: { id: payload.lead_contact_id },
+      select: { id: true,deleted_at: true },
     });
 
     if (!contact) throw new ValidationError("Invalid lead contact");
+    if (contact.deleted_at !== null) {
+      contact = await prisma.leadContact.update({
+        where: { id: contact.id },
+        data: {
+          deleted_at: null,
+          updated_by: adminUserId,
+        },
+      });
+    }
   }
 
   /* ----------------------------------------
@@ -2175,6 +2191,16 @@ export async function handleExternalLeadInit(body) {
       OR: [{ primary_email: email }, { primary_phone: phone }],
     },
   });
+
+  if (contact && contact.deleted_at !== null) {
+    contact = await prisma.leadContact.update({
+      where: { id: contact.id },
+      data: {
+        deleted_at: null,
+        updated_by: SYSTEM_USER_ID,
+      },
+    });
+  }
 
   if (!contact) {
     contact = await prisma.leadContact.create({
