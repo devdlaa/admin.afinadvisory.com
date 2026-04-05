@@ -853,31 +853,23 @@ export async function deleteLead(lead_id, admin_user) {
   const adminUserId = admin_user.id;
 
   /* ----------------------------------------
-  Fetch Lead
+   Fetch Lead
   ---------------------------------------- */
-
   const lead = await prisma.lead.findFirst({
     where: { id: lead_id, deleted_at: null },
     select: { id: true, created_by: true, lead_contact_id: true },
   });
-
   if (!lead) {
     throw new NotFoundError("Lead not found");
   }
 
   /* ----------------------------------------
-  Block if ACTIVE activity exists
+   Block if ACTIVE activity exists
   ---------------------------------------- */
-
   const activeActivity = await prisma.leadActivity.findFirst({
-    where: {
-      lead_id,
-      status: "ACTIVE",
-      deleted_at: null,
-    },
+    where: { lead_id, status: "ACTIVE", deleted_at: null },
     select: { id: true },
   });
-
   if (activeActivity) {
     throw new ValidationError(
       "Lead has an active activity. Complete or mark it missed before deleting the lead.",
@@ -885,19 +877,13 @@ export async function deleteLead(lead_id, admin_user) {
   }
 
   /* ----------------------------------------
-  Permission Check
+   Permission Check
   ---------------------------------------- */
-
   if (admin_user.admin_role !== "SUPER_ADMIN") {
     const assignment = await prisma.leadAssignment.findFirst({
-      where: {
-        lead_id,
-        admin_user_id: adminUserId,
-        role: "OWNER",
-      },
+      where: { lead_id, admin_user_id: adminUserId, role: "OWNER" },
       select: { id: true },
     });
-
     if (!assignment || lead.created_by !== adminUserId) {
       throw new ForbiddenError(
         "Only the lead creator who is also the owner can delete this lead",
@@ -906,68 +892,45 @@ export async function deleteLead(lead_id, admin_user) {
   }
 
   /* ----------------------------------------
-  HARD DELETE TRANSACTION
+   EXTERNAL GUARD: check contact usage BEFORE
+   entering the transaction, explicitly excluding
+   this lead. Do NOT rely on post-delete counts.
   ---------------------------------------- */
-
-  await prisma.$transaction(async (tx) => {
-    // 1. Delete dependent tables (order matters)
-
-    await tx.leadActivity.deleteMany({
-      where: { lead_id },
+  let shouldDeleteContact = false;
+  if (lead.lead_contact_id) {
+    const otherLeadsUsingContact = await prisma.lead.count({
+      where: {
+        lead_contact_id: lead.lead_contact_id,
+        id: { not: lead_id }, // ← explicit exclusion, not relying on deletion order
+        // count both soft-deleted and active — if ANY lead references this contact, preserve it
+      },
     });
-
-    await tx.leadStageHistory.deleteMany({
-      where: { lead_id },
-    });
-
-    await tx.leadAssignment.deleteMany({
-      where: { lead_id },
-    });
-
-    await tx.leadTagMap.deleteMany({
-      where: { lead_id },
-    });
-
-    await tx.leadReference.deleteMany({
-      where: { lead_id },
-    });
-
-    await tx.leadSourceData.deleteMany({
-      where: { lead_id },
-    });
-
-    // 2. Delete lead
-    await tx.lead.delete({
-      where: { id: lead_id },
-    });
-
-    // 3. Handle contact (delete ONLY if unused)
-    if (lead.lead_contact_id) {
-      const count = await tx.lead.count({
-        where: {
-          lead_contact_id: lead.lead_contact_id,
-        },
-      });
-
-      if (count === 0) {
-        await tx.leadContact.delete({
-          where: { id: lead.lead_contact_id },
-        });
-      }
-    }
-  });
+    shouldDeleteContact = otherLeadsUsingContact === 0;
+  }
 
   /* ----------------------------------------
-  CHANGE-LOG
+   HARD DELETE TRANSACTION
   ---------------------------------------- */
+  await prisma.$transaction(async (tx) => {
+    // 1. Delete dependent tables (order matters for FK constraints)
+    await tx.leadActivity.deleteMany({ where: { lead_id } });
+    await tx.leadStageHistory.deleteMany({ where: { lead_id } });
+    await tx.leadAssignment.deleteMany({ where: { lead_id } });
+    await tx.leadTagMap.deleteMany({ where: { lead_id } });
+    await tx.leadReference.deleteMany({ where: { lead_id } });
+    await tx.leadSourceData.deleteMany({ where: { lead_id } });
 
-  // await addLeadActivityLog(lead_id, adminUserId, {
-  //   action: "LEAD_DELETED",
-  //   message: "Lead permanently deleted",
-  //   meta: {
-  //     deleted_by: adminUserId,
-  //   },
-  // });
+    // 2. Delete the lead itself
+    await tx.lead.delete({ where: { id: lead_id } });
+
+    // 3. Delete contact only if the pre-transaction guard confirmed it's safe.
+    //    Never re-derive this inside the tx — the decision is already made.
+    if (shouldDeleteContact) {
+      await tx.leadContact.delete({
+        where: { id: lead.lead_contact_id },
+      });
+    }
+  });
 
   return { id: lead_id, deleted: true };
 }
