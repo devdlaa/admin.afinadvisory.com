@@ -19,7 +19,7 @@ export async function createLeadContact(data, admin_user_id) {
     );
   }
 
-  const duplicate = await prisma.leadContact.findFirst({
+  let duplicate = await prisma.leadContact.findFirst({
     where: {
       OR: [
         rest.primary_email ? { primary_email: rest.primary_email } : undefined,
