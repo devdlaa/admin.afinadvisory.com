@@ -40,6 +40,7 @@ export async function createLeadContact(data, admin_user_id) {
       primary_phone: true,
       pan: true,
       gst_number: true,
+      deleted_at: true,
     },
   });
 
