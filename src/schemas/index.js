@@ -120,6 +120,7 @@ import {
   listReminderWeekBoardsSchema,
   checkAliveSchema,
   getMyDaySchema,
+  checklistSync,
 } from "./core/reminder.schema.js";
 import {
   createInfluencerSchema,
@@ -304,6 +305,7 @@ export const schemas = Object.freeze({
     weekBoards: listReminderWeekBoardsSchema,
     myDay: getMyDaySchema,
     checkAlive: checkAliveSchema,
+    checklistSync: checklistSync,
   },
   reminderTag: {
     create: createReminderTagSchema,

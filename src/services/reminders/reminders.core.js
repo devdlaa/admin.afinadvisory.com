@@ -10,7 +10,7 @@ import {
    CONSTANTS
 ======================================================================= */
 
-const DEFAULT_LIMIT = 20;
+const DEFAULT_LIMIT = 5;
 
 const BOARD_KEYS = [
   "today",
@@ -106,18 +106,31 @@ const getDayRange = (base, offset) => {
   return { start, end };
 };
 
-/** Start of today (midnight) */
 const getStartOfToday = () => {
-  const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  return d;
+  const now = new Date();
+
+  // Convert current time to IST
+  const istNow = new Date(
+    now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" }),
+  );
+
+  // Set IST midnight
+  istNow.setHours(0, 0, 0, 0);
+
+  // Convert back to UTC Date object
+  return new Date(istNow.toISOString());
 };
 
-/** End of today (23:59:59) */
 const getEndOfToday = () => {
-  const d = new Date();
-  d.setHours(23, 59, 59, 999);
-  return d;
+  const now = new Date();
+
+  const istNow = new Date(
+    now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" }),
+  );
+
+  istNow.setHours(23, 59, 59, 999);
+
+  return new Date(istNow.toISOString());
 };
 
 /**
@@ -128,51 +141,15 @@ const buildListWhere = (currentUser, { bucket_id, tag_ids, due_at }) => {
   const where = {
     deleted_at: null,
     status: "PENDING",
-    due_at,
     OR: [{ created_by: currentUser.id }, { assigned_to: currentUser.id }],
   };
 
+  if (due_at) where.due_at = due_at;
   if (bucket_id) where.bucket_id = bucket_id;
   if (tag_ids?.length) where.tags = { some: { tag_id: { in: tag_ids } } };
 
   return where;
 };
-
-/**
- * Resolve per-board overrides against global filters.
- * Board-level always wins over global.
- */
-const resolveBoard = (boardInput = {}, global = {}) => ({
-  bucket_id: boardInput.bucket_id ?? global.bucket_id ?? null,
-  tag_ids: boardInput.tag_ids ?? global.tag_ids ?? null,
-  limit: boardInput.limit ?? DEFAULT_LIMIT,
-  page: boardInput.page ?? 1,
-});
-
-/** Build a paginated findMany for a single board */
-const boardQuery = (currentUser, filters, dueAtRange) =>
-  prisma.reminder.findMany({
-    where: buildListWhere(currentUser, { ...filters, due_at: dueAtRange }),
-    orderBy: { due_at: "asc" },
-    take: filters.limit,
-    skip: (filters.page - 1) * filters.limit,
-    select: REMINDER_SELECT,
-  });
-
-/** Shape a single bucket in the response */
-const shapeBucket = (key, label, date, filters, items) => ({
-  key,
-  label,
-  date: date ? date.toISOString().split("T")[0] : null,
-  page: filters.page,
-  limit: filters.limit,
-  has_more: items.length === filters.limit,
-  items: flattenTags(items),
-  filters: {
-    bucket_id: filters.bucket_id,
-    tag_ids: filters.tag_ids,
-  },
-});
 
 /**
  * Calculate next due date for a recurring reminder.
@@ -454,6 +431,7 @@ export const updateReminder = async (reminderId, input, currentUser) => {
       const due = new Date(input.due_at);
       if (isNaN(due.getTime())) throw new ValidationError("Invalid due date");
       updates.due_at = due;
+      updates.snoozed_until = null;
       updates.is_time_sensitive =
         due.getHours() !== 0 ||
         due.getMinutes() !== 0 ||
@@ -644,9 +622,14 @@ export const updateReminderLifecycle = async (
         throw new ValidationError("Provide snooze duration or snoozed_until");
       }
 
+      const baseTime =
+        reminder.snoozed_until && new Date(reminder.snoozed_until) > new Date()
+          ? new Date(reminder.snoozed_until)
+          : new Date(reminder.due_at);
+
       const snoozeTime = input.snoozed_until
         ? new Date(input.snoozed_until)
-        : new Date(Date.now() + input.duration_minutes * 60_000);
+        : new Date(baseTime.getTime() + input.duration_minutes * 60_000);
 
       if (snoozeTime <= new Date()) {
         throw new ValidationError("Snooze time must be in the future");
@@ -756,28 +739,122 @@ export const updateReminderLifecycle = async (
 
 /* =======================================================================
    LIST REMINDER WEEK BOARDS
+
+   Pattern mirrors listPipelineLeads:
+   - Caller passes `board_keys` (array) — only requested boards are fetched.
+   - Global filters (bucket_id, tag_ids) apply uniformly across all boards.
+   - Cursor-based pagination per board, encoded as base64 JSON map keyed by
+     board key  →  { cursor_due_at, cursor_id }.
+   - Each board result carries its own next_cursor and has_more flag.
+   - All boards are fetched in parallel (Promise.all).
 ======================================================================= */
 
 export const listReminderWeekBoards = async (input, currentUser) => {
-  const { bucket_id, tag_ids, boards = {} } = input || {};
-  const global = { bucket_id, tag_ids };
+  const {
+    bucket_id = null,
+    tag_ids = null,
+    board_keys = BOARD_KEYS, // caller can pass a subset e.g. ["today","tomorrow"]
+    limit = DEFAULT_LIMIT,
+    cursor = null,
+  } = input || {};
+
+  /* --- Decode global cursor map --- */
+  let parsedCursor = {};
+  if (cursor) {
+    try {
+      parsedCursor = JSON.parse(
+        Buffer.from(cursor, "base64").toString("utf-8"),
+      );
+    } catch {
+      // malformed cursor → start from beginning
+    }
+  }
+
+  /* --- Only process requested & valid board keys --- */
+  const requestedKeys = board_keys.filter((k) => BOARD_KEYS.includes(k));
+
+  if (requestedKeys.length === 0) {
+    return { boards: [], next_cursor: null };
+  }
+
   const startOfToday = getStartOfToday();
 
-  const queries = BOARD_KEYS.map((key, i) => {
-    const { start, end } = getDayRange(startOfToday, i);
-    const filters = resolveBoard(boards[key], global);
-    return boardQuery(currentUser, filters, { gte: start, lte: end });
-  });
+  /* --- Fetch all requested boards in parallel --- */
+  const boardResults = await Promise.all(
+    requestedKeys.map(async (key) => {
+      const offset = BOARD_KEYS.indexOf(key); // 0 = today, 1 = tomorrow, etc.
+      const { start, end } = getDayRange(startOfToday, offset);
 
-  const results = await Promise.all(queries);
+      /* Build cursor clause for this board */
+      const boardCursor = parsedCursor[key];
+      let cursorClause = {};
 
-  return {
-    buckets: BOARD_KEYS.map((key, i) => {
-      const { start } = getDayRange(startOfToday, i);
-      const filters = resolveBoard(boards[key], global);
-      return shapeBucket(key, BOARD_LABELS[key], start, filters, results[i]);
+      if (boardCursor) {
+        cursorClause = {
+          OR: [
+            { due_at: { gt: new Date(boardCursor.cursor_due_at) } },
+            {
+              due_at: new Date(boardCursor.cursor_due_at),
+              id: { gt: boardCursor.cursor_id },
+            },
+          ],
+        };
+      }
+
+      /* Base where — global filters only, no per-board overrides */
+      const where = {
+        ...buildListWhere(currentUser, {
+          bucket_id,
+          tag_ids,
+          due_at: { gte: start, lte: end },
+        }),
+        ...cursorClause,
+      };
+
+      const rows = await prisma.reminder.findMany({
+        where,
+        orderBy: [{ due_at: "asc" }, { id: "asc" }],
+        take: limit + 1, // fetch one extra to detect has_more
+        select: REMINDER_SELECT,
+      });
+
+      let next_cursor = null;
+
+      if (rows.length > limit) {
+        rows.pop(); // remove the sentinel row
+        const last = rows[rows.length - 1];
+        next_cursor = {
+          cursor_due_at: last.due_at,
+          cursor_id: last.id,
+        };
+      }
+
+      return {
+        key,
+        label: BOARD_LABELS[key],
+        date: start.toISOString().split("T")[0],
+        limit,
+        has_more: Boolean(next_cursor),
+        next_cursor,
+        items: flattenTags(rows),
+      };
     }),
-  };
+  );
+
+  /* --- Build global cursor map (only boards that still have more pages) --- */
+  const nextCursorPayload = {};
+  for (const board of boardResults) {
+    if (board.next_cursor) {
+      nextCursorPayload[board.key] = board.next_cursor;
+    }
+  }
+
+  const next_cursor =
+    Object.keys(nextCursorPayload).length > 0
+      ? Buffer.from(JSON.stringify(nextCursorPayload)).toString("base64")
+      : null;
+
+  return { boards: boardResults, next_cursor };
 };
 
 /* =======================================================================
@@ -872,6 +949,13 @@ export const getReminderDetail = async (reminderId, currentUser) => {
 
   return {
     ...reminder,
+    checklist_items: reminder?.checklist_items?.map((item) => ({
+      id: item.id,
+      title: item.title,
+      done: item.is_done,
+      order: item.order,
+      created_at: item.created_at,
+    })),
     tags: reminder.tags.map((t) => t.tag),
     parent: reminder.parent ?? null,
     children_count: reminder._count.children,
@@ -950,6 +1034,8 @@ export const checkAlive = async (reminderIds, currentUser) => {
     },
   });
 
+  console.log("reminders", reminders);
+
   const reminderMap = new Map(reminders.map((r) => [r.id, r]));
 
   const results = ids.map((id) => {
@@ -995,6 +1081,7 @@ export const checkAlive = async (reminderIds, currentUser) => {
     };
   });
 
+  console.log("results", results);
   return { results };
 };
 
@@ -1003,26 +1090,146 @@ export const checkAlive = async (reminderIds, currentUser) => {
 ======================================================================= */
 
 export const getMyDay = async (input, currentUser) => {
-  const { bucket_id, tag_ids, boards = {} } = input || {};
-  const global = { bucket_id, tag_ids };
+  const {
+    bucket_id = null,
+    tag_ids = null,
+    tab = "today",
+    page = 1,
+    limit = DEFAULT_LIMIT,
+    is_overview = false,
+    ignore_date_filter = false,
+  } = input || {};
+
   const startOfToday = getStartOfToday();
   const endOfToday = getEndOfToday();
+  const skip = (page - 1) * limit;
 
-  const overdueFilters = resolveBoard(boards.overdue, global);
-  const todayFilters = resolveBoard(boards.today, global);
+  const buckets = [];
 
-  const [overdueItems, todayItems] = await Promise.all([
-    boardQuery(currentUser, overdueFilters, { lt: startOfToday }),
-    boardQuery(currentUser, todayFilters, {
-      gte: startOfToday,
-      lte: endOfToday,
-    }),
-  ]);
+  const transform = (item) => ({
+    id: item.id,
+    title: item.title ?? "",
+    description: item.description ?? null,
 
-  return {
-    buckets: [
-      shapeBucket("overdue", "Overdue", null, overdueFilters, overdueItems),
-      shapeBucket("today", "Today", startOfToday, todayFilters, todayItems),
-    ],
-  };
+    due_at: item.due_at,
+    completed_at: item.completed_at ?? null,
+    snoozed_until: item.snoozed_until ?? null,
+    status: item.status,
+    is_time_sensitive: item.is_time_sensitive ?? false,
+
+    is_recurring: item.is_recurring,
+    recurrence_type: item.recurrence_type,
+    recurrence_every: item.recurrence_every,
+    recurrence_end: item.recurrence_end,
+    recurrence_ends_after: item.recurrence_ends_after,
+    week_days: item.week_days ?? [],
+    repeat_by: item.repeat_by ?? null,
+    parent_id: item.parent_id ?? null,
+
+    created_at: item.created_at ?? null,
+    updated_at: item.updated_at ?? null,
+
+    creator: item.creator ?? null,
+    assignee: item.assignee ?? null,
+    task: item.task ?? null,
+
+    bucket: item.bucket
+      ? {
+          id: item.bucket.id,
+          name: item.bucket.name,
+          icon: item.bucket.icon,
+        }
+      : null,
+
+    tags: item.tags.map((t) => t.tag),
+
+    checklist_items: (item.checklist_items || []).map((c) => ({
+      id: c.id,
+      title: c.title,
+      done: c.is_done,
+      order: c.order,
+      created_at: c.created_at,
+    })),
+
+    parent: null,
+    children_count: 0,
+
+    is_overview: true,
+  });
+
+  const queryConfig = is_overview
+    ? { include: REMINDER_FULL_INCLUDE }
+    : { select: REMINDER_SELECT };
+
+  /* =========================
+     OVERDUE
+  ========================= */
+  if (tab === "overdue" || !tab) {
+    const where = buildListWhere(currentUser, {
+      bucket_id,
+      tag_ids,
+      due_at:
+        ignore_date_filter && bucket_id ? undefined : { lt: startOfToday },
+    });
+
+    const [items, total] = await Promise.all([
+      prisma.reminder.findMany({
+        where,
+        orderBy: { due_at: "asc" },
+        take: limit,
+        skip,
+        ...queryConfig,
+      }),
+      prisma.reminder.count({ where }),
+    ]);
+
+    buckets.push({
+      key: "overdue",
+      label: "Overdue",
+      date: null,
+      page,
+      limit,
+      total,
+      has_more: page * limit < total,
+      items: is_overview ? items.map(transform) : flattenTags(items),
+    });
+  }
+
+  /* =========================
+     TODAY
+  ========================= */
+  if (tab === "today" || !tab) {
+    const where = buildListWhere(currentUser, {
+      bucket_id,
+      tag_ids,
+      due_at:
+        ignore_date_filter && bucket_id
+          ? undefined
+          : { gte: startOfToday, lte: endOfToday },
+    });
+
+    const [items, total] = await Promise.all([
+      prisma.reminder.findMany({
+        where,
+        orderBy: { due_at: "asc" },
+        take: limit,
+        skip,
+        ...queryConfig,
+      }),
+      prisma.reminder.count({ where }),
+    ]);
+
+    buckets.push({
+      key: "today",
+      label: "Today",
+      date: startOfToday.toISOString().split("T")[0],
+      page,
+      limit,
+      total,
+      has_more: page * limit < total,
+      items: is_overview ? items.map(transform) : flattenTags(items),
+    });
+  }
+
+  return { buckets };
 };

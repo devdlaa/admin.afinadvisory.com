@@ -117,6 +117,10 @@ export const AdminUserListSchema = z.object({
   search: z.string().trim().optional(),
   admin_role: ADMIN_ROLES.optional(),
 
+  compact: z
+    .union([z.boolean(), z.string()])
+    .optional()
+    .transform((v) => v === true || v === "true"),
   page: z.coerce.number().int().nonnegative().default(0),
   limit: z.coerce.number().int().positive().max(100).default(40),
 });

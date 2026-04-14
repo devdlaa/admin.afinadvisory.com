@@ -1,0 +1,930 @@
+/* ReminderDialog.module.scss */
+
+/* ─── Wrapper ─────────────────────────────── */
+.wrapper {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+
+  animation: dialogIn 0.22s cubic-bezier(0.34, 1.2, 0.64, 1);
+}
+@keyframes dialogIn {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ─── LEFT CARD ───────────────────────────── */
+.card {
+  width: 534px;
+  max-width: calc(100vw - 32px);
+  min-height: 48vh;
+  max-height: 48vh;
+  background: #ffffff;
+  border-radius: 22px;
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.04),
+    0 12px 40px rgba(0, 0, 0, 0.16),
+    0 32px 64px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+  z-index: 1;
+  transition: border-radius 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &.max_height {
+    min-height: 48vh;
+    max-height: 48vh;
+  }
+
+  &.card_height_fill {
+    min-height: 48vh;
+    max-height: 48vh;
+  }
+}
+.wrapperExpanded .card {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+/* ─── Header ──────────────────────────────── */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 22px 14px;
+  flex-shrink: 0;
+  gap: 12px;
+}
+.headerTags {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+.statusTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 12px;
+  font-size: 12px;
+  border-radius: 20px;
+
+  font-weight: 600;
+  white-space: nowrap;
+}
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.headerActions {
+  display: flex;
+  align-items: center;
+  flex-direction: row-reverse;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.iconBtn {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    background 0.15s,
+    color 0.15s,
+    transform 0.12s;
+  background: #f1f5f9;
+  color: #334155;
+
+  &:hover {
+    transform: scale(1.08);
+  }
+  &:active {
+    transform: scale(0.95);
+  }
+}
+.iconBtnActive {
+  background: #fef9c3 !important;
+  color: #92400e !important;
+  box-shadow: 0 0 0 1.5px #fde68a;
+}
+.iconBtnDisabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ─── Title ───────────────────────────────── */
+.titleInput {
+  border: none;
+  outline: none;
+  padding: 4px 22px 16px;
+  font-size: 22px;
+  font-weight: 600;
+  color: #0f172a;
+  background: transparent;
+  font-family: inherit;
+  flex-shrink: 0;
+  letter-spacing: -0.025em;
+  line-height: 1.25;
+  width: 100%;
+  &::placeholder {
+    color: #cbd5e1;
+    font-weight: 400;
+  }
+}
+
+/* ─── Description ─────────────────────────── */
+.descArea {
+  margin: 0 18px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1.5px solid #f1f5f9;
+  background: #f8fafc;
+  font-size: 16px;
+  color: #5a6677;
+  resize: none;
+  outline: none;
+  font-family: inherit;
+  line-height: 1.65;
+  min-height: 80px;
+  font-weight: 480;
+  flex-shrink: 0;
+  transition:
+    border-color 0.18s,
+    background 0.18s;
+  &::placeholder {
+    color: #c8c8c8;
+    font-weight: 500;
+  }
+  &:focus {
+    border-color: #cbd5e1;
+    background: #fff;
+  }
+}
+/* ── Tags pill row ── */
+.tagsRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px 0px 20px;
+
+  overflow-x: auto;
+  scroll-behavior: smooth;
+
+  // hide scrollbar (all browsers)
+  -ms-overflow-style: none; // IE/Edge
+  scrollbar-width: none; // Firefox
+
+  &::-webkit-scrollbar {
+    display: none; // Chrome/Safari
+  }
+
+  // grab cursor
+  cursor: grab;
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+/* Individual tag chip */
+.tagChip {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1.5px solid var(--tag-color-30);
+  background: var(--tag-color-10);
+  color: var(--tag-color);
+  font-size: 13px;
+  text-wrap-mode: nowrap;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  letter-spacing: 0.01em;
+  transition:
+    background 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.12s ease;
+
+  &:hover {
+    background: var(--tag-color-30);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+/* Plus / add chip */
+.addChip {
+  position: relative;
+  z-index: 1;
+  margin-left: 4px; /* small gap after the overlapping stack */
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px dashed #d4d4d8;
+  background: #ffffff;
+  color: #a1a1aa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease,
+    background 0.15s ease;
+
+  &:hover {
+    border-color: #6366f1;
+    color: #6366f1;
+    background: #eef2ff;
+  }
+}
+.tagsRow.dragging {
+  user-select: none;
+  cursor: grabbing;
+}
+
+.tagsRow.dragging * {
+  user-select: none;
+  pointer-events: none;
+}
+/* ─── Pills row ───────────────────────────── */
+.pillsRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 20px 22px 21px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 14px;
+  border-radius: 200px;
+  border: none;
+  outline: 1px solid rgba(0, 0, 0, 0.097);
+  background: #fff;
+  color: #334155;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.14s,
+    box-shadow 0.14s,
+    transform 0.1s;
+  white-space: nowrap;
+  letter-spacing: -0.01em;
+  &:hover {
+    background: #f8fafc;
+    box-shadow:
+      rgba(9, 30, 66, 0.25) 0px 1px 1px,
+      rgba(9, 30, 66, 0.13) 0px 0px 1px 1px;
+  }
+  &:active {
+    transform: scale(0.98);
+  }
+}
+.pillRemind {
+  background: #fff7ed;
+  border-color: #fed7aa;
+  color: #c2410c;
+  &:hover {
+    background: #ffedd5;
+  }
+}
+.pillIcon {
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+.pillIconBubble {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  outline: 1px solid rgba(0, 0, 0, 0.07);
+}
+
+/* ─── Checklist header ────────────────────── */
+.checklistHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 22px 22px 15px;
+  flex-shrink: 0;
+}
+.checklistLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #64748b;
+  letter-spacing: -0.01em;
+}
+.checklistLabelIcon {
+  color: #64748b;
+}
+.checklistBadge {
+  background: #1e293b;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 12px;
+  border-radius: 20px;
+  letter-spacing: 0.02em;
+}
+
+/* ─── Checklist body ──────────────────────── */
+.checklistBody {
+  flex: 1;
+  overflow-y: auto;
+  padding: 5px 16px 20px;
+  display: flex;
+  flex-direction: column;
+
+  gap: 7px;
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: #e2e8f0;
+    border-radius: 4px;
+  }
+}
+
+/* ─── Checklist item ──────────────────────── */
+.checkItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 12px 11px 14px;
+  border-radius: 12px;
+  outline: 1.5px solid #02020214;
+  background: #fafafa;
+  cursor: grab;
+  transition:
+    border-color 0.15s,
+    background 0.15s,
+    box-shadow 0.15s,
+    transform 0.15s;
+
+  /* Show grip + delete on row hover */
+  &:hover {
+    border-color: #e2e8f0;
+    background: #fff;
+
+    .checkGrip {
+      opacity: 1;
+    }
+    .checkDelete {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+  &:active {
+    cursor: grabbing;
+  }
+}
+.checkItemOver {
+  border-color: #93c5fd !important;
+  background: #eff6ff !important;
+  box-shadow: 0 0 0 3px rgba(147, 197, 253, 0.3) !important;
+  transform: scale(1.01);
+}
+
+.checkGrip {
+  color: #cbd5e1;
+  opacity: 0;
+  transition: opacity 0.15s;
+  flex-shrink: 0;
+  line-height: 0;
+}
+
+.checkCircle {
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  border-radius: 50%;
+  border: 2px solid #d1d5db;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition:
+    background 0.18s,
+    border-color 0.18s,
+    transform 0.12s;
+  color: #fff;
+  &:hover {
+    border-color: #6b7280;
+    transform: scale(1.1);
+  }
+}
+.checkCircleDone {
+  background: #1e293b;
+  border-color: #1e293b;
+}
+
+.checkInput {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 15px;
+  font-weight: 450;
+  color: #1e2837;
+  background: transparent;
+  font-family: inherit;
+  min-width: 0;
+  line-height: 1.4;
+  &::placeholder {
+    color: #cbd5e1;
+  }
+}
+.checkInputDone {
+  text-decoration: line-through;
+  color: #94a3b8;
+}
+
+/* Delete button — hidden by default, revealed by .checkItem:hover above */
+.checkDelete {
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  opacity: 0;
+  transform: scale(0.7);
+  transition:
+    opacity 0.15s,
+    transform 0.15s,
+    background 0.12s,
+    color 0.12s;
+  &:hover {
+    background: #fee2e2;
+    color: #ef4444;
+  }
+}
+
+/* ─── Add row ─────────────────────────────── */
+.checkAddRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 12px 11px 14px;
+  border-radius: 12px;
+  border: 1.5px dashed #e2e8f0;
+  background: #fafafa;
+  cursor: text;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+  &:focus-within {
+    border-color: #94a3b8;
+    background: #fff;
+  }
+}
+.checkAddRowDisabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+.checkAddCircle {
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  border-radius: 50%;
+  border: 2px dashed #d1d5db;
+  flex-shrink: 0;
+}
+.checkAddInput {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 14px;
+  color: #475569;
+  background: transparent;
+  font-family: inherit;
+  &::placeholder {
+    color: #cbd5e1;
+  }
+  &:disabled {
+    cursor: not-allowed;
+  }
+}
+
+/* ─── RIGHT PANEL ─────────────────────────── */
+.panel {
+  width: 0;
+  overflow: hidden;
+  background: #ffffff;
+  border-top-right-radius: 22px;
+  border-bottom-right-radius: 22px;
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.12),
+    0 32px 64px rgba(0, 0, 0, 0.06);
+
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+
+  will-change: width;
+  transition: width 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.panelVisible {
+  width: 400px;
+}
+
+.panelBody {
+  flex: 1;
+  overflow-y: auto;
+  max-height: 37vh;
+  min-width: 290px;
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: #e2e8f0;
+    border-radius: 4px;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Append these to the bottom of ReminderDialog.module.scss
+───────────────────────────────────────────────────────────── */
+
+/* ─── Required pill state ─────────────────── */
+.pillRequired {
+  outline: 1.5px dashed #fc8181 !important;
+  background: #fff5f5 !important;
+  color: #c53030 !important;
+}
+
+/* ─── Pill clear × button ─────────────────── */
+.pillClear {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  margin-left: 2px;
+  cursor: pointer;
+  opacity: 0.55;
+  transition:
+    opacity 0.14s,
+    background 0.14s;
+  flex-shrink: 0;
+
+  &:hover {
+    opacity: 1;
+    background: rgba(0, 0, 0, 0.1);
+  }
+}
+
+/* ─── Form error ──────────────────────────── */
+.formError {
+  margin: 0 22px 4px;
+  padding: 9px 14px;
+  background: #fef2f2;
+  border: 1.5px solid #fecaca;
+  border-radius: 10px;
+  font-size: 13px;
+  color: #b91c1c;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+/* ─── Footer bar ──────────────────────────── */
+.footerBar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 22px 18px;
+  border-top: 1px solid #00000019;
+  flex-shrink: 0;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background-color: white;
+  &.grid_2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    button {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+  }
+}
+
+.footerDiscard {
+  height: 44px;
+  padding: 0 18px;
+  border-radius: 10px;
+  border: 1.5px solid #e2e8f0;
+  background: transparent;
+  color: #64748b;
+  font-size: 13.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background 0.14s,
+    border-color 0.14s;
+  font-family: inherit;
+
+  &:hover {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+  }
+}
+
+.footerSave {
+  flex: 1;
+  height: 44px;
+  padding: 0 18px;
+  border-radius: 10px;
+  border: none;
+  background: #0f172a;
+  color: #ffffff;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  transition:
+    background 0.14s,
+    transform 0.1s;
+  font-family: inherit;
+
+  &:hover {
+    background: #1e293b;
+  }
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+/* ─── Assignee pill popover ───────────────── */
+.assigneeWrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.assigneeDropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 200;
+  width: 260px;
+  background: #fff;
+  border-radius: 14px;
+  border: 1.5px solid #e2e8f0;
+  box-shadow:
+    0 4px 6px rgba(0, 0, 0, 0.04),
+    0 10px 30px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  animation: dropIn 0.16s cubic-bezier(0.34, 1.2, 0.64, 1);
+}
+
+@keyframes dropIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.assigneeSearch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.assigneeSearchIcon {
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+
+.assigneeSearchInput {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 13.5px;
+  color: #1e293b;
+  background: transparent;
+  font-family: inherit;
+
+  &::placeholder {
+    color: #cbd5e1;
+  }
+}
+
+.assigneeList {
+  max-height: 220px;
+  overflow-y: auto;
+  padding: 6px;
+
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: #e2e8f0;
+    border-radius: 4px;
+  }
+}
+
+.assigneeEmpty {
+  padding: 16px;
+  text-align: center;
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+.assigneeOption {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 9px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s;
+  font-family: inherit;
+
+  &:hover {
+    background: #f8fafc;
+  }
+}
+
+.assigneeOptionActive {
+  background: #f0fdf4 !important;
+}
+
+.assigneeAvatar {
+  width: 30px;
+  height: 30px;
+  min-width: 30px;
+  border-radius: 50%;
+  background: #e2e8f0;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.assigneeInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.assigneeName {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #1e293b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.assigneeEmail {
+  font-size: 11.5px;
+  color: #94a3b8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.assigneeCheck {
+  color: #22c55e;
+  flex-shrink: 0;
+}
+
+.grey_tag {
+  background-color: rgb(146, 146, 146);
+  padding: 5px 12px;
+  border-radius: 50px;
+  outline: 1px solid rgba(0, 0, 0, 0.076);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.snoozeFull {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+
+  z-index: 6;
+  background: white;
+
+  display: flex;
+  flex-direction: column;
+}
+
+.snoozeHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px;
+  border-bottom: 1px solid #f1f5f9;
+  background-color: white;
+  font-weight: 600;
+  font-size: 15px;
+  color: #1e293b;
+}
+
+.snoozeBody {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+.snoozeGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.snoozeBtn {
+  height: 48px;
+  border-radius: 12px;
+  border: 1.5px solid #e2e8f0;
+  background: #f8fafc;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+
+  &:hover {
+    background: #ffffff;
+    border-color: #cbd5e1;
+  }
+
+  &:active {
+    transform: scale(0.97);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+

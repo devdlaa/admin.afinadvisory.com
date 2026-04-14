@@ -180,3 +180,14 @@
     background-position: -200% 0;
   }
 }
+
+.min_controlls {
+  background-color: rgb(241, 239, 239);
+  flex: 1;
+  display: flex;
+  padding: 10px 0px;
+  border-radius: 8px;
+  outline: 1px solid rgba(0, 0, 0, 0.098);
+  flex-direction: column;
+  gap: 10px;
+}

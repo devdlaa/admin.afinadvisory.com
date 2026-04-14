@@ -1,0 +1,197 @@
+/* ══════════════════════════════════════════════
+   RemindersOverview.module.scss
+══════════════════════════════════════════════ */
+
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 9999;
+  background: rgb(20, 20, 21);
+  backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.modal {
+  position: relative;
+  /* wide enough for card (534) + expanded panel (400) + swiper peek */
+  width: 980px;
+  max-width: 96vw;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: slideUp 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(28px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ── Close ──────────────────────────────────── */
+.closeBtn {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.35);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    background 0.15s,
+    color 0.15s;
+  z-index: 10;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: rgba(255, 255, 255, 0.7);
+  }
+}
+
+/* ── Heading ────────────────────────────────── */
+.heading {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.28);
+  margin: 0 0 20px;
+  text-align: center;
+}
+
+/* ── Tabs ───────────────────────────────────── */
+.tabs {
+  display: flex;
+  margin-bottom: 32px;
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 999px;
+  padding: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.tab {
+  padding: 9px 26px;
+  border-radius: 999px;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.32);
+  font-size: 0.83rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.18s ease;
+
+  &:hover {
+    color: rgba(255, 255, 255, 0.6);
+  }
+}
+
+.tabActive {
+  background: #fff;
+  color: #111;
+  font-weight: 700;
+  &:hover {
+    color: #111;
+  }
+}
+
+/* ── Swiper area ────────────────────────────── */
+.swiperArea {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.swiperContainer {
+  /*
+    Card is 534px wide × 37vh tall (from ReminderDialog .card).
+    overflow: visible lets the peek cards show behind AND
+    lets the right panel expand outside the swiper bounds.
+  */
+  width: 534px;
+  height: calc(48vh);
+  position: relative;
+
+  :global(.swiper) {
+    width: 534px !important;
+    height: calc(48vh) !important;
+    overflow: visible !important;
+  }
+
+  :global(.swiper-slide) {
+    border-radius: 22px;
+    /* visible so the panel can expand to the right without clipping */
+    overflow: visible;
+    background: #fff;
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-start;
+  }
+}
+
+/*
+  slideInner: passthrough wrapper.
+  No overflow hidden — ReminderDialog renders naturally,
+  panel expansion goes rightward freely.
+*/
+.slideInner {
+  display: flex;
+  align-items: flex-start;
+}
+
+/* ── Fetching more ──────────────────────────── */
+.fetchingMore {
+  position: absolute;
+  bottom: -28px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.25);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+/* ── Empty / Loader ─────────────────────────── */
+.centered {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  color: rgba(255, 255, 255, 0.2);
+  font-size: 0.88rem;
+  height: 340px;
+  text-align: center;
+}

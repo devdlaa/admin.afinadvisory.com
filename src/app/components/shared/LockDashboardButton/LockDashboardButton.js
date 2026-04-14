@@ -2,11 +2,23 @@
 
 import { useSession } from "next-auth/react";
 import { useState } from "react";
-import { Lock, Loader2, Check, Volume2, VolumeX } from "lucide-react";
+import {
+  Lock,
+  Loader2,
+  Check,
+  Volume2,
+  VolumeX,
+  Plus,
+  LayoutList,
+} from "lucide-react";
 import NotificationBell from "../Notifications/NotificationBell";
 import { useDispatch, useSelector } from "react-redux";
 import { toggleSound } from "@/store/slices/notificationSlice";
 import styles from "./DashboardActions.module.scss";
+import ReminderDetailsDialogWrapper from "@/app/dashboard/reminders/components/ReminderDetailsDialogWrapper/ReminderDetailsDialogWrapper";
+import { openCreateReminder } from "@/store/slices/remindersSlice";
+import { openOverview } from "@/store/slices/remindersOverviewSlice";
+import RemindersOverview from "@/app/dashboard/reminders/components/RemindersOverview/RemindersOverview";
 
 export default function LockDashboardButton() {
   const { data: session, status, update } = useSession();
@@ -26,7 +38,6 @@ export default function LockDashboardButton() {
       }, 0);
     } catch (err) {
       console.error("Failed to lock dashboard:");
-
       setLoading(false);
       setSuccess(false);
     }
@@ -37,7 +48,7 @@ export default function LockDashboardButton() {
 
   return (
     <aside className={styles.actionSidebar} aria-label="Dashboard actions">
-      {/* Notification bell — always shown, handles its own auth */}
+      {/* Notification bell */}
       <div className={styles.actionSidebar__item}>
         {isLoading ? (
           <div
@@ -50,28 +61,51 @@ export default function LockDashboardButton() {
 
       <div className={styles.actionSidebar__divider} />
 
-      {/* Sound toggle */}
-      <div className={styles.actionSidebar__item}>
-        {isLoading ? (
-          <div className={styles.actionSidebar__skeleton} />
-        ) : (
-          <button
-            onClick={() => dispatch(toggleSound())}
-            className={`${styles.actionSidebar__btn} ${
-              !soundEnabled ? styles["actionSidebar__btn--muted"] : ""
-            }`}
-            title={
-              soundEnabled
-                ? "Disable notification sound"
-                : "Enable notification sound"
-            }
-          >
-            {soundEnabled ? <Volume2 size={18} /> : <VolumeX size={18} />}
-          </button>
-        )}
+      <div className={styles.min_controlls}>
+        {/* Sound toggle */}
+        <div className={styles.actionSidebar__item}>
+          {isLoading ? (
+            <div className={styles.actionSidebar__skeleton} />
+          ) : (
+            <button
+              onClick={() => dispatch(toggleSound())}
+              className={`${styles.actionSidebar__btn} ${
+                !soundEnabled ? styles["actionSidebar__btn--muted"] : ""
+              }`}
+              title={
+                soundEnabled
+                  ? "Disable notification sound"
+                  : "Enable notification sound"
+              }
+            >
+              {soundEnabled ? <Volume2 size={18} /> : <VolumeX size={18} />}
+            </button>
+          )}
+        </div>
+
+        {/* Create reminder */}
+        <button
+          onClick={() => dispatch(openCreateReminder())}
+          className={`${styles.actionSidebar__btn} ${styles["actionSidebar__btn--primary"]}`}
+        >
+          <Plus size={20} />
+        </button>
+
+        {/* Reminders overview */}
+        <div className={styles.actionSidebar__item}>
+          {!isLoading && (
+            <button
+              onClick={() => dispatch(openOverview())}
+              className={styles.actionSidebar__btn}
+              title="Reminders Overview"
+            >
+              <LayoutList size={18} />
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Lock button — only show when session is ready and not locked */}
+      {/* Lock button */}
       <div className={styles.actionSidebar__item}>
         {isLoading ? (
           <div className={styles.actionSidebar__skeleton} />
@@ -94,6 +128,9 @@ export default function LockDashboardButton() {
           </button>
         )}
       </div>
+
+      <ReminderDetailsDialogWrapper />
+      <RemindersOverview />
     </aside>
   );
 }

@@ -81,6 +81,7 @@ export async function GET(req) {
     const filters = schemas.adminUser.list.parse({
       status: searchParams.get("status") || undefined,
       search: searchParams.get("search") || undefined,
+      compact: searchParams.get("compact") || undefined,
       page: searchParams.get("page") || undefined,
       limit: searchParams.get("limit") || undefined,
     });

@@ -7,6 +7,11 @@ import {
 } from "@/utils/server/apiResponse";
 import { requirePermission } from "@/utils/server/requirePermission";
 
+function parseArray(value) {
+  if (!value) return undefined;
+  return value.split(",").filter(Boolean);
+}
+
 export async function GET(req) {
   try {
     const [permissionError, , currentUser] = await requirePermission(
@@ -17,11 +22,15 @@ export async function GET(req) {
 
     const { searchParams } = new URL(req.url);
 
-    const rawTagIds = searchParams.get("tag_ids");
-
     const input = schemas.reminder.myDay.parse({
-      bucket_id: searchParams.get("bucket_id") ?? undefined,
-      tag_ids: rawTagIds ? rawTagIds.split(",") : undefined,
+      bucket_id: searchParams.get("bucket_id"),
+      tag_ids: parseArray(searchParams.get("tag_ids")),
+      tab: searchParams.get("tab"),
+      limit: searchParams.get("limit"),
+      page: searchParams.get("page"),
+
+      ignore_date_filter: searchParams.get("ignore_date_filter") === "true",
+      is_overview: searchParams.get("is_overview") === "true",
     });
 
     const result = await getMyDay(input, currentUser);

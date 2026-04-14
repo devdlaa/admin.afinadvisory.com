@@ -2094,10 +2094,6 @@ export async function handleExternalLeadInit(body) {
   const email = identity.email.toLowerCase().trim();
   const phone = identity.phone.replace(/\D/g, "");
 
-  /* ---------------------------------------------------
-  STEP 1: FIND EXISTING LEAD BY SOURCE external_id
-  --------------------------------------------------- */
-  // lead_hash is not on Lead model — query via LeadSourceData
   const existingSourceData = await prisma.leadSourceData.findFirst({
     where: {
       external_id: leadHash,
@@ -2115,9 +2111,6 @@ export async function handleExternalLeadInit(body) {
 
   const existingLead = existingSourceData?.lead ?? null;
 
-  /* ---------------------------------------------------
-  CASE 1: OPEN LEAD EXISTS → DO NOTHING
-  --------------------------------------------------- */
   if (
     existingLead &&
     existingLead.deleted_at === null &&
@@ -2130,9 +2123,6 @@ export async function handleExternalLeadInit(body) {
     };
   }
 
-  /* ---------------------------------------------------
-  STEP 2: FIND OR CREATE CONTACT
-  --------------------------------------------------- */
   let contact = await prisma.leadContact.findFirst({
     where: {
       OR: [{ primary_email: email }, { primary_phone: phone }],
@@ -2151,9 +2141,6 @@ export async function handleExternalLeadInit(body) {
     });
   }
 
-  /* ---------------------------------------------------
-  STEP 3: GET DEFAULT PIPELINE + FIRST OPEN STAGE
-  --------------------------------------------------- */
   const pipeline = await prisma.leadPipeline.findFirst({
     where: {
       is_default: true,
@@ -2176,9 +2163,6 @@ export async function handleExternalLeadInit(body) {
 
   if (!stage) throw new Error("Default pipeline has no open stages");
 
-  /* ---------------------------------------------------
-  STEP 4: GET COMPANY PROFILE
-  --------------------------------------------------- */
   let company = null;
 
   if (company_profile_id) {
@@ -2198,9 +2182,6 @@ export async function handleExternalLeadInit(body) {
 
   if (!company) throw new Error("No active company profile found");
 
-  /* ---------------------------------------------------
-  STEP 5: ENSURE TAG EXISTS
-  --------------------------------------------------- */
   const TAG_NAME = "AFIN_ADVISORY_LEAD";
 
   let tag = await prisma.leadTag.findFirst({
@@ -2218,15 +2199,10 @@ export async function handleExternalLeadInit(body) {
     });
   }
 
-  /* ---------------------------------------------------
-  STEPS 6–9: CREATE LEAD + TAG + SOURCE + ASSIGNMENT
-  all in one transaction
-  --------------------------------------------------- */
   const now = new Date();
   let expectedCloseDate = new Date(now.getTime() + 5 * 24 * 60 * 60 * 1000);
 
   const result = await prisma.$transaction(async (tx) => {
-    /* ---------- CREATE LEAD ---------- */
     const lead = await tx.lead.create({
       data: {
         title: service.name,
@@ -2242,7 +2218,6 @@ export async function handleExternalLeadInit(body) {
       select: { id: true },
     });
 
-    /* ---------- TAG LINK ---------- */
     await tx.leadTagMap.create({
       data: {
         lead_id: lead.id,
@@ -2250,7 +2225,6 @@ export async function handleExternalLeadInit(body) {
       },
     });
 
-    /* ---------- SOURCE DATA ---------- */
     await tx.leadSourceData.create({
       data: {
         lead_id: lead.id,
@@ -2265,7 +2239,6 @@ export async function handleExternalLeadInit(body) {
       },
     });
 
-    /* ---------- ROUND ROBIN ASSIGNMENT ---------- */
     const [users, superAdmin] = await Promise.all([
       tx.adminUser.findMany({
         where: {
@@ -2365,7 +2338,6 @@ export async function handleExternalLeadInit(body) {
     };
   });
 
-  // NEW-LEAD NOTIFICATION
   try {
     if (result.assignedUsers.length > 0) {
       await notify(
@@ -2393,9 +2365,6 @@ export async function handleExternalLeadInit(body) {
 export async function handleExternalLeadProgress(body) {
   const { leadHash, payload, isFinalStep } = body;
 
-  /* ---------------------------------------------------
-  STEP 1: FIND EXISTING LEAD VIA SOURCE DATA
-  --------------------------------------------------- */
   const sourceData = await prisma.leadSourceData.findUnique({
     where: { external_id: leadHash },
     select: {
@@ -2406,7 +2375,6 @@ export async function handleExternalLeadProgress(body) {
     },
   });
 
-  /* ---------- NO MATCH → EXIT ---------- */
   if (!sourceData) {
     return {
       status: "IGNORED_NO_LEAD",
@@ -2420,17 +2388,11 @@ export async function handleExternalLeadProgress(body) {
     };
   }
 
-  /* ---------------------------------------------------
-  STEP 2: PREPARE EXISTING PAYLOAD
-  --------------------------------------------------- */
   const existingPayload =
     sourceData.raw_payload && typeof sourceData.raw_payload === "object"
       ? sourceData.raw_payload
       : {};
 
-  /* ---------------------------------------------------
-  STEP 3: TRANSFORM Q/A ARRAY → OBJECT
-  --------------------------------------------------- */
   const progressData = {};
 
   if (Array.isArray(payload)) {
@@ -2441,17 +2403,11 @@ export async function handleExternalLeadProgress(body) {
     }
   }
 
-  /* ---------------------------------------------------
-  STEP 4: MERGE (APPEND AT BOTTOM)
-  --------------------------------------------------- */
   const updatedPayload = {
     ...existingPayload,
     ...progressData,
   };
 
-  /* ---------------------------------------------------
-  STEP 5: UPDATE SOURCE DATA
-  --------------------------------------------------- */
   await prisma.leadSourceData.update({
     where: {
       id: sourceData.id,

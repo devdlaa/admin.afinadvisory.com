@@ -38,6 +38,7 @@ import leadsReducer from "./slices/leadsSlice";
 import leadDetailsReducer from "./slices/leadDetails.slice";
 import leadAnalyticsReducer from "./slices/leadAnalyticsSlice";
 import activitiesReducer from "./slices/activities.slice";
+import remindersOverviewReducer from "./slices/remindersOverviewSlice";
 export const store = configureStore({
   reducer: {
     session: sessionReducer,
@@ -66,7 +67,7 @@ export const store = configureStore({
     permissions: permissionsReducer,
     taskSearch: taskSearchReducer,
     reminderMeta: reminderMetaReducer,
-    remindersSlice: remindersReducer,
+    reminders: remindersReducer,
     leadsMeta: leadsMetReducer,
     leadPipelines: leadPipelinesReducer,
     leadContact: leadContactReducer,
@@ -75,6 +76,7 @@ export const store = configureStore({
     leadDetails: leadDetailsReducer,
     leadAnalytics: leadAnalyticsReducer,
     activities: activitiesReducer,
+    remindersOverview : remindersOverviewReducer
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware()

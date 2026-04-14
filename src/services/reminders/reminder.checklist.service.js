@@ -113,7 +113,13 @@ export const syncReminderChecklist = async (
 
     return {
       reminder_id,
-      updated,
+      checklist: updated.map((item) => ({
+        id: item.id,
+        title: item.title,
+        done: item.is_done,
+        order: item.order,
+        created_at: item.created_at,
+      })),
     };
   });
 };

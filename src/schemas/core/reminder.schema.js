@@ -25,7 +25,7 @@ export const ReminderLifecycleActionEnum = z.enum(["SNOOZE", "ACKNOWLEDGE"]);
 const BoardFiltersSchema = z.object({
   bucket_id: z.string().uuid().optional().nullable(),
   tag_ids: z.array(z.string().uuid()).optional().nullable(),
-  limit: z.coerce.number().min(1).max(100).optional(),
+  limit: z.coerce.number().min(1).max(10).optional().default(3),
   page: z.coerce.number().min(1).optional(),
 });
 
@@ -193,9 +193,42 @@ const WeekBoardKeysSchema = z
   .optional();
 
 export const listReminderWeekBoardsSchema = z.object({
-  bucket_id: z.string().uuid().optional().nullable(),
-  tag_ids: z.array(z.string().uuid()).optional().nullable(),
-  boards: WeekBoardKeysSchema,
+  bucket_id: z.string().uuid().optional(),
+
+  tag_ids: z
+    .array(z.string().uuid())
+    .optional()
+    .refine((arr) => !arr || arr.length > 0, {
+      message: "tag_ids cannot be empty",
+    }),
+  board_keys: z
+    .array(
+      z.enum([
+        "today",
+        "tomorrow",
+        "day_3",
+        "day_4",
+        "day_5",
+        "day_6",
+        "day_7",
+      ]),
+    )
+    .optional()
+    .default([
+      "today",
+      "tomorrow",
+      "day_3",
+      "day_4",
+      "day_5",
+      "day_6",
+      "day_7",
+    ]),
+  limit: z
+    .string()
+    .optional()
+    .transform((v) => (v ? parseInt(v, 10) : 5))
+    .pipe(z.number().min(1).max(50)),
+  cursor: z.string().optional().nullable(),
 });
 
 /* =======================================================================
@@ -203,14 +236,20 @@ export const listReminderWeekBoardsSchema = z.object({
 ======================================================================= */
 
 export const getMyDaySchema = z.object({
-  bucket_id: z.string().uuid().optional().nullable(),
-  tag_ids: z.array(z.string().uuid()).optional().nullable(),
-  boards: z
-    .object({
-      overdue: BoardFiltersSchema.optional(),
-      today: BoardFiltersSchema.optional(),
-    })
-    .optional(),
+  bucket_id: z.string().uuid().nullish(),
+  tag_ids: z.array(z.string().uuid()).nullish(),
+
+  tab: z.enum(["today", "overdue"]),
+  ignore_date_filter: z
+    .union([z.boolean(), z.string()])
+    .optional()
+    .transform((val) => val === true || val === "true"),
+  is_overview: z
+    .union([z.boolean(), z.string()])
+    .optional()
+    .transform((val) => val === true || val === "true"),
+  limit: z.coerce.number().min(1).max(10).catch(5),
+  page: z.coerce.number().min(1).default(1),
 });
 
 /* =======================================================================
@@ -222,4 +261,15 @@ export const checkAliveSchema = z.object({
     .array(z.string().uuid())
     .min(1, "At least one reminder ID is required")
     .max(50, "Maximum 50 IDs per request"),
+});
+
+export const checklistSync = z.object({
+  items: z.array(
+    z.object({
+      id: z.string().optional(),
+      title: z.string().min(1),
+      is_done: z.boolean().optional(),
+      order: z.number().optional(),
+    }),
+  ),
 });

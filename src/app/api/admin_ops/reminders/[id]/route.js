@@ -16,15 +16,16 @@ import { uuidSchema } from "@/schemas";
 ----------------------------------------------------------------------- */
 export async function GET(req, { params }) {
   try {
-    const [permissionError, , currentUser] = await requirePermission(
+    const [permissionError, , admin_user] = await requirePermission(
       req,
       "reminders.access",
     );
     if (permissionError) return permissionError;
+    const { id } = await params;
 
-    const reminderId = uuidSchema.parse(params.id);
+    const reminderId = uuidSchema.parse(id);
 
-    const result = await getReminderDetail(reminderId, currentUser);
+    const result = await getReminderDetail(reminderId, admin_user);
 
     return createSuccessResponse("Reminder retrieved successfully", result);
   } catch (e) {
@@ -37,16 +38,16 @@ export async function GET(req, { params }) {
 ----------------------------------------------------------------------- */
 export async function PUT(req, { params }) {
   try {
-    const [permissionError, , currentUser] = await requirePermission(
+    const [permissionError, , admin_user] = await requirePermission(
       req,
       "reminders.manage",
     );
     if (permissionError) return permissionError;
-
-    const reminderId = uuidSchema.parse(params.id);
+    const { id } = await params;
+    const reminderId = uuidSchema.parse(id);
     const body = schemas.reminder.update.parse(await req.json());
 
-    const result = await updateReminder(reminderId, body, currentUser);
+    const result = await updateReminder(reminderId, body, admin_user);
 
     return createSuccessResponse("Reminder updated successfully", result);
   } catch (e) {

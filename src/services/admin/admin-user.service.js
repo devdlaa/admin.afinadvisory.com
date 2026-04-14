@@ -385,14 +385,20 @@ export const listAdminUsers = async (filters = {}) => {
     ];
   }
 
+  const isCompact = filters.compact === true || filters.compact === "true";
+
   const [items, total] = await Promise.all([
     prisma.adminUser.findMany({
       where,
-      include: {
-        permissions: {
-          include: { permission: true },
-        },
-      },
+      ...(isCompact
+        ? {}
+        : {
+            include: {
+              permissions: {
+                include: { permission: true },
+              },
+            },
+          }),
       orderBy: { date_of_joining: "desc" },
       skip: (page - 1) * pageSize,
       take: pageSize,
@@ -743,6 +749,3 @@ export async function getAllSuperAdminIds() {
 
   return users.map((u) => u.id);
 }
-
-
-

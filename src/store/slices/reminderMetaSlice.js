@@ -1,4 +1,8 @@
-import { createSlice, createAsyncThunk, createSelector } from "@reduxjs/toolkit";
+import {
+  createSlice,
+  createAsyncThunk,
+  createSelector,
+} from "@reduxjs/toolkit";
 
 /* ─────────────────────────────────────────────
    HELPERS
@@ -33,7 +37,7 @@ export const fetchReminderTags = createAsyncThunk(
     } catch (e) {
       return rejectWithValue(e.message);
     }
-  }
+  },
 );
 
 export const createReminderTag = createAsyncThunk(
@@ -48,7 +52,7 @@ export const createReminderTag = createAsyncThunk(
     } catch (e) {
       return rejectWithValue(e.message);
     }
-  }
+  },
 );
 
 export const updateReminderTag = createAsyncThunk(
@@ -63,19 +67,21 @@ export const updateReminderTag = createAsyncThunk(
     } catch (e) {
       return rejectWithValue(e.message);
     }
-  }
+  },
 );
 
 export const deleteReminderTag = createAsyncThunk(
   "reminderMeta/deleteTag",
   async (tagId, { rejectWithValue }) => {
     try {
-      const data = await apiFetch(`${BASE}/tags/${tagId}`, { method: "DELETE" });
+      const data = await apiFetch(`${BASE}/tags/${tagId}`, {
+        method: "DELETE",
+      });
       return { ...data, tagId };
     } catch (e) {
       return rejectWithValue(e.message);
     }
-  }
+  },
 );
 
 /* ─────────────────────────────────────────────
@@ -91,7 +97,7 @@ export const fetchReminderLists = createAsyncThunk(
     } catch (e) {
       return rejectWithValue(e.message);
     }
-  }
+  },
 );
 
 export const createReminderList = createAsyncThunk(
@@ -106,7 +112,7 @@ export const createReminderList = createAsyncThunk(
     } catch (e) {
       return rejectWithValue(e.message);
     }
-  }
+  },
 );
 
 export const updateReminderList = createAsyncThunk(
@@ -121,19 +127,21 @@ export const updateReminderList = createAsyncThunk(
     } catch (e) {
       return rejectWithValue(e.message);
     }
-  }
+  },
 );
 
 export const deleteReminderList = createAsyncThunk(
   "reminderMeta/deleteList",
   async (listId, { rejectWithValue }) => {
     try {
-      const data = await apiFetch(`${BASE}/buckets/${listId}`, { method: "DELETE" });
+      const data = await apiFetch(`${BASE}/buckets/${listId}`, {
+        method: "DELETE",
+      });
       return { ...data, listId };
     } catch (e) {
       return rejectWithValue(e.message);
     }
-  }
+  },
 );
 
 /* ─────────────────────────────────────────────
@@ -143,23 +151,23 @@ export const deleteReminderList = createAsyncThunk(
 const initialState = {
   // ── Tags ──────────────────────────────────
   tags: {
-    items: [],          // Tag[]
+    items: [], // Tag[]
     loading: false,
-    submitting: false,  // create / update / delete in-flight
+    submitting: false, // create / update / delete in-flight
     error: null,
     // Search
     search: {
       query: "",
-      results: [],      // local-filtered or server results
-      active: false,    // true while user is in search mode
+      results: [], // local-filtered or server results
+      active: false, // true while user is in search mode
       loading: false,
     },
   },
 
   // ── Lists (buckets) ───────────────────────
   lists: {
-    items: [],          // List[]
-    allItems: [],       // flat list fetched with ?all=true (for pickers)
+    items: [], // List[]
+    allItems: [], // flat list fetched with ?all=true (for pickers)
     loading: false,
     submitting: false,
     error: null,
@@ -196,7 +204,7 @@ const reminderMetaSlice = createSlice({
       // Local-first search
       const q = query.trim().toLowerCase();
       state.tags.search.results = state.tags.items.filter((t) =>
-        t.name.toLowerCase().includes(q)
+        t.name.toLowerCase().includes(q),
       );
     },
 
@@ -217,9 +225,11 @@ const reminderMetaSlice = createSlice({
 
       const q = query.trim().toLowerCase();
       const pool =
-        state.lists.allItems.length > 0 ? state.lists.allItems : state.lists.items;
+        state.lists.allItems.length > 0
+          ? state.lists.allItems
+          : state.lists.items;
       state.lists.search.results = pool.filter((l) =>
-        l.name.toLowerCase().includes(q)
+        l.name.toLowerCase().includes(q),
       );
     },
 
@@ -298,7 +308,9 @@ const reminderMetaSlice = createSlice({
       })
       .addCase(deleteReminderTag.fulfilled, (state, { payload }) => {
         state.tags.submitting = false;
-        state.tags.items = state.tags.items.filter((t) => t.id !== payload.tagId);
+        state.tags.items = state.tags.items.filter(
+          (t) => t.id !== payload.tagId,
+        );
       })
       .addCase(deleteReminderTag.rejected, (state, { payload }) => {
         state.tags.submitting = false;
@@ -417,41 +429,38 @@ export const selectAllTags = createSelector(selectTagsSlice, (t) => t.items);
 
 export const selectTagsLoading = createSelector(
   selectTagsSlice,
-  (t) => t.loading
+  (t) => t.loading,
 );
 
 export const selectTagsSubmitting = createSelector(
   selectTagsSlice,
-  (t) => t.submitting
+  (t) => t.submitting,
 );
 
 export const selectTagsError = createSelector(selectTagsSlice, (t) => t.error);
 
-export const selectTagSearch = createSelector(
-  selectTagsSlice,
-  (t) => t.search
-);
+export const selectTagSearch = createSelector(selectTagsSlice, (t) => t.search);
 
 export const selectTagSearchActive = createSelector(
   selectTagSearch,
-  (s) => s.active
+  (s) => s.active,
 );
 
 export const selectTagSearchQuery = createSelector(
   selectTagSearch,
-  (s) => s.query
+  (s) => s.query,
 );
 
 /** Returns search results when active, otherwise the full list */
 export const selectVisibleTags = createSelector(
   selectAllTags,
   selectTagSearch,
-  (items, search) => (search.active ? search.results : items)
+  (items, search) => (search.active ? search.results : items),
 );
 
 /** Map of id → tag — useful for fast lookups in reminder dialogs */
 export const selectTagsById = createSelector(selectAllTags, (tags) =>
-  Object.fromEntries(tags.map((t) => [t.id, t]))
+  Object.fromEntries(tags.map((t) => [t.id, t])),
 );
 
 /* ─────────────────────────────────────────────
@@ -464,37 +473,37 @@ export const selectAllLists = createSelector(selectListsSlice, (l) => l.items);
 
 export const selectAllListsFlat = createSelector(
   selectListsSlice,
-  (l) => l.allItems
+  (l) => l.allItems,
 );
 
 export const selectListsLoading = createSelector(
   selectListsSlice,
-  (l) => l.loading
+  (l) => l.loading,
 );
 
 export const selectListsSubmitting = createSelector(
   selectListsSlice,
-  (l) => l.submitting
+  (l) => l.submitting,
 );
 
 export const selectListsError = createSelector(
   selectListsSlice,
-  (l) => l.error
+  (l) => l.error,
 );
 
 export const selectListSearch = createSelector(
   selectListsSlice,
-  (l) => l.search
+  (l) => l.search,
 );
 
 export const selectListSearchActive = createSelector(
   selectListSearch,
-  (s) => s.active
+  (s) => s.active,
 );
 
 export const selectListSearchQuery = createSelector(
   selectListSearch,
-  (s) => s.query
+  (s) => s.query,
 );
 
 /** Returns search results when active, otherwise the full list */
@@ -505,7 +514,7 @@ export const selectVisibleLists = createSelector(
   (allFlat, items, search) => {
     if (!search.active) return items;
     return search.results;
-  }
+  },
 );
 
 /** Map of id → list — useful for fast lookups in reminder dialogs */
@@ -515,7 +524,7 @@ export const selectListsById = createSelector(
   (allFlat, items) => {
     const pool = allFlat.length > 0 ? allFlat : items;
     return Object.fromEntries(pool.map((l) => [l.id, l]));
-  }
+  },
 );
 
 /* ─────────────────────────────────────────────
@@ -528,7 +537,7 @@ export const selectMetaAnyLoading = createSelector(
   selectListsLoading,
   selectTagsSubmitting,
   selectListsSubmitting,
-  (tl, ll, ts, ls) => tl || ll || ts || ls
+  (tl, ll, ts, ls) => tl || ll || ts || ls,
 );
 
 export default reminderMetaSlice.reducer;

@@ -6,20 +6,19 @@ import {
   handleApiError,
 } from "@/utils/server/apiResponse";
 import { requirePermission } from "@/utils/server/requirePermission";
-import { uuidSchema } from "@/schemas";
 
 export async function PUT(req, { params }) {
   try {
-    const [permissionError, , currentUser] = await requirePermission(
+    const [permissionError, , admin_user] = await requirePermission(
       req,
       "reminders.manage",
     );
     if (permissionError) return permissionError;
+    const { id } = await params;
 
-    const reminderId = uuidSchema.parse(params.id);
     const body = schemas.reminder.lifecycle.parse(await req.json());
 
-    const result = await updateReminderLifecycle(reminderId, body, currentUser);
+    const result = await updateReminderLifecycle(id, body, admin_user);
 
     const message =
       body.action === "ACKNOWLEDGE"
