@@ -102,18 +102,18 @@ const SIDEBAR_CONFIG = {
         },
       ],
     },
-    {
-      id: "reminders",
-      title: "Reminders",
-      items: [
-        {
-          id: "reminders",
-          label: "Manage Reminders",
-          icon: Bell,
-          path: "/dashboard/reminders",
-        },
-      ],
-    },
+    // {
+    //   id: "reminders",
+    //   title: "Reminders",
+    //   items: [
+    //     {
+    //       id: "reminders",
+    //       label: "Manage Reminders",
+    //       icon: Bell,
+    //       path: "/dashboard/reminders",
+    //     },
+    //   ],
+    // },
     {
       id: "account",
       title: "Account",
