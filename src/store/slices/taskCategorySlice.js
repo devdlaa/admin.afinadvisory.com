@@ -96,7 +96,7 @@ export const fetchCategories = createAsyncThunk(
     condition: (filters, { getState }) => {
       const { taskCategory } = getState();
 
-      if (taskCategory.list.length > 0 && !filters?.force) {
+      if (taskCategory.list.ids.length > 0 && !filters?.force) {
         return false;
       }
     },

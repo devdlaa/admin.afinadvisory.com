@@ -129,13 +129,25 @@ export function useTaskManageDrawer() {
   // ─────────────────────────────────────────────
 
   // Fetch task & categories when drawer opens
+  // useEffect(() => {
+  //   if (isOpen && taskId) {
+  //     dispatch(fetchTaskById(taskId));
+  //     dispatch(fetchCategories({ page: 1, page_size: 100 }));
+  //     isClosingRef.current = false;
+  //   }
+  // }, [isOpen, taskId, dispatch]);
+
   useEffect(() => {
     if (isOpen && taskId) {
       dispatch(fetchTaskById(taskId));
-      dispatch(fetchCategories({ page: 1, page_size: 100 }));
+
+      if (!categories || categories.length === 0) {
+        dispatch(fetchCategories({ page: 1, page_size: 100 }));
+      }
+
       isClosingRef.current = false;
     }
-  }, [isOpen, taskId, dispatch]);
+  }, [isOpen, taskId, dispatch, categories]);
 
   // Sync form state when task data arrives
   useEffect(() => {
