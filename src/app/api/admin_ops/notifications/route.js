@@ -46,6 +46,23 @@ function getCursor(value) {
   return !isNaN(parsed.getTime()) ? parsed.getTime() : null;
 }
 
+function buildFirestoreCursor(value) {
+  if (!value) return null;
+
+  // Firestore Timestamp object
+  if (typeof value.toDate === "function") return value;
+
+  // Firestore Timestamp-like { seconds, nanoseconds }
+  if (value?.seconds) {
+    return admin.firestore.Timestamp.fromMillis(value.seconds * 1000);
+  }
+
+  // ISO string (new format)
+  if (typeof value === "string") return value;
+
+  return null;
+}
+
 export async function GET(request) {
   try {
     const [permissionError, session, admin_user] =
@@ -55,7 +72,7 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url);
 
     const limit = Math.min(Number(searchParams.get("limit")) || 10, 15);
-    const cursor = searchParams.get("cursor");
+    const cursor = searchParams.get("cursor"); // timestamp in ms
     const tab = searchParams.get("tab") || "all";
 
     const userNotifRef = db.collection("notifications").doc(admin_user.id);
@@ -71,13 +88,31 @@ export async function GET(request) {
     ref = ref.orderBy("created_at", "desc").limit(limit);
 
     if (cursor) {
-      const cursorDoc = await userNotifRef
+      const cursorMs = Number(cursor);
+      const cursorDate = new Date(cursorMs);
+
+      // Fetch the actual cursor doc to get its raw created_at
+      // so we can match the type Firestore stored (Timestamp vs string)
+      const cursorSnap = await userNotifRef
         .collection("items")
-        .doc(cursor)
+        .where("created_at", "in", [
+          admin.firestore.Timestamp.fromDate(cursorDate),
+          cursorDate.toISOString(),
+        ])
+        .limit(1)
         .get();
 
-      if (cursorDoc.exists) {
-        ref = ref.startAfter(cursorDoc);
+      if (!cursorSnap.empty) {
+        const rawCreatedAt = cursorSnap.docs[0].data().created_at;
+        const firestoreCursor = buildFirestoreCursor(rawCreatedAt);
+        if (firestoreCursor) {
+          ref = ref.startAfter(firestoreCursor);
+        }
+      } else {
+        // Fallback: try both types — first Timestamp, then ISO string
+        // This handles edge cases where the exact doc isn't found
+        const cursorTimestamp = admin.firestore.Timestamp.fromDate(cursorDate);
+        ref = ref.startAfter(cursorTimestamp);
       }
     }
 
@@ -101,7 +136,7 @@ export async function GET(request) {
 
     const lastDoc = snapshot.docs[snapshot.docs.length - 1];
 
-    const nextCursor = lastDoc ? lastDoc.id : null;
+    const nextCursor = lastDoc ? getCursor(lastDoc.data().created_at) : null;
 
     const unreadCount = metadataDoc.exists
       ? metadataDoc.data()?.unread_count || 0
