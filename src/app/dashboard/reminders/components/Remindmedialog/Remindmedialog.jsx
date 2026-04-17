@@ -730,9 +730,15 @@ export default function RemindMeDialog({
         repeat_by: null,
       });
     } else {
+      const dt = new Date(rec.startsOn);
+
+      if (rec.startsH !== null && rec.startsM !== null) {
+        dt.setHours(rec.startsH, rec.startsM, 0, 0);
+      }
+
       onSet?.({
         isRecurring: true,
-        date: new Date(rec.startsOn).toISOString(),
+        date: dt.toISOString(),
         h: rec.startsH,
         m: rec.startsM,
         recurrence_type: rec.type,

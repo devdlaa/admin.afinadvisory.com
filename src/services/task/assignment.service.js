@@ -202,11 +202,21 @@ export const syncTaskAssignments = async (
     };
   });
 
+  // ---------------- ACTIVITY LOG ----------------
+  let ACTIVITY_LOG_ = null;
+  if (result.changes.length > 0) {
+    ACTIVITY_LOG_ = await addTaskActivityLog(task_id, updated_by, {
+      action: "TASK_ASSIGNMENT_UPDATED",
+      message: buildActivityMessage(result.changes),
+      meta: { changes: result.changes },
+    });
+  }
+
   // ---------------- NOTIFICATIONS ----------------
 
   try {
     if (!result.assigned_to_all && result.toAdd.length > 0) {
-      await notify(result.toAdd, {
+      await notify(result.toAdd, ACTIVITY_LOG_.id, {
         type: "TASK_ASSIGNED",
         title: "You were assigned a task",
         body: `Task: ${result.task.title}`,
@@ -219,16 +229,6 @@ export const syncTaskAssignments = async (
     }
   } catch (err) {
     console.error("Assignment notification failed:", err);
-  }
-
-  // ---------------- ACTIVITY LOG ----------------
-
-  if (result.changes.length > 0) {
-    await addTaskActivityLog(task_id, updated_by, {
-      action: "TASK_ASSIGNMENT_UPDATED",
-      message: buildActivityMessage(result.changes),
-      meta: { changes: result.changes },
-    });
   }
 
   // ---------------- RESPONSE ----------------

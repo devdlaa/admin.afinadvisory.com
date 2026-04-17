@@ -146,6 +146,7 @@ export default function ReminderDialog({
   const [tagsOpen, setTagsOpen] = useState(false);
   const [listsOpen, setListsOpen] = useState(false);
   const [remindOpen, setRemindOpen] = useState(false);
+  const [updateScope, setUpdateScope] = useState(null);
 
   // ── validation error ──
   const [formError, setFormError] = useState(null);
@@ -167,6 +168,8 @@ export default function ReminderDialog({
           action: "ACKNOWLEDGE",
         }),
       ).unwrap();
+
+      dispatch(closeReminderDialog());
     } catch (err) {
       console.error("Complete failed:");
     } finally {
@@ -183,6 +186,7 @@ export default function ReminderDialog({
       await dispatch(
         reminderLifecycle({ reminderId: activeReminderId, ...payload }),
       ).unwrap();
+      dispatch(closeReminderDialog());
     } catch (err) {
       console.error("Snooze failed:");
     } finally {
@@ -219,6 +223,17 @@ export default function ReminderDialog({
     },
     [patch, isUpdate, activeReminderId],
   );
+
+  const isRecurring = form.reminderConfig?.isRecurring;
+
+  const hasScheduleChanged = (() => {
+    const curr = form.reminderConfig;
+    const prev = savedRef.current.reminderConfig;
+
+    if (!curr || !prev) return false;
+
+    return JSON.stringify(curr) !== JSON.stringify(prev);
+  })();
 
   // ─── Form handlers ────────────────────────────────────────────────────────
 
@@ -263,6 +278,9 @@ export default function ReminderDialog({
     }
 
     const delta = buildUpdatePayload(form, savedRef.current);
+    if (isRecurring && hasScheduleChanged) {
+      delta.update_scope = updateScope;
+    }
     await handleUpdate(delta);
 
     const snapshot = JSON.parse(JSON.stringify(form));
@@ -380,127 +398,177 @@ export default function ReminderDialog({
                     </div>
                   </div>
 
-                  {/* Title */}
-                  <input
-                    className={styles.titleInput}
-                    placeholder="Reminder Title..."
-                    value={form.title}
-                    disabled={locked}
-                    onChange={(e) => patch({ title: e.target.value })}
-                  />
+                  {/* update scope confirmation */}
+                  {isUpdate && isRecurring && hasScheduleChanged ? (
+                    <div className={styles.scopeBox}>
+                      <div className={styles.scopeTitle}>Apply changes to</div>
 
-                  {/* Description */}
-                  <textarea
-                    className={styles.descArea}
-                    placeholder="Say more about the reminder..."
-                    value={form.description}
-                    disabled={locked}
-                    rows={3}
-                    onChange={(e) => patch({ description: e.target.value })}
-                  />
-
-                  {/* Tags row */}
-                  <div className={styles.tagsRow}>
-                    {form.tags.map((tag) => (
-                      <button
-                        key={tag.id}
-                        className={styles.tagChip}
-                        style={{
-                          "--tag-color": tag.color_code,
-                          "--tag-color-10": `${tag.color_code}1A`,
-                          "--tag-color-30": `${tag.color_code}4D`,
-                        }}
-                        disabled={locked}
-                        onClick={() => setTagsOpen(true)}
-                        type="button"
-                      >
-                        #{tag.name}
-                      </button>
-                    ))}
-                    {form.tags.length < 5 && (
-                      <button
-                        className={styles.addChip}
-                        disabled={locked}
-                        onClick={() => setTagsOpen(true)}
-                        type="button"
-                        title="Manage tags"
-                      >
-                        <Plus size={24} strokeWidth={2.2} />
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Pills row */}
-                  <div className={styles.pillsRow}>
-                    <button
-                      className={`${styles.pill} ${!bucket ? styles.pillRequired : ""}`}
-                      disabled={locked}
-                      onClick={() => setListsOpen(true)}
-                      type="button"
-                      title={
-                        !bucket ? "Required — select a list" : "Change list"
-                      }
-                    >
-                      {bucket ? (
-                        <>
-                          <span
-                            className={styles.pillIconBubble}
-                            style={{ background: bucket.icon_bg || "#D5F1FF" }}
-                          >
-                            <BucketIcon
-                              size={16}
-                              color={bucket.icon_stroke || "#449FCF"}
-                              strokeWidth={2}
-                            />
-                          </span>
-                          <span>{bucket.name}</span>
-                        </>
-                      ) : (
-                        <>
-                          <span
-                            className={styles.pillIconBubble}
-                            style={{ background: "#FFE4E4" }}
-                          >
-                            <Hash size={16} color="#E53E3E" />
-                          </span>
-                          <span>Select List *</span>
-                        </>
-                      )}
-                    </button>
-
-                    {isUpdate && initialData?.task && (
-                      <button
-                        className={styles.pill}
-                        onClick={() =>
-                          window.open(`/tasks/${initialData.task.id}`, "_blank")
-                        }
-                        type="button"
-                      >
-                        <span
-                          className={styles.pillIconBubble}
-                          style={{ background: "#D3F8A5" }}
+                      <div className={styles.scopeOptions}>
+                        <button
+                          type="button"
+                          className={`${styles.scopeCard} ${
+                            updateScope === "INSTANCE"
+                              ? styles.scopeCardActive
+                              : ""
+                          }`}
+                          onClick={() => setUpdateScope("INSTANCE")}
                         >
-                          <Link2 color="#457806" size={16} />
-                        </span>
-                        <span>Task Linked</span>
-                      </button>
-                    )}
+                          <div className={styles.scopeHeading}>
+                            This reminder only
+                          </div>
+                          <div className={styles.scopeSub}>
+                            Only this instance will be updated
+                          </div>
+                        </button>
 
-                    <button
-                      className={`${styles.pill} ${styles.pillRemind} ${!form.reminderConfig ? styles.pillRequired : ""}`}
-                      disabled={locked}
-                      onClick={() => setRemindOpen(true)}
-                      type="button"
-                    >
-                      <span
-                        className={styles.pillIconBubble}
-                        style={{ background: "#FFF7ED" }}
-                      >
-                        <Bell color="#B26B0D" size={16} />
-                      </span>
-                      <span>{remindLabel}</span>
-                    </button>
-                  </div>
+                        <button
+                          type="button"
+                          className={`${styles.scopeCard} ${
+                            updateScope === "INSTANCE_AND_FUTURE"
+                              ? styles.scopeCardActive
+                              : ""
+                          }`}
+                          onClick={() => setUpdateScope("INSTANCE_AND_FUTURE")}
+                        >
+                          <div className={styles.scopeHeading}>
+                            This and future reminders
+                          </div>
+                          <div className={styles.scopeSub}>
+                            Updates this and all upcoming instances
+                          </div>
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Title */}
+                      <input
+                        className={styles.titleInput}
+                        placeholder="Reminder Title..."
+                        value={form.title}
+                        disabled={locked}
+                        onChange={(e) => patch({ title: e.target.value })}
+                      />
+
+                      {/* Description */}
+                      <textarea
+                        className={styles.descArea}
+                        placeholder="Say more about the reminder..."
+                        value={form.description}
+                        disabled={locked}
+                        rows={3}
+                        onChange={(e) => patch({ description: e.target.value })}
+                      />
+
+                      {/* Tags row */}
+                      <div className={styles.tagsRow}>
+                        {form.tags.map((tag) => (
+                          <button
+                            key={tag.id}
+                            className={styles.tagChip}
+                            style={{
+                              "--tag-color": tag.color_code,
+                              "--tag-color-10": `${tag.color_code}1A`,
+                              "--tag-color-30": `${tag.color_code}4D`,
+                            }}
+                            disabled={locked}
+                            onClick={() => setTagsOpen(true)}
+                            type="button"
+                          >
+                            #{tag.name}
+                          </button>
+                        ))}
+                        {form.tags.length < 5 && (
+                          <button
+                            className={styles.addChip}
+                            disabled={locked}
+                            onClick={() => setTagsOpen(true)}
+                            type="button"
+                            title="Manage tags"
+                          >
+                            <Plus size={24} strokeWidth={2.2} />
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Pills row */}
+                      <div className={styles.pillsRow}>
+                        <button
+                          className={`${styles.pill} ${!bucket ? styles.pillRequired : ""}`}
+                          disabled={locked}
+                          onClick={() => setListsOpen(true)}
+                          type="button"
+                          title={
+                            !bucket ? "Required — select a list" : "Change list"
+                          }
+                        >
+                          {bucket ? (
+                            <>
+                              <span
+                                className={styles.pillIconBubble}
+                                style={{
+                                  background: bucket.icon_bg || "#D5F1FF",
+                                }}
+                              >
+                                <BucketIcon
+                                  size={16}
+                                  color={bucket.icon_stroke || "#449FCF"}
+                                  strokeWidth={2}
+                                />
+                              </span>
+                              <span>{bucket.name}</span>
+                            </>
+                          ) : (
+                            <>
+                              <span
+                                className={styles.pillIconBubble}
+                                style={{ background: "#FFE4E4" }}
+                              >
+                                <Hash size={16} color="#E53E3E" />
+                              </span>
+                              <span>Select List *</span>
+                            </>
+                          )}
+                        </button>
+
+                        {isUpdate && initialData?.task && (
+                          <button
+                            className={styles.pill}
+                            onClick={() =>
+                              window.open(
+                                `/tasks/${initialData.task.id}`,
+                                "_blank",
+                              )
+                            }
+                            type="button"
+                          >
+                            <span
+                              className={styles.pillIconBubble}
+                              style={{ background: "#D3F8A5" }}
+                            >
+                              <Link2 color="#457806" size={16} />
+                            </span>
+                            <span>Task Linked</span>
+                          </button>
+                        )}
+
+                        <button
+                          className={`${styles.pill} ${styles.pillRemind} ${!form.reminderConfig ? styles.pillRequired : ""}`}
+                          disabled={locked}
+                          onClick={() => setRemindOpen(true)}
+                          type="button"
+                        >
+                          <span
+                            className={styles.pillIconBubble}
+                            style={{ background: "#FFF7ED" }}
+                          >
+                            <Bell color="#B26B0D" size={16} />
+                          </span>
+                          <span>{remindLabel}</span>
+                        </button>
+                      </div>
+                    </>
+                  )}
 
                   {/* Footer */}
                   {!isUpdate ? (
@@ -549,7 +617,10 @@ export default function ReminderDialog({
 
                       <button
                         className={styles.footerSave}
-                        disabled={locked}
+                        disabled={
+                          locked ||
+                          (isRecurring && hasScheduleChanged && !updateScope)
+                        }
                         onClick={handleSave}
                         type="button"
                       >
@@ -575,7 +646,7 @@ export default function ReminderDialog({
                         type="button"
                       >
                         {actionLoading ? (
-                          <CircularProgress size={20} />
+                          <CircularProgress color="grey" size={18} />
                         ) : (
                           <CircleCheckBig size={20} />
                         )}

@@ -19,7 +19,6 @@ export function shouldSync(reminder) {
 }
 
 export function syncToExtension({ action, payload }) {
-  console.log("SENT TO EXTENTION", action, payload);
   try {
     window.postMessage(
       {

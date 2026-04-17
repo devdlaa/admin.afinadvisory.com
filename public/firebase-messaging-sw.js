@@ -28,6 +28,7 @@ messaging.onBackgroundMessage(function (payload) {
 
     requireInteraction: false,
     data: {
+      id: payload.data?.id,
       link: payload.data?.link || "/notifications",
       task_id: payload.data?.task_id,
       type: payload.data?.type,
@@ -37,14 +38,18 @@ messaging.onBackgroundMessage(function (payload) {
   self.clients
     .matchAll({ type: "window", includeUncontrolled: true })
     .then((clients) => {
-      clients.forEach((client) => {
-        if (client.visibilityState !== "visible") {
+      const hasVisibleClient = clients.some(
+        (c) => c.visibilityState === "visible",
+      );
+
+      if (!hasVisibleClient) {
+        clients.forEach((client) => {
           client.postMessage({
             type: "NEW_NOTIFICATION",
             payload,
           });
-        }
-      });
+        });
+      }
     });
   return self.registration
     .showNotification(notificationTitle, notificationOptions)

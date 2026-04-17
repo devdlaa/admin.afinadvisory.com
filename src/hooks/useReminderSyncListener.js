@@ -1,36 +1,42 @@
 import { useEffect } from "react";
 import { useDispatch } from "react-redux";
+import { showReminderToast } from "@/app/components/toastService";
 
 import {
   syncAcknowledgeFromExtension,
   syncSnoozeFromExtension,
 } from "@/store/slices/remindersSlice";
+import { incrementReminderAttention } from "@/store/slices/remindersOverviewSlice";
 
 export function useReminderSyncListener() {
   const dispatch = useDispatch();
-  console.log("REVERSE SYNC ACTIVE");
 
   useEffect(() => {
     function handler(event) {
       if (event.origin !== window.location.origin) return;
 
-      if (event.data?.type !== "REMINDER_SYNC_FROM_EXTENSION") return;
+      const { type, action, payload, reminder } = event.data || {};
 
-      const { action, payload } = event.data;
+      if (type === "REMINDER_SYNC_FROM_EXTENSION") {
+      
 
-      console.log("[Sync] Extension → App:", action, payload);
+        switch (action) {
+          case "ACKNOWLEDGE":
+            dispatch(syncAcknowledgeFromExtension(payload));
+            break;
 
-      switch (action) {
-        case "ACKNOWLEDGE":
-          dispatch(syncAcknowledgeFromExtension(payload));
-          break;
+          case "SNOOZE":
+            dispatch(syncSnoozeFromExtension(payload));
+            break;
 
-        case "SNOOZE":
-          dispatch(syncSnoozeFromExtension(payload));
-          break;
+          default:
+            break;
+        }
+      }
 
-        default:
-          break;
+      if (type === "REMINDER_FIRED") {
+        showReminderToast(reminder);
+        dispatch(incrementReminderAttention());
       }
     }
 

@@ -170,7 +170,7 @@ const notificationSlice = createSlice({
     },
     addNotification: (state, action) => {
       const notif = action.payload;
-      
+
       const alreadyExists = state.lists.all.items.some(
         (n) => n.id === notif.id,
       );

@@ -217,6 +217,8 @@ export const createReminder = async (input, currentUser) => {
     const title = input.title?.trim();
     const description = input.description?.trim() || null;
 
+   
+
     if (!title) throw new ValidationError("Title is required");
     if (isNaN(dueDate.getTime())) throw new ValidationError("Invalid due date");
 
@@ -1034,7 +1036,7 @@ export const checkAlive = async (reminderIds, currentUser) => {
     },
   });
 
-  console.log("reminders", reminders);
+ 
 
   const reminderMap = new Map(reminders.map((r) => [r.id, r]));
 
@@ -1081,7 +1083,7 @@ export const checkAlive = async (reminderIds, currentUser) => {
     };
   });
 
-  console.log("results", results);
+
   return { results };
 };
 

@@ -1,4 +1,4 @@
-import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import { createSlice, createAsyncThunk,createSelector  } from "@reduxjs/toolkit";
 
 // ============================================
 // HELPER - API FETCH WRAPPER
@@ -594,11 +594,10 @@ export const selectCharges = (state) => {
   return Array.isArray(charges) ? charges : [];
 };
 
-export const selectDeletedCharges = (state) => {
-  const deleted = selectTaskDetailState(state).currentTask?.deleted_charges;
-  return Array.isArray(deleted) ? deleted : [];
-};
-
+export const selectDeletedCharges = createSelector(
+  [selectTaskDetailState],
+  (state) => state.currentTask?.deleted_charges ?? []
+);
 export const selectChecklistItems = (state) =>
   selectTaskDetailState(state).currentTask?.checklist_items || [];
 

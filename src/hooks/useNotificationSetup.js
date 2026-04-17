@@ -4,10 +4,7 @@ import { useDispatch } from "react-redux";
 import { getToken, onMessage } from "firebase/messaging";
 import { messaging } from "@/lib/firebase";
 
-import {
-  addNotification,
-  fetchNotificationMeta,
-} from "@/store/slices/notificationSlice";
+import { addNotification } from "@/store/slices/notificationSlice";
 
 export const useNotificationSetup = () => {
   const dispatch = useDispatch();
@@ -65,9 +62,10 @@ export const useNotificationSetup = () => {
             // ============================================
             // HANDLE OTHER NOTIFICATIONS (Tasks, mentions, etc.)
             // ============================================
+        
             dispatch(
               addNotification({
-                id: payload.data?.id || Date.now().toString(),
+                 id: payload.data?.id,
                 title: payload.notification?.title,
                 body: payload.notification?.body,
                 type: payload.data?.type || "GENERAL",
@@ -79,7 +77,6 @@ export const useNotificationSetup = () => {
                   payload.data?.created_at || new Date().toISOString(),
               }),
             );
-            dispatch(fetchNotificationMeta());
 
             if (document.hidden) {
               new Notification(payload.notification?.title || "Notification", {
@@ -90,9 +87,7 @@ export const useNotificationSetup = () => {
             }
           });
         }
-      } catch (error) {
-        
-      }
+      } catch (error) {}
     };
 
     setupNotifications();
@@ -106,10 +101,10 @@ export const useNotificationSetup = () => {
           if (payload.data?.type === "NEW_MESSAGE") {
             return;
           }
-
+          console.log("NEW_MESSAGE", payload);
           dispatch(
             addNotification({
-              id: payload.data?.id || Date.now().toString(),
+              id: payload.data?.id,
               title: payload.notification?.title,
               body: payload.notification?.body,
               type: payload.data?.type || "GENERAL",
@@ -120,7 +115,6 @@ export const useNotificationSetup = () => {
               created_at: payload.data?.created_at || new Date().toISOString(),
             }),
           );
-          dispatch(fetchNotificationMeta());
         }
       });
     }

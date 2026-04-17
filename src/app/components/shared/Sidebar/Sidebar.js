@@ -25,6 +25,7 @@ import {
   BarChart3,
   CalendarDays,
   Clock,
+  Bell,
 } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
 import Avatar from "../newui/Avatar/Avatar";
@@ -98,6 +99,18 @@ const SIDEBAR_CONFIG = {
           label: "Influencers",
           icon: Star,
           path: "/dashboard/leads-manager/influncers",
+        },
+      ],
+    },
+    {
+      id: "reminders",
+      title: "Reminders",
+      items: [
+        {
+          id: "reminders",
+          label: "Manage Reminders",
+          icon: Bell,
+          path: "/dashboard/reminders",
         },
       ],
     },

@@ -59,8 +59,8 @@ const makeTabState = () => ({
 
 const initialState = {
   open: false,
-  activeTab: "today", // "today" | "overdue"
-
+  activeTab: "today",
+  reminderAttentionCount: 0,
   tabs: {
     today: makeTabState(),
     overdue: makeTabState(),
@@ -92,6 +92,17 @@ const remindersOverviewSlice = createSlice({
     resetAll(state) {
       state.tabs.today = makeTabState();
       state.tabs.overdue = makeTabState();
+    },
+    incrementReminderAttention(state) {
+      state.reminderAttentionCount += 1;
+    },
+
+    decrementReminderAttention(state) {
+      state.reminderAttentionCount += 1;
+    },
+
+    clearReminderAttention(state) {
+      state.reminderAttentionCount = 0;
     },
   },
 
@@ -238,6 +249,9 @@ export const {
   setOverviewTab,
   resetTab,
   resetAll,
+  incrementReminderAttention,
+  clearReminderAttention,
+  decrementReminderAttention,
 } = remindersOverviewSlice.actions;
 
 /* ─────────────────────────────────────────────

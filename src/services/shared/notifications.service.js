@@ -1,13 +1,16 @@
 import admin from "@/lib/firebase-admin";
 
 import { prisma } from "@/utils/server/db";
-import { v4 as uuidv4 } from "uuid";
 
 const db = admin.firestore();
 const NOTIF_COLLECTION = "notifications";
 
-export async function notify(userIds, payload) {
+export async function notify(userIds, root_notify_id, payload) {
   if (!Array.isArray(userIds) || userIds.length === 0) {
+    return { success: 0, failed: 0 };
+  }
+  if (!root_notify_id) {
+    console.log("unique root_notify_id NOT FOUND");
     return { success: 0, failed: 0 };
   }
 
@@ -26,7 +29,7 @@ export async function notify(userIds, payload) {
       const batch = db.batch();
 
       for (const userId of batchUserIds) {
-        const notifId = uuidv4();
+        const notifId = `${root_notify_id}_${userId}`;
         const isMention = payload.is_mention ?? false;
 
         const ref = db
@@ -37,6 +40,7 @@ export async function notify(userIds, payload) {
 
         batch.set(ref, {
           id: notifId,
+          root_id: root_notify_id,
           user_id: userId,
           title: payload.title ?? null,
           body: payload.body ?? null,
@@ -107,6 +111,7 @@ export async function notify(userIds, payload) {
             body: payload.body ?? "",
           },
           data: {
+            id: root_notify_id,
             link: payload.link ?? "",
             task_id: payload.task_id ?? "",
             entity_id: payload.entity_id ?? "",
@@ -151,7 +156,6 @@ export async function notify(userIds, payload) {
           }
         }
       } catch (pushError) {
-     
         pushFailCount += batchTokens.length;
       }
     }
@@ -204,5 +208,3 @@ export async function markAllAsRead(userId) {
   await batch.commit();
   return snapshot.size;
 }
-
-

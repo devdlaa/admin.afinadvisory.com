@@ -74,7 +74,7 @@ export const createReminder = createAsyncThunk(
         method: "POST",
         body: JSON.stringify(payload),
       });
-      return { data, status }; // status 409 = conflict
+      return { data, status };
     } catch (e) {
       return rejectWithValue(e.message);
     }
@@ -586,8 +586,7 @@ const remindersSlice = createSlice({
         }
       })
       .addCase(syncChecklist.rejected, (state, { payload }) => {
-        // optional: you can track error if needed
-        console.error("Checklist sync failed:", payload);
+        console.error("Checklist sync failed:");
       });
 
     /* ════════════════════════════════════════

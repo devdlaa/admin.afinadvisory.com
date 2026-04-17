@@ -8,8 +8,9 @@ import {
   Check,
   Volume2,
   VolumeX,
-  Plus,
+ 
   LayoutList,
+  BellDotIcon,
 } from "lucide-react";
 import NotificationBell from "../Notifications/NotificationBell";
 import { useDispatch, useSelector } from "react-redux";
@@ -26,6 +27,9 @@ export default function LockDashboardButton() {
   const [success, setSuccess] = useState(false);
   const dispatch = useDispatch();
   const soundEnabled = useSelector((state) => state.notifications.soundEnabled);
+  const reminderAttentionCount = useSelector(
+    (state) => state.remindersOverview.reminderAttentionCount,
+  );
 
   const handleLock = async () => {
     try {
@@ -37,7 +41,6 @@ export default function LockDashboardButton() {
         window.location.href = "/dashboard/locked";
       }, 0);
     } catch (err) {
-      console.error("Failed to lock dashboard:");
       setLoading(false);
       setSuccess(false);
     }
@@ -88,7 +91,7 @@ export default function LockDashboardButton() {
           onClick={() => dispatch(openCreateReminder())}
           className={`${styles.actionSidebar__btn} ${styles["actionSidebar__btn--primary"]}`}
         >
-          <Plus size={20} />
+          <BellDotIcon size={20} />
         </button>
 
         {/* Reminders overview */}
@@ -96,10 +99,19 @@ export default function LockDashboardButton() {
           {!isLoading && (
             <button
               onClick={() => dispatch(openOverview())}
-              className={styles.actionSidebar__btn}
-              title="Reminders Overview"
+              className={`${styles.actionSidebar__btn} ${
+                reminderAttentionCount > 0
+                  ? styles["actionSidebar__btn--highlight"]
+                  : ""
+              }`}
             >
               <LayoutList size={18} />
+
+              {reminderAttentionCount > 0 && (
+                <span className={styles.actionSidebar__badge}>
+                  {reminderAttentionCount > 9 ? "9+" : reminderAttentionCount}
+                </span>
+              )}
             </button>
           )}
         </div>

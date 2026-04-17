@@ -60,8 +60,8 @@ export function getDateInfo() {
 }
 
 export const REMINDER_TABS = [
-  { id: "overdue", label: "Overdue" },
   { id: "today", label: "Today's Reminders" },
+  { id: "overdue", label: "Overdue" },
   { id: "all", label: "All" },
 ];
 

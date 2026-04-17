@@ -370,7 +370,7 @@ export const createComment = async (
     });
 
     if (notifyUserIds.length > 0 && config.buildNotification) {
-      await notify(notifyUserIds, {
+      await notify(notifyUserIds, payload.id, {
         ...config.buildNotification({
           entity,
           message: cleanedMessage,
