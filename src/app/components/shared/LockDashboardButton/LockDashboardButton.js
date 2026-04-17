@@ -87,15 +87,15 @@ export default function LockDashboardButton() {
         </div>
 
         {/* Create reminder */}
-        <button
+        {/* <button
           onClick={() => dispatch(openCreateReminder())}
           className={`${styles.actionSidebar__btn} ${styles["actionSidebar__btn--primary"]}`}
         >
           <BellDotIcon size={20} />
-        </button>
+        </button> */}
 
         {/* Reminders overview */}
-        <div className={styles.actionSidebar__item}>
+        {/* <div className={styles.actionSidebar__item}>
           {!isLoading && (
             <button
               onClick={() => dispatch(openOverview())}
@@ -114,7 +114,7 @@ export default function LockDashboardButton() {
               )}
             </button>
           )}
-        </div>
+        </div> */}
       </div>
 
       {/* Lock button */}

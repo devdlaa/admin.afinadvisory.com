@@ -71,10 +71,14 @@ export async function GET(request) {
     ref = ref.orderBy("created_at", "desc").limit(limit);
 
     if (cursor) {
-      const cursorTimestamp = admin.firestore.Timestamp.fromMillis(
-        parseInt(cursor),
-      );
-      ref = ref.startAfter(cursorTimestamp);
+      const cursorDoc = await userNotifRef
+        .collection("items")
+        .doc(cursor)
+        .get();
+
+      if (cursorDoc.exists) {
+        ref = ref.startAfter(cursorDoc);
+      }
     }
 
     const [snapshot, metadataDoc] = await Promise.all([
@@ -97,7 +101,7 @@ export async function GET(request) {
 
     const lastDoc = snapshot.docs[snapshot.docs.length - 1];
 
-    const nextCursor = lastDoc ? getCursor(lastDoc.data().created_at) : null;
+    const nextCursor = lastDoc ? lastDoc.id : null;
 
     const unreadCount = metadataDoc.exists
       ? metadataDoc.data()?.unread_count || 0
