@@ -20,13 +20,10 @@ const sessionSlice = createSlice({
   },
 });
 
-// ✅ Actions
 export const { setSession, clearSession } = sessionSlice.actions;
 
-// ✅ Selectors
-export const selectSession = (state) => state.session; // full session object
-export const selectUser = (state) => state.session.user; // just user
-export const selectPermissions = (state) => state.session.permissions; // just permissions
+export const selectSession = (state) => state.session;
+export const selectUser = (state) => state.session.user;
+export const selectPermissions = (state) => state.session.permissions;
 
-// ✅ Reducer
 export default sessionSlice.reducer;

@@ -8,7 +8,6 @@ import {
   Check,
   Volume2,
   VolumeX,
- 
   LayoutList,
   BellDotIcon,
 } from "lucide-react";

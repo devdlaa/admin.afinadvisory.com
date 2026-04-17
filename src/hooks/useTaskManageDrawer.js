@@ -129,25 +129,18 @@ export function useTaskManageDrawer() {
   // ─────────────────────────────────────────────
 
   // Fetch task & categories when drawer opens
-  // useEffect(() => {
-  //   if (isOpen && taskId) {
-  //     dispatch(fetchTaskById(taskId));
-  //     dispatch(fetchCategories({ page: 1, page_size: 100 }));
-  //     isClosingRef.current = false;
-  //   }
-  // }, [isOpen, taskId, dispatch]);
-
   useEffect(() => {
     if (isOpen && taskId) {
       dispatch(fetchTaskById(taskId));
-
-      if (!categories || categories.length === 0) {
+      console.log("categories", categories);
+      if (!categories.length) {
         dispatch(fetchCategories({ page: 1, page_size: 100 }));
       }
-
       isClosingRef.current = false;
     }
-  }, [isOpen, taskId, dispatch, categories]);
+  }, [isOpen, taskId, dispatch]);
+
+ 
 
   // Sync form state when task data arrives
   useEffect(() => {
@@ -234,27 +227,21 @@ export function useTaskManageDrawer() {
 
   const handleClose = (force = false) => {
     if (isClosingRef.current) return;
-
-    const isForced = force === true;
-
-    // If reason dialog is open, don't allow closing the drawer at all
     if (reasonDialog.open) return;
-
-    if (!isForced && hasPrimaryInfoChanges()) {
+    if (!force && hasPrimaryInfoChanges()) {
       setShowConfirmClose(true);
       return;
     }
 
     isClosingRef.current = true;
-    dispatch(closeManageDialog());
     window.__closingTaskDrawer = true;
 
-    // Reset local state
+    dispatch(closeManageDialog());
+
     setActiveTab("status-timeline");
     setSelectedEntityData(null);
     setReasonDialog({ open: false, status: null });
 
-    // Clean URL
     const params = new URLSearchParams(window.location.search);
     params.delete("taskId");
     params.delete("tab");
