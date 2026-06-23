@@ -1,0 +1,240 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: "Poppins", sans-serif;
+  font-weight: 500;
+  white-space: nowrap;
+  border: none;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.icon {
+  flex-shrink: 0;
+}
+
+.text {
+  line-height: 1;
+}
+
+.removeButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  color: inherit;
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+  flex-shrink: 0;
+
+  &:hover {
+    opacity: 1;
+  }
+}
+
+// Sizes
+.small {
+  padding: 6px 10px;
+  gap: 6px;
+  font-size: 12px;
+  border-radius: 7px;
+
+  .icon {
+    width: 14px;
+    height: 14px;
+  }
+
+  .removeButton {
+    margin-left: 3px;
+
+    svg {
+      width: 12px;
+      height: 12px;
+    }
+  }
+
+  &.dot {
+    width: 10px;
+    height: 10px;
+    padding: 0;
+  }
+}
+.medium {
+  padding: 8px 14px;
+  gap: 8px;
+  font-size: 14px;
+  border-radius: 10px;
+
+  .icon {
+    width: 16px;
+    height: 16px;
+  }
+
+  .removeButton {
+    margin-left: 4px;
+
+    svg {
+      width: 14px;
+      height: 14px;
+    }
+  }
+
+  &.dot {
+    width: 12px;
+    height: 12px;
+    padding: 0;
+  }
+}
+
+.large {
+  padding: 10px 18px;
+  gap: 10px;
+  font-size: 16px;
+  border-radius: 12px;
+
+  .icon {
+    width: 18px;
+    height: 18px;
+  }
+
+  .removeButton {
+    margin-left: 6px;
+
+    svg {
+      width: 16px;
+      height: 16px;
+    }
+  }
+
+  &.dot {
+    width: 14px;
+    height: 14px;
+    padding: 0;
+  }
+}
+
+// Border Radius Variants
+.rounded-full {
+  border-radius: 50px;
+}
+
+.rounded-square {
+  border-radius: 4px;
+
+  &.dot {
+    border-radius: 2px;
+  }
+}
+
+// Variants
+.default {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.primary {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.success {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.danger {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.warning {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.info {
+  background: #e0e7ff;
+  color: #4338ca;
+}
+
+.outline {
+  background: #fff;
+  color: #374151;
+  border: 1.5px solid #e5e7eb;
+}
+
+// Dot variant
+.dot {
+  padding: 0;
+  border-radius: 50%;
+}
+
+// Clickable state
+.clickable {
+  cursor: pointer;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+
+  &:focus {
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+}
+
+// Mobile
+@media (max-width: 640px) {
+  .small {
+    padding: 3px 7px;
+    font-size: 10px;
+
+    .icon {
+      width: 11px;
+      height: 11px;
+    }
+
+    &.dot {
+      width: 7px;
+      height: 7px;
+    }
+  }
+
+  .medium {
+    padding: 4px 9px;
+    font-size: 11px;
+
+    .icon {
+      width: 13px;
+      height: 13px;
+    }
+
+    &.dot {
+      width: 9px;
+      height: 9px;
+    }
+  }
+
+  .large {
+    padding: 5px 11px;
+    font-size: 12px;
+
+    .icon {
+      width: 15px;
+      height: 15px;
+    }
+
+    &.dot {
+      width: 11px;
+      height: 11px;
+    }
+  }
+}

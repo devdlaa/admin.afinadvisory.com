@@ -1,0 +1,400 @@
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  padding: 20px;
+
+  .refund-modal {
+    background: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12),
+      0 1px 2px rgba(0, 0, 0, 0.24)-hover;
+    width: 100%;
+    max-width: 600px;
+    max-height: 90vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+
+    .modal-header {
+      padding: 24px 24px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #e1e4e8;
+      padding-bottom: 20px;
+      margin-bottom: 0;
+
+      h3 {
+        margin: 0;
+        font-size: 20px;
+        font-weight: 600;
+        color: #24292e;
+      }
+
+      .close-btn {
+        background: none;
+        border: none;
+        padding: 8px;
+        cursor: pointer;
+        color: #6a737d;
+        border-radius: 4px;
+        transition: all 0.2s ease;
+
+        &:hover {
+          background: #f6f8fa;
+          color: #24292e;
+        }
+      }
+    }
+
+    .modal-body {
+      padding: 24px;
+      overflow-y: auto;
+      flex: 1;
+
+      .step-indicator {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 32px;
+        position: relative;
+
+        &::before {
+          content: "";
+          position: absolute;
+          top: 20px;
+          left: 25%;
+          right: 25%;
+          height: 2px;
+          background: #e1e4e8;
+          z-index: 1;
+        }
+
+        .step {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          flex: 1;
+          position: relative;
+          z-index: 2;
+
+          span {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #f6f8fa;
+            border: 2px solid #e1e4e8;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            color: #6a737d;
+            margin-bottom: 8px;
+            transition: all 0.2s ease;
+          }
+
+          label {
+            font-size: 12px;
+            color: #6a737d;
+            font-weight: 500;
+            text-transform: uppercase;
+          }
+
+          &.active {
+            span {
+              background: #0366d6;
+              border-color: #0366d6;
+              color: white;
+            }
+
+            label {
+              color: #0366d6;
+            }
+          }
+        }
+      }
+
+      .modal-section {
+        margin-bottom: 24px;
+
+        h4 {
+          margin: 0 0 16px 0;
+          font-size: 16px;
+          font-weight: 600;
+          color: #24292e;
+        }
+
+        h5 {
+          margin: 0 0 12px 0;
+          font-size: 14px;
+          font-weight: 600;
+          color: #24292e;
+        }
+
+        &.otp-section {
+          text-align: center;
+
+          .otp-icon {
+            margin-bottom: 16px;
+            color: #0366d6;
+          }
+
+          p {
+            color: #586069;
+            margin-bottom: 24px;
+          }
+        }
+
+        &.success-section {
+          text-align: center;
+
+          .success-icon {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            background: lighten(#28a745, 45%);
+            color: #28a745;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px;
+          }
+
+          p {
+            color: #586069;
+            margin-bottom: 24px;
+          }
+        }
+      }
+
+      .payment-info {
+        background: #fafbfc;
+        border: 1px solid #e1e4e8;
+        border-radius: 6px;
+        padding: 16px;
+
+        .info-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 8px 0;
+
+          &:not(:last-child) {
+            border-bottom: 1px solid #e1e4e8;
+          }
+
+          .label {
+            font-weight: 500;
+            color: #586069;
+          }
+
+          .value {
+            font-weight: 600;
+            color: #24292e;
+            font-family: "Monaco", "Menlo", monospace;
+            font-size: 13px;
+          }
+        }
+      }
+
+      .form-group {
+        margin-bottom: 20px;
+
+        label {
+          display: block;
+          margin-bottom: 6px;
+          font-weight: 500;
+          color: #24292e;
+          font-size: 14px;
+        }
+
+        .form-input {
+          width: 100%;
+          padding: 10px 12px;
+          border: 1px solid #e1e4e8;
+          border-radius: 6px;
+          font-size: 14px;
+          transition: all 0.2s ease;
+          background: #ffffff;
+
+          &:focus {
+            outline: none;
+            border-color: #0366d6;
+            box-shadow: 0 0 0 3px rgba(3, 102, 214, 0.1);
+          }
+
+          &.otp-input {
+            text-align: center;
+            font-size: 18px;
+            font-weight: 600;
+            letter-spacing: 4px;
+            font-family: "Monaco", "Menlo", monospace;
+          }
+        }
+
+        .form-help {
+          display: block;
+          margin-top: 4px;
+          font-size: 12px;
+          color: #6a737d;
+        }
+      }
+
+      .refund-summary {
+        background: #fafbfc;
+        border: 1px solid #e1e4e8;
+        border-radius: 6px;
+        padding: 16px;
+        margin-top: 24px;
+
+        .summary-row {
+          display: flex;
+          justify-content: space-between;
+          padding: 6px 0;
+
+          &:not(:last-child) {
+            border-bottom: 1px solid #e1e4e8;
+          }
+
+          &:first-child span:last-child {
+            font-weight: 600;
+            color: #24292e;
+          }
+        }
+      }
+
+      .success-details {
+        background: #fafbfc;
+        border: 1px solid #e1e4e8;
+        border-radius: 6px;
+        padding: 16px;
+
+        .detail-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 8px 0;
+
+          &:not(:last-child) {
+            border-bottom: 1px solid #e1e4e8;
+          }
+
+          span:first-child {
+            color: #586069;
+            font-weight: 500;
+          }
+
+          span:last-child {
+            color: #24292e;
+            font-weight: 600;
+          }
+        }
+      }
+
+      .error-message {
+        background: lighten(#dc3545, 45%);
+        border: 1px solid lighten(#dc3545, 30%);
+        color: darken(#dc3545, 10%);
+        padding: 12px 16px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 20px;
+        font-size: 14px;
+      }
+
+      .modal-actions {
+        display: flex;
+        gap: 12px;
+        justify-content: flex-end;
+        margin-top: 24px;
+        padding-top: 20px;
+        border-top: 1px solid #e1e4e8;
+
+        .btn {
+          padding: 10px 20px;
+          border-radius: 6px;
+          border: 1px solid #e1e4e8;
+          background: #ffffff;
+          color: #24292e;
+          font-size: 14px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s ease;
+
+          &:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+          }
+
+          &.btn-secondary {
+            &:hover:not(:disabled) {
+              background: #f6f8fa;
+            }
+          }
+
+          &.btn-primary {
+            background: #0366d6;
+            color: white;
+            border-color: #0366d6;
+
+            &:hover:not(:disabled) {
+              background: darken(#0366d6, 5%);
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+// Responsive
+@media (max-width: 768px) {
+  .modal-overlay {
+    padding: 10px;
+
+    .refund-modal {
+      max-height: 95vh;
+
+      .modal-header {
+        padding: 20px 20px 0;
+      }
+
+      .modal-body {
+        padding: 20px;
+
+        .step-indicator {
+          margin-bottom: 24px;
+
+          .step {
+            span {
+              width: 32px;
+              height: 32px;
+              font-size: 12px;
+            }
+
+            label {
+              font-size: 10px;
+            }
+          }
+        }
+
+        .modal-actions {
+          flex-direction: column-reverse;
+
+          .btn {
+            width: 100%;
+          }
+        }
+      }
+    }
+  }
+}

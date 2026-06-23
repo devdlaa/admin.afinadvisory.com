@@ -1,0 +1,338 @@
+.inputContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  font-family: "Poppins", sans-serif;
+}
+
+.inputWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: #fff;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 12px;
+  transition: all 0.2s ease;
+  min-height: 58px;
+
+  &:hover:not(.disabled) {
+    border-color: #d1d5db;
+  }
+
+  &:focus-within {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+
+  &.error {
+
+    background: #fef2f2;
+
+    &:focus-within {
+      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+    }
+  }
+
+  &.success {
+  
+
+    &:focus-within {
+      box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1);
+    }
+  }
+
+  &.disabled {
+    background: #f9fafb;
+ 
+    cursor: not-allowed;
+  }
+
+  &.multilineWrapper {
+    min-height: 120px;
+    align-items: flex-start;
+  }
+}
+
+.inputFieldContainer {
+  position: relative;
+  flex: 1;
+  display: flex;
+  padding: 8px 0;
+}
+
+.input {
+  width: 100%;
+  padding: 16px 16px 4px 16px;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 14px;
+  font-weight: 500;
+  color: #6a7b95;
+  font-family: "Poppins", sans-serif;
+
+  &::placeholder {
+    color: transparent;
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+  }
+
+  &:focus ~ .floatingLabel,
+  &:not(:placeholder-shown) ~ .floatingLabel {
+    top: 14px;
+    font-size: 11px;
+    color: #9ca3af;
+  }
+}
+
+.active .floatingLabel {
+  top: 4px;
+  font-size: 11px;
+  color: #3b82f6;
+}
+
+.error.active .floatingLabel {
+  color: #ef4444;
+}
+
+.textarea {
+  resize: vertical;
+  min-height: 100px;
+  padding-top: 20px;
+  line-height: 1.6;
+}
+
+.floatingLabel {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 14px;
+  font-weight: 400;
+  color: #9ca3af;
+  pointer-events: none;
+  transition: all 0.2s ease;
+
+  padding: 0 4px;
+  margin-left: -4px;
+}
+
+.required {
+  color: #ef4444;
+  margin-left: 2px;
+}
+
+.countryCodeWrapper {
+  position: relative;
+  border-right: 1.5px solid #e5e7eb;
+  flex-shrink: 0;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+}
+
+.countryCodeButton {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px;
+  background: #f9fafb;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  outline: none;
+  height: 100%;
+
+  &:hover:not(:disabled) {
+    background: #f3f4f6;
+  }
+}
+
+.flag {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.code {
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.chevron {
+  color: #9ca3af;
+  transition: transform 0.2s ease;
+}
+
+.countryDropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  background: #fff;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  min-width: 220px;
+  max-height: 300px;
+  overflow-y: auto;
+  animation: slideDown 0.2s ease;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: #f9fafb;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 3px;
+
+    &:hover {
+      background: #9ca3af;
+    }
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.countryOption {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background: #f9fafb;
+  }
+}
+
+.countryName {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+    padding: 0 0px 0px 18px;
+  color: #9ca3af;
+  flex-shrink: 0;
+  align-self: center;
+
+  svg {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+.withCountryCode .inputFieldContainer {
+  padding-left: 0;
+}
+
+.withCountryCode .floatingLabel {
+  left: 12px;
+}
+
+.withCountryCode .input {
+  padding-left: 12px;
+}
+
+.passwordToggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 14px;
+  background: transparent;
+  border: none;
+  color: #9ca3af;
+  cursor: pointer;
+  transition: color 0.2s ease;
+  outline: none;
+  flex-shrink: 0;
+  align-self: center;
+
+  &:hover {
+    color: #6b7280;
+  }
+
+  svg {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+.validationIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 14px;
+  flex-shrink: 0;
+  align-self: center;
+
+  svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .error & {
+    color: #ef4444;
+  }
+
+  .success & {
+    color: #22c55e;
+  }
+}
+
+.errorMessage {
+  font-size: 13px;
+  font-weight: 500;
+  color: #ef4444;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-left: 4px;
+}
+
+.helperText {
+  font-size: 13px;
+  color: #9ca3af;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-left: 4px;
+}
+
+.charCount {
+  color: #6b7280;
+  font-weight: 500;
+}
+
+@media (max-width: 640px) {
+  .countryDropdown {
+    left: -10px;
+    right: -10px;
+    width: auto;
+  }
+}
+
+

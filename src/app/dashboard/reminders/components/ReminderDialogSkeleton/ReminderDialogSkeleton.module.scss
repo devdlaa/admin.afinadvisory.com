@@ -1,0 +1,142 @@
+/* ReminderDialogSkeleton.module.scss */
+
+/* ─── Shimmer keyframe ─────────────────────── */
+@keyframes shimmer {
+  0%   { background-position: -600px 0; }
+  100% { background-position:  600px 0; }
+}
+
+/* ─── Shared skeleton block ────────────────── */
+.block {
+  border-radius: 8px;
+  background: linear-gradient(
+    90deg,
+    #f1f5f9 25%,
+    #e8edf3 50%,
+    #f1f5f9 75%
+  );
+  background-size: 600px 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+/* ─── Root layout — mirrors real card internals ── */
+.root {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  padding-bottom: 20px;
+  overflow: hidden;
+}
+
+/* ─── Header ───────────────────────────────── */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 22px 14px;
+  flex-shrink: 0;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pill {
+  height: 26px;
+  width: 72px;
+  border-radius: 20px;
+}
+
+.circle {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+}
+
+/* ─── Title ────────────────────────────────── */
+.title {
+  height: 28px;
+  margin: 4px 22px 16px;
+  width: 55%;
+  border-radius: 8px;
+}
+
+/* ─── Description ──────────────────────────── */
+.desc {
+  margin: 0 18px;
+  height: 88px;
+  border-radius: 14px;
+}
+
+/* ─── Tags row ─────────────────────────────── */
+.tagsRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px 0;
+}
+
+.tag {
+  height: 30px;
+  width: 76px;
+  border-radius: 999px;
+}
+
+/* ─── Pills row ────────────────────────────── */
+.pillsRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 20px 22px 21px;
+}
+
+.pillSk {
+  height: 38px;
+  width: 130px;
+  border-radius: 200px;
+}
+
+/* ─── Divider ──────────────────────────────── */
+.divider {
+  height: 1px;
+  background: #e2e8f0;
+  margin: 0 18px 0;
+  flex-shrink: 0;
+}
+
+/* ─── Checklist header ─────────────────────── */
+.checkHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 22px 22px 15px;
+  flex-shrink: 0;
+}
+
+.checkLabel {
+  height: 20px;
+  width: 140px;
+  border-radius: 6px;
+}
+
+.checkBadge {
+  height: 22px;
+  width: 44px;
+  border-radius: 20px;
+}
+
+/* ─── Checklist items ──────────────────────── */
+.checkItems {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 0 16px;
+}
+
+.checkItem {
+  height: 48px;
+  border-radius: 12px;
+}

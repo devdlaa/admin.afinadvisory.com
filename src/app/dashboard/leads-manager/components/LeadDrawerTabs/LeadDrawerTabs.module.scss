@@ -1,0 +1,63 @@
+.tabsBar {
+  display: inline-flex;
+  align-items: center;
+  background: #fff;
+  outline: 1px solid #0000001a;
+  border-radius: 12px;
+  padding: 5px;
+  gap: 2px;
+  width: 100%;
+  display: grid;
+  margin-top: 10px;
+  margin-bottom: 10px;
+  grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
+}
+
+.tab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 15px;
+  border-radius: 10px;
+  font-size: 14.5px;
+  font-weight: 500;
+  color: #6b7280;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  white-space: nowrap;
+  position: relative;
+  transition:
+    background 0.13s ease,
+    color 0.13s ease;
+
+  &:hover:not(.active) {
+    background: #f3f4f6;
+    color: #111827;
+  }
+
+  // divider between tabs
+  &.divided::before {
+    content: "";
+    position: absolute;
+    left: -1px;
+    top: 22%;
+    height: 56%;
+    width: 0.5px;
+    background: #e5e7eb;
+    transition: opacity 0.13s ease;
+  }
+
+  // hide divider when this tab or the previous one is active
+  &.active + .divided::before,
+  &.active::before {
+    opacity: 0;
+  }
+}
+
+.active {
+  background: #dbeafe;
+  color: #1d4ed8;
+  font-weight: 600;
+}

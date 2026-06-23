@@ -1,0 +1,249 @@
+.dashboard-container {
+  display: flex;
+  align-items: flex-start;
+  height: 100%;
+  padding: 0;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dashboard-box {
+  background: #ffffff;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 20px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+box-shadow: rgba(50, 50, 105, 0.15) 0px 2px 5px 0px, rgba(0, 0, 0, 0.05) 0px 1px 1px 0px;
+  .dashboard-box_group {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .dashboard-box_controls {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+  }
+
+  h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #374151;
+    text-transform: uppercase;
+  }
+
+  p {
+    margin-top: 8px;
+    font-size: 0.9rem;
+    color: #6b7280;
+  }
+
+  .dashboard-icon {
+    color: #3b82f6;
+  }
+}
+
+// ─── Boards ───────────────────────────────────────────────────────────────────
+
+.dashboard-boards {
+  width: 100%;
+  padding: 20px;
+
+  .dashboard-boards__row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+  align-items: stretch;
+    // While any card is being dragged, tighten the cursor globally
+    &.is-dragging {
+      cursor: grabbing;
+    }
+  }
+}
+
+// ─── Per-card drag wrapper ────────────────────────────────────────────────────
+
+.board-drag-wrapper {
+  // Smooth layout shifts when other cards reorder
+  transition:
+    transform 0.22s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+    opacity 0.18s ease;
+  border-radius: 12px;
+  cursor: grab;
+  will-change: transform;
+
+  &:active {
+    cursor: grabbing;
+  }
+
+  // ── Source card: hollowed-out placeholder ─────────────────────────────────
+  &.is-source {
+    opacity: 0;
+    pointer-events: none;
+    transform: scale(0.97);
+    transition:
+      opacity 0.12s ease,
+      transform 0.12s ease;
+  }
+
+  // ── Drop target: subtle lift + ring ──────────────────────────────────────
+  &.is-over {
+    transform: scale(1.015);
+    transition:
+      transform 0.16s cubic-bezier(0.34, 1.56, 0.64, 1),
+      box-shadow 0.16s ease;
+
+    // Inset ring drawn with box-shadow so layout isn't disturbed
+    box-shadow:
+      0 0 0 2px #3b82f6,
+      0 8px 24px rgba(59, 130, 246, 0.18);
+    border-radius: 12px;
+
+    // Ripple shimmer on the drop target
+    &::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: 12px;
+      background: linear-gradient(
+        135deg,
+        rgba(59, 130, 246, 0.07) 0%,
+        rgba(139, 92, 246, 0.05) 100%
+      );
+      pointer-events: none;
+    }
+  }
+
+  // Keep position:relative so ::after works
+  position: relative;
+}
+
+// ─── Sibling cards nudge while dragging ──────────────────────────────────────
+// When the grid is in dragging mode, non-source non-over cards breathe
+// very slightly to signal they're draggable targets
+.dashboard-boards__row.is-dragging {
+  .board-drag-wrapper:not(.is-source):not(.is-over) {
+    transition:
+      transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+      opacity 0.2s ease;
+
+    &:hover {
+      transform: scale(1.008);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    }
+  }
+}
+
+// ─── Reduced motion ───────────────────────────────────────────────────────────
+@media (prefers-reduced-motion: reduce) {
+  .board-drag-wrapper,
+  .board-drag-wrapper.is-over,
+  .board-drag-wrapper.is-source {
+    transition: none !important;
+    transform: none !important;
+  }
+}
+
+
+// ─── Skeleton loading cards ───────────────────────────────────────────────────
+
+@keyframes skeleton-shimmer {
+  0%   { background-position: -600px 0; }
+  100% { background-position: 600px 0; }
+}
+
+%skeleton-line {
+  background: linear-gradient(
+    90deg,
+    #f0f0f0 25%,
+    #e8e8e8 37%,
+    #f0f0f0 63%
+  );
+  background-size: 600px 100%;
+  animation: skeleton-shimmer 1.4s ease infinite;
+  border-radius: 6px;
+}
+
+.board-skeleton {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 15px;
+  padding: 20px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-shadow:
+    rgba(9, 30, 66, 0.25) 0px 4px 8px -2px,
+    rgba(9, 30, 66, 0.08) 0px 0px 0px 1px;
+
+  &__title {
+    @extend %skeleton-line;
+    height: 16px;
+    width: 55%;
+  }
+
+  &__sub {
+    @extend %skeleton-line;
+    height: 11px;
+    width: 35%;
+    margin-top: -8px;
+  }
+
+  &__bar {
+    @extend %skeleton-line;
+    height: 6px;
+    width: 100%;
+    border-radius: 99px;
+  }
+
+  &__stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px 16px;
+  }
+
+  &__stat {
+    @extend %skeleton-line;
+    height: 12px;
+    border-radius: 4px;
+  }
+}
+
+// ─── Empty slot placeholder cards ─────────────────────────────────────────────
+
+.board-empty-slot {
+  border: 2px dashed #d1d5db;
+  border-radius: 15px;
+  padding: 20px 22px;
+  min-height: 180px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: #9ca3af;
+  transition: border-color 0.18s ease, background 0.18s ease;
+
+  &:first-child {
+    border-color: #c4b5fd;
+    background: rgba(139, 92, 246, 0.02);
+  }
+
+  &__icon {
+    color: #c4b5fd;
+    opacity: 0.8;
+  }
+
+  p {
+    font-size: 0.8rem;
+    color: #9ca3af;
+    text-align: center;
+    max-width: 160px;
+    line-height: 1.5;
+  }
+}

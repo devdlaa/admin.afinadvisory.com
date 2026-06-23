@@ -1,0 +1,508 @@
+// DowntimeStatus.scss
+.downtime-status {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+
+  // Status-based styling
+  &.has-issues {
+    border-left: 4px solid #f59e0b;
+    
+    .status-header .status-icon {
+      color: #f59e0b;
+    }
+  }
+
+  &.all-clear {
+    border-left: 4px solid #10b981;
+    
+    .status-header .status-icon {
+      color: #10b981;
+    }
+  }
+
+  // Loading state
+  &.loading {
+    .skeleton-header {
+      height: 60px;
+      background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+      background-size: 200% 100%;
+      animation: skeleton-loading 1.5s infinite;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+
+    .skeleton-content {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+
+      .skeleton-item {
+        height: 80px;
+        background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+        background-size: 200% 100%;
+        animation: skeleton-loading 1.5s infinite;
+        border-radius: 8px;
+        
+        &:nth-child(2) {
+          animation-delay: 0.2s;
+        }
+        
+        &:nth-child(3) {
+          animation-delay: 0.4s;
+        }
+      }
+    }
+  }
+
+  // Error state
+  &.error {
+    .error-content {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 20px;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: 8px;
+      color: #dc2626;
+
+      .retry-btn {
+        background: #dc2626;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        transition: background 0.2s ease;
+        margin-left: auto;
+
+        &:hover {
+          background: #b91c1c;
+        }
+
+        &:active {
+          transform: translateY(1px);
+        }
+      }
+    }
+  }
+}
+
+// Status Header
+.status-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .status-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: #f9fafb;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+  }
+
+  .header-text {
+    h3 {
+      margin: 0 0 4px 0;
+      font-size: 18px;
+      font-weight: 600;
+      color: #1f2937;
+      line-height: 1.3;
+    }
+
+    p {
+      margin: 0;
+      font-size: 14px;
+      color: #6b7280;
+      line-height: 1.4;
+    }
+  }
+
+  .refresh-btn {
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #6b7280;
+
+    &:hover:not(:disabled) {
+      background: #f3f4f6;
+      color: #374151;
+      transform: translateY(-1px);
+    }
+
+    &:active:not(:disabled) {
+      transform: translateY(0);
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .spinning {
+      animation: spin 1s linear infinite;
+    }
+  }
+}
+
+// Status Content
+.status-content {
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+  overflow-x: scroll;
+    max-width: 1430px;
+  .no-data {
+    text-align: center;
+    padding: 40px 20px;
+    color: #6b7280;
+    font-size: 14px;
+    background: #f9fafb;
+    border-radius: 8px;
+  }
+}
+
+// Method Status
+.method-status {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 20px;
+  transition: all 0.3s ease;
+
+  &.operational {
+    background: #f0fdf4;
+    border-color: #bbf7d0;
+
+    .method-header .method-status-indicator .status-badge.success {
+      background: #dcfce7;
+      color: #166534;
+    }
+  }
+
+  &.has-issues {
+    background: #fffbeb;
+    border-color: #fde68a;
+
+    .method-header .method-status-indicator .status-badge.warning {
+      background: #fef3c7;
+      color: #92400e;
+    }
+  }
+
+  .method-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+
+    .method-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+
+      .method-icon {
+        font-size: 20px;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f9fafb;
+        border-radius: 6px;
+      }
+
+      .method-name {
+        font-weight: 600;
+        font-size: 16px;
+        color: #1f2937;
+      }
+    }
+
+    .method-status-indicator {
+      .status-badge {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+
+        &.success {
+          background: #dcfce7;
+          color: #166534;
+        }
+
+        &.warning {
+          background: #fef3c7;
+          color: #92400e;
+        }
+      }
+    }
+  }
+}
+
+// Issues List
+.issues-list {
+  display: flex;
+
+  flex-direction: row;
+  gap: 12px;
+
+
+  .issue-item {
+    background: #ffffff;
+    border-radius: 8px;
+    padding: 16px;
+    border-left: 4px solid #e5e7eb;
+    transition: all 0.3s ease;
+
+    &.danger {
+      border-left-color: #ef4444;
+      
+      .severity-badge.danger {
+        background: #fef2f2;
+        color: #dc2626;
+      }
+    }
+
+    &.warning {
+      border-left-color: #f59e0b;
+      
+      .severity-badge.warning {
+        background: #fffbeb;
+        color: #d97706;
+      }
+    }
+
+    &.info {
+      border-left-color: #3b82f6;
+      
+      .severity-badge.info {
+        background: #eff6ff;
+        color: #2563eb;
+      }
+    }
+
+    &.started {
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    &.ended {
+      opacity: 0.8;
+    }
+
+    .issue-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+
+      .issue-status {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
+        .status-text {
+          font-weight: 600;
+          font-size: 14px;
+          color: #374151;
+        }
+      }
+
+      .issue-severity {
+        .severity-badge {
+          padding: 4px 8px;
+          border-radius: 12px;
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 0.5px;
+        }
+      }
+    }
+
+    .issue-details {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 12px;
+
+      .detail-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+
+        .label {
+          font-weight: 600;
+          color: #6b7280;
+          min-width: 70px;
+        }
+
+        .value {
+          color: #374151;
+          text-wrap-mode: nowrap;
+        }
+
+        .scheduled-label {
+          color: #6b7280;
+          font-style: italic;
+        }
+      }
+    }
+
+    .issue-message {
+      background: #f9fafb;
+      padding: 12px;
+      border-radius: 6px;
+      font-size: 14px;
+      color: #374151;
+      line-height: 1.5;
+      border: 1px solid #e5e7eb;
+    }
+  }
+}
+
+// All Clear Message
+.all-clear-message {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  color: #166534;
+  font-weight: 500;
+  margin-top: 20px;
+}
+
+// Animations
+@keyframes skeleton-loading {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+// Responsive Design
+@media (max-width: 768px) {
+  .downtime-status {
+    padding: 16px;
+    
+    .status-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 16px;
+      
+      .header-left {
+        width: 100%;
+      }
+      
+      .refresh-btn {
+        align-self: flex-end;
+      }
+    }
+    
+    .method-status {
+      padding: 16px;
+      
+      .method-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+      }
+    }
+    
+    .issue-item {
+      .issue-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+      }
+      
+      .issue-details .detail-row {
+        flex-direction: column;
+        align-items: flex-start;
+        
+        .label {
+          min-width: auto;
+        }
+      }
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .downtime-status {
+    padding: 12px;
+    
+    .status-header {
+      .header-text {
+        h3 {
+          font-size: 16px;
+        }
+        
+        p {
+          font-size: 13px;
+        }
+      }
+    }
+    
+    .method-status {
+      padding: 12px;
+      
+      .method-header .method-info {
+        .method-icon {
+          font-size: 18px;
+          width: 28px;
+          height: 28px;
+        }
+        
+        .method-name {
+          font-size: 14px;
+        }
+      }
+    }
+  }
+}

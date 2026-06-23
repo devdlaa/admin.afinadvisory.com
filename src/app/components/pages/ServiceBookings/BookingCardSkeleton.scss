@@ -1,0 +1,20 @@
+.booking-card-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+  background: #fff;
+  border-radius: 15px;
+  border: 1px solid #e5e7eb;
+  margin-bottom: 16px;
+
+  .skeleton-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+  }
+}
+
+.cards-list {
+  padding: 15px 4px;
+}

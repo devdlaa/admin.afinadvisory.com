@@ -1,0 +1,135 @@
+.outstandingStats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+
+  &__card {
+    background: white;
+    outline: 1px solid #d1d1d1;
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    box-shadow: rgba(17, 17, 26, 0.1) 0px 1px 0px;
+    transition: all 200ms ease;
+  }
+
+  &__cardHeader {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  &__icon {
+    width: 45px;
+    height: 45px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    svg {
+      width: 30px;
+      height: 30px;
+    }
+    &--red {
+      background: #fee2e2;
+      color: #ef4444;
+    }
+
+    &--green {
+      background: #d1fae5;
+      color: #10b981;
+    }
+
+    &--orange {
+      background: #fef3c7;
+      color: #f59e0b;
+    }
+
+    &--blue {
+      background: #dbeafe;
+      color: #3b82f6;
+    }
+  }
+
+  &__label {
+    font-size: 15px;
+    font-weight: 600;
+    color: #88898a;
+  }
+
+  &__value {
+    font-size: 25px;
+    font-weight: 600;
+    color: #262a33;
+    letter-spacing: -0.5px;
+  }
+
+  // Skeleton styles
+  &__iconSkeleton {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+    background-size: 200% 100%;
+    animation: skeleton-loading 1.5s infinite;
+  }
+
+  &__labelSkeleton {
+    width: 100px;
+    height: 16px;
+    border-radius: 4px;
+    background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+    background-size: 200% 100%;
+    animation: skeleton-loading 1.5s infinite;
+  }
+
+  &__valueSkeleton {
+    width: 120px;
+    height: 32px;
+    border-radius: 4px;
+    background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+    background-size: 200% 100%;
+    animation: skeleton-loading 1.5s infinite;
+  }
+
+  @keyframes skeleton-loading {
+    0% {
+      background-position: 200% 0;
+    }
+    100% {
+      background-position: -200% 0;
+    }
+  }
+
+  @media (max-width: 1280px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (max-width: 640px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.outstandingStats__card__dimmed {
+  opacity: 0.2;
+  filter: grayscale(0.3);
+  transition:
+    opacity 0.25s ease,
+    transform 0.25s ease;
+}
+
+.outstandingStats__card__active {
+  opacity: 1;
+  transform: translateY(-2px);
+  box-shadow:
+    rgba(9, 30, 66, 0.25) 0px 4px 8px -2px,
+    rgba(9, 30, 66, 0.08) 0px 0px 0px 1px;
+  outline: 2px solid #2563eb;
+  position: relative;
+  z-index: 2;
+  transition: all 0.25s ease;
+}

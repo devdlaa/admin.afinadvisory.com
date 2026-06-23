@@ -1,0 +1,365 @@
+/* ============================================================
+   ReminderWeekBoard.module.scss
+   Mirrors leads KanbanBoard.module.scss aesthetic exactly
+   ============================================================ */
+
+$board-radius: 10px;
+$header-h: 60px;
+$action-bar-h: 54px;
+$board-width: 300px;
+
+/* ── Wrapper ───────────────────────────────────────────────── */
+.kanbanWrapper {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #f4f5f7;
+}
+
+/* ── Scroll container ──────────────────────────────────────── */
+.kanbanScroll {
+  flex: 1;
+  overflow-x: scroll;
+  overflow-y: hidden;
+  padding: 18px 18px 12px 18px;
+
+  transform: rotateX(180deg);
+
+  scrollbar-width: thin;
+  scrollbar-color: #c1c5cc #e9eaec;
+
+  &::-webkit-scrollbar {
+    height: 6px;
+  }
+  &::-webkit-scrollbar-track {
+    background: #e9eaec;
+    border-radius: 99px;
+    margin: 0 18px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: #c1c5cc;
+    border-radius: 99px;
+  }
+  &::-webkit-scrollbar-thumb:hover {
+    background: #9ca3af;
+  }
+
+  &.dragging {
+    cursor: grabbing;
+    * {
+      user-select: none;
+      cursor: grabbing !important;
+    }
+  }
+}
+
+/* ── Inner flex row ────────────────────────────────────────── */
+.kanbanInner {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 10px;
+  min-height: calc(100vh - 140px);
+  height: 100%;
+  transform: rotateX(180deg);
+  padding-bottom: 6px;
+}
+
+/* ============================================================
+   BOARD COLUMN
+   ============================================================ */
+.board {
+  flex-shrink: 0;
+  width: $board-width;
+  display: flex;
+  flex-direction: column;
+  border-radius: $board-radius;
+  overflow: hidden;
+  position: relative;
+  transition: box-shadow 0.15s ease;
+}
+
+/* ── Board header ──────────────────────────────────────────── */
+.boardHeader {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  height: $header-h;
+  padding: 0 10px 0 0;
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.13);
+  border-radius: $board-radius;
+  flex-shrink: 0;
+  position: relative;
+  cursor: grab;
+  user-select: none;
+  gap: 8px;
+
+  /* top accent bar */
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: #6366f1;
+    border-radius: $board-radius $board-radius 0 0;
+  }
+}
+
+.boardHeaderToday {
+  &::before {
+    background: #6366f1;
+  }
+  /* slightly tinted for today */
+  background: linear-gradient(135deg, #eef2ff 0%, #ffffff 60%);
+}
+
+/* ── Header left ── */
+.boardHeaderLeft {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+
+.boardIconCol {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 50px;
+  flex-shrink: 0;
+  border-radius: 0 0 0 $board-radius;
+  color: #9ca3af;
+  background: rgba(99, 102, 241, 0.06);
+}
+
+.boardIconColToday {
+  color: #6366f1;
+  background: rgba(99, 102, 241, 0.1);
+}
+
+.boardTextBlock {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+}
+
+.boardTitle {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #525762;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  .boardHeaderToday & {
+    color: #4f46e5;
+  }
+}
+
+.boardSub {
+  font-size: 12px;
+  color: #6b7280;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* ── Header right ── */
+.boardHeaderRight {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.boardCount {
+  font-size: 13px;
+  color: #6b7280;
+  font-weight: 600;
+  background: #f3f4f6;
+  border-radius: 99px;
+  padding: 2px 9px;
+  min-width: 28px;
+  text-align: center;
+}
+
+/* ── Board body ────────────────────────────────────────────── */
+.boardBody {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  border-radius: $board-radius;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.099);
+  margin-top: 0;
+  transition: background 0.15s ease;
+}
+
+/* ── Card list (scrollable) ────────────────────────────────── */
+.cardList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: scroll;
+  padding: 12px 10px 80px; /* 80px = room for action bar */
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+/* ── Empty state ───────────────────────────────────────────── */
+.emptyState {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 40px 0;
+}
+
+.emptyIcon {
+  color: #d1d5db;
+}
+
+.emptyText {
+  font-size: 12.5px;
+  color: #d1d5db;
+  pointer-events: none;
+}
+
+/* ── Skeleton ──────────────────────────────────────────────── */
+.skeletonList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 10px;
+}
+
+.skeletonCard {
+  height: 82px;
+  border-radius: 10px;
+  background: linear-gradient(90deg, #f0f1f3 25%, #e4e5e8 50%, #f0f1f3 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* ── Load more ─────────────────────────────────────────────── */
+.loadMoreWrapper {
+  padding: 6px 0 4px;
+  display: flex;
+  justify-content: center;
+}
+
+.loadMoreBtn {
+  padding: 8px 18px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  color: #6b7280;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition:
+    border-color 0.15s,
+    color 0.15s,
+    background 0.15s;
+
+  &:hover {
+    border-color: #6366f1;
+    color: #6366f1;
+    background: #eef2ff;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.loader {
+  width: 14px;
+  height: 14px;
+  border: 2px solid #e5e7eb;
+  border-top-color: #6366f1;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ── Slide-up action bar — identical to leads ──────────────── */
+.actionBar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: stretch;
+  height: $action-bar-h;
+  background: #d2d6f8;
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+  border-radius: 0 0 $board-radius $board-radius;
+  overflow: hidden;
+  transform: translateY(100%);
+  opacity: 0;
+  box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.04);
+  transition:
+    transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+    opacity 0.2s ease;
+}
+
+.actionBarVisible {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+.actionBarCreate {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  background: transparent;
+  font-size: 14px;
+  font-weight: 600;
+  color: #5153d3;
+  cursor: pointer;
+  padding: 0 16px;
+  transition: background 0.12s;
+
+  svg {
+    flex-shrink: 0;
+  }
+
+  &:hover {
+    background: #eef2ff;
+  }
+}

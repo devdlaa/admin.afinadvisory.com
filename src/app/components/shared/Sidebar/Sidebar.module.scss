@@ -1,0 +1,440 @@
+// ============================================================================
+// SIDEBAR CONTAINER
+// ============================================================================
+.sidebarContainer {
+  height: 100vh;
+  background: #1a1d3a;
+  border-right: none;
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 100;
+  overflow: hidden;
+  transition: width 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.25);
+}
+
+.sidebarExpanded {
+  width: var(--sidebar-width, 240px);
+}
+
+.sidebarCollapsed {
+  width: var(--sidebar-closed-width, 72px);
+}
+
+// ============================================================================
+// USER PROFILE
+// ============================================================================
+.userProfile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  transition: all 0.3s ease;
+  overflow: hidden;
+  min-height: 64px;
+  justify-content: space-between;
+
+  .sidebarCollapsed & {
+    padding: 12px 8px;
+    gap: 0;
+    justify-content: center;
+  }
+}
+
+.userInfo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  opacity: 1;
+  transition: opacity 200ms ease;
+
+  .sidebarCollapsed & {
+    opacity: 0;
+    width: 0;
+    overflow: hidden;
+    display: none;
+  }
+}
+
+.userName {
+  font-size: 13px;
+  font-weight: 600;
+  color: #ffffff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.userEmail {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.45);
+  white-space: nowrap;
+  overflow: hidden;
+  font-weight: 400;
+  text-overflow: ellipsis;
+}
+
+.avatar {
+  display: none;
+}
+
+// ============================================================================
+// PROFILE TOGGLE BUTTON
+// ============================================================================
+.profileToggleButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  border: none;
+  outline: none;
+  background: none;
+  color: rgba(255, 255, 255, 0.4);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-radius: 6px;
+
+  &:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.08);
+  }
+}
+
+// ============================================================================
+// NAVIGATION
+// ============================================================================
+.sidebarNavigation {
+  flex: 1;
+  padding: 8px 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.navSection {
+  margin-bottom: 4px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.navSectionTitle {
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(211, 211, 211, 0.91);
+  text-transform: uppercase;
+  letter-spacing: 1.4px;
+  padding: 10px 18px 6px 18px;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+
+  &::before {
+    display: none;
+  }
+}
+
+.navSectionDivider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.07);
+  margin: 6px 12px;
+}
+
+// ============================================================================
+// MENU ITEMS
+// ============================================================================
+.menuItem {
+  display: flex;
+  align-items: center;
+  padding: 10px 14px;
+  margin: 1px 8px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.5);
+  background: transparent;
+  border: 1px solid transparent;
+  transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  white-space: nowrap;
+  overflow: hidden;
+
+  &::after {
+    display: none;
+  }
+
+  &.active {
+    color: rgb(226 232 243);
+    background: #4f52c4;
+    border-color: transparent;
+    font-weight: 500;
+
+    .menuItemIcon {
+      color: #ffffff;
+    }
+  }
+
+  &:hover:not(.active) {
+    background: rgba(255, 255, 255, 0.07);
+    color: rgba(255, 255, 255, 0.85);
+    border-color: transparent;
+  }
+
+  &:active {
+    transform: scale(0.97);
+  }
+
+  // Collapsed state: icon + small label stacked
+  &.collapsed {
+    justify-content: flex-start;
+    padding: 10px 8px;
+    margin: 1px 6px;
+
+    .menuItemContent {
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 4px;
+
+      .menuItemLabel {
+        align-self: center;
+      }
+    }
+  }
+}
+
+.menuItemChild {
+  padding: 8px 14px;
+  margin: 0 8px 1px 24px;
+  font-size: 12.5px;
+}
+
+.menuItemContent {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.menuItemIconWrapper {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  .sidebarExpanded & {
+    margin-right: 10px;
+  }
+
+  .sidebarCollapsed & {
+    margin-right: 0;
+    margin-bottom: 0;
+    width: 22px;
+    height: 22px;
+  }
+}
+
+.menuItemIcon {
+  width: 18px;
+  height: 18px;
+  color: inherit;
+  transition: color 0.2s ease;
+}
+
+.menuItemLabel {
+  color: inherit;
+  font-weight: inherit;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition:
+    font-size 200ms ease,
+    opacity 200ms ease;
+
+  .sidebarCollapsed & {
+    font-size: 9.5px;
+    opacity: 1;
+    width: auto;
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+    line-height: 1.2;
+    text-align: center;
+    max-width: 56px;
+  }
+}
+
+.menuItemBadge {
+  background: #e53e3e;
+  color: #ffffff;
+  font-size: 9.5px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 20px;
+  margin-left: 8px;
+  min-width: 18px;
+  text-align: center;
+
+  .sidebarCollapsed & {
+    display: none;
+  }
+}
+
+.chevronIcon {
+  color: rgba(255, 255, 255, 0.3);
+  transition: all 0.25s ease;
+  margin-left: 8px;
+  flex-shrink: 0;
+
+  &.expanded {
+    transform: rotate(180deg);
+    color: rgba(255, 255, 255, 0.7);
+  }
+}
+
+.childrenContainer {
+  margin-top: 2px;
+  display: flex;
+  flex-direction: column;
+}
+
+// ============================================================================
+// FOOTER
+// ============================================================================
+.sidebarFooter {
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  padding: 12px 8px;
+  background: rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.logoutButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 13px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  width: 100%;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.45);
+  background: transparent;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: inherit;
+  white-space: nowrap;
+  overflow: hidden;
+  color: #fffefe;
+  background: rgba(220, 60, 60, 0.661);
+  border-color: rgba(237, 74, 74, 0.58);
+  &:hover:not(:disabled) {
+    color: #fffefe;
+    background: rgba(153, 31, 31, 0.661);
+    border-color: rgba(237, 74, 74, 0.58);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  span {
+    transition: opacity 200ms ease;
+
+    .sidebarCollapsed & {
+      opacity: 0;
+      width: 0;
+      overflow: hidden;
+    }
+  }
+}
+
+.logoutSpinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  border-top: 2px solid rgba(255, 255, 255, 0.6);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+// ============================================================================
+// SKELETON
+// ============================================================================
+@keyframes skeleton-loading {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
+}
+
+@mixin skeleton-base {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.05) 0%,
+    rgba(255, 255, 255, 0.1) 50%,
+    rgba(255, 255, 255, 0.05) 100%
+  );
+  background-size: 200px 100%;
+  animation: skeleton-loading 1.5s ease-in-out infinite;
+  border-radius: 8px;
+}
+
+.userAvatarSkeleton {
+  @include skeleton-base;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.userNameSkeleton {
+  @include skeleton-base;
+  width: 110px;
+  height: 13px;
+  margin-bottom: 5px;
+}
+
+.userEmailSkeleton {
+  @include skeleton-base;
+  width: 80px;
+  height: 10px;
+}

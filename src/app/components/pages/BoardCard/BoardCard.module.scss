@@ -1,0 +1,329 @@
+.card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 15px;
+  padding: 20px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  cursor: pointer;
+
+  height: 100%;
+  position: relative;
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.15s ease;
+  font-family: "Poppins", sans-serif;
+  min-width: 0;
+  box-shadow:
+    rgba(9, 30, 66, 0.25) 0px 4px 8px -2px,
+    rgba(9, 30, 66, 0.08) 0px 0px 0px 1px;
+
+  &:hover {
+    box-shadow: 0 4px 20px rgba(99, 102, 241, 0.09);
+
+    .dragHandle {
+      opacity: 1;
+    }
+  }
+
+  &.dragging {
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.12);
+    transform: scale(1.02);
+    border-color: #818cf8;
+    cursor: grabbing;
+  }
+}
+
+// ── Drag handle ──────────────────────────────────────────────────────────────
+
+.dragHandle {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  opacity: 0;
+  color: #9ca3af;
+  cursor: grab;
+  transition: opacity 0.15s ease;
+  padding: 2px;
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+// ── Header ───────────────────────────────────────────────────────────────────
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding-right: 20px; // space for drag handle
+}
+
+.headerLeft {
+  flex: 1;
+  min-width: 0;
+}
+
+.name {
+  font-size: 20px;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: #3f4759;
+  margin: 0;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: -0.2px;
+}
+
+.description {
+  font-size: 13px;
+  color: #6b7280;
+  margin: 4px 0 0 0;
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.highPriorityBadge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+  border-radius: 6px;
+  padding: 4px 9px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+// ── Progress ─────────────────────────────────────────────────────────────────
+
+.progressSection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.progressMeta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.taskCount {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.taskCountDone {
+  font-size: 26px;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1;
+  letter-spacing: -0.5px;
+}
+
+.taskCountSep {
+  font-size: 15px;
+  color: #d1d5db;
+  font-weight: 400;
+}
+
+.taskCountTotal {
+  font-size: 15px;
+  font-weight: 600;
+  color: #6b7280;
+}
+
+.taskCountLabel {
+  font-size: 15px;
+  color: #9ca3af;
+  text-transform: uppercase;
+  margin-left: 3px;
+  font-weight: 500;
+}
+
+.progressPercent {
+  font-size: 20px;
+  font-weight: 700;
+  color: #4f46e5;
+}
+
+.progressBarTrack {
+  height: 12px;
+  background: #f3f4f6;
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.progressBarFill {
+  height: 100%;
+  background: linear-gradient(90deg, #6366f1, #818cf8);
+  border-radius: 99px;
+  transition: width 0.4s ease;
+  min-width: 4px;
+}
+
+// ── Multi-color status bar with labels ────────────────────────────────────────
+
+.statusBarSection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.statusBar {
+  display: flex;
+  height: 9px;
+  border-radius: 99px;
+  overflow: hidden;
+  gap: 2px;
+}
+
+.statusBarSegment {
+  height: 100%;
+  border-radius: 99px;
+  transition: width 0.3s ease;
+  min-width: 6px;
+}
+
+.barPending {
+  background: #f59e0b;
+}
+.barInProgress {
+  background: #3b82f6;
+}
+.barCompleted {
+  background: #10b981;
+}
+.barOnHold {
+  background: #8b5cf6;
+}
+.barClientInput {
+  background: #f97316;
+}
+.barCancelled {
+  background: #d1d5db;
+}
+
+// ── Status bar legend ─────────────────────────────────────────────────────────
+
+.statusBarLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  color: #6b7280;
+  white-space: nowrap;
+}
+
+.legendDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dotPending {
+  background: #f59e0b;
+}
+.dotInProgress {
+  background: #3b82f6;
+}
+.dotCompleted {
+  background: #10b981;
+}
+.dotOnHold {
+  background: #8b5cf6;
+}
+.dotClientInput {
+  background: #f97316;
+}
+.dotCancelled {
+  background: #d1d5db;
+}
+
+.legendCount {
+  font-weight: 700;
+  color: #111827;
+}
+
+// ── Status pills grid ─────────────────────────────────────────────────────────
+
+.statusGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 6px 12px;
+  border-top: 1px solid #f3f4f6;
+  padding-top: 14px;
+}
+
+.statusPill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #374151;
+
+  &.statusPillMuted {
+    opacity: 0.75;
+  }
+}
+
+.statusIcon {
+  flex-shrink: 0;
+}
+
+.statusCount {
+  font-weight: 700;
+  font-size: 14px;
+  color: #111827;
+  min-width: 16px;
+}
+
+.statusLabel {
+  color: #6b7280;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 15px;
+}
+
+// ── Status icon colors ────────────────────────────────────────────────────────
+
+.statusPending {
+  color: #f59e0b;
+}
+.statusInProgress {
+  color: #3b82f6;
+}
+.statusCompleted {
+  color: #10b981;
+}
+.statusOnHold {
+  color: #8b5cf6;
+}
+.statusClientInput {
+  color: #f97316;
+}
+.statusCancelled {
+  color: #9ca3af;
+}

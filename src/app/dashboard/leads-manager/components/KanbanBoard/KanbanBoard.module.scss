@@ -1,0 +1,797 @@
+/* ============================================================
+   KanbanBoard.module.scss
+   ============================================================ */
+
+$board-radius: 10px;
+$header-radius: 10px 10px 0 0;
+$gap: 10px;
+$collapsed-w: 80px;
+$header-h: 60px;
+$action-bar-h: 54px;
+
+/* ── Wrapper ───────────────────────────────────────────────── */
+.kanbanWrapper {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #f4f5f7;
+}
+
+/* ── Scroll container ──────────────────────────────────────── */
+.kanbanScroll {
+  flex: 1;
+  overflow-x: scroll; /* always scroll, always shows bar */
+  overflow-y: hidden;
+  padding: 18px 18px 12px 18px;
+
+  transform: rotateX(180deg);
+
+  /* ── Custom scrollbar – always visible, on-brand ── */
+  &::-webkit-scrollbar {
+    height: 6px;
+  }
+  &::-webkit-scrollbar-track {
+    background: #e9eaec;
+    border-radius: 99px;
+    margin: 0 18px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: #c1c5cc;
+    border-radius: 99px;
+  }
+  &::-webkit-scrollbar-thumb:hover {
+    background: #9ca3af;
+  }
+
+  /* Firefox */
+  scrollbar-width: thin;
+  scrollbar-color: #c1c5cc #e9eaec;
+}
+
+/* ── Inner flex row ────────────────────────────────────────── */
+.kanbanInner {
+  display: inline-flex; /* inline-flex so it expands to content width */
+  flex-direction: row;
+  align-items: stretch;
+  gap: $gap;
+  min-height: calc(100vh - 140px);
+  transform: rotateX(180deg);
+  height: 100%;
+  padding-bottom: 6px; /* breathing room above scrollbar */
+}
+
+/* ============================================================
+   BOARD (normal)
+   ============================================================ */
+.board {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 400px;
+  min-width: 200px;
+  max-width: 480px;
+
+  border-radius: 10px;
+  overflow: hidden;
+  position: relative;
+  transition: box-shadow 0.15s ease;
+  transition: width 220ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+/* ── Board header ──────────────────────────────────────────── */
+.boardHeader {
+  display: flex;
+  align-items: stretch; // ✅ important for full-height icon
+  justify-content: space-between;
+
+  padding: 0 10px 0 10px;
+  height: $header-h;
+  padding-left: 0px;
+
+  border-bottom: 1px solid #e5e7eb;
+  background: #ffffff;
+
+  flex-shrink: 0;
+  position: relative;
+  gap: 8px;
+
+  border-radius: 10px;
+  border: 1px solid #00000021;
+  /* colored top accent */
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+  }
+}
+
+/* accent colors */
+.headerOpen::before {
+  background: #6366f1;
+}
+.headerWon::before {
+  background: #22c55e;
+}
+.headerLost::before {
+  background: #ef4444;
+}
+/* DEFAULT (OPEN) */
+.headerOpen {
+  .stageIconCol {
+    color: #6366f1;
+    background: rgba(99, 102, 241, 0.08);
+  }
+}
+
+/* WON */
+.headerWon {
+  .stageIconCol {
+    color: #22c55e;
+    background: rgba(34, 197, 94, 0.1);
+  }
+}
+
+/* LOST */
+.headerLost {
+  .stageIconCol {
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.1);
+  }
+}
+
+/* ── LEFT SECTION (icon + text) ───────────────────────────── */
+.boardHeaderLeft {
+  display: flex;
+  align-items: stretch; // ✅ makes icon full height
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+
+/* ICON COLUMN */
+.stageIconCol {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 50px;
+  flex-shrink: 0;
+  border-radius: 0px 0px 0px 10px;
+
+  color: #9ca3af;
+}
+
+/* TEXT BLOCK */
+.stageTextBlock {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+}
+
+/* TEXT */
+.stageName {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #525762;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.leadCount {
+  font-size: 13px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+/* RIGHT ACTIONS */
+.boardHeaderActions {
+  flex-shrink: 0;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+/* three-dot button — hidden until header hovered */
+.dotsBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  color: #9ca3af;
+  cursor: pointer;
+  opacity: 0;
+  transition:
+    opacity 0.15s,
+    background 0.15s,
+    color 0.15s;
+
+  .boardHeader:hover & {
+    opacity: 1;
+  }
+
+  &:hover,
+  &.dotsBtnActive {
+    background: #f3f4f6;
+    color: #374151;
+    opacity: 1;
+  }
+}
+
+/* ── Dropdown ──────────────────────────────────────────────── */
+.dropdown {
+  position: absolute;
+  top: calc(100% + 6px); // slightly more spacing
+  right: 0;
+  z-index: 200;
+
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px; // softer corners
+
+  box-shadow:
+    0 12px 28px rgba(0, 0, 0, 0.12),
+    0 4px 10px rgba(0, 0, 0, 0.06);
+
+  padding: 6px; // more breathing room
+  min-width: 200px; // ⬅️ bigger
+  animation: ddIn 0.14s ease;
+}
+
+@keyframes ddIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.dropdownItem {
+  display: flex;
+  align-items: center;
+  gap: 10px; // more spacing
+
+  width: 100%;
+  padding: 9px 12px; // ⬅️ bigger click area
+
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+
+  font-size: 14px; // ⬅️ more readable
+  font-weight: 500; // ⬅️ clearer hierarchy
+  color: #374151;
+
+  cursor: pointer;
+  text-align: left;
+
+  transition:
+    background 0.12s ease,
+    transform 0.08s ease;
+
+  svg {
+    flex-shrink: 0;
+    color: #6b7280;
+    width: 16px;
+    height: 16px;
+  }
+
+  &:hover {
+    background: #f3f4f6;
+    transform: translateX(2px); // subtle motion
+  }
+
+  &:active {
+    transform: translateX(1px) scale(0.98);
+  }
+}
+
+.dropdownItemDisabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+  &:hover {
+    background: transparent;
+  }
+}
+
+.dropdownItemDanger {
+  color: #dc2626;
+
+  svg {
+    color: #dc2626;
+  }
+
+  &:hover {
+    background: #fef2f2;
+  }
+}
+
+.dropdownDivider {
+  height: 1px;
+  background: #eef0f3;
+  margin: 6px 4px; // more breathing room
+}
+
+/* ── Board body ────────────────────────────────────────────── */
+.boardBody {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  background-color: white;
+  border: 1px solid rgba(0, 0, 0, 0.099);
+}
+
+/* ─────────────────────────────────────────────
+   Stage Description (Collapsed Preview)
+───────────────────────────────────────────── */
+
+.stageDescription {
+  margin: 10px 10px 0;
+  padding: 8px 10px;
+
+  font-size: 12px;
+  line-height: 1.4;
+  color: #6b7280;
+
+  background: #f8fafc;
+  border: 1px dashed #d1d5db;
+  border-radius: 8px;
+
+  cursor: pointer;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  transition:
+    background 120ms ease,
+    border-color 120ms ease,
+    box-shadow 120ms ease;
+
+  &:hover {
+    background: #ffffff;
+    border-color: #9ca3af;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  }
+}
+
+/* ─────────────────────────────────────────────
+   Stage Description (Expanded Textarea)
+───────────────────────────────────────────── */
+
+.stageDescriptionTextarea {
+  margin: 10px 10px 0;
+  padding: 10px;
+
+  width: calc(100% - 20px);
+  height: 120px;
+
+  font-size: 14px;
+  line-height: 1.5;
+  color: #374151;
+
+  background: #ffffff;
+
+  border-radius: 8px;
+  border: 1px solid #22c55e;
+
+  outline: none;
+
+  resize: vertical;
+  overflow-y: auto;
+
+  box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.12);
+  font-family: "Poppins" !important;
+  font-weight: 500 !important;
+  transition:
+    box-shadow 140ms ease,
+    border-color 140ms ease,
+    background 120ms ease;
+
+  &:focus {
+    border-color: #16a34a;
+    box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.2);
+  }
+}
+
+/* ─────────────────────────────────────────────
+   Scrollbar (clean + subtle)
+───────────────────────────────────────────── */
+
+.stageDescriptionTextarea::-webkit-scrollbar {
+  width: 6px;
+}
+
+.stageDescriptionTextarea::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.stageDescriptionTextarea::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 4px;
+}
+
+.stageDescriptionTextarea::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+/* Firefox */
+.stageDescriptionTextarea {
+  scrollbar-width: thin;
+  scrollbar-color: #d1d5db transparent;
+}
+
+.emptyState {
+  flex: 1;
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+}
+
+.loadingState {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-x: scroll;
+  padding: 15px 10px;
+
+  padding-bottom: 80px;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
+  scrollbar-width: none;
+
+  -ms-overflow-style: none;
+}
+
+.emptyText {
+  font-size: 12.5px;
+  color: #d1d5db;
+  pointer-events: none;
+}
+
+/* ── Slide-up action bar ───────────────────────────────────── */
+.actionBar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: stretch;
+  height: $action-bar-h;
+  background: #d2d6f8;
+  border-top: 1px solid #0000000c;
+  border-radius: 0 0 $board-radius $board-radius;
+  overflow: hidden;
+  transform: translateY(100%);
+  opacity: 0;
+  box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.04);
+  transition:
+    transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+    opacity 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.actionBarVisible {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+.actionBarCreate {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  justify-content: flex-start;
+  gap: 6px;
+  border: none;
+  background: transparent;
+  font-size: 15px;
+  font-weight: 600;
+  color: #5153d3;
+  cursor: pointer;
+  padding: 0 14px;
+  transition: background 0.12s;
+  svg {
+    flex-shrink: 0;
+  }
+  &:hover {
+    background: #eef2ff;
+  }
+}
+
+.actionBarCollapse {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 54px;
+  flex-shrink: 0;
+  border: none;
+  border-left: 1px solid #e5e7eb;
+  background: #f3f4f6;
+  color: #374151;
+  cursor: pointer;
+  transition:
+    background 0.12s,
+    color 0.12s;
+  &:hover {
+    background: #f3f4f6;
+    color: #374151;
+  }
+}
+
+/* ── Resize handle ─────────────────────────────────────────── */
+.resizeHandle {
+  position: absolute;
+  right: -5px;
+  top: 0;
+  bottom: 0;
+  width: 10px;
+  cursor: col-resize;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &::after {
+    content: "";
+    width: 2px;
+    height: 36px;
+    background: transparent;
+    border-radius: 2px;
+    transition: background 0.15s;
+  }
+
+  &:hover::after,
+  &.resizeHandleActive::after {
+    background: #6366f1;
+  }
+}
+
+/* ============================================================
+   COLLAPSED BOARD
+   ============================================================ */
+.boardCollapsed {
+  flex-shrink: 0;
+  width: $collapsed-w;
+  /* No height constraint — matches sibling stretch */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #ffffff;
+  opacity: 0.6;
+  border-radius: 10px;
+  border: 1.5px solid #042b781b;
+  box-shadow: none;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: width 220ms cubic-bezier(0.4, 0, 0.2, 1);
+  transition:
+    box-shadow 0.15s,
+    border-color 0.15s;
+
+  &:hover {
+    border-color: #d1d5db;
+  }
+
+  /* reuse the ::before accent from the header color classes */
+  &::before {
+    content: "";
+    width: 100%;
+    height: 3px;
+    flex-shrink: 0;
+    border-radius: 10px 10px 0 0;
+    display: block;
+  }
+
+  &.headerOpen::before {
+    background: #6366f1;
+  }
+  &.headerWon::before {
+    background: #22c55e;
+  }
+  &.headerLost::before {
+    background: #ef4444;
+  }
+}
+
+.collapsedContent {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 14px;
+  gap: 15px;
+  overflow: hidden;
+}
+
+.collapsedName {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+
+  font-size: 16px;
+  font-weight: 600;
+  color: #374151;
+  white-space: nowrap;
+  max-height: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.collapsedCount {
+  text-orientation: mixed;
+  writing-mode: vertical-rl;
+  font-size: 14px;
+  color: #7f848d;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* ============================================================
+   MOVE ANIMATIONS
+   ============================================================ */
+
+@keyframes slideFromRight {
+  from {
+    transform: translateX(18px);
+    opacity: 0.7;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideFromLeft {
+  from {
+    transform: translateX(-18px);
+    opacity: 0.7;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.slideLeft {
+  animation: slideFromRight 300ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.slideRight {
+  animation: slideFromLeft 300ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.leadsList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-x: scroll;
+  padding: 15px 10px;
+
+  padding-bottom: 80px;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
+  scrollbar-width: none;
+
+  -ms-overflow-style: none;
+}
+.kanbanScroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+
+  scrollbar-width: none; /* Firefox */
+}
+
+.kanbanScroll::-webkit-scrollbar {
+  display: none; /* Chrome/Safari */
+}
+.boardHeader {
+  cursor: grab;
+  user-select: none;
+}
+
+.kanbanScroll.dragging {
+  cursor: grabbing;
+
+  * {
+    user-select: none;
+    cursor: grabbing !important;
+  }
+}
+
+/* ============================================================
+   DRAG AND DROP
+   ============================================================ */
+
+/* Board body when a card is hovering over it */
+.boardBodyDropTarget {
+  background: #eef0ff;
+  outline: 2px dashed #818cf8;
+  outline-offset: -2px;
+  transition:
+    background 0.15s ease,
+    outline 0.15s ease;
+
+  .emptyState {
+    color: #818cf8;
+  }
+}
+/* Drop placeholder — ghost slot showing where the card will land */
+.dropPlaceholder {
+  height: 80px;
+  border-radius: 10px;
+  border: 2px dashed #818cf8;
+  background: rgba(99, 102, 241, 0.05);
+  flex-shrink: 0;
+  animation: placeholderIn 0.15s ease;
+  transition: height 0.15s ease;
+}
+
+@keyframes placeholderIn {
+  from {
+    opacity: 0;
+    transform: scaleY(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+}
+
+/* Smooth transition on all board bodies during any drag session */
+.boardBody {
+  transition:
+    background 0.15s ease,
+    outline 0.15s ease;
+}
+
+.loadMoreWrapper {
+  padding: 10px;
+  display: flex;
+  justify-content: center;
+}
+
+.loadMoreBtn {
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  background: white;
+  cursor: pointer;
+}
+
+.loader {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #ccc;
+  border-top-color: #333;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

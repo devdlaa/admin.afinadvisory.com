@@ -1,0 +1,481 @@
+.usersTableContainer {
+  width: 100%;
+  overflow: hidden;
+  font-family: "Poppins" !important;
+
+  .tableWrapper {
+    overflow-x: auto;
+
+    &::-webkit-scrollbar {
+      height: 8px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: var(--background);
+      border-radius: 4px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: var(--border-color);
+      border-radius: 4px;
+
+      &:hover {
+        background: var(--text-secondary);
+      }
+    }
+  }
+
+  .usersTable {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+
+    thead {
+      background-color: white;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.068);
+
+      th {
+        text-align: left;
+        padding: 16px 20px;
+        font-weight: 600;
+        color: rgb(54, 54, 54);
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        white-space: nowrap;
+        position: relative;
+
+        &.sortable {
+          cursor: pointer;
+          user-select: none;
+          transition: background-color 0.2s ease;
+
+          &:hover {
+            background-color: var(--light-blue);
+          }
+
+          span {
+            margin-right: 8px;
+          }
+        }
+      }
+    }
+
+    tbody {
+      tr {
+        display: table-row !important;
+        border-bottom: 1px solid var(--border-color);
+        transition: background-color 0.2s ease;
+
+        &:hover {
+          background-color: var(--background);
+        }
+
+        &:last-child {
+          border-bottom: none;
+        }
+      }
+
+      td {
+        vertical-align: middle;
+        color: rgb(26, 26, 26);
+      }
+    }
+  }
+
+  .sortIndicator {
+    position: absolute;
+    top: 50%;
+    right: 8px;
+    transform: translateY(-50%);
+    width: 0;
+    height: 0;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-bottom: 6px solid var(--text-secondary);
+    opacity: 0.3;
+    transition: all 0.2s ease;
+
+    &.asc {
+      opacity: 1;
+      border-bottom-color: var(--primary-blue);
+    }
+
+    &.desc {
+      opacity: 1;
+      border-bottom: none;
+      border-top: 6px solid var(--primary-blue);
+    }
+  }
+
+  .nameCell {
+    min-width: 200px;
+    margin: 0 !important;
+    padding: 15px;
+  }
+
+  .userInfo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 0px !important;
+    background-color: transparent !important;
+  }
+
+  .userAvatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(
+      135deg,
+      var(--primary-green),
+      var(--primary-blue)
+    );
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 600;
+    font-size: 14px;
+    flex-shrink: 0;
+    display: none;
+  }
+
+  .userDetails {
+    .userName {
+      font-weight: 600;
+      color: black;
+      line-height: 1.2;
+      margin-bottom: 2px;
+    }
+
+    .userCode {
+      font-size: 12px;
+      color: rgb(46, 46, 46);
+      line-height: 1.2;
+    }
+  }
+
+  .emailCell {
+    min-width: 250px;
+    margin: 0 !important;
+    padding: 15px;
+  }
+
+  .emailInfo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .email {
+      color: black;
+    }
+
+    .securityIcon {
+      color: var(--primary-green);
+      flex-shrink: 0;
+    }
+  }
+
+  .departmentCell {
+    min-width: 180px;
+    padding: 15px;
+    
+    .department {
+      display: block;
+      font-weight: 500;
+      color: black;
+      line-height: 1.2;
+      margin-bottom: 2px;
+    }
+
+    .designation {
+      display: block;
+      font-size: 12px;
+      color: black;
+      line-height: 1.2;
+    }
+  }
+
+  .statusBadge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+
+    &.statusActive {
+      background-color: #dcfce7;
+      color: #166534;
+    }
+
+    &.statusPending {
+      background-color: #fef3c7;
+      color: #92400e;
+    }
+
+    &.statusDisabled {
+      background-color: #fecaca;
+      color: #991b1b;
+    }
+  }
+
+  .roleBadge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+
+    &.roleSuperAdmin {
+      background: linear-gradient(135deg, #10b981 0%, #3b82f6 100%);
+      color: white;
+    }
+
+    &.roleAdmin {
+      background-color: #dbeafe;
+      color: #1e40af;
+    }
+
+    &.roleManager {
+      background-color: #e0e7ff;
+      color: #4338ca;
+    }
+
+    &.roleEmployee {
+      background-color: #d1fae5;
+      color: #065f46;
+    }
+
+    &.roleViewOnly {
+      background-color: #f3f4f6;
+      color: #374151;
+    }
+
+    &.roleDefault {
+      background-color: #f3f4f6;
+      color: #6b7280;
+    }
+  }
+
+  .lastLoginCell {
+    min-width: 120px;
+    font-size: 13px;
+    padding: 15px;
+    align-items: center;
+    display: flex;
+    justify-content: flex-start;
+    color: var(--text-secondary);
+  }
+
+  .actionsCell {
+    width: 60px;
+    padding: 15px;
+  }
+
+  .actionsTrigger {
+    padding: 8px;
+    color: var(--text-secondary);
+
+    &:hover {
+      background-color: var(--light-blue);
+      color: var(--primary-blue);
+    }
+  }
+
+  .actionsDropdown {
+    min-width: 160px;
+  }
+
+  .dropdownItem {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background-color: var(--background);
+    }
+
+    &.deleteItem {
+      color: #ef4444;
+
+      &:hover {
+        background-color: #fef2f2;
+        color: #dc2626;
+      }
+    }
+  }
+
+  .tableFooter {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-top: 1px solid var(--border-color);
+    background-color: var(--background);
+  }
+
+  .paginationInfo {
+    font-size: 14px;
+    color: var(--text-secondary);
+  }
+
+  .paginationControls {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .paginationNav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border: 1px solid var(--border-color);
+    background: var(--white);
+    color: var(--text-primary);
+    border-radius: 8px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover:not(:disabled) {
+      border-color: var(--primary-blue);
+      background-color: var(--light-blue);
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+
+  .paginationNumbers {
+    display: flex;
+    gap: 4px;
+  }
+
+  .paginationBtn {
+    min-width: 36px;
+    height: 36px;
+    border: 1px solid var(--border-color);
+    background: var(--white);
+    color: var(--text-primary);
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &:hover {
+      border-color: var(--primary-blue);
+      background-color: var(--light-blue);
+    }
+
+    &.active {
+      background: var(--primary-blue);
+      border-color: var(--primary-blue);
+      color: white;
+    }
+  }
+}
+
+// Dialog styles
+.teamsManagementDialog {
+  :global(.MuiDialog-paper) {
+    border-radius: 12px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1),
+      0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  }
+}
+
+.dialogTitle {
+  padding: 24px 24px 16px 24px;
+  border-bottom: 1px solid #e5e7eb;
+
+  :global(.MuiDialogTitle-root) {
+    padding: 0;
+    font-weight: 600;
+    font-size: 18px;
+    color: #111827;
+  }
+}
+
+.dialogContent {
+  padding: 20px 24px;
+
+  :global(.MuiDialogContent-root) {
+    padding: 0;
+  }
+}
+
+.dialogActions {
+  padding: 16px 24px 24px 24px;
+  gap: 12px;
+
+  :global(.MuiDialogActions-root) {
+    padding: 0;
+  }
+
+  :global(.MuiButton-root) {
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    min-width: 80px;
+  }
+}
+
+// Mobile responsive
+@media (max-width: 768px) {
+  .usersTable {
+    min-width: 800px;
+  }
+
+  .tableFooter {
+    flex-direction: column;
+    gap: 16px;
+    align-items: stretch;
+
+    .paginationControls {
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+  }
+
+  .paginationNumbers {
+    order: -1;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .paginationControls {
+    gap: 8px;
+  }
+
+  .paginationNav {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+
+  .paginationBtn {
+    min-width: 32px;
+    height: 32px;
+    font-size: 13px;
+  }
+}

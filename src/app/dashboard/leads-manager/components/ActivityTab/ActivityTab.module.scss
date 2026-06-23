@@ -1,0 +1,259 @@
+.wrapper {
+  padding: 16px;
+  background: #f3f4f6;
+  min-height: 300px;
+}
+
+// ── Filter bar ───────────────────────────────────────────────────────────────
+
+.createBtn {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 15px;
+  border-radius: 20px;
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s;
+
+  &:hover {
+    background: #1d4ed8;
+  }
+}
+
+// ── Section ───────────────────────────────────────────────────────────────────
+
+.section {
+  margin-bottom: 20px;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 10px;
+}
+
+.sectionLabel {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  color: #6b7280;
+  text-transform: uppercase;
+}
+
+.sectionChevron {
+  color: #9ca3af;
+}
+
+// ── Timeline ──────────────────────────────────────────────────────────────────
+
+.timeline {
+  display: flex;
+  flex-direction: column;
+}
+
+.tlRow {
+  display: flex;
+  align-items: stretch;
+}
+
+.tlLeft {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 42px;
+  flex-shrink: 0;
+}
+
+.tlIconWrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1.5px solid #d1d5db;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #6b7280;
+  z-index: 1;
+  svg {
+    width: 22px;
+    height: 22px;
+  }
+}
+
+.tlLine {
+  flex: 1;
+  width: 2px;
+  min-height: 12px;
+  margin-top: 3px;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    #c4c4c4 0px,
+    #c4c4c4 5px,
+    transparent 5px,
+    transparent 11px
+  );
+  background-size: 2px 11px;
+  background-repeat: repeat-y;
+}
+
+// ── Card ──────────────────────────────────────────────────────────────────────
+
+.tlCard {
+  flex: 1;
+  background: #fff;
+  border: 0.5px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 14px 14px;
+  margin-left: 10px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: border-color 0.13s;
+
+  &:hover {
+    border-color: #93c5fd;
+  }
+}
+
+.cardTitle {
+  font-size: 16.5px;
+  font-weight: 600;
+  color: #404755;
+  line-height: 1.4;
+  margin-bottom: 7px;
+}
+
+// ── Meta row ─────────────────────────────────────────────────────────────────
+
+.metaRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.ts {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #8d9199;
+}
+
+.dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #d1d5db;
+  flex-shrink: 0;
+}
+
+// ── Status pills ──────────────────────────────────────────────────────────────
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 9px;
+  border-radius: 20px;
+  font-size: 11.5px;
+  font-weight: 600;
+  outline: 1px solid rgba(0, 0, 0, 0.106);
+  letter-spacing: 0.04em;
+}
+
+.pillActive {
+  background: #fef3c7; /* soft amber */
+  color: #92400e;
+}
+
+.pillCompleted {
+  background: #d1fae5; /* fresh green */
+  color: #065f46;
+}
+
+.pillMissed {
+  background: #fecaca; /* soft red */
+  color: #7f1d1d;
+}
+
+.pillOverdue {
+  background: #fed7aa; /* warm orange */
+  color: #9a3412;
+}
+
+.pillCancelled {
+  background: #fecaca; /* soft red */
+  color: #7f1d1d;
+}
+
+// ── Chips ────────────────────────────────────────────────────────────────────
+
+.chipRow {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 500;
+  border: 0.5px solid #e5e7eb;
+  background: #f9fafb;
+  color: #374151;
+  cursor: pointer;
+  transition: filter 0.12s;
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 9px;
+  border-radius: 20px;
+  font-size: 11.5px;
+  font-weight: 600;
+  outline: 1px solid rgba(0, 0, 0, 0.106);
+  letter-spacing: 0.04em;
+
+  &:hover {
+    filter: brightness(0.95);
+  }
+
+  svg {
+    width: 15px;
+    height: 15px;
+    flex-shrink: 0;
+  }
+}
+
+.actions {
+  margin-top: 15px;
+}
+
+// ── Empty ────────────────────────────────────────────────────────────────────
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 48px 0;
+  color: #9ca3af;
+
+  p {
+    font-size: 13px;
+    font-weight: 500;
+  }
+}

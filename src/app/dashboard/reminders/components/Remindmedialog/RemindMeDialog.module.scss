@@ -1,0 +1,950 @@
+/* ═══════════════════════════════════════════════════════════
+   RemindMeDialog.module.scss
+   ═══════════════════════════════════════════════════════════ */
+
+/* ─── Shared tokens ─────────────────────────────────────── */
+$blue: #2563eb;
+$blue-light: #eff6ff;
+$blue-ring: rgba(37, 99, 235, 0.08);
+$border: #e2e8f0;
+$border-mid: #cbd5e1;
+$text-dark: #0f172a;
+$text-body: #374151;
+$text-mid: #475569;
+$text-muted: #64748b;
+$text-dim: #94a3b8;
+$text-faint: #d1d5db;
+$bg-subtle: #f8fafc;
+$bg-hover: #f1f5f9;
+$bg-white: #fff;
+
+$t-fast: 0.12s ease;
+$t-spring: 0.2s cubic-bezier(0.34, 1.3, 0.64, 1);
+
+/* ─── Animations ────────────────────────────────────────── */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes popIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+@keyframes dropIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   OVERLAY & DIALOG
+   ═══════════════════════════════════════════════════════════ */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1500;
+  background: rgba(3, 4, 5, 0.6);
+  backdrop-filter: blur(5px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.15s ease;
+}
+
+.dialog {
+  width: 460px;
+  max-width: calc(100vw - 24px);
+  max-height: 88vh;
+  background: $bg-white;
+  border-radius: 18px;
+  box-shadow:
+    0 4px 6px rgba(0, 0, 0, 0.05),
+    0 20px 60px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+  animation: popIn 0.18s cubic-bezier(0.34, 1.2, 0.64, 1);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   HEADER
+   ═══════════════════════════════════════════════════════════ */
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 18px 13px;
+  border-bottom: 1px solid #f1f5f9;
+  flex-shrink: 0;
+  position: relative;
+}
+.title {
+  font-size: 15px;
+  font-weight: 700;
+  color: $text-dark;
+  letter-spacing: -0.01em;
+}
+.closeBtn {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: $text-dim;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    background $t-fast,
+    color $t-fast;
+  &:hover {
+    background: $bg-hover;
+    color: #334155;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   ONCE MODE
+   ═══════════════════════════════════════════════════════════ */
+
+.onceBody {
+  display: flex;
+  flex-direction: column;
+}
+
+/* DATE + TIME pill row */
+.dtRow {
+  display: flex;
+  align-items: stretch;
+  margin: 12px 16px 0;
+  border: 1.5px solid $border;
+  border-radius: 11px;
+  overflow: visible;
+  position: relative;
+}
+
+.dtPillStatic {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 9px 14px;
+  background: $bg-subtle;
+  border-radius: 10px 0 0 10px;
+  cursor: default;
+}
+
+.dtPill {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 9px 14px;
+  border: none;
+  background: #fafafa;
+  border-radius: 0 10px 10px 0;
+  cursor: pointer;
+  height: 100%;
+  font-family: inherit;
+  transition: background $t-fast;
+  &:hover {
+    background: $bg-hover;
+  }
+}
+.dtPillActive {
+  background: $blue-light !important;
+  .dtPillVal {
+    color: $blue;
+  }
+}
+
+.dtDivider {
+  width: 1px;
+  background: $border;
+  flex-shrink: 0;
+}
+.dtPillLabel {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  color: $text-dim;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+.dtPillVal {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1e293b;
+}
+.dtPillValMuted {
+  font-size: 14px;
+  font-weight: 500;
+  color: $text-dim;
+}
+
+/* Small ✕ clear button inside the TIME label */
+.dtPillClear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  font-size: 9px;
+  font-weight: 700;
+  color: $text-muted;
+  background: $border;
+  cursor: pointer;
+  transition:
+    background $t-fast,
+    color $t-fast;
+  &:hover {
+    background: #fecaca;
+    color: #b91c1c;
+  }
+}
+
+/* ─── Time dropdown (once mode) ─────────────────────────── */
+
+.timeDropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 400;
+  width: 180px;
+  background: $bg-white;
+  border: 1.5px solid $border;
+  border-radius: 13px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.13);
+  overflow: hidden;
+  animation: dropIn 0.14s ease;
+}
+.timeDropdownHeader {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 14px 7px;
+  font-size: 11px;
+  font-weight: 700;
+  color: $text-dim;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border-bottom: 1px solid #f1f5f9;
+}
+.timeDropdownList {
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+  max-height: 220px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: $border transparent;
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: $border;
+    border-radius: 4px;
+  }
+}
+.timeDropdownItem {
+  padding: 8px 14px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: $text-body;
+  cursor: pointer;
+  transition: background $t-fast;
+  &:hover {
+    background: $bg-subtle;
+  }
+}
+.timeDropdownItemSel {
+  background: $blue-light !important;
+  color: $blue !important;
+  font-weight: 600;
+}
+
+/* ─── Quick picks ────────────────────────────────────────── */
+
+.quickRow {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 16px 14px;
+  flex-wrap: wrap;
+}
+.quickBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1.5px solid $border;
+  background: $bg-white;
+  color: $text-mid;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition:
+    background $t-fast,
+    border-color $t-fast,
+    transform 0.1s ease;
+  &:hover {
+    background: $bg-subtle;
+    border-color: $border-mid;
+    transform: translateY(-1px);
+  }
+}
+.quickBtnRec {
+  color: $blue;
+  border-color: #bfdbfe;
+  background: $blue-light;
+  &:hover {
+    background: #dbeafe;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   CALENDAR
+   ═══════════════════════════════════════════════════════════ */
+
+.cal {
+  padding: 12px 16px 4px;
+}
+.calHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.calTitle {
+  font-size: 15px;
+  font-weight: 700;
+  color: $text-dark;
+  letter-spacing: -0.02em;
+}
+.calNav {
+  width: 35px;
+  height: 35px;
+  border-radius: 7px;
+  border: none;
+  background: transparent;
+  color: $text-muted;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background $t-fast;
+  &:hover {
+    background: $bg-hover;
+  }
+}
+.calGrid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 1px;
+}
+.calLabel {
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: $text-dim;
+  padding: 3px 0 7px;
+  letter-spacing: 0.02em;
+}
+.calCell {
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  font-size: 14px;
+  font-weight: 500;
+  color: $text-body;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    background $t-fast,
+    color $t-fast;
+  &:hover:not(:disabled) {
+    background: $bg-hover;
+  }
+}
+.calOther {
+  color: $text-faint !important;
+  pointer-events: none;
+}
+.calToday {
+  font-weight: 700;
+  color: #1e293b;
+}
+.calSel {
+  background: $blue !important;
+  color: $bg-white !important;
+  font-weight: 700;
+}
+.calDis {
+  color: $text-faint !important;
+  pointer-events: none;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   RECURRING PANEL
+   ═══════════════════════════════════════════════════════════ */
+
+.recBody {
+  overflow: visible;
+  padding: 10px 16px 4px;
+  flex: 1;
+}
+
+.typeGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.typeBtn {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 14px;
+  border-radius: 11px;
+  border: 1.5px solid $border;
+  background: #fafafa;
+  color: $text-body;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  transition:
+    border-color $t-fast,
+    background $t-fast;
+  &:hover {
+    border-color: $border-mid;
+    background: $bg-white;
+  }
+}
+.typeBtnOn {
+  border-color: $blue !important;
+  background: $bg-white !important;
+  color: $blue !important;
+  font-weight: 600;
+  box-shadow: 0 0 0 3px $blue-ring;
+  .typeIcon {
+    border-color: $blue;
+    color: $blue;
+    background: $blue-light;
+  }
+}
+.typeIcon {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: 1.5px solid $text-faint;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6b7280;
+  flex-shrink: 0;
+  transition:
+    border-color $t-fast,
+    color $t-fast,
+    background $t-fast;
+}
+
+.recRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 11px 0;
+  border-bottom: 1px solid #f1f5f9;
+  position: relative;
+  gap: 10px;
+  z-index: 2;
+}
+.recRowCol {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 11px 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+.recRowRight {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.recLabel {
+  font-size: 14px;
+  font-weight: 500;
+  color: $text-body;
+  white-space: nowrap;
+}
+.recLabelDim {
+  color: $text-faint;
+}
+
+.recValBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: none;
+  background: transparent;
+  color: $blue;
+  font-size: 13.5px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  padding: 0;
+  transition: opacity $t-fast;
+  &:hover {
+    opacity: 0.7;
+  }
+}
+.recValBtnOn {
+  opacity: 0.7;
+}
+
+/* ─── Repeat dropdown ────────────────────────────────────── */
+
+.repeatDrop {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 6px);
+  z-index: 1000;
+  width: 170px;
+  background: $bg-white;
+  border: 1.5px solid $border;
+  border-radius: 12px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.14);
+  overflow: hidden;
+  animation: dropIn 0.13s ease;
+}
+.repeatList {
+  list-style: none;
+  margin: 0;
+  padding: 5px 0;
+  max-height: 210px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: $border transparent;
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: $border;
+    border-radius: 4px;
+  }
+}
+.repeatItem {
+  padding: 8px 14px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: #334155;
+  cursor: pointer;
+  transition: background $t-fast;
+  &:hover {
+    background: $bg-subtle;
+  }
+}
+.repeatItemSel {
+  background: $blue-light !important;
+  color: $blue;
+  font-weight: 600;
+}
+
+/* ─── Day row (weekly) ───────────────────────────────────── */
+
+.dayRow {
+  display: flex;
+  gap: 6px;
+}
+.dayBtn {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: none;
+  background: #e5e7eb;
+  color: #6b7280;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition:
+    background $t-fast,
+    color $t-fast,
+    transform 0.1s ease;
+  &:hover {
+    background: $text-faint;
+  }
+}
+.dayBtnOn {
+  background: $blue !important;
+  color: $bg-white !important;
+}
+
+/* ─── Toggle ─────────────────────────────────────────────── */
+
+.toggle {
+  width: 40px;
+  height: 23px;
+  border-radius: 12px;
+  border: none;
+  background: $text-faint;
+  cursor: pointer;
+  position: relative;
+  flex-shrink: 0;
+  padding: 0;
+  transition: background $t-spring;
+}
+.toggleOn {
+  background: $blue;
+}
+.thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 19px;
+  height: 19px;
+  border-radius: 50%;
+  background: $bg-white;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
+  transition: transform $t-spring;
+}
+.toggleOn .thumb {
+  transform: translateX(17px);
+}
+
+/* ─── Radio ──────────────────────────────────────────────── */
+
+.radio {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid $text-faint;
+  background: transparent;
+  cursor: pointer;
+  flex-shrink: 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color $t-fast;
+  &:hover {
+    border-color: $blue;
+  }
+}
+.radioOn {
+  border-color: $blue !important;
+}
+.radioDot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+.radioOn .radioDot {
+  background: $blue;
+}
+
+/* ─── Occurrence input ───────────────────────────────────── */
+
+.occInput {
+  width: 110px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1.5px solid $border;
+  background: #fafafa;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: #1e293b;
+  font-family: inherit;
+  outline: none;
+  transition:
+    border-color $t-fast,
+    background $t-fast;
+  &:focus {
+    border-color: $blue;
+    background: $bg-white;
+  }
+  &::placeholder {
+    color: $text-faint;
+  }
+}
+.occDim {
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SUB-VIEW (date+time picker — recurring)
+   ═══════════════════════════════════════════════════════════ */
+
+.subView {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+  animation: popIn 0.15s ease;
+}
+.subViewHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px 11px;
+  border-bottom: 1px solid #f1f5f9;
+  flex-shrink: 0;
+}
+.subViewBack {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: $text-muted;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background $t-fast;
+  &:hover {
+    background: $bg-hover;
+  }
+}
+.subViewTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: $text-dark;
+}
+
+/* DATE / TIME tabs */
+.subTabs {
+  display: flex;
+  margin: 10px 16px 0;
+  border: 1.5px solid $border;
+  border-radius: 11px;
+  overflow: hidden;
+}
+.subTab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 8px 13px;
+  border: none;
+  background: #fafafa;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background $t-fast;
+  &:hover {
+    background: $bg-hover;
+  }
+}
+.subTabActive {
+  background: $bg-white !important;
+  box-shadow: inset 0 0 0 1.5px $blue;
+  border-radius: 10px;
+  .subTabVal {
+    color: $blue;
+  }
+}
+.subTabLabel {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  color: $text-dim;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+/* Reuse dtPillClear style for the sub-tab ✕ */
+.subTabClear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  font-size: 9px;
+  font-weight: 700;
+  color: $text-muted;
+  background: $border;
+  cursor: pointer;
+  transition:
+    background $t-fast,
+    color $t-fast;
+  &:hover {
+    background: #fecaca;
+    color: #b91c1c;
+  }
+}
+
+.subTabVal {
+  font-size: 14px;
+  font-weight: 500;
+  color: #1e293b;
+}
+.subTabValMuted {
+  font-size: 14px;
+  font-weight: 500;
+  color: $text-dim;
+}
+
+.subBody {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Time list (sub-view) */
+.timeList {
+  list-style: none;
+  margin: 10px 16px 0;
+  padding: 4px 0;
+  overflow-y: auto;
+  flex: 1;
+  max-height: 260px;
+  border: 1.5px solid #f1f5f9;
+  border-radius: 12px;
+  scrollbar-width: thin;
+  scrollbar-color: $border transparent;
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: $border;
+    border-radius: 4px;
+  }
+}
+.timeItem {
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  color: $text-body;
+  cursor: pointer;
+  transition: background $t-fast;
+  &:hover {
+    background: $bg-subtle;
+  }
+}
+.timeItemSel {
+  background: $blue-light !important;
+  color: $blue !important;
+  font-weight: 600;
+}
+
+.subFooter {
+  padding: 10px 16px 14px;
+  flex-shrink: 0;
+  border-top: 1px solid #f1f5f9;
+}
+.subConfirm {
+  width: 100%;
+  padding: 10px;
+  border-radius: 11px;
+  border: none;
+  background: $blue;
+  color: $bg-white;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background $t-fast;
+  &:hover {
+    background: #1d4ed8;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   ERROR & FOOTER
+   ═══════════════════════════════════════════════════════════ */
+
+.error {
+  margin: 0 16px 6px;
+  padding: 8px 12px;
+  border-radius: 9px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+  font-size: 12.5px;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  border-top: 1px solid #f1f5f9;
+  flex-shrink: 0;
+}
+.btnCancel {
+  flex: 1;
+  padding: 13px;
+  border: none;
+  background: transparent;
+  color: $text-muted;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background $t-fast;
+  &:hover {
+    background: $bg-subtle;
+  }
+}
+.footerDiv {
+  width: 1px;
+  height: 26px;
+  background: $border;
+  flex-shrink: 0;
+}
+.btnSet {
+  flex: 1;
+  padding: 13px;
+  border: none;
+  background: transparent;
+  color: $blue;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background $t-fast;
+  &:hover {
+    background: $blue-light;
+  }
+}

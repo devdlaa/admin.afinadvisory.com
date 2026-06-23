@@ -1,0 +1,812 @@
+// ============================================================
+// LEAD NOTES TIMELINE
+// ============================================================
+
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  background: #f3f4f6;
+  min-height: 300px;
+  height: 100%;
+}
+
+// ── Create section ───────────────────────────────────────────
+
+.createSection {
+  padding: 14px 16px 0;
+}
+
+// ── Collapsed create button ──────────────────────────────────
+
+.createNoteBtn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 14px;
+  background: #fff;
+  border: 1px dashed #d1d5db;
+  border-radius: 10px;
+  cursor: pointer;
+  color: #9ca3af;
+  font-size: 13.5px;
+  font-weight: 500;
+  font-family: inherit;
+  transition: all 0.18s ease;
+
+  &:hover {
+    border-color: #93c5fd;
+    color: #3b82f6;
+    background: #f0f9ff;
+
+    .createNoteBtnIcon {
+      background: #3b82f6;
+      color: #fff;
+    }
+  }
+}
+
+.createNoteBtnIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #e5e7eb;
+  color: #6b7280;
+  transition: all 0.18s ease;
+  flex-shrink: 0;
+}
+
+// ── Expanded create box ──────────────────────────────────────
+
+.createNoteBox {
+  background: #fffde7;
+  outline: 1px solid rgba(0, 0, 0, 0.079);
+  border-radius: 10px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  animation: expandIn 0.18s ease;
+}
+
+.createInputWrap {
+  position: relative;
+}
+
+.createTextarea {
+  width: 100%;
+  border: none;
+  outline: none;
+  resize: none;
+  background: transparent;
+  font-size: 13.5px;
+  font-family: inherit;
+  font-weight: 500;
+  color: #1f2937;
+  line-height: 1.6;
+  padding: 0;
+
+  &::placeholder {
+    color: #a3a08a;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.createMentionChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.createControls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border-top: 1px solid #fde68a;
+  padding-top: 10px;
+}
+
+.createControlsRight {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+// ── Visibility toggle ────────────────────────────────────────
+
+.visibilityToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  font-family: inherit;
+  transition: all 0.15s ease;
+}
+
+.publicToggle {
+  background: #e0f2fe;
+  color: #0369a1;
+  border-color: #bae6fd;
+
+  &:hover {
+    background: #bae6fd;
+  }
+}
+
+.privateToggle {
+  background: #fef3c7;
+  color: #92400e;
+  border-color: #fde68a;
+
+  &:hover {
+    background: #fde68a;
+  }
+}
+
+// ── Edit / Cancel / Save buttons ─────────────────────────────
+
+.cancelEditBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  background: #fff;
+  border: 1px solid #d1d5db;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s ease;
+
+  &:hover:not(:disabled) {
+    background: #f3f4f6;
+    border-color: #9ca3af;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.saveEditBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 14px;
+  background: #2563eb;
+  border: none;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s ease;
+
+  &:hover:not(:disabled) {
+    background: #1d4ed8;
+    box-shadow: 0 2px 6px rgba(37, 99, 235, 0.35);
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+}
+
+// ── Timeline wrap ────────────────────────────────────────────
+
+.timelineWrap {
+  padding: 16px 16px 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+// ── Note row (timeline item) ─────────────────────────────────
+
+.noteRow {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+}
+
+// ── Left side: icon + dashed line ────────────────────────────
+
+.noteLeft {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 40px;
+  flex-shrink: 0;
+}
+
+.noteIconWrap {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1.5px solid #d1d5db;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #9ca3af;
+  z-index: 1;
+
+  svg {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+.noteLine {
+  flex: 1;
+  width: 2px;
+  min-height: 12px;
+  margin-top: 3px;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    #d1d5db 0px,
+    #d1d5db 5px,
+    transparent 5px,
+    transparent 11px
+  );
+  background-size: 2px 11px;
+  background-repeat: repeat-y;
+}
+
+// ── Note card ────────────────────────────────────────────────
+
+.noteCard {
+  flex: 1;
+  background: #fffde7;
+  outline: 1px solid rgba(0, 0, 0, 0.079);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-left: 10px;
+  margin-bottom: 10px;
+
+  &:hover {
+    outline: 1px solid rgba(0, 0, 0, 0.153);
+    .editBtn {
+      opacity: 1;
+    }
+  }
+}
+
+.privateCard {
+  background: #fefce8;
+  border-color: #fde047;
+}
+
+.editingCard {
+  background: #fff;
+  border-color: #93c5fd;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
+}
+
+.deletedCard {
+  background: #f9fafb;
+  border: 1px dashed #d1d5db;
+  color: #9ca3af;
+  font-size: 12px;
+  font-style: italic;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  margin-left: 10px;
+  margin-bottom: 10px;
+  border-radius: 10px;
+
+  svg {
+    flex-shrink: 0;
+    width: 13px;
+    height: 13px;
+  }
+}
+
+// ── Card header ──────────────────────────────────────────────
+
+.noteCardHeader {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 8px;
+}
+
+.noteAvatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgb(185, 180, 38);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  span {
+    font-size: 13px;
+    font-weight: 600;
+    color: #ffffff;
+    letter-spacing: 0.3px;
+    user-select: none;
+  }
+}
+
+.noteMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex: 1;
+  min-width: 0;
+}
+
+.noteAuthor {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #1f2937;
+  line-height: 1.3;
+}
+
+.noteTime {
+  font-size: 11px;
+  color: #9ca3af;
+  font-weight: 500;
+}
+
+.noteHeaderRight {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.privateBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #92400e;
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+  padding: 2px 7px;
+  border-radius: 20px;
+
+  svg {
+    width: 10px;
+    height: 10px;
+  }
+}
+
+.editedBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  color: #9ca3af;
+  font-style: italic;
+
+  svg {
+    opacity: 0.6;
+    width: 10px;
+    height: 10px;
+  }
+}
+
+.editBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #6b7280;
+  opacity: 0;
+  transition: all 0.15s ease;
+
+  svg {
+    width: 13px;
+    height: 13px;
+  }
+
+  &:hover {
+    background: #fff;
+    color: #374151;
+    border-color: #9ca3af;
+  }
+}
+
+// ── Note body ────────────────────────────────────────────────
+
+.noteBody {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.mentionsRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.mentionChip {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #2563eb;
+  background: #eff6ff;
+  padding: 2px 8px;
+  border-radius: 20px;
+  border: 1px solid #bfdbfe;
+}
+
+.noteText {
+  font-size: 13.5px;
+  color: #374151;
+  font-weight: 500;
+  line-height: 1.6;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+  margin: 0;
+}
+
+// ── Edit mode ────────────────────────────────────────────────
+
+.editMode {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.editMentionChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.editChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 6px 4px 10px;
+  background: #2563eb;
+  color: #fff;
+  border-radius: 20px;
+  font-size: 11.5px;
+  font-weight: 600;
+
+  button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: rgba(255, 255, 255, 0.85);
+    padding: 1px;
+    border-radius: 50%;
+    transition: background 0.12s;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.25);
+      color: #fff;
+    }
+
+    svg {
+      width: 11px;
+      height: 11px;
+    }
+  }
+}
+
+.editInputWrap {
+  position: relative;
+}
+
+.editTextarea {
+  width: 100%;
+  border: none;
+  outline: none;
+  resize: none;
+  background: transparent;
+  font-size: 13.5px;
+  font-family: inherit;
+  font-weight: 500;
+  color: #1f2937;
+  line-height: 1.6;
+  padding: 0;
+
+  &::placeholder {
+    color: #9ca3af;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.editControls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border-top: 1px solid #e5e7eb;
+  padding-top: 10px;
+}
+
+.editControlsLeft {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.editControlsRight {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+// ── Load more ────────────────────────────────────────────────
+
+.loadMoreWrap {
+  display: flex;
+  justify-content: center;
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+.loadMoreBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 20px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #6b7280;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+
+  svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  &:hover:not(:disabled) {
+    background: #f9fafb;
+    border-color: #9ca3af;
+    color: #374151;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+// ── Empty state ──────────────────────────────────────────────
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+  color: #d1d5db;
+
+  svg {
+    margin-bottom: 14px;
+    opacity: 0.45;
+    width: 36px;
+    height: 36px;
+  }
+
+  p {
+    margin: 0 0 5px;
+    font-size: 15px;
+    font-weight: 600;
+    color: #9ca3af;
+  }
+
+  span {
+    font-size: 12px;
+    color: #c4c4c4;
+  }
+}
+
+// ── Loading / Error states ───────────────────────────────────
+
+.loadingWrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 48px 20px;
+  color: #9ca3af;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.errorWrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 48px 20px;
+  color: #ef4444;
+  font-size: 13px;
+  font-weight: 500;
+
+  button {
+    padding: 7px 16px;
+    background: #2563eb;
+    color: #fff;
+    border: none;
+    border-radius: 7px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+
+    &:hover {
+      background: #1d4ed8;
+    }
+  }
+}
+
+// ── Animations ───────────────────────────────────────────────
+
+@keyframes expandIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scaleY(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scaleY(1);
+  }
+}
+
+.spinning {
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+// ── Responsive ───────────────────────────────────────────────
+
+@media (max-width: 1024px) {
+  .noteCard {
+    padding: 10px 12px;
+  }
+
+  .noteAuthor {
+    font-size: 12px;
+  }
+
+  .noteText {
+    font-size: 12.5px;
+  }
+
+  .noteTime {
+    font-size: 10px;
+  }
+}
+
+@media (max-width: 768px) {
+  .editBtn {
+    opacity: 1;
+  }
+
+  .createNoteBtn {
+    font-size: 13px;
+  }
+}
+.noteRow:last-of-type .noteLine {
+  display: none;
+}
+
+.pinBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #9ca3af;
+  opacity: 0;
+  transition: all 0.15s ease;
+
+  svg {
+    width: 13px;
+    height: 13px;
+  }
+
+  &:hover {
+    background: #fff;
+    color: #374151;
+    border-color: #9ca3af;
+  }
+
+  &.pinned {
+    opacity: 1;
+    color: #2563eb;
+    background: #eff6ff;
+    border-color: #bfdbfe;
+
+    &:hover {
+      background: #dbeafe;
+    }
+  }
+}
+
+// also make pinBtn visible on card hover same as editBtn
+.noteCard:hover .pinBtn {
+  opacity: 1;
+}
+
+.deleteBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: #fff;
+  border: 1px solid #fecaca;
+  border-radius: 7px;
+  cursor: pointer;
+  color: #ef4444;
+  transition: all 0.15s ease;
+
+  svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  &:hover:not(:disabled) {
+    background: #fef2f2;
+    border-color: #ef4444;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}

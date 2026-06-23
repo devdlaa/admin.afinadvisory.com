@@ -1,0 +1,236 @@
+.trigger {
+  display: inline-flex;
+  cursor: pointer;
+}
+
+.popover {
+  position: fixed;
+  z-index: 9999;
+  background: #fff;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  font-family: "Poppins", sans-serif;
+  overflow: hidden;
+  opacity: 0;
+  transform: scale(0.95);
+  transition: all 0.2s ease;
+  pointer-events: none;
+
+  &.open {
+    opacity: 1;
+    transform: scale(1);
+    pointer-events: all;
+  }
+}
+
+.content {
+  max-height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: #f9fafb;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 3px;
+
+    &:hover {
+      background: #9ca3af;
+    }
+  }
+}
+
+.arrow {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background: #fff;
+  border: 1.5px solid #e5e7eb;
+  transform: rotate(45deg);
+  z-index: -1;
+}
+
+// Arrow positioning based on placement
+.placement-top {
+  .arrow {
+    bottom: -7px;
+    border-top: none;
+    border-left: none;
+  }
+
+  &.align-start .arrow {
+    left: 16px;
+  }
+
+  &.align-center .arrow {
+    left: calc(50% - 6px);
+  }
+
+  &.align-end .arrow {
+    right: 16px;
+  }
+}
+
+.placement-bottom {
+  .arrow {
+    top: -7px;
+    border-bottom: none;
+    border-right: none;
+  }
+
+  &.align-start .arrow {
+    left: 16px;
+  }
+
+  &.align-center .arrow {
+    left: calc(50% - 6px);
+  }
+
+  &.align-end .arrow {
+    right: 16px;
+  }
+}
+
+.placement-left {
+  .arrow {
+    right: -7px;
+    border-left: none;
+    border-bottom: none;
+  }
+
+  &.align-start .arrow {
+    top: 16px;
+  }
+
+  &.align-center .arrow {
+    top: calc(50% - 6px);
+  }
+
+  &.align-end .arrow {
+    bottom: 16px;
+  }
+}
+
+.placement-right {
+  .arrow {
+    left: -7px;
+    border-right: none;
+    border-top: none;
+  }
+
+  &.align-start .arrow {
+    top: 16px;
+  }
+
+  &.align-center .arrow {
+    top: calc(50% - 6px);
+  }
+
+  &.align-end .arrow {
+    bottom: 16px;
+  }
+}
+
+// Animation variants based on placement
+.placement-top.open {
+  animation: slideUpIn 0.2s ease;
+}
+
+.placement-bottom.open {
+  animation: slideDownIn 0.2s ease;
+}
+
+.placement-left.open {
+  animation: slideLeftIn 0.2s ease;
+}
+
+.placement-right.open {
+  animation: slideRightIn 0.2s ease;
+}
+
+@keyframes slideUpIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes slideDownIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes slideLeftIn {
+  from {
+    opacity: 0;
+    transform: translateX(8px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes slideRightIn {
+  from {
+    opacity: 0;
+    transform: translateX(-8px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+// Mobile responsiveness
+@media (max-width: 640px) {
+  .popover {
+    max-width: calc(100vw - 16px) !important;
+    border-radius: 10px;
+  }
+
+  .arrow {
+    width: 10px;
+    height: 10px;
+  }
+
+  .placement-top .arrow,
+  .placement-bottom .arrow {
+    &.align-start,
+    &.align-end {
+      left: 12px;
+    }
+  }
+
+  .placement-left .arrow,
+  .placement-right .arrow {
+    &.align-start,
+    &.align-end {
+      top: 12px;
+    }
+  }
+}
+
+// Tablet responsiveness
+@media (min-width: 641px) and (max-width: 1024px) {
+  .popover {
+    max-width: calc(100vw - 32px) !important;
+  }
+}

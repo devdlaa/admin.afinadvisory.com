@@ -1,0 +1,444 @@
+// ============================================================================
+// DIALOG CONTAINER
+// ============================================================================
+.dialog {
+  max-width: 80vw;
+  width: 1280px;
+  max-height: 92vh;
+  border: none;
+  border-radius: 20px;
+  padding: 0;
+  background: #f8f9fa;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+  margin: auto;
+
+  &::backdrop {
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(8px);
+  }
+}
+
+.closeButton {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: #ffffff;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  z-index: 100;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+
+  &:hover {
+    background: #f3f4f6;
+  }
+
+  svg {
+    color: #6b7280;
+  }
+}
+
+// ============================================================================
+// MAIN GRID LAYOUT
+// ============================================================================
+.mainGrid {
+  display: grid;
+  grid-template-columns: 1fr 40%;
+  height: 92vh;
+  max-height: 900px;
+  background-color: #ffffff;
+}
+
+// ============================================================================
+// LEFT SECTION
+// ============================================================================
+.leftSection {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+// Primary Info (Title & Description)
+.task_primaryInfo {
+  flex-shrink: 0;
+  padding: 40px 30px 20px;
+
+  .titleInput,
+  .descriptionInput {
+    width: 100%;
+    border: none;
+    outline: none;
+    font-family: "Poppins", sans-serif;
+    background: transparent;
+    resize: none;
+    overflow: hidden;
+
+    &::placeholder {
+      color: #c4c4c4;
+    }
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+    scrollbar-width: none;
+  }
+
+  .titleInput {
+    font-size: 1.5rem;
+    font-weight: 550;
+    color: #1f2937;
+    line-height: 1.3;
+    margin-bottom: 24px;
+  }
+
+  .descriptionInput {
+      background: #f8f8f8;
+    outline: 1px solid rgba(0, 0, 0, 0.06);
+    border-radius: 14px;
+    padding: 22px;
+    font-size: 1rem;
+    color: #1f2937;
+    line-height: 1.5;
+    transition: border-color 0.2s ease;
+
+    &::placeholder {
+      color: #b9becc;
+    }
+
+    &:focus {
+      border-color: #d5dfff;
+    }
+  }
+}
+
+// Tab Container
+.container {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.tabscontainer {
+  display: flex;
+  gap: 32px;
+  padding: 12px 30px;
+  border-bottom: 1px solid #e5e7eb;
+  flex-shrink: 0;
+
+  .tab {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    padding: 6px 2px;
+    border: none;
+    background: transparent;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: #6b7280;
+    cursor: pointer;
+    transition: color 0.2s ease;
+    position: relative;
+
+    svg {
+      stroke-width: 1.8;
+      width: 20px;
+    }
+
+    &:hover {
+      color: #374151;
+    }
+
+    &.active {
+      color: #1f2937;
+
+      &::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: -12px;
+        height: 3px;
+        border-radius: 2px;
+        background: #3b57ff;
+      }
+    }
+  }
+}
+
+.tabContent {
+  flex: 1;
+  overflow-y: auto;
+  padding: 30px 34px 20px 34px;
+  min-height: 0;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 3px;
+
+    &:hover {
+      background: #9ca3af;
+    }
+  }
+}
+
+// Actions Row Grid
+.actionsRow {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+
+  & > :nth-child(2) {
+    grid-column: span 2;
+  }
+}
+
+// ============================================================================
+// RIGHT SECTION
+// ============================================================================
+.rightSection {
+  display: flex;
+  flex-direction: column;
+  background: #f9fbff;
+  border-radius: 0 16px 16px 0;
+  border: 1px solid #e5e7eb;
+  overflow-y: hidden;
+  position: relative;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 3px;
+
+    &:hover {
+      background: #9ca3af;
+    }
+  }
+}
+
+// Shared Section Styles
+.creatdBySection,
+.assignment_section,
+.client_info,
+.business_info {
+  padding: 24px 20px;
+  border-bottom: 1px solid #e8ecff;
+
+  .title {
+    font-size: 15px;
+    color: #8a8a8a;
+
+    font-weight: 500;
+  }
+}
+
+// Created By Section
+.creatdBySection {
+  background-color: #fdfbf6;
+
+  .infoRow {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .userMeta {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .nameRow {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .name {
+    margin: 0;
+    font-size: 1.35rem;
+    font-weight: 600;
+    color: #1f2937;
+  }
+
+  .roleBadge {
+    background: #eef4ff;
+    border-radius: 25px;
+    padding: 4px 14px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #3b57ff;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    outline: 1px solid #3b58ff5a;
+
+    span {
+      display: flex;
+      align-items: flex-end;
+      gap: 4px;
+
+      svg {
+        width: 16px;
+      }
+    }
+
+    .dateTag {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.85rem;
+      color: #6b7280;
+
+      svg {
+        width: 17px;
+      }
+    }
+  }
+}
+
+// Assignment Section
+.assignment_section {
+  .header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+
+  .row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .avatars {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    padding: 6px 8px;
+    border-radius: 12px;
+    transition: background-color 0.2s ease;
+
+    & > * {
+      border: 3px solid white;
+      border-radius: 50%;
+      margin-right: -10px;
+
+      &:last-child {
+        margin-right: 0;
+      }
+    }
+
+    &:hover {
+      background-color: #ececec;
+
+      & > * {
+        margin-right: 0;
+      }
+    }
+  }
+
+  .addButton {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: 2px dashed #bfd1fd;
+    background: transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s ease;
+
+    svg {
+      color: #3b57ff;
+    }
+
+    &:hover {
+      background: #f3f4ff;
+    }
+  }
+
+  .noMembersText {
+    color: #6b7280;
+    font-size: 0.95rem;
+    margin: 0;
+  }
+
+  .date {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #6b7280;
+    font-size: 0.9rem;
+
+    svg {
+      width: 18px;
+    }
+  }
+}
+
+// Client Info Section
+.client_info {
+  padding: 24px 30px;
+  border-top: 1px solid #e8ecff;
+  border-bottom: 1px solid #e8ecff;
+
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 18px;
+  }
+
+  /* Any field container with this class spans both columns */
+  .fullWidth {
+    grid-column: 1 / -1;
+  }
+}
+
+.badge {
+  background: #eef4ff;
+  border-radius: 20px;
+  padding: 4px 10px;
+  font-size: 0.85rem;
+  color: #3b57ff;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  outline: 1px solid #3b58ff2f;
+}
+

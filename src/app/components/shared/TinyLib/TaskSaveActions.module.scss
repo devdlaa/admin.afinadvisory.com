@@ -1,0 +1,74 @@
+.actionButtons {
+  position: absolute;
+  bottom: 0;
+  right: 0; // aligns to right edge (change to left:0 if needed)
+
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+
+  background-color: #fff;
+
+  padding: 32px 20px;
+  border-radius: 0px;
+
+  opacity: 0;
+  transform: translateY(10px);
+  pointer-events: none;
+  transition: opacity 0.25s ease, transform 0.28s ease;
+background: linear-gradient(183deg, #d6f8e4, #f4f4f4eb);
+
+  /* keep inside bounding parent */
+  max-width: 100%;
+  width: 100%; // replace fit-content with auto
+  box-sizing: border-box;
+  overflow: hidden; // avoid spilling outside
+}
+
+.show {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.loading {
+  .btn {
+    opacity: 0.6;
+    cursor: wait;
+    pointer-events: none;
+  }
+}
+
+.btn {
+  width: 100%; // buttons scale properly in grid
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.update {
+  background: #4a63e7;
+  color: #fff;
+
+  &:hover:not(:disabled) {
+    background: #3853d0;
+  }
+}
+
+.cancel {
+  background: #f4f5fa;
+  color: #3e4b6d;
+  border: 1px solid #dde1f7;
+
+  &:hover:not(:disabled) {
+    background: #e7e9f6;
+  }
+}

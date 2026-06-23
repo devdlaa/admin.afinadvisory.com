@@ -1,0 +1,215 @@
+// DateRangeDropdown.module.scss
+// Trigger button styled identically to FilterDropdown.
+// Panel mirrors the second screenshot style.
+
+.wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+// ── Trigger button — cloned from FilterDropdown visual style ──────────────────
+.trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  padding: 12px 18px;
+  border: 1.5px solid #cbcbcb;
+  border-radius: 8px;
+  background: #ffffff;
+  cursor: pointer;
+  white-space: nowrap;
+  font-size: 14px;
+  font-weight: 600;
+  color: #2c3745;
+  transition: all 0.15s ease;
+  outline: none;
+  font-size: 14px;
+  color: #4f545f;
+  font-weight: 500;
+  &:hover {
+    border-color: #cbd5e1;
+    background: #f8fafc;
+  }
+}
+
+.triggerActive {
+  border-color: #10b981;
+  background: #f0fdf9;
+  color: #059669;
+
+  &:hover {
+    border-color: #059669;
+    background: #ecfdf5;
+  }
+}
+
+.triggerIcon {
+  flex-shrink: 0;
+  color: inherit;
+  opacity: 0.75;
+}
+
+.triggerLabel {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chevron {
+  flex-shrink: 0;
+  color: #94a3b8;
+  transition: transform 0.15s ease;
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+// Small X circle shown when a value is active
+.clearDot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #10b981;
+  color: #fff;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s ease;
+
+  &:hover {
+    background: #ef4444;
+  }
+}
+
+// ── Dropdown panel ────────────────────────────────────────────────────────────
+.panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 200;
+  width: 220px;
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 14px 14px 12px;
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.07),
+    0 10px 30px -5px rgba(0, 0, 0, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  animation: panelIn 0.14s ease;
+
+  @keyframes panelIn {
+    from {
+      opacity: 0;
+      transform: translateY(-4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+.panelTitle {
+  font-size: 12px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 2px;
+  letter-spacing: -0.1px;
+}
+
+// ── Field (label + input) ─────────────────────────────────────────────────────
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fieldLabel {
+  font-size: 11px;
+  font-weight: 500;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.dateInput {
+  height: 34px;
+  width: 100%;
+  padding: 0 10px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 7px;
+  background: #f8fafc;
+  font-size: 13px;
+  color: #0f172a;
+  outline: none;
+  box-sizing: border-box;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+
+  &:focus {
+    border-color: #10b981;
+    background: #fff;
+  }
+
+  &::-webkit-calendar-picker-indicator {
+    opacity: 0.5;
+    cursor: pointer;
+  }
+}
+
+// ── Actions ───────────────────────────────────────────────────────────────────
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.clearBtn {
+  flex: 1;
+  height: 32px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 7px;
+  background: #fff;
+  font-size: 12px;
+  font-weight: 500;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:hover {
+    border-color: #cbd5e1;
+    background: #f8fafc;
+    color: #475569;
+  }
+}
+
+.applyBtn {
+  flex: 1;
+  height: 32px;
+  border: none;
+  border-radius: 7px;
+  background: #10b981;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:hover:not(:disabled) {
+    background: #059669;
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+}

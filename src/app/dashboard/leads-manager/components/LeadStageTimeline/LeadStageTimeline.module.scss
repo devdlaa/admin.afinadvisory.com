@@ -1,0 +1,325 @@
+// ============================================================
+// LEAD STAGE TIMELINE
+// ============================================================
+
+.wrapper {
+  background: #f3f4f6;
+  min-height: 300px;
+  height: 100%;
+  padding: 16px 16px 20px;
+}
+
+.timeline {
+  display: flex;
+  flex-direction: column;
+}
+
+// ─── Row ─────────────────────────────────────────────────────
+
+.row {
+  display: flex;
+  align-items: stretch;
+}
+
+// ─── Left ────────────────────────────────────────────────────
+
+.rowLeft {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 40px;
+  flex-shrink: 0;
+}
+
+.iconWrap {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  z-index: 1;
+  padding: 2px;
+}
+
+.iconWrap_won {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+
+.iconWrap_closed {
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+
+.line {
+  flex: 1;
+  width: 2px;
+  min-height: 12px;
+  margin-top: 3px;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    #d1d5db 0px,
+    #d1d5db 5px,
+    transparent 5px,
+    transparent 11px
+  );
+  background-size: 2px 11px;
+  background-repeat: repeat-y;
+}
+
+// ─── Card ────────────────────────────────────────────────────
+
+.card {
+  flex: 1;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 11px 14px;
+  margin-left: 10px;
+  margin-bottom: 10px;
+  transition: box-shadow 0.15s ease;
+}
+
+.card_won {
+  border-left: 3px solid #6bc98e;
+}
+
+.card_closed {
+  border-left: 3px solid #dc8787;
+}
+
+.cardTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 9px;
+}
+
+.author {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #3d444f;
+}
+
+.time {
+  font-size: 12.5px;
+  color: #9ca3af;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+// ─── Stage row ───────────────────────────────────────────────
+
+.stageRow {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+.creationLabel {
+  font-size: 12px;
+  color: #6b7280;
+  font-weight: 400;
+}
+
+.arrow {
+  color: #d1d5db;
+  flex-shrink: 0;
+}
+
+// ─── Chips ───────────────────────────────────────────────────
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: 50px;
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.6;
+  white-space: nowrap;
+
+  svg {
+    flex-shrink: 0;
+  }
+}
+
+.chip_default {
+  background: #f3f4f6;
+  color: #4b5563;
+  border: 1px solid #e5e7eb;
+}
+
+.chip_won {
+  background: #f0fdf4;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+.chip_closed {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.chip_neutral {
+  background: #f3f4f6;
+  color: #9ca3af;
+  border: 1px solid #e5e7eb;
+}
+
+// dim only the "from" chip so the eye goes straight to "to"
+.chipDim {
+  opacity: 0.75;
+  font-weight: 500;
+}
+
+// ─── Note ────────────────────────────────────────────────────
+
+.note {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: #6b7280;
+  line-height: 1.5;
+  padding: 6px 10px;
+  background: #f9fafb;
+  border-radius: 6px;
+  border-left: 2px solid #e5e7eb;
+}
+
+// ─── Load more ───────────────────────────────────────────────
+
+.loadMoreWrap {
+  display: flex;
+  justify-content: center;
+  padding-top: 4px;
+}
+
+.loadMoreBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 18px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 20px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #6b7280;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s ease;
+
+  &:hover:not(:disabled) {
+    background: #f9fafb;
+    border-color: #9ca3af;
+    color: #374151;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+// ─── Empty ───────────────────────────────────────────────────
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+
+  svg {
+    margin-bottom: 14px;
+    opacity: 0.25;
+    color: #9ca3af;
+  }
+
+  p {
+    margin: 0 0 5px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #9ca3af;
+  }
+
+  span {
+    font-size: 12px;
+    color: #c4c4c4;
+  }
+}
+
+// ─── Loading / Error ─────────────────────────────────────────
+
+.center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 48px 20px;
+  color: #9ca3af;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.errorWrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 48px 20px;
+  color: #ef4444;
+  font-size: 13px;
+
+  button {
+    padding: 6px 16px;
+    background: #2563eb;
+    color: #fff;
+    border: none;
+    border-radius: 7px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+
+    &:hover {
+      background: #1d4ed8;
+    }
+  }
+}
+
+// ─── Animation ───────────────────────────────────────────────
+
+.spin {
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+// ─── Responsive ──────────────────────────────────────────────
+
+@media (max-width: 1024px) {
+  .card {
+    padding: 9px 12px;
+  }
+
+  .author {
+    font-size: 12px;
+  }
+
+  .time {
+    font-size: 10px;
+  }
+}

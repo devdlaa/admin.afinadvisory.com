@@ -1,0 +1,225 @@
+// Pagination/Pagination.module.scss
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+
+  &.disabled {
+    opacity: 0.6;
+    pointer-events: none;
+  }
+
+  .button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    background: #ffffff;
+    color: #374151;
+    font-family: inherit;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    outline: none;
+    min-width: 2.5rem;
+    height: 2.5rem;
+
+    &:hover:not(:disabled) {
+      background: #f9fafb;
+      border-color: #d1d5db;
+    }
+
+    &:active:not(:disabled) {
+      transform: scale(0.95);
+    }
+
+    &:focus-visible {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    &:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    svg {
+      width: 16px;
+      height: 16px;
+    }
+  }
+
+  .navButton {
+    padding: 0;
+  }
+
+  .pageButton {
+    &.active {
+      background: #3b82f6;
+      border-color: #3b82f6;
+      color: #ffffff;
+
+      &:hover {
+        background: #2563eb;
+        border-color: #2563eb;
+      }
+    }
+  }
+
+  .pages {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .dots {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2.5rem;
+    height: 2.5rem;
+    color: #9ca3af;
+    font-weight: 500;
+    user-select: none;
+  }
+
+  // Size variants
+  &.small {
+    gap: 0.375rem;
+
+    .button {
+      min-width: 2rem;
+      height: 2rem;
+      font-size: 0.875rem;
+
+      svg {
+        width: 14px;
+        height: 14px;
+      }
+    }
+
+    .pages {
+      gap: 0.375rem;
+    }
+
+    .dots {
+      min-width: 2rem;
+      height: 2rem;
+      font-size: 0.875rem;
+    }
+  }
+
+  &.mid {
+    gap: 0.5rem;
+
+    .button {
+      min-width: 2.5rem;
+      height: 2.5rem;
+      font-size: 0.9375rem;
+
+      svg {
+        width: 16px;
+        height: 16px;
+      }
+    }
+
+    .pages {
+      gap: 0.5rem;
+    }
+
+    .dots {
+      min-width: 2.5rem;
+      height: 2.5rem;
+      font-size: 0.9375rem;
+    }
+  }
+
+  &.large {
+    gap: 0.625rem;
+
+    .button {
+      min-width: 3rem;
+      height: 3rem;
+      font-size: 1rem;
+
+      svg {
+        width: 18px;
+        height: 18px;
+      }
+    }
+
+    .pages {
+      gap: 0.625rem;
+    }
+
+    .dots {
+      min-width: 3rem;
+      height: 3rem;
+      font-size: 1rem;
+    }
+  }
+
+  // Responsive adjustments
+  @media (max-width: 640px) {
+    gap: 0.375rem;
+
+    &.large {
+      .button {
+        min-width: 2.5rem;
+        height: 2.5rem;
+        font-size: 0.9375rem;
+      }
+
+      .dots {
+        min-width: 2.5rem;
+        height: 2.5rem;
+        font-size: 0.9375rem;
+      }
+
+      .pages {
+        gap: 0.375rem;
+      }
+    }
+
+    &.mid {
+      .button {
+        min-width: 2rem;
+        height: 2rem;
+        font-size: 0.875rem;
+      }
+
+      .dots {
+        min-width: 2rem;
+        height: 2rem;
+        font-size: 0.875rem;
+      }
+    }
+  }
+
+  @media (max-width: 480px) {
+    gap: 0.25rem;
+
+    .button {
+      min-width: 2rem;
+      height: 2rem;
+      font-size: 0.875rem;
+
+      svg {
+        width: 14px;
+        height: 14px;
+      }
+    }
+
+    .dots {
+      min-width: 1.5rem;
+      font-size: 0.875rem;
+    }
+
+    .pages {
+      gap: 0.25rem;
+    }
+  }
+}

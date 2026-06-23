@@ -1,0 +1,931 @@
+/* ─────────────────────────────────────────────
+   PIPELINE DRAWER — PipelineDrawer.module.scss
+───────────────────────────────────────────── */
+
+/* Tokens */
+$radius-sm: 6px;
+$radius-md: 8px;
+$radius-lg: 12px;
+
+$c-bg: #ffffff;
+$c-surface: #f9fafb;
+$c-border: #e5e7eb;
+$c-border-focus: #3b82f6;
+$c-text: #111827;
+$c-text-2: #6b7280;
+$c-text-3: #9ca3af;
+$c-primary: #1d4ed8;
+$c-primary-hover: #1e40af;
+$c-danger: #ef4444;
+$c-danger-bg: #fef2f2;
+$c-danger-hover: #dc2626;
+$c-success: #16a34a;
+$c-won: #16a34a;
+$c-lost: #ef4444;
+
+$shadow-sm:
+  0 1px 3px rgba(0, 0, 0, 0.06),
+  0 1px 2px rgba(0, 0, 0, 0.04);
+$shadow-md:
+  0 4px 16px rgba(0, 0, 0, 0.1),
+  0 2px 6px rgba(0, 0, 0, 0.06);
+$shadow-drawer: -8px 0 40px rgba(0, 0, 0, 0.12);
+
+/* ── Overlay ── */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.673);
+  backdrop-filter: blur(6px);
+  z-index: 1200;
+  display: flex;
+  align-items: stretch;
+  justify-content: flex-end;
+  animation: overlayIn 0.18s ease;
+}
+
+@keyframes overlayIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ── Drawer ── */
+.drawer {
+  width: 480px;
+  max-width: 95vw;
+  background: $c-bg;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  box-shadow: $shadow-drawer;
+  animation: drawerIn 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+  overflow: hidden;
+  border-left: 1px solid #e3e3e3;
+}
+
+@keyframes drawerIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0.6;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* ── Header ── */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px 16px;
+  border-bottom: 1px solid $c-border;
+  flex-shrink: 0;
+  background: $c-bg;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.headerIcon {
+  width: 42px;
+  height: 42px;
+  border-radius: $radius-md;
+  background: #eff6ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: $c-primary;
+  flex-shrink: 0;
+}
+
+.headerTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: $c-text;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.headerSub {
+  font-size: 12px;
+  font-weight: 500;
+  color: $c-text-2;
+  margin: 2px 0 0;
+}
+
+.closeBtn {
+  width: 30px;
+  height: 30px;
+  border: none;
+  background: transparent;
+  border-radius: $radius-sm;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: $c-text-2;
+  transition:
+    background 0.15s,
+    color 0.15s;
+  flex-shrink: 0;
+
+  &:hover {
+    background: $c-surface;
+    color: $c-text;
+  }
+}
+
+/* ── Tabs ── */
+.tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-bottom: 1px solid $c-border;
+  padding: 0 20px;
+  gap: 4px;
+  flex-shrink: 0;
+  background: $c-bg;
+}
+
+.tab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 12px 4px 10px;
+  font-size: 15px;
+  font-weight: 500;
+  color: $c-text-2;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  margin-bottom: -1px;
+  transition:
+    color 0.15s,
+    border-color 0.15s;
+  white-space: nowrap;
+
+  &:hover:not(:disabled) {
+    color: $c-text;
+  }
+
+  &Active {
+    color: $c-primary;
+    border-bottom-color: $c-primary;
+    font-weight: 600;
+  }
+
+  &Locked {
+    opacity: 0.85;
+    cursor: not-allowed;
+  }
+}
+
+/* ── Body ── */
+.body {
+  flex: 1;
+  overflow-y: auto;
+  scroll-behavior: smooth;
+
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: $c-border;
+    border-radius: 4px;
+  }
+}
+
+.tabContent {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ── Form Fields ── */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  position: relative;
+}
+
+.fieldRow {
+  display: flex;
+  gap: 16px;
+}
+
+.label {
+  font-size: 14px;
+  font-weight: 600;
+  color: rgb(166, 166, 166);
+  letter-spacing: 0.01em;
+}
+
+.required {
+  color: $c-danger;
+  margin-left: 2px;
+}
+
+.input {
+  height: 38px;
+  padding: 0 12px;
+  border: 1px solid $c-border;
+  border-radius: $radius-md;
+  font-size: 13.5px;
+  color: $c-text;
+  background: $c-bg;
+  outline: none;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+
+  &::placeholder {
+    color: $c-text-3;
+  }
+
+  &:focus {
+    border-color: $c-border-focus;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+  }
+}
+
+.textarea {
+  padding: 10px 12px;
+  border: 1px solid $c-border;
+  border-radius: $radius-md;
+  font-size: 13.5px;
+  color: $c-text;
+  background: $c-bg;
+  outline: none;
+  resize: vertical;
+  min-height: 72px;
+  font-family: inherit;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+  line-height: 1.5;
+  font-size: 15px;
+  font-weight: 500;
+  color: rgb(79, 79, 79);
+
+  &::placeholder {
+    color: $c-text-3;
+  }
+
+  &:focus {
+    border-color: $c-border-focus;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+  }
+}
+
+.select {
+  height: 38px;
+  padding: 0 12px;
+  border: 1px solid $c-border;
+  border-radius: $radius-md;
+  font-size: 13.5px;
+  color: $c-text;
+  background: $c-bg;
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 32px;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+
+  &:focus {
+    border-color: $c-border-focus;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+  }
+}
+
+.charCount {
+  font-size: 11px;
+  color: $c-text-3;
+  text-align: right;
+  margin-top: -2px;
+}
+
+.fieldError {
+  font-size: 11.5px;
+  color: $c-danger;
+  margin: 0;
+}
+
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  font-size: 13.5px;
+  color: $c-text;
+  cursor: pointer;
+  user-select: none;
+}
+
+.checkbox {
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+  accent-color: $c-primary;
+}
+
+/* ── Name + Icon inline ── */
+.nameWithIcon {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  border: 1px solid $c-border;
+  border-radius: $radius-md;
+  overflow: visible;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+
+  &:focus-within {
+    border-color: $c-border-focus;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+  }
+
+  .input {
+    border: none;
+    border-radius: 0 $radius-md $radius-md 0;
+    box-shadow: none !important;
+    flex: 1;
+    height: 42px;
+    font-size: 15px;
+    font-weight: 500;
+    color: rgb(79, 79, 79);
+
+    &:focus {
+      box-shadow: none !important;
+    }
+  }
+}
+
+.iconPickerWrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.iconPickerTrigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-right: 1px solid $c-border;
+  border-radius: $radius-md 0 0 $radius-md;
+  background: $c-surface;
+  cursor: pointer;
+  color: $c-primary;
+  transition: background 0.12s;
+
+  &:hover {
+    background: #eff6ff;
+  }
+}
+
+.iconGrid {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  width: 280px;
+  background: $c-bg;
+  border: 1px solid $c-border;
+  border-radius: $radius-md;
+  box-shadow: $shadow-md;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 4px;
+  padding: 8px;
+  z-index: 50;
+  animation: popIn 0.15s ease;
+}
+
+@keyframes popIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.iconGridItem {
+  width: 100%;
+  aspect-ratio: 1;
+  border: 1px solid transparent;
+  border-radius: $radius-sm;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  background: transparent;
+  color: $c-text-2;
+  transition:
+    background 0.12s,
+    border-color 0.12s,
+    color 0.12s;
+
+  &:hover {
+    background: #eff6ff;
+    color: $c-primary;
+  }
+
+  &Selected {
+    background: #eff6ff;
+    border-color: #bfdbfe;
+    color: $c-primary;
+  }
+}
+
+/* ── Meta info ── */
+.metaInfo {
+  background: $c-surface;
+  border: 1px solid $c-border;
+  border-radius: $radius-md;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: 4px;
+}
+
+.metaRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: $c-text-2;
+
+  svg {
+    flex-shrink: 0;
+    color: $c-text-3;
+  }
+
+  strong {
+    color: $c-text;
+    font-weight: 600;
+  }
+}
+
+/* ── Loading ── */
+.loadingState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 60px 20px;
+  color: $c-text-2;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.loadingRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: $c-text-2;
+  height: 38px;
+}
+
+/* ── Error Banner ── */
+.errorBanner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: $c-danger-bg;
+  border: 1px solid #fecaca;
+  border-radius: $radius-md;
+  padding: 10px 14px;
+  font-size: 13px;
+  color: $c-danger;
+  margin: 0 20px 12px;
+
+  svg {
+    flex-shrink: 0;
+  }
+}
+
+/* ── STAGES ── */
+.stageSection {
+  background: $c-surface;
+  border: 1px solid $c-border;
+  border-radius: $radius-lg;
+  overflow: visible;
+}
+
+.stageSectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px 9px;
+  border-bottom: 1px solid $c-border;
+  background: $c-bg;
+}
+
+.stageSectionTitle {
+  font-size: 12px;
+  font-weight: 600;
+  color: $c-text;
+  margin: 0;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.stageSectionCount {
+  font-size: 11px;
+  font-weight: 500;
+  color: $c-text-2;
+  background: $c-border;
+  padding: 2px 7px;
+  border-radius: 20px;
+}
+
+.stageSectionLock {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: $c-text-3;
+  font-weight: 500;
+}
+
+.stageList {
+  overflow: visible;
+}
+
+/* ── Stage Row ── */
+.stageRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px 0 6px;
+  height: 45px;
+  border-bottom: 1px solid transparent;
+  transition: background 0.12s;
+  position: relative;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &:hover:not([data-system]) {
+    background: #f0f9ff;
+
+    .stageMenuBtn {
+      opacity: 1;
+    }
+  }
+
+  &[data-system] {
+    background: transparent;
+    opacity: 0.7;
+  }
+
+  &DragOver {
+    background: #eff6ff;
+    border-top: 2px solid $c-primary;
+    border-bottom: 2px solid transparent;
+  }
+}
+
+.stageDragHandle {
+  cursor: grab;
+  color: $c-text-3;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  padding: 4px;
+  border-radius: 4px;
+  transition: color 0.12s;
+
+  &:hover {
+    color: $c-text-2;
+  }
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+.stageName {
+  flex: 1;
+  font-size: 14.5px;
+  color: $c-text;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stageSystemIcon {
+  flex-shrink: 0;
+}
+
+.stageLockIcon {
+  color: $c-text-3;
+  flex-shrink: 0;
+}
+
+/* ── Stage Actions / Menu ── */
+.stageActions {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.stageMenuBtn {
+  width: 26px;
+  height: 26px;
+  border: none;
+  background: transparent;
+  border-radius: $radius-sm;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: $c-text-2;
+  opacity: 0;
+  transition:
+    background 0.12s,
+    opacity 0.12s;
+
+  &:hover {
+    background: #dbeafe;
+    color: $c-primary;
+  }
+}
+
+.stageMenu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  background: $c-bg;
+  border: 1px solid $c-border;
+  border-radius: $radius-md;
+  box-shadow: $shadow-md;
+  min-width: 160px;
+  z-index: 100;
+  overflow: hidden;
+  animation: popIn 0.15s ease;
+
+  &Up {
+    top: auto;
+    bottom: calc(100% + 4px);
+  }
+}
+
+.stageMenuItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 9px 13px;
+  font-size: 13px;
+  color: $c-text;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s;
+
+  &:hover {
+    background: $c-surface;
+  }
+
+  &Danger {
+    color: $c-danger;
+    &:hover {
+      background: $c-danger-bg;
+    }
+  }
+}
+
+/* ── Stage Inline Input ── */
+.stageInlineInput {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  border-top: 1px solid $c-border;
+  border-bottom: 1px solid $c-border;
+  background: #f0f9ff;
+  animation: slideDown 0.15s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.stageInput {
+  flex: 1;
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid #bfdbfe;
+  border-radius: $radius-sm;
+  font-size: 13px;
+  color: $c-text;
+  background: $c-bg;
+  outline: none;
+
+  &:focus {
+    border-color: $c-border-focus;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+  }
+}
+
+.stageInputCancel {
+  width: 28px;
+  height: 28px;
+  border: 1px solid $c-border;
+  border-radius: $radius-sm;
+  background: $c-bg;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: $c-text-2;
+  flex-shrink: 0;
+  transition:
+    background 0.12s,
+    border-color 0.12s;
+
+  &:hover {
+    background: $c-surface;
+    border-color: #9ca3af;
+  }
+}
+
+.stageInputConfirm {
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: $radius-sm;
+  background: $c-success;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #fff;
+  flex-shrink: 0;
+  transition:
+    background 0.12s,
+    opacity 0.12s;
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  &:not(:disabled):hover {
+    background: #15803d;
+  }
+}
+
+/* ── Add Stage Button ── */
+.addStageBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 10px 14px;
+  border: none;
+  background: none;
+  font-size: 13px;
+  font-weight: 500;
+  color: $c-primary;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s;
+  border-top: 1px dashed $c-border;
+
+  &:hover:not(:disabled) {
+    background: #eff6ff;
+  }
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    color: $c-text-2;
+  }
+}
+
+.addStageCap {
+  font-size: 11px;
+  color: $c-text-3;
+  font-weight: 400;
+}
+
+/* ── System stage placeholder ── */
+.stageSystemPlaceholder {
+  padding: 14px 16px;
+  font-size: 12.5px;
+  color: $c-text-3;
+  margin: 0;
+  font-style: italic;
+}
+
+/* ── Footer ── */
+.footer {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 20px;
+  border-top: 1px solid $c-border;
+  background: $c-bg;
+  flex-shrink: 0;
+}
+
+.cancelBtn {
+  padding: 10px 16px;
+  font-size: 14.5px;
+  border: 1px solid $c-border;
+  border-radius: $radius-md;
+  background: $c-bg;
+
+  font-weight: 500;
+  color: $c-text-2;
+  cursor: pointer;
+  transition:
+    background 0.14s,
+    border-color 0.14s,
+    color 0.14s;
+
+  &:hover:not(:disabled) {
+    background: $c-surface;
+    border-color: #9ca3af;
+    color: $c-text;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.primaryBtn {
+  padding: 10px 16px;
+  font-size: 14.5px;
+  border: none;
+  border-radius: $radius-md;
+  background: $c-primary;
+
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  transition:
+    background 0.14s,
+    opacity 0.14s;
+
+  &:hover:not(:disabled) {
+    background: $c-primary-hover;
+  }
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+}
+
+.btnSpinner {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+/* ── CSS vars for system stages ── */
+:root {
+  --stage-won: #16a34a;
+  --stage-lost: #ef4444;
+}

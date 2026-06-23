@@ -1,0 +1,995 @@
+// LeadContactsTable.module.scss
+
+/* ─────────────────────────────────────────────────────────────
+   WRAPPER
+   Parent page must be:
+     height: 100vh (or calc(100vh - topbarHeight));
+     display: flex;
+     flex-direction: column;
+     box-sizing: border-box;
+   The wrapper fills remaining height — only .tableScroll scrolls.
+───────────────────────────────────────────────────────────── */
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0; /* flex child must be able to shrink */
+  max-height: 100%;
+  border: 1px solid #ababab6d;
+  border-radius: 14px;
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.05),
+    0 1px 2px rgba(0, 0, 0, 0.04);
+  background: #fff;
+  overflow: hidden; /* clip border-radius on children */
+}
+
+/* ─────────────────────────────────────────────────────────────
+   CARD HEADER — pinned, never scrolls
+───────────────────────────────────────────────────────────── */
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 18px;
+  border-bottom: 1px solid #f0f1f6;
+  flex-shrink: 0;
+  background: #fff;
+  flex-wrap: wrap;
+}
+
+.cardHeaderLeft {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cardTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+  letter-spacing: -0.2px;
+  font-family: "Poppins", sans-serif;
+}
+
+.countBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 20px;
+  padding: 0 7px;
+  background: #eef0fb;
+  color: #3949ab;
+  font-size: 11.5px;
+  font-weight: 700;
+  border-radius: 99px;
+  font-family: "Poppins", sans-serif;
+}
+
+.cardHeaderRight {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+/* ── Search (now inside card header) ── */
+.searchWrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 260px;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 10px;
+  color: #b0b8cc;
+  pointer-events: none;
+}
+
+.searchInput {
+  width: 100%;
+  height: 34px;
+  padding: 0 30px 0 32px;
+  border: 1.5px solid #e2e5ed;
+  border-radius: 8px;
+  font-family: "Poppins", sans-serif;
+  font-size: 12.5px;
+  color: #111827;
+  background: #f8f9fc;
+  outline: none;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s,
+    background 0.15s;
+
+  &::placeholder {
+    color: #b0b8cc;
+  }
+  &:focus {
+    border-color: #3949ab;
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(57, 73, 171, 0.1);
+  }
+}
+
+.searchClear {
+  position: absolute;
+  right: 8px;
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: transparent;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #9ca3af;
+  transition:
+    color 0.12s,
+    background 0.12s;
+  &:hover {
+    color: #374151;
+    background: #e5e7eb;
+  }
+}
+
+/* ── Toolbar utility buttons ── */
+.clearSearchBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 34px;
+  padding: 0 11px;
+  background: #fff;
+  color: #374151;
+  border: 1.5px solid #e2e5ed;
+  border-radius: 8px;
+  font-family: "Poppins", sans-serif;
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+  &:hover {
+    background: #f3f4f6;
+    border-color: #d1d5db;
+  }
+}
+
+.resetBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 34px;
+  padding: 0 11px;
+  background: #fff5f5;
+  color: #c53030;
+  border: 1.5px solid #fed7d7;
+  border-radius: 8px;
+  font-family: "Poppins", sans-serif;
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+  &:hover {
+    background: #fed7d7;
+  }
+}
+
+/* ── Filter dropdown ── */
+.filterWrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.filterBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 12px;
+  background: #fff;
+  color: #374151;
+  border: 1.5px solid #e2e5ed;
+  border-radius: 8px;
+  font-family: "Poppins", sans-serif;
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+  &:hover {
+    background: #f3f4f6;
+    border-color: #d1d5db;
+  }
+}
+
+.filterBtnActive {
+  border-color: #3949ab;
+  color: #3949ab;
+  background: #eef0fb;
+}
+
+.filterDot {
+  width: 6px;
+  height: 6px;
+  background: #3949ab;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.filterChevron {
+  transition: transform 0.2s;
+  flex-shrink: 0;
+}
+.filterChevronOpen {
+  transform: rotate(180deg);
+}
+
+.filterPanel {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  width: 280px;
+  background: #fff;
+  border: 1.5px solid #e2e5ed;
+  border-radius: 10px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.12);
+  z-index: 300;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  animation: popIn 0.13s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes popIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.filterPanelTitle {
+  font-family: "Poppins", sans-serif;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+.filterField {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.filterLabel {
+  font-family: "Poppins", sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.filterSelect {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1.5px solid #e2e5ed;
+  border-radius: 8px;
+  font-family: "Poppins", sans-serif;
+  font-size: 13px;
+  color: #111827;
+  background: #f8f9fc;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.15s;
+  &:focus {
+    border-color: #3949ab;
+    background: #fff;
+  }
+}
+
+.filterActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 4px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.filterClearBtn {
+  flex: 1;
+  padding: 8px;
+  background: #f3f4f6;
+  color: #374151;
+  border: none;
+  border-radius: 7px;
+  font-family: "Poppins", sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+  &:hover {
+    background: #e5e7eb;
+  }
+}
+
+.filterApplyBtn {
+  flex: 1;
+  padding: 8px;
+  background: #3949ab;
+  color: #fff;
+  border: none;
+  border-radius: 7px;
+  font-family: "Poppins", sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+  &:hover {
+    background: #303f9f;
+  }
+}
+
+/* ── Refresh ── */
+.refreshBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  background: #fff;
+  border: 1.5px solid #e2e5ed;
+  border-radius: 8px;
+  color: #6b7280;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition:
+    background 0.15s,
+    color 0.15s,
+    border-color 0.15s;
+  &:hover:not(:disabled) {
+    background: #eef0fb;
+    border-color: #3949ab;
+    color: #3949ab;
+  }
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+}
+
+.refreshSpinning {
+  animation: spin 0.8s linear infinite;
+}
+
+/* ── Add button ── */
+.addBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 14px;
+  background: #3949ab;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: "Poppins", sans-serif;
+  white-space: nowrap;
+  transition:
+    background 0.14s,
+    box-shadow 0.14s,
+    transform 0.1s;
+
+  flex-shrink: 0;
+  &:hover {
+    background: #303f9f;
+  }
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+/* ── Filter chips (below header) ── */
+.filterChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 18px;
+  border-bottom: 1px solid #f0f1f6;
+  flex-shrink: 0;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px 3px 11px;
+  background: #eef0fb;
+  color: #3949ab;
+  border-radius: 20px;
+  font-family: "Poppins", sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.chipRemove {
+  background: none;
+  border: none;
+  color: #3949ab;
+  cursor: pointer;
+  padding: 2px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 50%;
+  opacity: 0.6;
+  transition:
+    opacity 0.15s,
+    background 0.15s;
+  &:hover {
+    opacity: 1;
+    background: rgba(57, 73, 171, 0.15);
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   TABLE SCROLL AREA — the only part that scrolls
+   overflow-x:auto for wide columns
+   overflow-y:auto for rows (inherits flex height)
+   NEVER put overflow:hidden on .wrapper — it breaks sticky cols
+───────────────────────────────────────────────────────────── */
+.tableScroll {
+  flex: 1;
+  overflow-x: auto;
+  overflow-y: auto;
+  min-height: 0; /* critical — without this flex ignores overflow */
+
+  &::-webkit-scrollbar {
+    height: 5px;
+    width: 5px;
+  }
+  &::-webkit-scrollbar-track {
+    background: #f3f4f6;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 10px;
+    &:hover {
+      background: #9ca3af;
+    }
+  }
+}
+
+.table {
+  width: max-content;
+  min-width: 100%;
+  border-collapse: collapse;
+  table-layout: auto;
+}
+
+/* ── Header row — sticky inside .tableScroll ── */
+.theadRow {
+  background: #f8f9fb;
+}
+
+.th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: 0;
+  text-align: left;
+  white-space: nowrap;
+  background: #f8f9fb;
+  border-bottom: 1.5px solid #e8eaf0;
+}
+
+.thInner {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  font-family: "Poppins", sans-serif;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.55px;
+
+  svg {
+    color: #c4c9d8;
+    flex-shrink: 0;
+  }
+}
+
+/* Sticky actions column header */
+.thSticky {
+  position: sticky;
+  right: 0;
+  z-index: 20;
+  background: #f8f9fb;
+  &::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: #e5e7eb;
+  }
+  &::after {
+    content: "";
+    position: absolute;
+    left: -16px;
+    top: 0;
+    bottom: 0;
+    width: 16px;
+    background: linear-gradient(to right, transparent, rgba(0, 0, 0, 0.04));
+    pointer-events: none;
+  }
+  .thInner {
+    justify-content: center;
+  }
+}
+
+/* ── Body rows ── */
+.tr {
+  border-bottom: 1px solid #f3f4f6;
+  transition: background 0.1s;
+
+  /* Alternate rows */
+  &:nth-child(even) {
+    background: #f9fafb;
+
+    .tdSticky {
+      background: #f9fafb;
+    }
+  }
+
+  &:hover {
+    background: #fafbff;
+
+    .tdSticky {
+      background: #fafbff;
+    }
+  }
+}
+
+.trLoading {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.td {
+  padding: 12px 16px;
+  font-family: "Poppins", sans-serif;
+  font-size: 14px;
+  color: #232934;
+  font-weight: 500;
+  vertical-align: middle;
+  white-space: nowrap;
+  background: #fff;
+}
+
+.tdSticky {
+  position: sticky;
+  right: 0;
+  z-index: 10;
+  background: #fff;
+  &::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: #e5e7eb;
+  }
+  &::after {
+    content: "";
+    position: absolute;
+    left: -16px;
+    top: 0;
+    bottom: 0;
+    width: 16px;
+    background: linear-gradient(to right, transparent, rgba(0, 0, 0, 0.04));
+    pointer-events: none;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   CELL CONTENT + TEXT HIERARCHY
+───────────────────────────────────────────────────────────── */
+.contactCell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Tier 1 — primary text: names, primary values */
+.contactName {
+  font-size: 14.5px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.companyName {
+  font-size: 14.5px;
+  font-weight: 600;
+  color: #63666b;
+}
+
+/* Tier 2 — secondary text: supporting info */
+.cellText {
+  font-size: 13px;
+  color: #4b5563;
+}
+
+/* Tier 3 — muted/absent */
+.naText {
+  font-size: 13px;
+  color: #d1d5db;
+}
+
+/* ── Badges ── */
+.entityTypeBadge {
+  display: inline-block;
+  padding: 2px 8px;
+  background: #f3f4f6;
+  color: #6b7280;
+  border-radius: 5px;
+  font-size: 11.5px;
+  font-weight: 500;
+  font-family: "Poppins", sans-serif;
+}
+
+.industryBadge {
+  display: inline-block;
+  padding: 2px 9px;
+  background: #eef0fb;
+  color: #3949ab;
+  border-radius: 5px;
+  font-size: 11.5px;
+  font-weight: 500;
+  font-family: "Poppins", sans-serif;
+}
+
+/* ── Email ── */
+.emailLink {
+  font-size: 13px;
+  color: #3949ab;
+  text-decoration: none;
+  transition: color 0.12s;
+  &:hover {
+    color: #303f9f;
+    text-decoration: underline;
+  }
+}
+
+.emailSecondary {
+  color: #6b7280;
+  &:hover {
+    color: #374151;
+  }
+}
+
+/* ── Phone ── */
+.phoneCell {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #374151;
+}
+
+.phoneSecondary {
+  color: #6b7280;
+}
+
+.waBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 5px;
+  background: #d1fae5;
+  color: #065f46;
+  border-radius: 4px;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  font-family: "Poppins", sans-serif;
+}
+
+/* ── ID codes ── */
+.idCode {
+  font-family: "Courier New", monospace;
+  font-size: 12.5px;
+  color: #374151;
+  letter-spacing: 0.5px;
+}
+
+/* ── Location ── */
+.locationCell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.locationPrimary {
+  font-size: 13px;
+  color: #111827;
+  font-weight: 500;
+}
+
+.locationSecondary {
+  font-size: 11.5px;
+  color: #9ca3af;
+}
+
+/* ── Audit (created/updated by) ── */
+.auditCell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.auditName {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #4b5563;
+}
+
+.auditDate {
+  font-size: 11px;
+  color: #b0b8cc;
+}
+
+/* ── Actions cell ── */
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 4px;
+}
+
+.editBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  background: #eef0fb;
+  color: #3949ab;
+  border: none;
+  border-radius: 7px;
+  font-family: "Poppins", sans-serif;
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    transform 0.1s;
+  white-space: nowrap;
+  &:hover {
+    background: #e0e3f8;
+    transform: translateY(-1px);
+  }
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+.deleteBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: #fff5f5;
+  color: #e53e3e;
+  border: none;
+  border-radius: 7px;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    transform 0.1s;
+  &:hover {
+    background: #fed7d7;
+    transform: translateY(-1px);
+  }
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   STATE CELLS
+───────────────────────────────────────────────────────────── */
+.stateCell {
+  padding: 60px 24px;
+  text-align: center;
+}
+
+.loadingState {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: #6b7280;
+  font-family: "Poppins", sans-serif;
+  font-size: 14px;
+}
+
+.spinner {
+  animation: spin 0.85s linear infinite;
+  color: #3949ab;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.emptyIconWrap {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: #eef0fb;
+  color: #3949ab;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 6px;
+}
+
+.emptyTitle {
+  font-family: "Poppins", sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  color: #374151;
+  margin: 0;
+}
+
+.emptyDesc {
+  font-family: "Poppins", sans-serif;
+  font-size: 13px;
+  color: #9ca3af;
+  margin: 0 0 4px;
+}
+
+.emptyAddBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 16px;
+  background: #eef0fb;
+  color: #3949ab;
+  border: 1.5px solid #c5cbee;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: "Poppins", sans-serif;
+  margin-top: 8px;
+  transition:
+    background 0.13s,
+    border-color 0.13s;
+  &:hover {
+    background: #e4e7f8;
+    border-color: #a5acdc;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   PAGINATION — pinned footer, never scrolls
+───────────────────────────────────────────────────────────── */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 11px 18px;
+  border-top: 1px solid #f0f1f6;
+  background: #fafbfd;
+  flex-wrap: wrap;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.paginationInfo {
+  font-family: "Poppins", sans-serif;
+  font-size: 12.5px;
+  color: #9ca3af;
+  font-weight: 500;
+}
+
+.paginationControls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pageBtn {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  border: 1.5px solid #e2e5ed;
+  border-radius: 7px;
+  color: #374151;
+  cursor: pointer;
+  transition:
+    background 0.12s,
+    color 0.12s,
+    border-color 0.12s;
+  &:hover:not(:disabled) {
+    background: #eef0fb;
+    border-color: #3949ab;
+    color: #3949ab;
+  }
+  &:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+}
+
+.pageIndicator {
+  font-family: "Poppins", sans-serif;
+  font-size: 12.5px;
+  color: #6b7280;
+  padding: 0 10px;
+  white-space: nowrap;
+  strong {
+    font-weight: 600;
+    color: #111827;
+  }
+}
+
+/* ── Responsive ── */
+@media (max-width: 700px) {
+  .cardHeader {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .cardHeaderRight {
+    flex-wrap: wrap;
+  }
+  .searchWrap {
+    width: 100%;
+  }
+  .pagination {
+    flex-direction: column;
+    align-items: center;
+  }
+}
